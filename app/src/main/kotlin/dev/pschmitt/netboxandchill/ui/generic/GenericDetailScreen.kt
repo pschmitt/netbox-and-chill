@@ -66,6 +66,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -87,6 +88,7 @@ import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.RackFace
+import dev.pschmitt.netboxandchill.ui.generic.RackDevicePreview
 import androidx.core.content.getSystemService
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -113,6 +115,7 @@ fun GenericDetailScreen(
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
     val frontElevation by viewModel.frontElevation.collectAsStateWithLifecycle()
     val rearElevation by viewModel.rearElevation.collectAsStateWithLifecycle()
+    val rackDevicePreviews by viewModel.rackDevicePreviews.collectAsStateWithLifecycle()
     val relatedTarget by viewModel.relatedTarget.collectAsStateWithLifecycle()
     val relatedObjects by viewModel.relatedObjects.collectAsStateWithLifecycle()
     val relatedPreviewUrls by viewModel.relatedPreviewUrls.collectAsStateWithLifecycle()
@@ -351,6 +354,8 @@ fun GenericDetailScreen(
                                     RackElevationOverview(
                                         front = frontElevation,
                                         rear = rearElevation,
+                                        previews = rackDevicePreviews,
+                                        localImageFile = viewModel::localAttachmentFile,
                                         onDeviceClick = { id ->
                                             onNavigateToReference("api/dcim/devices/", id)
                                         },
@@ -430,6 +435,8 @@ fun GenericDetailScreen(
 private fun RackElevationOverview(
     front: List<RackElevationEntity>,
     rear: List<RackElevationEntity>,
+    previews: Map<Int, RackDevicePreview>,
+    localImageFile: (String, String) -> java.io.File?,
     onDeviceClick: (Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -449,8 +456,8 @@ private fun RackElevationOverview(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            RackFaceOverview(RackFace.FRONT, front, onDeviceClick)
-            RackFaceOverview(RackFace.REAR, rear, onDeviceClick)
+            RackFaceOverview(RackFace.FRONT, front, previews, localImageFile, onDeviceClick)
+            RackFaceOverview(RackFace.REAR, rear, previews, localImageFile, onDeviceClick)
         }
         Spacer(Modifier.height(8.dp))
     }
@@ -460,6 +467,8 @@ private fun RackElevationOverview(
 private fun RackFaceOverview(
     face: RackFace,
     slots: List<RackElevationEntity>,
+    previews: Map<Int, RackDevicePreview>,
+    localImageFile: (String, String) -> java.io.File?,
     onDeviceClick: (Int) -> Unit,
 ) {
     Column {
@@ -472,29 +481,38 @@ private fun RackFaceOverview(
             )
             return
         }
-        val displayedDevices = mutableSetOf<Int>()
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             modifier = Modifier.padding(top = 4.dp),
         ) {
             Column(Modifier.padding(vertical = 4.dp, horizontal = 6.dp)) {
-                slots.forEach { slot ->
-                    val deviceId = slot.deviceId
-                    val firstDeviceSlot = deviceId != null && displayedDevices.add(deviceId)
+                mergeRackSlots(slots).forEach { block ->
+                    val firstSlot = block.slots.first()
+                    val lastSlot = block.slots.last()
+                    val deviceId = block.deviceId
+                    val preview = deviceId?.let(previews::get)
+                    val imageUrl =
+                        if (face == RackFace.FRONT) preview?.frontUrl ?: preview?.rearUrl
+                        else preview?.rearUrl ?: preview?.frontUrl
+                    val imageFilename =
+                        preview?.deviceTypeId?.let { typeId ->
+                            "device-type-$typeId-${face.apiValue}"
+                        }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.height(28.dp).fillMaxWidth(),
+                        modifier = Modifier.height(28.dp * block.slots.size).fillMaxWidth(),
                     ) {
                         Text(
-                            slot.slotName,
+                            if (firstSlot.slotName == lastSlot.slotName) firstSlot.slotName
+                            else "${firstSlot.slotName}–${lastSlot.slotName}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.width(48.dp),
                         )
                         Surface(
                             color =
-                                if (slot.occupied) MaterialTheme.colorScheme.primaryContainer
+                                if (deviceId != null) rackDeviceColor(deviceId)
                                 else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(4.dp),
                             modifier =
@@ -504,22 +522,69 @@ private fun RackFaceOverview(
                                         deviceId?.let(onDeviceClick)
                                     },
                         ) {
-                            if (firstDeviceSlot) {
-                                Text(
-                                    slot.deviceDisplay ?: "Device #$deviceId",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                                )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                            ) {
+                                if (deviceId != null) {
+                                    RemoteThumbnail(
+                                        imageUrl = imageUrl,
+                                        contentDescription = firstSlot.deviceDisplay,
+                                        localFile =
+                                            imageUrl?.let { url ->
+                                                imageFilename?.let { filename -> localImageFile(url, filename) }
+                                            },
+                                        modifier = Modifier.size(44.dp),
+                                        contentScale = ContentScale.Fit,
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        firstSlot.deviceDisplay ?: "Device #$deviceId",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color(0xFF263238),
+                                        maxLines = 2,
+                                    )
+                                }
                             }
                         }
                     }
-                    Spacer(Modifier.height(2.dp))
                 }
             }
         }
     }
+}
+
+private data class RackElevationBlock(
+    val deviceId: Int?,
+    val slots: List<RackElevationEntity>,
+)
+
+private fun mergeRackSlots(slots: List<RackElevationEntity>): List<RackElevationBlock> {
+    val blocks = mutableListOf<RackElevationBlock>()
+    slots.forEach { slot ->
+        val current = blocks.lastOrNull()
+        if (current != null && current.deviceId == slot.deviceId) {
+            blocks[blocks.lastIndex] = current.copy(slots = current.slots + slot)
+        } else {
+            blocks += RackElevationBlock(slot.deviceId, listOf(slot))
+        }
+    }
+    return blocks
+}
+
+private fun rackDeviceColor(deviceId: Int): Color {
+    val palette =
+        listOf(
+            Color(0xFFDDEBFF),
+            Color(0xFFE3F4E7),
+            Color(0xFFFFE5D0),
+            Color(0xFFEDE0FF),
+            Color(0xFFFFF0B3),
+            Color(0xFFD9F4F0),
+            Color(0xFFFFDDE4),
+            Color(0xFFE4E8F0),
+        )
+    return palette[Math.floorMod(deviceId, palette.size)]
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

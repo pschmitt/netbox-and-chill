@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -46,6 +47,12 @@ import kotlinx.serialization.json.intOrNull
 // Mirrors NetBoxNavHost's/GlobalSearchRepository's DEVICES_ENDPOINT_PATH constant - kept local
 // rather than shared to avoid a broader refactor while other agents are touching those files.
 private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+
+data class RackDevicePreview(
+    val deviceTypeId: Int,
+    val frontUrl: String?,
+    val rearUrl: String?,
+)
 
 @HiltViewModel
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -177,6 +184,30 @@ constructor(
             emptyList(),
         )
 
+    /** Device-type stock photos keyed by device id, for the rack elevation blocks. */
+    val rackDevicePreviews: StateFlow<Map<Int, RackDevicePreview>> =
+        combine(
+                repository.observeObjects(DEVICES_ENDPOINT_PATH, "", "rack", route.id),
+                deviceTypeRepository.observeAll(),
+            ) { devices, deviceTypes ->
+                val types = deviceTypes.associateBy { it.id }
+                devices.mapNotNull { entity ->
+                    val objectJson = decode(entity.json) ?: return@mapNotNull null
+                    val deviceTypeId =
+                        (objectJson["device_type"] as? JsonObject)?.let {
+                            (it["id"] as? JsonPrimitive)?.intOrNull
+                        } ?: return@mapNotNull null
+                    val deviceType = types[deviceTypeId] ?: return@mapNotNull null
+                    entity.id to
+                        RackDevicePreview(
+                            deviceTypeId = deviceTypeId,
+                            frontUrl = deviceType.frontImageUrl,
+                            rearUrl = deviceType.rearImageUrl,
+                        )
+                }.toMap()
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     fun hideField(label: String) {
         settingsRepository.addHiddenField(hiddenFieldPreferenceKey(route.endpointPath, label))
     }
@@ -248,6 +279,24 @@ constructor(
         if (settingsRepository.offlineMode.value) return
         rackElevationRepository.refresh(route.id, RackFace.FRONT)
         rackElevationRepository.refresh(route.id, RackFace.REAR)
+        // Elevation responses only contain a compact device reference. Sync the rack's devices
+        // so the cached JSON can provide device_type IDs, then refresh those small image records.
+        repository.syncAll(DEVICES_ENDPOINT_PATH, filters = mapOf("rack_id" to route.id.toString()))
+        repository
+            .cachedObjects(DEVICES_ENDPOINT_PATH)
+            .mapNotNull { entity ->
+                val objectJson = decode(entity.json) ?: return@mapNotNull null
+                val rackId =
+                    (objectJson["rack"] as? JsonObject)?.let {
+                        (it["id"] as? JsonPrimitive)?.intOrNull
+                    }
+                if (rackId != route.id) return@mapNotNull null
+                (objectJson["device_type"] as? JsonObject)?.let {
+                    (it["id"] as? JsonPrimitive)?.intOrNull
+                }
+            }
+            .distinct()
+            .forEach { deviceTypeRepository.refresh(it) }
     }
 
     private fun loadJournalEntries() {

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
@@ -107,13 +108,17 @@ constructor(
         viewModelScope.launch {
             device.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
+        // The first cached device row can predate device-type synchronization and have a null
+        // deviceTypeId. React to the Room row changing after refresh rather than only inspecting
+        // the first emission, otherwise the stock front/rear photos never get loaded.
         viewModelScope.launch {
-            device.filterNotNull().take(1).collect { entity ->
-                entity.deviceTypeId?.let { id ->
-                    if (settingsRepository.offlineMode.value) deviceTypeRepository.ensureCached(id)
-                    else deviceTypeRepository.refresh(id)
+            device
+                .map { it?.deviceTypeId }
+                .distinctUntilChanged()
+                .filterNotNull()
+                .collect { id ->
+                    if (!settingsRepository.offlineMode.value) deviceTypeRepository.refresh(id)
                 }
-            }
         }
     }
 

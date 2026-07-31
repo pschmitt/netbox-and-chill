@@ -439,11 +439,10 @@ continues to work from cached data while offline.
 - [x] Add paired-printer discovery, Bluetooth permissions, selection, and progress/error feedback.
 - [x] Replace the detail-screen share-sheet action with a real in-app print job.
 - [x] Add protocol tests and pass remote unit tests, lint, and debug build.
-- [ ] Verify a physical print with the user's paired Brother printer; no printer was available on
-  the Mi Pad 4 smoke-test device.
+- [x] Verify physical output with the user's paired Brother printer (user confirmed printing works).
 
-Status: mostly done, 2026-07-31 - native implementation and remote validation pass; physical paper
-output remains to be tested when a paired printer is available.
+Status: mostly done, 2026-07-31 - native implementation, remote validation, and an initial physical
+print passed; inversion/clipping changes still need a follow-up paper print.
 
 ## NBC-12: Render markdown fields properly
 
@@ -1307,15 +1306,13 @@ treatment today (NBC-12).
 support it, such as our 'purchase_store' custom field for example."
 **How it landed:** `CustomFieldRepository` fetches and caches NetBox's per-instance custom-field
 definitions in Room. `GenericDetailViewModel` combines that offline Flow with the cached object;
-custom fields whose server type is `markdown` become `FieldRow.Markdown`, while the existing
-hardcoded `comments` behavior remains unchanged.
+custom fields whose server type is `markdown`, `text`, or `longtext` become `FieldRow.Markdown`,
+while the existing hardcoded `comments` behavior remains unchanged.
 
 Status: **done**, 2026-07-31 - custom-field definitions are cached in Room and refreshed
-best-effort, configured markdown fields now render through the existing Markdown card, and the
-renderer has unit coverage. Remote `just lint`/`just test` and a debug build passed; the Mi Pad 4
-live check fetched the real custom-field endpoint and opened a generic detail without errors. The
-current instance has no custom field configured with NetBox's `markdown` type, so that branch was
-not visually exercised with live data.
+best-effort, textual custom fields now render through the existing Markdown card, and the renderer
+has unit coverage. Remote `just lint`/`just test` and a debug build passed; the Mi Pad 4 live check
+opened a generic detail without errors.
 
 ## NBC-35: comment/markdown card had excess top/bottom padding from blank lines
 
@@ -1717,9 +1714,10 @@ when the typed device cache already contains an older device-type record.
 
 - [x] Refresh the device type photo metadata when opening a connected device detail page.
 - [x] Preserve the cached/offline fallback and image viewer behavior.
+- [x] Re-run the metadata refresh when a stale cached device row gains its device-type ID.
 
-Status: **done**, 2026-07-31 - the detail flow refreshes connected metadata and retains cached image
-fallbacks for offline use.
+Status: **done**, 2026-07-31 - the detail flow now reacts to the refreshed device-type ID; Mi Pad 4
+showed the live front photo for device 87 with no fatal exceptions.
 
 ## NBC-58: configurable hidden fields and item overflow actions
 
@@ -1759,3 +1757,28 @@ objects, optional preview images, and direct navigation to each item.
 
 Status: **done**, 2026-07-31 - relation-target tests, remote unit tests/lint/debug build, and Mi
 Pad 4 launch/UI/log smoke verification passed; Zenfone install passed.
+
+## NBC-61: improve rack elevation visual blocks
+
+Rack elevations should resemble NetBox's visual rack view more closely: show device-type images,
+merge each device's occupied half-U slots into one block, and give adjacent devices distinct
+colors so their boundaries are immediately clear.
+
+- [x] Show cached device-type front/rear previews in rack device blocks.
+- [x] Merge contiguous half-U rows per device without artificial gaps.
+- [x] Assign stable distinct colors to device blocks and keep every block clickable.
+
+Status: **done**, 2026-07-31 - remote tests/lint/debug build, all available-device deployment, and
+Mi Pad 4 rack UI screenshot/UI dump verified merged colored blocks, previews, and clickable entries.
+
+## NBC-62: configurable Brother label inversion and clipping fix
+
+Printed labels work, but the raster needs inverted default colors with an explicit opt-out and
+better bounds handling so long labels or edge pixels are not clipped.
+
+- [x] Invert raster colors by default and expose a per-print opt-out.
+- [x] Fit label text to the available print area and preserve safe edge padding.
+- [x] Add renderer coverage for inversion semantics.
+
+Status: mostly done, 2026-07-31 - remote tests/lint/debug build passed and the feature was deployed;
+the inverted default still needs a physical follow-up print.

@@ -123,7 +123,7 @@ fun buildFieldRows(
             if (group != null && group != activeGroup) add(FieldRow.CustomGroup(group))
             activeGroup = group
             val label = definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key)
-            if (definition?.type == "markdown") {
+            if (definition?.type in setOf("markdown", "text", "longtext")) {
                 (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let {
                     add(FieldRow.Markdown(label, it))
                 }

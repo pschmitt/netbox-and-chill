@@ -187,8 +187,30 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.CustomGroup("Purchase info"),
-                FieldRow.PlainText("Purchase date", "2026-01-01"),
+                FieldRow.Markdown("Purchase date", "2026-01-01"),
                 FieldRow.Markdown("Store", "[Store](https://store.example)"),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `text and longtext custom fields render through Markdown`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"custom_fields":{"purchase_store":"[Store](https://store.example)","purchase_notes":"**Received**"}}"""
+                ),
+                listOf(
+                    CustomFieldDefinition("purchase_store", "text", "Store", null, 1),
+                    CustomFieldDefinition("purchase_notes", "longtext", "Notes", null, 2),
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.Markdown("Store", "[Store](https://store.example)"),
+                FieldRow.Markdown("Notes", "**Received**"),
             ),
             rows,
         )

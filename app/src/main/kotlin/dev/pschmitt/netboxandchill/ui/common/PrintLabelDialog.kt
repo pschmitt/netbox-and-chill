@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +58,7 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
     var printers by remember { mutableStateOf<List<PairedPrinter>>(emptyList()) }
     var selected by remember { mutableStateOf<PairedPrinter?>(null) }
     var isPrinting by remember { mutableStateOf(false) }
+    var invertColors by remember { mutableStateOf(true) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -136,6 +138,20 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Invert print colors")
+                            Text(
+                                "Disable for printlabel --black-style output",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(checked = invertColors, onCheckedChange = { invertColors = it })
+                    }
                 }
                 if (isPrinting) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -164,7 +180,11 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                     scope.launch {
                         val result =
                             runCatching {
-                                BrotherLabelRenderer.render(request.objectUrl, request.labelText)
+                                BrotherLabelRenderer.render(
+                                    request.objectUrl,
+                                    request.labelText,
+                                    invert = invertColors,
+                                )
                             }.fold(
                                 onSuccess = { label -> BrotherPrinter.print(printer, label) },
                                 onFailure = { Result.failure(it) },
