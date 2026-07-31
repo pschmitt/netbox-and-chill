@@ -80,9 +80,16 @@ fun SettingsScreen(
             HorizontalDivider()
             ListItem(
                 headlineContent = { Text("NetBox and Chill") },
-                supportingContent = {
-                    Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_REVISION}) · GPLv3")
-                },
+                supportingContent = { Text("Version " + BuildConfig.VERSION_NAME + " · GPLv3") },
+            )
+            ListItem(
+                headlineContent = { Text("Build") },
+                // Deliberately not concatenated with any other literal: Kotlin/R8 constant-folds
+                // string-template concatenations of compile-time constants into a single merged
+                // dex string entry, which would bury the raw commit hash where release.yaml's
+                // `grep -Fx` revision-verification check (an exact standalone-line match) can't
+                // find it. Kept as a lone reference so it stays its own dex string constant.
+                supportingContent = { Text(BuildConfig.GIT_REVISION) },
             )
         }
     }
