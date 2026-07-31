@@ -10,6 +10,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -74,9 +75,19 @@ constructor(
     }
 
     private suspend fun refreshOne(endpointPath: String, queryText: String, limitPerModel: Int) {
-        runCatching { api.listObjects(endpointPath, mapOf("q" to queryText, "limit" to limitPerModel.toString())).results }
-            .onSuccess { genericObjectRepository.cacheSearchResults(endpointPath, it) }
-            .onFailure { Timber.w(it, "Global search refresh failed for %s", endpointPath) }
+        try {
+            val results =
+                api.listObjects(
+                        endpointPath,
+                        mapOf("q" to queryText, "limit" to limitPerModel.toString()),
+                    )
+                    .results
+            genericObjectRepository.cacheSearchResults(endpointPath, results)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Timber.w(error, "Global search refresh failed for %s", endpointPath)
+        }
     }
 
     private fun NetBoxObjectEntity.toSearchHit() = SearchHit(endpointPath, id, display, secondaryLine)
@@ -103,5 +114,33 @@ constructor(
                 "api/virtualization/virtual-machines/",
                 "api/tenancy/tenants/",
             )
+    }
+}
+
+/** Ranks cached hits so exact and prefix matches are useful before alphabetical tie-breaking. */
+fun rankSearchHits(queryText: String, hits: List<SearchHit>): List<SearchHit> {
+    val query = queryText.trim().lowercase()
+    if (query.isBlank()) return hits.distinctBy { it.endpointPath to it.id }
+    return hits
+        .distinctBy { it.endpointPath to it.id }
+        .sortedWith(
+            compareByDescending<SearchHit> { hit -> searchRelevance(query, hit) }
+                .thenBy { it.display.lowercase() }
+                .thenBy { it.endpointPath }
+                .thenBy { it.id }
+        )
+}
+
+private fun searchRelevance(query: String, hit: SearchHit): Int {
+    val display = hit.display.trim().lowercase()
+    val secondary = hit.secondaryLine.orEmpty().trim().lowercase()
+    return when {
+        display == query -> 400
+        display.startsWith(query) -> 300
+        display.contains(query) -> 200
+        secondary == query -> 150
+        secondary.startsWith(query) -> 125
+        secondary.contains(query) -> 100
+        else -> 0
     }
 }

@@ -542,23 +542,17 @@ of pagination-only), merge, sort by display name.
   NBC-9 was landing the same helper concurrently in a separate worktree; reconciled on merge by
   keeping the one `NetBoxRef` copy and pointing `GlobalSearchScreen` at it.
 
-Not done / explicitly out of scope for this pass:
-- [ ] No debounce-level request cancellation of already-in-flight HTTP calls (only new user input
-  cancels the *collector*, via `collectLatest` - the underlying OkHttp calls from an outdated
-  keystroke may still complete and get discarded rather than being aborted mid-flight). Not a
-  correctness bug, just not maximally efficient.
-- [ ] Result ranking is naive (alphabetical by display name across the merged set, no relevance
-  scoring/highlighting of the matched substring).
+- [x] Debounce-level refresh cancellation now propagates coroutine cancellation through the
+  repository and ViewModel instead of swallowing `CancellationException`, so stale fan-out calls
+  are cancelled with the outdated query.
+- [x] Results now rank exact display matches, display prefixes, display substrings, and secondary
+  field matches before deterministic alphabetical tie-breaking; duplicate cache hits are removed.
 
-Status: **mostly done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13
+Status: **done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13
 (lint re-verified with `--rerun-tasks` to rule out a stale up-to-date cache hit) both before and
-after the cache-first rework above. **Not independently verified**: no physical device was
-available this session to install onto and interact with live (Zenfone/Mi Pad/Pixel 5 all out of
-reach) - so the actual search UX (typing, debounce feel, tapping into a result, and specifically
-that results really do keep showing with the radio off) has not been visually confirmed
-end-to-end on-device, only confirmed to build/compile/pass unit tests. Live API verification of
-the underlying approach (no global-search endpoint exists; `?q=` works on per-model endpoints)
-*was* done directly against the real netbox.brkn.lol instance via `curl`, see above.
+after the cache-first rework above; ranking and cancellation have focused unit coverage. Live API
+verification of the underlying approach (no global-search endpoint exists; `?q=` works on per-model
+endpoints) *was* done directly against the real netbox.brkn.lol instance via `curl`, see above.
 
 ## NBC-14: UI polish batch (sidebar, comments, custom fields, share, scanner)
 

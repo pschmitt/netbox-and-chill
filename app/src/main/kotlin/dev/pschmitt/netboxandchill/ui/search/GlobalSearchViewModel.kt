@@ -8,6 +8,7 @@ import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.data.repository.rankSearchHits
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /** Backs [GlobalSearchScreen] (NBC-13) - debounced free-text search, cache-first like every other
@@ -51,12 +53,16 @@ constructor(
     /** Cache-first, offline-capable - re-emits automatically once [refresh] (or any other sync)
      * upserts new rows into Room, the same "Flow straight from the DAO" shape `GenericListViewModel`
      * uses, not a one-shot network call. */
-    val results: StateFlow<List<SearchHit>> =
+    private val cachedResults =
         debouncedQuery
             .flatMapLatest { text ->
                 if (text.isBlank()) flowOf(emptyList()) else searchRepository.observeCached(text)
             }
-            .map { hits -> hits.sortedBy { it.display.lowercase() } }
+
+    val results: StateFlow<List<SearchHit>> =
+        kotlinx.coroutines.flow.combine(debouncedQuery, cachedResults) { text, hits ->
+                rankSearchHits(text, hits)
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isRefreshing = MutableStateFlow(false)
@@ -87,9 +93,15 @@ constructor(
                 val endpointPaths =
                     (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS + settingsRepository.pinnedModelPaths.value)
                         .distinct()
-                runCatching { searchRepository.refresh(text, endpointPaths) }
-                    .onFailure { _errorMessage.value = "Live search refresh failed - showing cached results" }
-                _isRefreshing.value = false
+                try {
+                    searchRepository.refresh(text, endpointPaths)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    _errorMessage.value = "Live search refresh failed - showing cached results"
+                } finally {
+                    _isRefreshing.value = false
+                }
             }
         }
     }
