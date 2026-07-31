@@ -148,7 +148,10 @@ non-affiliated fan app needs the same care findroidplus took with the Jellyfin l
 theirs is "a combination of the Jellyfin logo and the Android robot"). Produce as a vector
 adaptive icon (foreground + background layers) like the current one, not a raster mashup image.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31 - replaced the adaptive icon's raster foreground reference with a
+repository-native vector recreation of the cyan/white NetBox raised-eyebrow mark. Remote debug
+build and ktfmt validation passed; the Mi Pad 4 splash visually confirmed the new icon and launched
+without an app crash.
 
 ## NBC-5: Editable objects (generic PATCH-based editing)
 
