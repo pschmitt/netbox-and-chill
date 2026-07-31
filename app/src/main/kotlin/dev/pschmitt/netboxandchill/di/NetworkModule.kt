@@ -94,12 +94,15 @@ object NetworkModule {
     fun provideGenericNetBoxApi(retrofit: Retrofit): GenericNetBoxApi =
         retrofit.create(GenericNetBoxApi::class.java)
 
-    // Device-type stock photos and image-attachment URLs point at the same NetBox host, so this
-    // reuses the same authenticated OkHttpClient (DynamicBaseUrlInterceptor + AuthInterceptor)
-    // rather than standing up a second client.
+    // Device-type stock photos and image-attachment URLs are already-absolute NetBox media URLs,
+    // same category as the download client above - reuses it rather than the DynamicBaseUrlInterceptor-
+    // wrapped API client, so a subpath-hosted instance doesn't get its media path double-prefixed.
     @Provides
     @Singleton
-    fun provideImageLoader(@ApplicationContext context: Context, okHttpClient: OkHttpClient): ImageLoader =
+    fun provideImageLoader(
+        @ApplicationContext context: Context,
+        @DownloadClient okHttpClient: OkHttpClient,
+    ): ImageLoader =
         ImageLoader.Builder(context)
             .components { add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient })) }
             .build()

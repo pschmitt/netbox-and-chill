@@ -109,11 +109,12 @@ distinct device-type id already in view - cheap no-op once cached), and the devi
 full-size in the browser on tap - no in-app image viewer built, matches current "open in
 browser" pattern elsewhere in this screen).
 
-Known limitation, not yet hit in testing: `DynamicBaseUrlInterceptor` prepends the configured
-base URL's path onto every request's path, including these already-absolute media URLs - fine
-when the configured NetBox base URL has no path prefix (the common case), but would double up
-the prefix for an instance reverse-proxied under a subpath. Flagging per the original "watch for"
-note rather than building a second unrewritten OkHttpClient preemptively.
+Known limitation flagged during development, resolved on merge: `DynamicBaseUrlInterceptor` would
+otherwise prepend the configured base URL's path onto these already-absolute media URLs, double-
+prefixing it for a subpath-reverse-proxied instance. NBC-16 (merged concurrently) landed a
+`@DownloadClient`-qualified `OkHttpClient` for exactly this "already-absolute NetBox media URL"
+case (auth still applied, base-URL rewrite skipped) - `provideImageLoader` was pointed at that
+client instead of the plain one, so this never shipped as a live bug.
 
 Not done (still needs its own pass, see above): downloading/caching image *bytes* to disk for
 true offline browsing (Coil's disk cache is best-effort, not a durable offline store) - same
