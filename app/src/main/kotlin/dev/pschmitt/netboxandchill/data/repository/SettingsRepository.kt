@@ -42,6 +42,17 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _pinnedModelPaths = MutableStateFlow(loadPinnedModelPaths())
     val pinnedModelPaths: StateFlow<Set<String>> = _pinnedModelPaths.asStateFlow()
 
+    // Off by default: downloading every cached object's attachments is a meaningful amount of
+    // storage/bandwidth the user should opt into, not something that happens the first time they
+    // sync.
+    private val _syncAttachmentsToDisk = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ATTACHMENTS, false))
+    val syncAttachmentsToDisk: StateFlow<Boolean> = _syncAttachmentsToDisk.asStateFlow()
+
+    fun setSyncAttachmentsToDisk(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()
+        _syncAttachmentsToDisk.value = enabled
+    }
+
     fun togglePinned(endpointPath: String) {
         val current = _pinnedModelPaths.value
         val updated = if (endpointPath in current) current - endpointPath else current + endpointPath
@@ -79,5 +90,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_TOKEN = "token"
         const val KEY_PINNED_MODELS = "pinned_model_paths"
         const val DEFAULT_PINNED_MODEL_PATH = "api/dcim/devices/"
+        const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
     }
 }

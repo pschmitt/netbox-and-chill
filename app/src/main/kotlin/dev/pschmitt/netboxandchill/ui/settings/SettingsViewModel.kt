@@ -25,6 +25,9 @@ constructor(
     private val _cachedDeviceCount = MutableStateFlow(0)
     val cachedDeviceCount: StateFlow<Int> = _cachedDeviceCount.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     init {
         viewModelScope.launch { _cachedDeviceCount.value = deviceRepository.cachedDeviceCount() }
     }
@@ -32,10 +35,20 @@ constructor(
     fun syncNow() {
         viewModelScope.launch {
             _isSyncing.value = true
-            deviceRepository.syncAll()
+            deviceRepository
+                .syncAll()
+                .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached data" }
             _cachedDeviceCount.value = deviceRepository.cachedDeviceCount()
             _isSyncing.value = false
         }
+    }
+
+    fun errorShown() {
+        _errorMessage.value = null
+    }
+
+    fun setSyncAttachmentsToDisk(enabled: Boolean) {
+        settingsRepository.setSyncAttachmentsToDisk(enabled)
     }
 
     fun logOut() {

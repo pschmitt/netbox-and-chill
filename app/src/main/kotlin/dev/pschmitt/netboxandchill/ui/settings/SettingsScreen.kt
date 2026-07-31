@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
@@ -23,10 +24,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -43,8 +49,20 @@ fun SettingsScreen(
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     val cachedDeviceCount by viewModel.cachedDeviceCount.collectAsStateWithLifecycle()
+    val syncAttachmentsToDisk by
+        viewModel.settingsRepository.syncAttachmentsToDisk.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.errorShown()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
@@ -66,6 +84,16 @@ fun SettingsScreen(
                 leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
                 headlineContent = { Text("Cached devices") },
                 supportingContent = { Text("$cachedDeviceCount devices synced locally") },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Download, contentDescription = null) },
+                headlineContent = { Text("Sync attachments to disk") },
+                supportingContent = {
+                    Text("Download documents and images on sync for full offline access")
+                },
+                trailingContent = {
+                    Switch(checked = syncAttachmentsToDisk, onCheckedChange = viewModel::setSyncAttachmentsToDisk)
+                },
             )
             HorizontalDivider()
             Column(Modifier.padding(16.dp)) {

@@ -9,6 +9,7 @@ import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import java.io.File
 import javax.inject.Inject
@@ -32,6 +33,7 @@ constructor(
     private val settingsRepository: SettingsRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val journalEntryRepository: JournalEntryRepository,
+    private val syncScheduler: SyncScheduler,
     private val json: Json,
 ) : ViewModel() {
 
@@ -142,7 +144,12 @@ constructor(
             _isSaving.value = true
             repository
                 .updateObject(route.endpointPath, route.id, buildPatchBody(edits))
-                .onSuccess { _isEditing.value = false }
+                .onSuccess {
+                    _isEditing.value = false
+                    // Refreshes the wider offline cache (and, if enabled, synced attachments) so
+                    // an edit's side effects elsewhere in NetBox aren't only reflected here.
+                    syncScheduler.syncNow()
+                }
                 .onFailure { _errorMessage.value = it.message ?: "Couldn't save changes" }
             _isSaving.value = false
         }

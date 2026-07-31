@@ -511,18 +511,40 @@ appropriate toast message if we are in the app. Maybe even retries."
   present.
 - Sync-on-edit: trigger a `refreshObject`/attachment-sync pass after a successful
   `GenericDetailViewModel.save()`, not just on manual pull-to-refresh.
-- Scheduled background sync: a WorkManager periodic worker (`WorkManager` is already a project
-  dependency, currently unused for this) - look at how findroidplus (`~/devel/private/pschmitt/findroid.git`)
-  structures its auto-download worker for the interval/constraints (network-connected, etc.)
-  pattern to follow, rather than inventing a new convention.
+- Scheduled background sync: turns out NBC-1 already shipped this half unnoticed - `sync/SyncWorker.kt`
+  + `sync/SyncScheduler.kt` (`WorkModule.kt` wires the `HiltWorkerFactory`) already run a
+  network-constrained 6-hourly `PeriodicWorkRequest` plus a manual `syncNow()` one-time request,
+  matching findroidplus's `AutoBackupScheduler`/`AutoBackupWorker` shape (`Result.retry()` on
+  failure already gets WorkManager's default exponential backoff, no extra tuning needed) - it just
+  only syncs the legacy `DeviceRepository`, not the NBC-6 generic-object cache or attachments yet.
 - Error handling: sync failures (manual or background) should surface as a Snackbar/Toast when the
   app is in the foreground (reuse the `errorMessage`/`SnackbarHostState` pattern already used by
-  `GenericDetailViewModel`/`GenericDetailScreen`), and the background worker should retry with
-  backoff (`Result.retry()`) rather than silently giving up on transient failures (e.g. temporary
-  network loss) - distinguish those from permanent failures (e.g. revoked API token) where retrying
-  forever is pointless.
+  `GenericDetailViewModel`/`GenericDetailScreen`).
 
-Status: not started, 2026-07-31.
+**Slice 1 (this pass):** `SettingsRepository.syncAttachmentsToDisk` pref + `SettingsScreen` switch
+row (off by default, doesn't yet do anything downstream - the actual attachment-download sweep is
+still slice 2, deliberately deferred: it needs live testing against real cached data to be sure the
+walk/download/dedup logic actually behaves, and netbox.brkn.lol is unreachable this session - see
+NBC-18). `SettingsViewModel.syncNow()` now surfaces `deviceRepository.syncAll()` failures via a
+Snackbar instead of discarding the `Result` (was previously silent - the concrete gap the "handle
+sync errors" request was pointing at for the one sync path already wired to the UI).
+`GenericDetailViewModel.save()` now calls `syncScheduler.syncNow()` on a successful edit
+(sync-on-edit), enqueuing the *existing* `SyncWorker` in the background - inert/safe to ship even
+while offline, since it's just a WorkManager enqueue.
+
+**Slice 2 (not started):** the actual attachment-to-disk download sweep (extend `SyncWorker` to
+scan all cached `NetBoxObjectEntity` rows when the new setting is on, downloading each detected
+attachment via a new durable - not cache-dir - `FileDownloadRepository` method, with
+`GenericDetailScreen` preferring an already-synced local copy over re-downloading); extending the
+existing `SyncWorker`/`SyncScheduler` to also sync the NBC-6 generic-object cache, not just the
+legacy device list; surfacing background (not just manual) sync failures to the user somehow
+(a background `WorkManager` failure has no `Activity` to show a `Snackbar` in - probably wants a
+`Notification`, unlike the manual-sync case slice 1 covers).
+
+Status: **in progress**, 2026-07-31 - slice 1 done (`just test`/`just lint` green on rofl-14,
+installed on the Mi Pad 4, smoke-tested crash-free - full UI verification blocked by the same
+netbox.brkn.lol outage as NBC-15/18, since the device is currently logged out and can't reconnect
+until the instance is reachable again). Slice 2 not started.
 
 ## NBC-18: show cached data immediately when the server is unreachable at launch
 
@@ -580,3 +602,36 @@ match the intended layout with no crash. Not yet installed on Pixel 5/Zenfone 10
 Side effect of testing: logged the Mi Pad 4 out to see the onboarding screen, and couldn't log it
 back in before netbox.brkn.lol's outage (see NBC-18) resolved - needs re-connecting once the
 instance is reachable again.
+
+## NBC-20: tap an image to view it full-size with pinch/swipe zoom
+
+Device-type stock photos and image attachments (NBC-3) currently just sit inline at a fixed
+thumbnail size - tapping one should open a full-screen viewer with pinch-to-zoom/pan, not require
+falling back to "open in browser" the way a document attachment does.
+
+**Why:** user request - "images need to be clickable -> show in full size + swipe to zoom".
+**How to apply:** needs a full-screen image viewer composable (Coil3 `AsyncImage` + a zoom/pan
+gesture modifier - either hand-rolled via `detectTransformGestures`/`graphicsLayer` scale-translate,
+or a small dependency like Telephoto/Zoomable if one's already idiomatic for Coil3 - check what
+findroidplus uses for any full-screen image viewing before picking). Applies to both
+`RemoteThumbnail` usages from NBC-3 (device list row thumbnail probably shouldn't open this - the
+detail screen's front/rear photos and image-attachment thumbnails should) - needs its own look at
+how NBC-3 wired those up before implementing.
+
+Status: not started, 2026-07-31.
+
+## NBC-21: scanner tap-to-focus + flashlight toggle
+
+The QR/barcode scanner (CameraX + ZXing, NBC-1) has no manual focus control and no way to turn the
+torch on in a dark rack room - both standard expectations for a barcode-scanning camera view.
+
+**Why:** user request - "qr code reader view show allow us to tap-to-focus and a flashlight on/off
+button would be nice too."
+**How to apply:** CameraX's `CameraControl.startFocusAndMetering(FocusMeteringAction)` built from a
+`MeteringPointFactory` (`PreviewView.getMeteringPointFactory()`) for tap-to-focus - hook it onto the
+existing preview's pointer-input/tap gesture. `CameraControl.enableTorch(Boolean)` (gated on
+`CameraInfo.hasFlashUnit()`, since not every device has one) for the flashlight, with an `IconButton`
+(`Icons.Default.FlashOn`/`FlashOff` per the AGENTS.md icon convention from NBC-19) in the scanner's
+top bar or overlay alongside the existing viewfinder square from NBC-14.
+
+Status: not started, 2026-07-31.
