@@ -15,7 +15,13 @@ data class DeviceTypeDto(
 data class ImageAttachmentDto(
     val id: Int,
     val name: String? = null,
+    val display: String? = null,
     val image: String? = null,
+    val description: String? = null,
+    @SerialName("image_height") val imageHeight: Int? = null,
+    @SerialName("image_width") val imageWidth: Int? = null,
+    val created: String? = null,
+    @SerialName("last_updated") val lastUpdated: String? = null,
     @SerialName("object_type") val objectType: String? = null,
     @SerialName("object_id") val objectId: Int? = null,
 )

@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -36,7 +36,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -47,6 +49,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
+import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.printLabelShareIntent
@@ -71,6 +75,9 @@ fun DeviceDetailScreen(
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    // Full-screen image viewer state (NBC-20) - which item list + which index within it is open,
+    // shared by both the device-type front/rear photos and the image-attachment row below.
+    var imageViewer by remember { mutableStateOf<Pair<List<ImageViewerItem>, Int>?>(null) }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -142,8 +149,8 @@ fun DeviceDetailScreen(
                     }
                     Spacer(Modifier.height(16.dp))
                 }
-                deviceTypePhotos(deviceType)
-                imageAttachmentRow(imageAttachments)
+                deviceTypePhotos(deviceType) { items, index -> imageViewer = items to index }
+                imageAttachmentRow(imageAttachments) { items, index -> imageViewer = items to index }
                 detailField("Site", current.siteName)
                 detailField("Rack", current.rackName)
                 detailField("Position", current.position?.toString())
@@ -165,21 +172,36 @@ fun DeviceDetailScreen(
             }
         }
     }
+
+    imageViewer?.let { (items, index) ->
+        ImageViewerDialog(items = items, initialIndex = index, onDismiss = { imageViewer = null })
+    }
 }
 
-/** Device-type stock photos (front/rear) - side by side when both are present. */
-private fun LazyListScope.deviceTypePhotos(deviceType: DeviceTypeEntity?) {
+/**
+ * Device-type stock photos (front/rear) - side by side when both are present. Tapping either opens
+ * the same full-screen zoomable viewer as the image attachments below (NBC-20); these carry no
+ * `ImageAttachment` metadata of their own (just a URL + the device type's model name), so their
+ * viewer instance only gets a title, no metadata rows - see NBC-20's TODO entry for why they get
+ * the popup treatment at all despite that.
+ */
+private fun LazyListScope.deviceTypePhotos(deviceType: DeviceTypeEntity?, onImageClick: (List<ImageViewerItem>, Int) -> Unit) {
     val front = deviceType?.frontImageUrl
     val rear = deviceType?.rearImageUrl
     val model = deviceType?.model
     if (front.isNullOrBlank() && rear.isNullOrBlank()) return
+    val items =
+        listOfNotNull(
+            front.takeUnless { it.isNullOrBlank() }?.let { ImageViewerItem(url = it, title = "Front of $model") },
+            rear.takeUnless { it.isNullOrBlank() }?.let { ImageViewerItem(url = it, title = "Rear of $model") },
+        )
     item {
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             if (!front.isNullOrBlank()) {
                 RemoteThumbnail(
                     imageUrl = front,
                     contentDescription = "Front of $model",
-                    modifier = Modifier.weight(1f).height(140.dp),
+                    modifier = Modifier.weight(1f).height(140.dp).clickable { onImageClick(items, 0) },
                     // Fit, not the default Crop - these are stock product photos with varying
                     // aspect ratios; cropping to fill a fixed square/rect chops off real content
                     // (e.g. a wide rack-mount unit's edges), unlike the row/grid thumbnails below
@@ -192,7 +214,10 @@ private fun LazyListScope.deviceTypePhotos(deviceType: DeviceTypeEntity?) {
                 RemoteThumbnail(
                     imageUrl = rear,
                     contentDescription = "Rear of $model",
-                    modifier = Modifier.weight(1f).height(140.dp),
+                    modifier =
+                        Modifier.weight(1f).height(140.dp).clickable {
+                            onImageClick(items, if (front.isNullOrBlank()) 0 else 1)
+                        },
                     contentScale = ContentScale.Fit,
                 )
             }
@@ -200,26 +225,30 @@ private fun LazyListScope.deviceTypePhotos(deviceType: DeviceTypeEntity?) {
     }
 }
 
-/** Uploaded `extras.ImageAttachment` photos for this device - tap to open full-size in the browser. */
-private fun LazyListScope.imageAttachmentRow(attachments: List<ImageAttachmentEntity>) {
+/**
+ * Uploaded `extras.ImageAttachment` image attachments for this device - tap one to open the
+ * full-screen zoomable viewer (NBC-20), opened to the tapped index with horizontal swipe between
+ * the rest of the row.
+ */
+private fun LazyListScope.imageAttachmentRow(
+    attachments: List<ImageAttachmentEntity>,
+    onImageClick: (List<ImageViewerItem>, Int) -> Unit,
+) {
     if (attachments.isEmpty()) return
+    val items = attachments.map { it.toViewerItem() }
     item {
         Column(Modifier.padding(vertical = 6.dp)) {
             Text(
-                "Photos",
+                "Image attachments",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            val context = LocalContext.current
             LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                items(attachments, key = { it.id }) { attachment ->
+                itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { index, attachment ->
                     RemoteThumbnail(
                         imageUrl = attachment.imageUrl,
                         contentDescription = attachment.name,
-                        modifier =
-                            Modifier.size(100.dp).padding(end = 8.dp).clickableIfUrl(attachment.imageUrl) { url ->
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                            },
+                        modifier = Modifier.size(100.dp).padding(end = 8.dp).clickable { onImageClick(items, index) },
                     )
                 }
             }
@@ -227,8 +256,24 @@ private fun LazyListScope.imageAttachmentRow(attachments: List<ImageAttachmentEn
     }
 }
 
-private fun Modifier.clickableIfUrl(url: String?, onClick: (String) -> Unit): Modifier =
-    if (url.isNullOrBlank()) this else this.then(Modifier.clickable { onClick(url) })
+/** Maps the real `extras.ImageAttachment` fields NetBox actually returns (confirmed live, see
+ * NBC-20) into the viewer's generic metadata rows - no `size`/`content_type` field exists on this
+ * serializer to show, unlike the TODO's original wishlist. */
+private fun ImageAttachmentEntity.toViewerItem(): ImageViewerItem {
+    val title = name?.takeIf { it.isNotBlank() } ?: display?.takeIf { it.isNotBlank() } ?: "Image attachment #$id"
+    val metadata = buildList {
+        if (!description.isNullOrBlank()) add("Description" to description)
+        if (imageWidth != null && imageHeight != null) add("Dimensions" to "$imageWidth × $imageHeight")
+        created?.takeIf { it.isNotBlank() }?.let { add("Created" to formatIsoTimestamp(it)) }
+        lastUpdated?.takeIf { it.isNotBlank() && it != created }?.let { add("Last updated" to formatIsoTimestamp(it)) }
+    }
+    return ImageViewerItem(url = imageUrl.orEmpty(), title = title, metadata = metadata)
+}
+
+/** "2026-07-25T16:33:05.946712Z" -> "2026-07-25 16:33" - same good-enough, no-timezone-conversion
+ * format used elsewhere in the app (see `DashboardScreen.formatTimestamp`); not shared as a common
+ * util to keep this change scoped to NBC-20. */
+private fun formatIsoTimestamp(iso: String): String = iso.take(16).replace('T', ' ')
 
 private fun LazyListScope.detailField(label: String, value: String?) {
     if (value.isNullOrBlank()) return

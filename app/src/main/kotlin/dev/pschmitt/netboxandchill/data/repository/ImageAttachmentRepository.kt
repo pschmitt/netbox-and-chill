@@ -32,6 +32,12 @@ private fun ImageAttachmentDto.toEntity(fallbackObjectType: String, fallbackObje
         objectType = objectType ?: fallbackObjectType,
         objectId = this.objectId ?: fallbackObjectId,
         name = name,
+        display = display,
         imageUrl = image,
+        description = description,
+        imageHeight = imageHeight,
+        imageWidth = imageWidth,
+        created = created,
+        lastUpdated = lastUpdated,
         syncedAt = System.currentTimeMillis(),
     )
