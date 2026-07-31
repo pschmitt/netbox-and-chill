@@ -712,9 +712,69 @@ If the reasoning above doesn't hold up once retested, the fix is ensuring every 
 ViewModel always emits from its Room `Flow` first and treats `refresh()` purely as a
 best-effort background update, never a gate on what's rendered.
 
-Status: not started, 2026-07-31 - needs verification against a populated cache once
-netbox.brkn.lol is reachable again; unable to test today due to a live network outage encountered
-mid-session (see above).
+**Follow-up code audit (this session):** read every list/detail ViewModel line-by-line (not just
+re-reasoned about) against the "Room `Flow` first, `refresh()` is a pure side effect" shape, since
+NBC-13's global search had already shown once that reasoning-without-reading can be wrong:
+- [x] `DeviceListViewModel.devices`/`DeviceDetailViewModel.device` - both `stateIn` a Room `Flow`
+  (`DeviceRepository.observeDevices`/`observeDevice`) directly; `refresh()`/`refreshDevice()` only
+  toggle `isRefreshing`/`errorMessage` on failure, never touch what's rendered. `DeviceRepository`'s
+  `syncAll`/`refreshDevice` only `dao.upsert(...)`, no `dao.clear()` anywhere - a failed sync can't
+  wipe existing rows.
+- [x] `GenericListViewModel.objects`/`GenericDetailViewModel`'s `decodedObject`/`title`/`fields` -
+  same shape, backed by `GenericObjectRepository.observeObjects`/`observeObject`. `syncAll`/
+  `refreshObject` are `runCatching { ...; dao.upsert...() }` - the upsert is *inside* the
+  `runCatching` after the network call, so a network throw never reaches the DB write; nothing to
+  clear beforehand either. Confirmed via `GenericListScreen`/`GenericDetailScreen`: both key their
+  empty/loading text off `objects.isEmpty()`/`title == null` first, `isRefreshing` only picks the
+  wording within that branch - a non-empty cache always wins.
+- [x] `DirectoryViewModel.modelsByApp` - `stateIn`s `DirectoryRepository.observeAll()` (Room)
+  directly; `Sidebar.kt` renders `modelsByApp` with no loading/refresh gate at all. Confirmed
+  `init` still only calls `refresh()` when `cachedModelCount() == 0` (unchanged from when this was
+  originally flagged) - and confirmed `DirectoryRepository.refresh()`'s `dao.clear()` sits *after*
+  the `api.getApiRoot()` call inside the same `runCatching`, so a network throw there returns
+  before `clear()` runs and an already-populated sidebar survives a down server untouched.
+- [x] `DashboardViewModel` (NBC-9, built after this entry was written, not previously audited
+  against this rule) - `stats`/`bookmarks`/`changelog` all `stateIn` Room flows off
+  `DashboardRepository`; `refresh()` fans out to three independent `runCatching` calls
+  (`refreshBookmarks`/`refreshChangelog`/`refreshStats`), each only replacing its own DAO table
+  *after* its own successful fetch, so one endpoint being unreachable can't blank the other two,
+  let alone all three. `DashboardScreen`'s per-section `EmptyHint` only changes wording based on
+  `isRefreshing`, never hides already-loaded rows.
+- [x] `GlobalSearchViewModel` (NBC-13, fixed earlier the same day) - re-verified `results`
+  `stateIn`s `GlobalSearchRepository.observeCached` (Room, cross-endpoint), `isRefreshing` is a
+  separate best-effort network signal, and `GlobalSearchScreen`'s `when` checks
+  `results.isNotEmpty()` before `isRefreshing` - still correct, holds up.
+- [x] Broader sweep (`grep -rn "fun refresh\|fun sync" app/src/main/kotlin`) turned up no other
+  screen-backing ViewModel with a refresh/sync path: `SettingsViewModel.syncNow()` and
+  `ScannerViewModel.onCodeScanned()` both only ever trigger a repository upsert, no rendering
+  gated on it; `OnboardingViewModel.connect()` is the pre-cache initial-setup flow (no cache can
+  exist yet at that point, so the "cache-first" rule doesn't apply there by definition).
+- [x] Noted but out of scope for this entry: `GenericDetailViewModel`'s Journal tab
+  (`JournalEntryRepository`, NBC-15) is not Room-cached at all - a failed fetch just leaves
+  `journalEntries` empty and the tab doesn't render, silently, per the "or is silently skipped"
+  clause in `AGENTS.md`'s offline-first rule. It doesn't block or replace the main object view
+  either way, so it's compliant, just not itself cache-first; a future entry could extend NBC-15 to
+  cache journal entries in Room if that's wanted.
+
+**Result: no bugs found.** Every read path already followed the required shape before this session
+started - the reasoning in the original entry (above) held up under a full line-by-line read, not
+just re-reasoning about it. No production code changes were made for this entry.
+
+**Verification limitation (explicit, matching this repo's honesty convention):** this pass is a
+**code audit only** - grep/read of every ViewModel and the repositories/DAOs behind them, confirming
+the Room-`Flow`-first / `refresh()`-as-side-effect shape and that no failure path clears or
+replaces cached rows before a successful network response lands. It is **not** a live
+device/network test: there was no way in this session to physically kill connectivity mid-run
+against a populated cache (same limitation the original entry hit with the netbox.brkn.lol
+outage). A real device check - populate the cache, then kill/blackhole the route to the NetBox
+instance and confirm each screen still renders its last-synced data with only a non-blocking
+error/snackbar - is still owed next time a device and a controllable network are both available.
+
+Status: **done** (code-audited, not live-device-verified), 2026-07-31 - every list/detail
+ViewModel in the app read line-by-line and confirmed to already follow the Room-`Flow`-first,
+best-effort-`refresh()` shape; no gating/clearing bugs found, so no code changes were needed.
+`just build`/`just lint`/`just test` run clean on the (unchanged) codebase. Still needs a real
+device network-kill test once a device/connection is available - see limitation note above.
 
 ## NBC-19: icon audit - buttons, ListItems, and a new AGENTS.md convention
 
