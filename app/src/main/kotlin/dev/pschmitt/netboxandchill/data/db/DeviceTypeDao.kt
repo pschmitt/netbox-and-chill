@@ -1,0 +1,18 @@
+package dev.pschmitt.netboxandchill.data.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface DeviceTypeDao {
+    @Query("SELECT * FROM device_types") fun observeAll(): Flow<List<DeviceTypeEntity>>
+
+    @Query("SELECT * FROM device_types WHERE id = :id") fun observeById(id: Int): Flow<DeviceTypeEntity?>
+
+    @Query("SELECT * FROM device_types WHERE id = :id") suspend fun getById(id: Int): DeviceTypeEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(deviceType: DeviceTypeEntity)
+}

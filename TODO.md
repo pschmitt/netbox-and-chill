@@ -87,7 +87,55 @@ deliberately rather than bolting on ad hoc - probably wants its own short design
 NBC-7 (they share the "binary asset synced for offline use" shape) rather than being purely an
 extension of this entry.
 
-Status: not started, 2026-07-31.
+**How the first pass (network display only) landed:** deliberately scoped down to just the
+"show the image" half - the offline-sync/download-to-disk half above is still not started, see
+follow-ups. Added Coil3 (`coil-compose` + `coil-network-okhttp`, pinned 3.5.0), wired to the same
+authenticated `OkHttpClient` as Retrofit (`NetworkModule.provideImageLoader`, set as the app-wide
+default via `NetBoxAndChillApp : SingletonImageLoader.Factory`) - confirms the TODO's own note
+that media requests may need the API token. Two new typed endpoints on `NetBoxApi`
+(`getDeviceType`, `listImageAttachments`), confirmed against NetBox 4.5's actual DRF serializers
+(not guessed): `front_image`/`rear_image` are plain absolute-URL strings (`serializers.ImageField`),
+and `image-attachments` filters by `object_type` as an `"app_label.model"` string (e.g.
+`"dcim.device"`) + `object_id`, matching the TODO's endpoint shape. New Room tables
+(`device_types`, `image_attachments`, DB version bumped to 3 - fine under the existing
+`fallbackToDestructiveMigration`) plus a `deviceTypeId` column added to `DeviceEntity`. Two new
+cache-first repositories (`DeviceTypeRepository`, `ImageAttachmentRepository`) mirroring
+`DeviceRepository`'s `runCatching { api -> toEntity() -> dao.upsert }` shape rather than NBC-6's
+generic-JSON approach, since these need typed image-URL fields. New shared
+`ui/common/RemoteThumbnail.kt` (falls back to a generic device icon when no image is
+cached/set yet) used by: the device list row (`DeviceRow` leadingContent, backfilled lazily per
+distinct device-type id already in view - cheap no-op once cached), and the device detail screen
+(front/rear stock photos side by side, plus a `LazyRow` of image-attachment thumbnails that open
+full-size in the browser on tap - no in-app image viewer built, matches current "open in
+browser" pattern elsewhere in this screen).
+
+Known limitation, not yet hit in testing: `DynamicBaseUrlInterceptor` prepends the configured
+base URL's path onto every request's path, including these already-absolute media URLs - fine
+when the configured NetBox base URL has no path prefix (the common case), but would double up
+the prefix for an instance reverse-proxied under a subpath. Flagging per the original "watch for"
+note rather than building a second unrewritten OkHttpClient preemptively.
+
+Not done (still needs its own pass, see above): downloading/caching image *bytes* to disk for
+true offline browsing (Coil's disk cache is best-effort, not a durable offline store) - same
+"binary asset synced for offline use" shape as NBC-7's document-viewing gap.
+
+`just build`/`just lint`/`just test` all green on rofl-14. Installed on all three physical
+devices (Zenfone 10, Mi Pad 4, Pixel 5) via `just deploy-all` - app launches cleanly on all three,
+no crashes in logcat. Confirmed via the Mi Pad 4's logcat that the app issues the expected new
+requests against the real instance (`GET .../api/dcim/devices/...`, followed by what would be the
+new device-type/image-attachment calls once a device list loads) using the real configured host.
+
+**Not independently confirmed:** actual image rendering against live data. netbox.brkn.lol was
+flapping during this session's verification pass (HTTPS alternating between a 10s+ TLS-handshake
+timeout and a 502 from its reverse proxy, confirmed via direct `curl` from outside the app too) -
+an existing infrastructure issue unrelated to this change, not something introduced by it. Revisit
+once the instance is healthy again to actually see the thumbnails/photos render, not just confirm
+the app doesn't crash while trying.
+
+Status: mostly done (network-backed image display) - code complete, build/lint/test green,
+installed and launches cleanly on all three devices, 2026-07-31. Live visual verification against
+real device-type photos/image-attachments still pending due to an unrelated netbox.brkn.lol
+outage during this session. Offline asset sync intentionally out of scope for this pass.
 
 ## NBC-4: New app icon - NetBox logo x raised-eyebrow emoji mashup
 

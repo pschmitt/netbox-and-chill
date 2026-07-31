@@ -16,6 +16,7 @@ data class DeviceEntity(
     val roleName: String?,
     val manufacturerName: String?,
     val deviceTypeModel: String?,
+    val deviceTypeId: Int?,
     val serial: String?,
     val assetTag: String?,
     val primaryIp: String?,

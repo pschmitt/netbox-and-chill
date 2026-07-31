@@ -9,6 +9,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
 import dev.pschmitt.netboxandchill.data.db.DeviceDao
+import dev.pschmitt.netboxandchill.data.db.DeviceTypeDao
+import dev.pschmitt.netboxandchill.data.db.ImageAttachmentDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import javax.inject.Singleton
@@ -32,4 +34,9 @@ object DatabaseModule {
 
     @Provides
     fun provideNetBoxObjectDao(database: AppDatabase): NetBoxObjectDao = database.netBoxObjectDao()
+
+    @Provides fun provideDeviceTypeDao(database: AppDatabase): DeviceTypeDao = database.deviceTypeDao()
+
+    @Provides
+    fun provideImageAttachmentDao(database: AppDatabase): ImageAttachmentDao = database.imageAttachmentDao()
 }

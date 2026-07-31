@@ -125,6 +125,10 @@ dependencies {
     implementation(libs.markdown.renderer)
     implementation(libs.markdown.renderer.m3)
 
+    // Image loading (device-type stock photos + image attachments)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     // Offline cache
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

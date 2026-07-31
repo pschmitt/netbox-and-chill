@@ -6,24 +6,40 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
+import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
+import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
+import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import timber.log.Timber
 
+private const val DEVICE_OBJECT_TYPE = "dcim.device"
+
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class DeviceDetailViewModel
 @Inject
-constructor(savedStateHandle: SavedStateHandle, private val deviceRepository: DeviceRepository) :
-    ViewModel() {
+constructor(
+    savedStateHandle: SavedStateHandle,
+    private val deviceRepository: DeviceRepository,
+    private val deviceTypeRepository: DeviceTypeRepository,
+    private val imageAttachmentRepository: ImageAttachmentRepository,
+) : ViewModel() {
 
     private val deviceId: Int = savedStateHandle.toRoute<Route.DeviceDetail>().deviceId
 
@@ -45,8 +61,28 @@ constructor(savedStateHandle: SavedStateHandle, private val deviceRepository: De
             .map { entity -> entity?.url?.toHttpUrlOrNull()?.let { apiUrl -> apiUrlToWebUrl(apiUrl) } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val deviceType: StateFlow<DeviceTypeEntity?> =
+        device
+            .flatMapLatest { entity -> entity?.deviceTypeId?.let { deviceTypeRepository.observe(it) } ?: flowOf(null) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val imageAttachments: StateFlow<List<ImageAttachmentEntity>> =
+        imageAttachmentRepository
+            .observeFor(DEVICE_OBJECT_TYPE, deviceId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         refresh()
+        viewModelScope.launch {
+            imageAttachmentRepository
+                .refresh(DEVICE_OBJECT_TYPE, deviceId)
+                .onFailure { Timber.w(it, "Couldn't refresh image attachments for device %d", deviceId) }
+        }
+        viewModelScope.launch {
+            device.filterNotNull().collect { entity ->
+                entity.deviceTypeId?.let { deviceTypeRepository.ensureCached(it) }
+            }
+        }
     }
 
     fun refresh() {

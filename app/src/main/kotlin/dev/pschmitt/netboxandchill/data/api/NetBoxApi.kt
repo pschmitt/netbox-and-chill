@@ -1,6 +1,8 @@
 package dev.pschmitt.netboxandchill.data.api
 
 import dev.pschmitt.netboxandchill.data.api.dto.DeviceDto
+import dev.pschmitt.netboxandchill.data.api.dto.DeviceTypeDto
+import dev.pschmitt.netboxandchill.data.api.dto.ImageAttachmentDto
 import dev.pschmitt.netboxandchill.data.api.dto.PagedResponseDto
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -15,4 +17,13 @@ interface NetBoxApi {
     ): PagedResponseDto<DeviceDto>
 
     @GET("api/dcim/devices/{id}/") suspend fun getDevice(@Path("id") id: Int): DeviceDto
+
+    @GET("api/dcim/device-types/{id}/")
+    suspend fun getDeviceType(@Path("id") id: Int): DeviceTypeDto
+
+    @GET("api/extras/image-attachments/")
+    suspend fun listImageAttachments(
+        @Query("object_type") objectType: String,
+        @Query("object_id") objectId: Int,
+    ): PagedResponseDto<ImageAttachmentDto>
 }

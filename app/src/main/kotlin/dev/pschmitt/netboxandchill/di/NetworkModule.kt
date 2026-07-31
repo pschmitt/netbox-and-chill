@@ -1,8 +1,12 @@
 package dev.pschmitt.netboxandchill.di
 
+import android.content.Context
+import coil3.ImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.api.AuthInterceptor
@@ -69,4 +73,14 @@ object NetworkModule {
     @Singleton
     fun provideGenericNetBoxApi(retrofit: Retrofit): GenericNetBoxApi =
         retrofit.create(GenericNetBoxApi::class.java)
+
+    // Device-type stock photos and image-attachment URLs point at the same NetBox host, so this
+    // reuses the same authenticated OkHttpClient (DynamicBaseUrlInterceptor + AuthInterceptor)
+    // rather than standing up a second client.
+    @Provides
+    @Singleton
+    fun provideImageLoader(@ApplicationContext context: Context, okHttpClient: OkHttpClient): ImageLoader =
+        ImageLoader.Builder(context)
+            .components { add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient })) }
+            .build()
 }

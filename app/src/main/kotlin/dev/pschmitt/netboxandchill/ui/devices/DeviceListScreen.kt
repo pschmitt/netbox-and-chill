@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +42,7 @@ fun DeviceListScreen(
     viewModel: DeviceListViewModel = hiltViewModel(),
 ) {
     val devices by viewModel.devices.collectAsStateWithLifecycle()
+    val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -93,7 +95,11 @@ fun DeviceListScreen(
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(devices, key = { it.id }) { device ->
-                            DeviceRow(device = device, onClick = { onDeviceClick(device.id) })
+                            DeviceRow(
+                                device = device,
+                                frontImageUrl = deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
+                                onClick = { onDeviceClick(device.id) },
+                            )
                         }
                     }
                 }
@@ -103,8 +109,15 @@ fun DeviceListScreen(
 }
 
 @Composable
-private fun DeviceRow(device: DeviceEntity, onClick: () -> Unit) {
+private fun DeviceRow(device: DeviceEntity, frontImageUrl: String?, onClick: () -> Unit) {
     ListItem(
+        leadingContent = {
+            RemoteThumbnail(
+                imageUrl = frontImageUrl,
+                contentDescription = device.deviceTypeModel,
+                modifier = Modifier.size(48.dp),
+            )
+        },
         headlineContent = { Text(device.name) },
         supportingContent = {
             val subtitle = listOfNotNull(device.siteName, device.deviceTypeModel).joinToString(" · ")

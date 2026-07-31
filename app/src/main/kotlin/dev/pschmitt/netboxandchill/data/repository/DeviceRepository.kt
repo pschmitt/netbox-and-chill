@@ -56,6 +56,7 @@ private fun DeviceDto.toEntity(): DeviceEntity =
         roleName = effectiveRole?.display ?: effectiveRole?.name,
         manufacturerName = deviceType?.manufacturer?.name,
         deviceTypeModel = deviceType?.model,
+        deviceTypeId = deviceType?.id,
         serial = serial,
         assetTag = assetTag,
         primaryIp = primaryIp?.address,

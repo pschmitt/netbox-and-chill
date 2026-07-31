@@ -2,6 +2,7 @@ package dev.pschmitt.netboxandchill.ui.devicedetail
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,8 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -37,7 +42,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
+import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import java.text.DateFormat
@@ -52,6 +60,8 @@ fun DeviceDetailScreen(
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
+    val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
+    val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -111,6 +121,8 @@ fun DeviceDetailScreen(
                     }
                     Spacer(Modifier.height(16.dp))
                 }
+                deviceTypePhotos(deviceType)
+                imageAttachmentRow(imageAttachments)
                 detailField("Site", current.siteName)
                 detailField("Rack", current.rackName)
                 detailField("Position", current.position?.toString())
@@ -133,6 +145,63 @@ fun DeviceDetailScreen(
         }
     }
 }
+
+/** Device-type stock photos (front/rear) - side by side when both are present. */
+private fun LazyListScope.deviceTypePhotos(deviceType: DeviceTypeEntity?) {
+    val front = deviceType?.frontImageUrl
+    val rear = deviceType?.rearImageUrl
+    val model = deviceType?.model
+    if (front.isNullOrBlank() && rear.isNullOrBlank()) return
+    item {
+        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            if (!front.isNullOrBlank()) {
+                RemoteThumbnail(
+                    imageUrl = front,
+                    contentDescription = "Front of $model",
+                    modifier = Modifier.weight(1f).height(140.dp),
+                )
+            }
+            if (!front.isNullOrBlank() && !rear.isNullOrBlank()) Spacer(Modifier.width(8.dp))
+            if (!rear.isNullOrBlank()) {
+                RemoteThumbnail(
+                    imageUrl = rear,
+                    contentDescription = "Rear of $model",
+                    modifier = Modifier.weight(1f).height(140.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Uploaded `extras.ImageAttachment` photos for this device - tap to open full-size in the browser. */
+private fun LazyListScope.imageAttachmentRow(attachments: List<ImageAttachmentEntity>) {
+    if (attachments.isEmpty()) return
+    item {
+        Column(Modifier.padding(vertical = 6.dp)) {
+            Text(
+                "Photos",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val context = LocalContext.current
+            LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                items(attachments, key = { it.id }) { attachment ->
+                    RemoteThumbnail(
+                        imageUrl = attachment.imageUrl,
+                        contentDescription = attachment.name,
+                        modifier =
+                            Modifier.size(100.dp).padding(end = 8.dp).clickableIfUrl(attachment.imageUrl) { url ->
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun Modifier.clickableIfUrl(url: String?, onClick: (String) -> Unit): Modifier =
+    if (url.isNullOrBlank()) this else this.then(Modifier.clickable { onClick(url) })
 
 private fun LazyListScope.detailField(label: String, value: String?) {
     if (value.isNullOrBlank()) return
