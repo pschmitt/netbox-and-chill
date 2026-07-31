@@ -4,6 +4,14 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Native Brother P-touch RFCOMM printing (NBC-10). CONNECT is runtime-gated on API 31+;
+         SCAN is declared for devices that require it while discovering paired printers. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
     <!-- API 33+ runtime permission, required to post the background-sync-failure Notification
          (NBC-23) - requested at runtime from MainActivity. Notifications are silently skipped if
          this is denied (see SyncNotifier.notifySyncFailed), never a hard requirement. -->

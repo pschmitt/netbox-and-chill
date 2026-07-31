@@ -58,7 +58,8 @@ import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
-import dev.pschmitt.netboxandchill.ui.common.printLabelShareIntent
+import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
+import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import java.text.DateFormat
 import java.io.File
@@ -74,7 +75,6 @@ fun DeviceDetailScreen(
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
-    val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -86,6 +86,7 @@ fun DeviceDetailScreen(
     // shared by both the device-type front/rear photos and the image-attachment row below.
     var imageViewer by remember { mutableStateOf<Pair<List<ImageViewerItem>, Int>?>(null) }
     var copiedMessage by remember { mutableStateOf<String?>(null) }
+    var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -129,10 +130,17 @@ fun DeviceDetailScreen(
                     }
                     IconButton(
                         onClick = {
-                            context.startActivity(
-                                printLabelShareIntent(deviceId, netboxBaseUrl, device?.name)
-                            )
-                        }
+                            val current = device
+                            val url = webUrl
+                            if (current != null && url != null) {
+                                printRequest =
+                                    PrintLabelRequest(
+                                        objectUrl = url,
+                                        labelText = current.assetTag?.takeIf { it.isNotBlank() } ?: current.name,
+                                    )
+                            }
+                        },
+                        enabled = device != null && webUrl != null,
                     ) {
                         Icon(Icons.Default.Print, contentDescription = "Print label")
                     }
@@ -203,6 +211,9 @@ fun DeviceDetailScreen(
 
     imageViewer?.let { (items, index) ->
         ImageViewerDialog(items = items, initialIndex = index, onDismiss = { imageViewer = null })
+    }
+    printRequest?.let { request ->
+        PrintLabelDialog(request = request, onDismiss = { printRequest = null })
     }
 }
 

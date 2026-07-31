@@ -418,47 +418,27 @@ paired Brother P-Touch Cube using its own reimplementation of Brother's PT-CBP p
 out to `jq` and to a separate `nbx` CLI (not a NetBox HTTP call of its own) for its `--netbox
 QUERY` mode. There is **no daemon, server, or HTTP surface anywhere in it** - confirmed by reading
 the full script source (`usage()`/`--help` text and the actual option parsing), not just the
-README. A real in-app integration (shared lib, shelled-out call, network call to a service) isn't
-feasible from Android: there's no process to call into, and reimplementing the Bluetooth PT-CBP
-protocol in Kotlin to talk to the printer directly is out of scope for this pass.
+README. The app therefore ports the small RFCOMM/PTCBP transport and raster path directly rather
+than trying to call the Linux CLI or adding a network service.
 
-**What shipped instead (scoped-down "share" fallback):** `printlabel`'s `--netbox QUERY` mode
-already does everything needed once it runs on the user's machine - given a NetBox device id (and
-optionally `--netbox-url`), it resolves the device via `nbx` and prints its QR/asset-tag label. So
-the app now offers a **"Print label" action** (printer icon, `ui/common/PrintLabelIntent.kt`) on
-both the dedicated Device detail screen (`ui/devicedetail/DeviceDetailScreen.kt`) and NBC-6's
-generic detail screen when browsing a device (`ui/generic/GenericDetailScreen.kt`, gated on
-`endpointPath == "api/dcim/devices/"`) that opens Android's share sheet (mirroring
-`ui/common/ShareIntent.kt`'s pattern) with a ready-to-run `printlabel --netbox <id> [--netbox-url
-<host>]` command, so the user can paste it into a terminal on their printlabel machine to
-(re)print that exact device's sticker - no extra typing/lookup needed on their end. This needs zero
-network access itself (pure string composition from data already cached in Room), so it stays
-usable fully offline per the app's offline-first rule.
+**Implemented:** the app now ports the printlabel PTCBP transport directly: it discovers paired
+Brother/P-touch printers, connects over RFCOMM, checks the printer's 32-byte ready status, sends a
+128-dot QR-plus-asset-tag raster using PackBits compression, and waits for the printer's completion
+status. The print action is available from both the typed device detail screen and the generic
+device detail screen. Android Bluetooth runtime permission and printer selection are handled in-app.
+The cached device web URL and label text are the only inputs; printing never writes to NetBox and
+continues to work from cached data while offline.
 
-**Not covered / honest limitations:**
-- No actual printing happens from the phone - this is a "hand off a ready command" convenience,
-  not a print job sent over the wire. Feasible in-app printing would require either printlabel
-  growing a network/HTTP mode, or reimplementing Bluetooth PT-CBP printer control natively in the
-  app (both out of scope here).
-- `--netbox-url` is only included when the app has a NetBox base URL to offer (derived from the
-  device's own cached API URL, or the app's configured NetBox credentials on the generic screen);
-  if absent, the shared command relies on the user's own `NETBOX_URL`/`NETBOX_API_TOKEN`
-  environment already being set on their machine (which `printlabel --netbox` supports natively).
-- No new tests added - this is a pure string-building/Intent helper with no async/network/DB code
-  path, mirroring the untested `ShareIntent.kt` it's modeled on.
+- [x] Port the PTCBP status/configuration/print transport and PackBits raster encoding.
+- [x] Render the cached device URL as a QR code with the asset tag beside it.
+- [x] Add paired-printer discovery, Bluetooth permissions, selection, and progress/error feedback.
+- [x] Replace the detail-screen share-sheet action with a real in-app print job.
+- [x] Add protocol tests and pass remote unit tests, lint, and debug build.
+- [ ] Verify a physical print with the user's paired Brother printer; no printer was available on
+  the Mi Pad 4 smoke-test device.
 
-**Reopened, 2026-07-31:** marking this "done" was wrong - reviewed and rejected. "Print device
-labels directly from the app" means an actual print job, not handing the user a shell command to
-go run themselves on a different machine; the share-sheet fallback above doesn't satisfy the
-original ask, it dodges it. The code that shipped (`PrintLabelIntent.kt` + the two detail-screen
-entry points) is harmless and stays in place as a minor convenience, but this entry is **not**
-closed out by it. Real in-app printing still needs one of the two paths already identified above
-(printlabel gaining a network-callable mode, or a native Bluetooth PT-CBP implementation in this
-app) - neither is scoped yet. Skipping further work on this for now rather than forcing another
-scoped-down pass.
-
-Status: **not started** (share-sheet hand-off shipped as a minor convenience, but does not count
-as label printing - see reopened note above), 2026-07-31.
+Status: mostly done, 2026-07-31 - native implementation and remote validation pass; physical paper
+output remains to be tested when a paired printer is available.
 
 ## NBC-12: Render markdown fields properly
 

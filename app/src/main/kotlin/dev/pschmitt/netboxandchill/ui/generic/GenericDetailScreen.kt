@@ -62,7 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
-import dev.pschmitt.netboxandchill.ui.common.printLabelShareIntent
+import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
+import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import androidx.core.content.getSystemService
 
@@ -86,12 +87,12 @@ fun GenericDetailScreen(
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
-    val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     var editValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var copiedMessage by remember { mutableStateOf<String?>(null) }
+    var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     LaunchedEffect(isEditing) {
         if (isEditing) editValues = editableFields.associate { it.key to it.value }
     }
@@ -186,14 +187,15 @@ fun GenericDetailScreen(
                         if (viewModel.isPrintableDevice) {
                             IconButton(
                                 onClick = {
-                                    context.startActivity(
-                                        printLabelShareIntent(
-                                            viewModel.route.id,
-                                            netboxBaseUrl,
-                                            title,
-                                        )
-                                    )
-                                }
+                                    webUrl?.let { url ->
+                                        printRequest =
+                                            PrintLabelRequest(
+                                                objectUrl = url,
+                                                labelText = title.orEmpty(),
+                                            )
+                                    }
+                                },
+                                enabled = webUrl != null,
                             ) {
                                 Icon(Icons.Default.Print, contentDescription = "Print label")
                             }
@@ -302,6 +304,9 @@ fun GenericDetailScreen(
                 }
             }
         }
+    }
+    printRequest?.let { request ->
+        PrintLabelDialog(request = request, onDismiss = { printRequest = null })
     }
 }
 
