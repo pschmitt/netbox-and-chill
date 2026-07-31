@@ -30,7 +30,6 @@ fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onO
             DeviceListScreen(
                 onDeviceClick = { id -> navController.navigate(Route.DeviceDetail(id)) },
                 onScanClick = { navController.navigate(Route.Scanner) },
-                onSettingsClick = { navController.navigate(Route.Settings) },
                 onOpenDrawer = onOpenDrawer,
             )
         }
@@ -44,7 +43,6 @@ fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onO
                 onObjectClick = { id -> navController.navigate(Route.Generic(route.endpointPath, id)) },
                 onDevicesClick = { navController.navigate(Route.DeviceList) { launchSingleTop = true } },
                 onScanClick = { navController.navigate(Route.Scanner) },
-                onSettingsClick = { navController.navigate(Route.Settings) },
                 onOpenDrawer = onOpenDrawer,
             )
         }

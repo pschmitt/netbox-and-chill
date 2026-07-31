@@ -79,6 +79,10 @@ class MainActivity : ComponentActivity() {
                                     launchSingleTop = true
                                 }
                             },
+                            onSettingsClick = {
+                                coroutineScope.launch { drawerState.close() }
+                                navController.navigate(Route.Settings)
+                            },
                         )
                     },
                 ) {

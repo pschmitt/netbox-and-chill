@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,7 +41,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mikepenz.markdown.m3.Markdown
+import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.shareIntent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,6 +119,9 @@ fun GenericDetailScreen(
                                 onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                             ) {
                                 Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser")
+                            }
+                            IconButton(onClick = { context.startActivity(shareIntent(url)) }) {
+                                Icon(Icons.Default.Share, contentDescription = "Share")
                             }
                         }
                     }
@@ -211,7 +216,7 @@ private fun LazyListScope.fieldRow(row: FieldRow, onNavigateToReference: (String
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label)
-                    Markdown(content = row.content, modifier = Modifier.fillMaxWidth())
+                    CommentCard(content = row.content, modifier = Modifier.fillMaxWidth())
                 }
             }
         is FieldRow.Reference ->

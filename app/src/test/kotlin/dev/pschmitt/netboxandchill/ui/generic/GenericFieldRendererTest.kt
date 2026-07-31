@@ -30,6 +30,41 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `expands custom_fields into individual rows`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"name":"x","custom_fields":{"warranty_expires":"2027-01-01","internal_owner":"NetOps"}}"""
+                )
+            )
+        assertEquals(
+            listOf(
+                FieldRow.PlainText("Name", "x"),
+                FieldRow.PlainText("Warranty Expires", "2027-01-01"),
+                FieldRow.PlainText("Internal Owner", "NetOps"),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `custom_fields with only null values contributes nothing`() {
+        val rows = buildFieldRows(parse("""{"custom_fields":{"unset_field":null}}"""))
+        assertTrue(rows.isEmpty())
+    }
+
+    @Test
+    fun `custom_fields reference values become tappable Reference rows`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"custom_fields":{"owner_contact":{"id":9,"url":"https://x/api/tenancy/contacts/9/","display":"Jane"}}}"""
+                )
+            )
+        assertEquals(listOf(FieldRow.Reference("Owner Contact", RefTarget("Jane", "api/tenancy/contacts/", 9))), rows)
+    }
+
+    @Test
     fun `skips null and blank fields`() {
         val rows = buildFieldRows(parse("""{"comments":null,"description":""}"""))
         assertTrue(rows.isEmpty())

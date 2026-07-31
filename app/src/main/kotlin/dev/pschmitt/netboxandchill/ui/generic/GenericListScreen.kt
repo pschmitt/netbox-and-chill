@@ -36,7 +36,6 @@ fun GenericListScreen(
     onObjectClick: (Int) -> Unit,
     onDevicesClick: () -> Unit,
     onScanClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onOpenDrawer: () -> Unit,
     viewModel: GenericListViewModel = hiltViewModel(),
 ) {
@@ -72,7 +71,6 @@ fun GenericListScreen(
                 selected = null,
                 onDevicesClick = onDevicesClick,
                 onScanClick = onScanClick,
-                onSettingsClick = onSettingsClick,
             )
         },
     ) { padding ->

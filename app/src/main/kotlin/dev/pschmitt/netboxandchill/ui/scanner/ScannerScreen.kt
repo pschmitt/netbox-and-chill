@@ -9,6 +9,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -32,6 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -87,6 +93,7 @@ fun ScannerScreen(
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (hasCameraPermission) {
                 CameraPreview(onCodeScanned = viewModel::onCodeScanned)
+                ScannerViewfinder(modifier = Modifier.fillMaxSize())
             } else {
                 Text(
                     "Camera permission is required to scan device stickers",
@@ -111,6 +118,33 @@ fun ScannerScreen(
                 else -> Unit
             }
         }
+    }
+}
+
+/** A dimmed frame around a centered square cutout, like most QR scanner apps - purely cosmetic,
+ * the analyzer scans the whole camera frame regardless of what's inside the square. */
+@Composable
+private fun ScannerViewfinder(modifier: Modifier = Modifier) {
+    val dim = Color.Black.copy(alpha = 0.55f)
+    Canvas(modifier = modifier) {
+        val squareSize = size.minDimension * 0.65f
+        val left = (size.width - squareSize) / 2f
+        val top = (size.height - squareSize) / 2f
+        val right = left + squareSize
+        val bottom = top + squareSize
+
+        drawRect(color = dim, topLeft = Offset(0f, 0f), size = Size(size.width, top))
+        drawRect(color = dim, topLeft = Offset(0f, bottom), size = Size(size.width, size.height - bottom))
+        drawRect(color = dim, topLeft = Offset(0f, top), size = Size(left, squareSize))
+        drawRect(color = dim, topLeft = Offset(right, top), size = Size(size.width - right, squareSize))
+
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(left, top),
+            size = Size(squareSize, squareSize),
+            cornerRadius = CornerRadius(24f, 24f),
+            style = Stroke(width = 3.dp.toPx()),
+        )
     }
 }
 

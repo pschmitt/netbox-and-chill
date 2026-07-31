@@ -201,7 +201,23 @@ accessible from the app.
 Presence of the plugin isn't guaranteed for all NetBox instances users of this app might have, so
 this should probably be optional/detected rather than assumed.
 
-Status: not started, 2026-07-31.
+**Turns out most of this is already free.** NBC-6's directory discovery walks `api/plugins/`
+generically, so `netbox-documents` (and any other installed plugin) already shows up as its own
+sidebar section with no plugin-specific code - confirmed live on the Mi Pad 4: the "Documents"
+section listed real PDF filenames from the user's instance via the plain generic list/detail
+screens, no special-casing needed.
+
+Still missing for *full* support:
+- [ ] Opening/downloading/previewing the actual file content - the generic detail screen shows
+  the document's metadata fields, but there's no in-app file viewer or download/cache step yet.
+  This is the same "binary asset synced for offline use" work NBC-3 already flagged wanting a
+  joint design pass for.
+- [ ] Nothing plugin-specific has been verified beyond "list + basic metadata detail" - e.g.
+  whether netbox-documents exposes anything (custom actions, nested structure) that doesn't fit
+  the generic list/detail shape.
+
+Status: partially done (list/detail browsing works via NBC-6, confirmed live), 2026-07-31 - file
+content viewing still open, see NBC-3.
 
 ## NBC-8: App Links for the user's NetBox domain + deep link to specific object views
 
@@ -318,5 +334,64 @@ client-side queries across every cached `NetBoxObjectEntity` endpoint. Needs che
 endpoint/response shape against a live instance. Result rows would route through NBC-6's generic
 detail screen the same way scanning/deep-links already do, since results span arbitrary object
 types.
+
+Status: not started, 2026-07-31.
+
+## NBC-14: UI polish batch (sidebar, comments, custom fields, share, scanner)
+
+A run of small, concrete UI/UX requests landed together in one pass:
+
+- [x] **Sidebar sections collapsed by default**, like the NetBox web UI - was an "absurdly long"
+  flat list before. Tapping a section header (app-icon row) toggles it; expand state is
+  per-session (`expandedApps` local state, not persisted). Searching auto-expands every matching
+  section, since collapsing search results you're actively looking for makes no sense.
+- [x] **Settings moved from the bottom nav into a static sidebar footer** - `NetBoxBottomBar` is
+  now just Devices/Scan (2 tabs, not 3). Footer layout: app icon | "Version X.Y.Z" + NetBox base
+  URL (stacked, truncated) | settings cog - pinned below the scrollable `LazyColumn`, not part of
+  it, so it never scrolls away.
+- [x] **Comments re-styled as a card**, not a plain inline text row - `ui/common/CommentCard.kt`
+  wraps the Markdown composable in a `Surface` with `surfaceContainerHigh` tonal background and
+  rounded corners, used by both the generic detail screen and the legacy Device detail screen.
+- [x] **`custom_fields` are now actually displayed** - previously silently dropped for anything
+  non-primitive (object/multi-select custom fields) and crudely flattened into one row for
+  primitives. Now each custom field expands into its own row via the same generic field renderer
+  used for top-level fields (handles reference-typed and multi-select custom fields correctly,
+  not just plain text ones). Still not *editable* - see NBC-5's out-of-scope note, unchanged.
+- [x] **Share button** on both detail screens (`ui/common/ShareIntent.kt`, plain `ACTION_SEND` of
+  the object's web URL). Incidentally fixed a real bug found while wiring this up: the legacy
+  Device detail screen's "Open in browser" was opening the *API* URL
+  (`.../api/dcim/devices/393/`, DRF's browsable API), not the actual NetBox web page - it now
+  derives the correct web URL the same way NBC-6's generic screen already did.
+- [x] **QR/barcode scanner viewfinder overlay** - a dimmed frame around a centered square cutout
+  (`ScannerViewfinder` in `ScannerScreen.kt`), purely cosmetic like most scanner apps have; the
+  analyzer still scans the whole camera frame regardless of what's inside the square.
+
+Also surfaced while testing this batch: **netbox-documents plugin objects already list correctly**
+through NBC-6's generic engine with zero plugin-specific code (see NBC-7, updated).
+
+**Broader direction noted, not yet acted on:** user wants the generic views to feel less like a
+"simple list of key/values" and more ergonomic/pretty in general, once field-type icons exist -
+this batch is a step in that direction (cards, icons, collapsing) but there's more to do here;
+no dedicated entry yet, revisit once there's a clearer concrete shape for it.
+
+Status: **done**, 2026-07-31. `just build`/`just test`/`just lint` green; installed on all three
+devices; sidebar collapse/expand and the netbox-documents discovery live-verified on the Mi Pad 4
+against the real instance. Comment card, custom fields, share button, and scanner viewfinder
+verified via successful compile+test only (not individually screenshotted against live data).
+
+## NBC-15: NetBox Journal entries for an object
+
+Show an object's Journal (`/api/extras/journal-entries/`) on its generic detail screen - NetBox's
+free-form timestamped notes attached to any object, distinct from the auto-generated changelog.
+
+**Why:** user request - journal entries are a normal part of how NetBox users track
+context/history on an object, not currently visible anywhere in the app.
+**How to apply:** `GET /api/extras/journal-entries/?assigned_object_type=<app.model>&assigned_object_id=<id>`
+(the `assigned_object_type` filter takes a `"app_label.model"` string, e.g. `"dcim.device"" - need
+to derive that from the generic screen's `endpointPath`, which is close but not identical:
+`api/dcim/devices/` -> `dcim.device` needs de-pluralizing the model segment, not just a string
+slice). Each entry has `created`, `kind` (info/success/warning/danger), and a Markdown `comments`
+body - should reuse `CommentCard`/the Markdown renderer from NBC-12/NBC-14 rather than plain text.
+Not investigated yet: whether posting new journal entries (not just reading) is wanted too.
 
 Status: not started, 2026-07-31.

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,8 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mikepenz.markdown.m3.Markdown
+import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
+import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import java.text.DateFormat
 import java.util.Date
 
@@ -49,6 +51,7 @@ fun DeviceDetailScreen(
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
+    val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -75,11 +78,14 @@ fun DeviceDetailScreen(
                     IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                    device?.url?.takeIf { it.isNotBlank() }?.let { url ->
+                    webUrl?.let { url ->
                         IconButton(
                             onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                         ) {
                             Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser")
+                        }
+                        IconButton(onClick = { context.startActivity(shareIntent(url)) }) {
+                            Icon(Icons.Default.Share, contentDescription = "Share")
                         }
                     }
                 },
@@ -152,7 +158,7 @@ private fun LazyListScope.detailMarkdownField(label: String, value: String?) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Markdown(content = value, modifier = Modifier.fillMaxWidth())
+            CommentCard(content = value, modifier = Modifier.fillMaxWidth())
         }
     }
 }

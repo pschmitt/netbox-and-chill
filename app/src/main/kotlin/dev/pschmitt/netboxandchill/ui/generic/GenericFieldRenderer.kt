@@ -12,7 +12,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-private val SKIPPED_KEYS = setOf("id", "url", "display")
+private val SKIPPED_KEYS = setOf("id", "url", "display", "custom_fields")
 
 // NetBox documents these specific fields as Markdown-enabled across (almost) every model -
 // "description" is deliberately not included, it's plain short text, not Markdown.
@@ -29,17 +29,27 @@ private val EDIT_BLOCKLIST =
  * object (tappable, navigable to that object's own generic detail screen - this is also how tags
  * end up as tappable chips, since NetBox tags are real objects with their own detail view too).
  */
-fun buildFieldRows(obj: JsonObject): List<FieldRow> =
-    obj.mapNotNull { (key, value) ->
+fun buildFieldRows(obj: JsonObject): List<FieldRow> = buildList {
+    for ((key, value) in obj) {
         when {
-            key in SKIPPED_KEYS -> null
+            key in SKIPPED_KEYS -> Unit
             key in MARKDOWN_KEYS ->
                 (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let {
-                    FieldRow.Markdown(Humanize.label(key), it)
+                    add(FieldRow.Markdown(Humanize.label(key), it))
                 }
-            else -> renderField(Humanize.label(key), value)
+            else -> renderField(Humanize.label(key), value)?.let(::add)
         }
     }
+    // custom_fields is a NetBox-instance-specific map of {field_name: value} - each one gets its
+    // own row via the same generic rendering used for top-level fields, rather than being folded
+    // into one flattened blob or dropped for non-primitive values (object/multi-select custom
+    // fields).
+    (obj["custom_fields"] as? JsonObject)?.let { customFields ->
+        for ((key, value) in customFields) {
+            renderField(Humanize.label(key), value)?.let(::add)
+        }
+    }
+}
 
 private fun renderField(label: String, value: JsonElement): FieldRow? =
     when (value) {

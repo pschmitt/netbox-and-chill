@@ -13,8 +13,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 @HiltViewModel
 class DeviceDetailViewModel
@@ -35,6 +38,13 @@ constructor(savedStateHandle: SavedStateHandle, private val deviceRepository: De
             .observeDevice(deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    // device.url is the *API* url (e.g. https://host/api/dcim/devices/393/) - the actual web page
+    // mirrors that path with the "/api" prefix dropped.
+    val webUrl: StateFlow<String?> =
+        device
+            .map { entity -> entity?.url?.toHttpUrlOrNull()?.let { apiUrl -> apiUrlToWebUrl(apiUrl) } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         refresh()
     }
@@ -52,4 +62,7 @@ constructor(savedStateHandle: SavedStateHandle, private val deviceRepository: De
     fun errorShown() {
         _errorMessage.value = null
     }
+
+    private fun apiUrlToWebUrl(apiUrl: HttpUrl): String =
+        apiUrl.newBuilder().encodedPath(apiUrl.encodedPath.removePrefix("/api")).build().toString()
 }

@@ -3,27 +3,21 @@ package dev.pschmitt.netboxandchill.ui.common
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
-/** The three universal destinations, always reachable regardless of which sidebar item you're on. */
+/** The universal destinations always reachable regardless of which sidebar item you're on -
+ * Settings lives in the sidebar footer instead (see Sidebar.kt), not here. */
 enum class BottomTab {
     Devices,
     Scan,
-    Settings,
 }
 
 @Composable
-fun NetBoxBottomBar(
-    selected: BottomTab?,
-    onDevicesClick: () -> Unit,
-    onScanClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-) {
+fun NetBoxBottomBar(selected: BottomTab?, onDevicesClick: () -> Unit, onScanClick: () -> Unit) {
     NavigationBar {
         NavigationBarItem(
             selected = selected == BottomTab.Devices,
@@ -36,12 +30,6 @@ fun NetBoxBottomBar(
             onClick = onScanClick,
             icon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
             label = { Text("Scan") },
-        )
-        NavigationBarItem(
-            selected = selected == BottomTab.Settings,
-            onClick = onSettingsClick,
-            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            label = { Text("Settings") },
         )
     }
 }
