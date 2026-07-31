@@ -43,13 +43,6 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
         entity
     }
 
-    suspend fun updateObject(endpointPath: String, id: Int, patch: JsonObject): Result<NetBoxObjectEntity> =
-        runCatching {
-            val entity = api.patchObject("$endpointPath$id/", patch).toEntity(endpointPath)
-            dao.upsert(entity)
-            entity
-        }
-
     suspend fun syncAll(
         endpointPath: String,
         pageSize: Int = 200,
@@ -92,6 +85,11 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
     suspend fun cacheSearchResults(endpointPath: String, objects: List<JsonObject>) {
         if (objects.isEmpty()) return
         dao.upsertAll(objects.map { it.toEntity(endpointPath) })
+    }
+
+    /** Writes a locally merged object into the same cache used by the detail screen. */
+    suspend fun cacheLocalObject(endpointPath: String, objectJson: JsonObject) {
+        dao.upsert(objectJson.toEntity(endpointPath))
     }
 
     private fun JsonObject.toEntity(endpointPath: String): NetBoxObjectEntity {

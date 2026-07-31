@@ -7,8 +7,10 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.EditSubmission
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
+import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.ui.navigation.Route
@@ -39,6 +41,7 @@ constructor(
     private val fileDownloadRepository: FileDownloadRepository,
     private val journalEntryRepository: JournalEntryRepository,
     private val customFieldRepository: CustomFieldRepository,
+    private val pendingEditRepository: PendingEditRepository,
     private val syncScheduler: SyncScheduler,
     private val json: Json,
 ) : ViewModel() {
@@ -77,13 +80,18 @@ constructor(
 
     private val objectFlow = repository.observeObject(route.endpointPath, route.id)
 
+    private val objectEntity =
+        objectFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private var editBaseJson: String? = null
+
     private val decodedObject: StateFlow<JsonObject?> =
-        objectFlow
+        objectEntity
             .map { entity -> entity?.let { decode(it.json) } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val title: StateFlow<String?> =
-        objectFlow
+        objectEntity
             .map { it?.display }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -101,7 +109,7 @@ constructor(
     // Web URL mirrors the API path structure with "api/" dropped, e.g. api/dcim/racks/5/ ->
     // <base>/dcim/racks/5/.
     val webUrl: StateFlow<String?> =
-        objectFlow
+        objectEntity
             .combine(settingsRepository.credentials) { entity, credentials ->
                 entity to credentials
             }
@@ -157,11 +165,13 @@ constructor(
 
     fun startEditing() {
         _errorMessage.value = null
+        editBaseJson = objectEntity.value?.json
         _isEditing.value = true
     }
 
     fun cancelEditing() {
         _errorMessage.value = null
+        editBaseJson = null
         _isEditing.value = false
     }
 
@@ -173,16 +183,32 @@ constructor(
         }
         viewModelScope.launch {
             _isSaving.value = true
-            repository
-                .updateObject(route.endpointPath, route.id, buildPatchBody(edits))
-                .onSuccess {
-                    _isEditing.value = false
-                    _refreshedMessage.value = "${title.value ?: "Item"} updated!"
-                    // Refreshes the wider offline cache (and, if enabled, synced attachments) so
-                    // an edit's side effects elsewhere in NetBox aren't only reflected here.
-                    syncScheduler.syncNow()
-                }
-                .onFailure { _errorMessage.value = it.message ?: "Couldn't save changes" }
+            val baseJson = editBaseJson ?: objectEntity.value?.json
+            if (baseJson == null) {
+                _errorMessage.value = "Couldn't save: the original object is no longer cached"
+            } else {
+                pendingEditRepository
+                    .submitEdit(route.endpointPath, route.id, baseJson, buildPatchBody(edits))
+                    .onSuccess { submission ->
+                        _isEditing.value = false
+                        editBaseJson = null
+                        when (submission) {
+                            EditSubmission.Updated -> {
+                                _refreshedMessage.value = "${title.value ?: "Item"} updated!"
+                                // Refreshes the wider offline cache (and, if enabled, synced
+                                // attachments) so an edit's side effects elsewhere in NetBox
+                                // aren't only reflected here.
+                                syncScheduler.syncNow()
+                            }
+                            EditSubmission.Queued ->
+                                _refreshedMessage.value = "Saved locally; will sync when online"
+                            EditSubmission.ConflictDetected ->
+                                _errorMessage.value =
+                                    "Conflict detected - review it from the dashboard"
+                        }
+                    }
+                    .onFailure { _errorMessage.value = it.message ?: "Couldn't save changes" }
+            }
             _isSaving.value = false
         }
     }

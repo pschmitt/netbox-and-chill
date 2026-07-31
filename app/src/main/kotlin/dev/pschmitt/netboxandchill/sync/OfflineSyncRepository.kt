@@ -7,6 +7,7 @@ import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.data.repository.OfflineAttachment
+import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,10 +31,13 @@ constructor(
     private val imageAttachmentRepository: ImageAttachmentRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val settingsRepository: SettingsRepository,
+    private val pendingEditRepository: PendingEditRepository,
 ) {
 
     suspend fun syncAll(): Result<OfflineSyncSummary> =
         runCatching {
+            // Resolve queued edits before the normal cache refresh can replace their local view.
+            pendingEditRepository.syncPending()
             val devices = deviceRepository.syncAll().getOrThrow()
             directoryRepository.refresh().getOrThrow()
 

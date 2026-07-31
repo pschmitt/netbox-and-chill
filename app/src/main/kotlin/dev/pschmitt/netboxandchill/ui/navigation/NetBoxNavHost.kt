@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import dev.pschmitt.netboxandchill.ui.dashboard.DashboardScreen
 import dev.pschmitt.netboxandchill.ui.dashboard.ObjectChangeDiffScreen
+import dev.pschmitt.netboxandchill.ui.conflicts.EditConflictsScreen
 import dev.pschmitt.netboxandchill.ui.devicedetail.DeviceDetailScreen
 import dev.pschmitt.netboxandchill.ui.devices.DeviceListScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericDetailScreen
@@ -63,6 +64,7 @@ fun NetBoxNavHost(
                     }
                 },
                 onChangeDiffClick = { changeId -> navController.navigate(Route.ObjectChangeDiff(changeId)) },
+                onConflictsClick = { navController.navigate(Route.EditConflicts) },
             )
         }
         composable<Route.ObjectChangeDiff> {
@@ -137,6 +139,9 @@ fun NetBoxNavHost(
                     navController.navigate(Route.Onboarding) { popUpTo(0) { inclusive = true } }
                 },
             )
+        }
+        composable<Route.EditConflicts> {
+            EditConflictsScreen(onBack = { navController.popBackStack() })
         }
     }
 }

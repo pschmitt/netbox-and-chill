@@ -17,6 +17,7 @@ import dev.pschmitt.netboxandchill.data.db.ImageAttachmentDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
+import dev.pschmitt.netboxandchill.data.db.PendingEditDao
 import javax.inject.Singleton
 
 @Module
@@ -53,4 +54,6 @@ object DatabaseModule {
     fun provideDashboardStatDao(database: AppDatabase): DashboardStatDao = database.dashboardStatDao()
 
     @Provides fun provideCustomFieldDao(database: AppDatabase): CustomFieldDao = database.customFieldDao()
+
+    @Provides fun providePendingEditDao(database: AppDatabase): PendingEditDao = database.pendingEditDao()
 }

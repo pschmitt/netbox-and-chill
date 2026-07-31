@@ -7,6 +7,7 @@ import dev.pschmitt.netboxandchill.data.db.BookmarkEntity
 import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
+import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +17,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class DashboardViewModel @Inject constructor(private val repository: DashboardRepository) : ViewModel() {
+class DashboardViewModel
+@Inject
+constructor(
+    private val repository: DashboardRepository,
+    pendingEditRepository: PendingEditRepository,
+) : ViewModel() {
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -32,6 +38,11 @@ class DashboardViewModel @Inject constructor(private val repository: DashboardRe
 
     val changelog: StateFlow<List<ObjectChangeEntity>> =
         repository.observeChangelog().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val conflictCount: StateFlow<Int> =
+        pendingEditRepository
+            .observeConflictCount()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
         refresh()

@@ -17,6 +17,9 @@ sealed interface Route {
 
     @Serializable data object Settings : Route
 
+    /** Durable offline-edit conflict resolver (NBC-32). */
+    @Serializable data object EditConflicts : Route
+
     /** Cross-model search (NBC-13) - distinct from the sidebar's own section-name filter (NBC-6). */
     @Serializable data object GlobalSearch : Route
 

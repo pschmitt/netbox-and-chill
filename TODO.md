@@ -1256,30 +1256,21 @@ user gets no warning and no way to see or resolve what actually differs.
 **Why:** user request - "how do we handle conflicts atm? ie i change something offline and in the
 app in parallel. How do we reconcile this? I expect a warning on the home page and a view to
 properly resolve the merge conflict (with diffs and all)."
-**How to apply:** genuinely needs design work before implementation, not just a mechanical PATCH
-tweak - a few things worth resolving first:
-- **Detection**: `GenericObjectRepository.updateObject()` (NBC-5) currently does a blind PATCH with
-  no precondition - NetBox's `last_updated` field (already cached per-object, see
-  `GenericDetailScreen`'s "Last synced"/timestamps) is the natural conflict signal: compare the
-  server's `last_updated` at PATCH time against what was cached when the edit started, or use
-  HTTP conditional headers (`If-Unmodified-Since`/ETags) if NetBox's API supports them - needs
-  checking, not assuming.
-- **Where edits actually queue offline**: today, `save()` in `GenericDetailViewModel` PATCHes
-  immediately and only works if online at that moment (per `AGENTS.md`'s offline-first
-  requirement, this itself might be a gap - true "edit offline, sync later" implies edits need
-  their own durable outbox/queue, not just an inline API call that fails when offline). This
-  entry may end up depending on that queueing existing first, or on NBC-17's sync-on-edit slice 2
-  work, rather than being fully independent.
-- **The "warning on the home page"**: NBC-9's new Dashboard is the natural home for a "N items
-  have unsynced local changes / M have conflicts" banner.
-- **The resolve view**: "with diffs and all" implies a side-by-side or inline diff of local vs.
-  server field values per conflicting object, with a way to pick a winner per field (or
-  wholesale) - closest existing precedent in this app is NBC-5's edit form, but that's a single
-  source of truth (local, about to overwrite server), not a three-way comparison
-  (last-known-synced vs. local-edit vs. current-server).
+- [x] Capture the last-synced base object and compare `last_updated` before PATCHing; fall back to
+  a full JSON comparison when the API response has no version field.
+- [x] Add a durable Room outbox for offline edits and process it before ordinary cache refreshes,
+  so queued local changes are not silently overwritten.
+- [x] Show a conflict count warning on the dashboard and provide a resolver with base/local/server
+  values plus a keep-local/keep-server choice for each changed field.
+- [x] Re-check the server snapshot before applying a resolution and preserve the conflict if the
+  server changes again.
+- [x] Add focused three-way-diff tests; remote unit-test/lint/build validation is still required
+  before this entry can be closed.
+- [ ] Do not induce a conflict against the production NetBox instance during validation; the live
+  end-to-end conflict path remains unverified by design.
 
-Status: not started, 2026-07-31 - needs a design decision on the points above before implementation
-starts.
+Status: mostly done, 2026-07-31 - implementation and focused tests are in place; no production
+NetBox writes or deliberately induced live conflict were used for validation.
 
 ## NBC-33: confirm a manual refresh on the detail screen with a toast/snackbar
 

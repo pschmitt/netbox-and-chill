@@ -15,8 +15,9 @@ import androidx.room.RoomDatabase
             ObjectChangeEntity::class,
             DashboardStatEntity::class,
             CustomFieldEntity::class,
+            PendingEditEntity::class,
         ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,4 +38,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dashboardStatDao(): DashboardStatDao
 
     abstract fun customFieldDao(): CustomFieldDao
+
+    abstract fun pendingEditDao(): PendingEditDao
 }
