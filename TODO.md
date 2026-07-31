@@ -770,11 +770,22 @@ outage). A real device check - populate the cache, then kill/blackhole the route
 instance and confirm each screen still renders its last-synced data with only a non-blocking
 error/snackbar - is still owed next time a device and a controllable network are both available.
 
+**Live device attempt (separate, concurrent session):** with netbox.brkn.lol's outage resolved,
+a populated cache (382 real devices) was available to actually test this against - but the
+attempt was aborted before producing a result: disabling WiFi on the Mi Pad 4 to simulate offline
+severed its only remote-control path too (wireless adb depends on the same WiFi), and it was only
+recoverable via an unrelated Home Assistant automation on that device, not anything done here. Not
+a code problem, just a tooling gap in how offline was simulated - worth a safety net before the
+next attempt (arm a delayed self-re-enable first, e.g.
+`ssh <device> 'nohup sh -c "sleep 30 && svc wifi enable" &'`).
+
 Status: **done** (code-audited, not live-device-verified), 2026-07-31 - every list/detail
 ViewModel in the app read line-by-line and confirmed to already follow the Room-`Flow`-first,
 best-effort-`refresh()` shape; no gating/clearing bugs found, so no code changes were needed.
-`just build`/`just lint`/`just test` run clean on the (unchanged) codebase. Still needs a real
-device network-kill test once a device/connection is available - see limitation note above.
+`just build`/`just lint`/`just test` run clean on the (unchanged) codebase. A live device
+network-kill test was separately attempted this session and aborted for tooling reasons (wireless
+adb losing its own transport when WiFi is disabled), not a code issue - still needs a clean re-test
+with a self-re-enable safety net once a device/connection is available.
 
 ## NBC-19: icon audit - buttons, ListItems, and a new AGENTS.md convention
 
