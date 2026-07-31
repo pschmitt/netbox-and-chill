@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+
+    <application
+        android:name=".NetBoxAndChillApp"
+        android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NetBoxAndChill"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="34">
+
+        <!-- usesCleartextTraffic=true: self-hosted NetBox instances are frequently plain HTTP on
+             a local network. Deliberate choice for this app's target audience (homelab/NetBox
+             users), not an oversight - see README.md. -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.NetBoxAndChill.Splash"
+            android:windowSoftInputMode="adjustResize">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                 Device-sticker QR codes point at the public NetBox URL for that device
+                 (https://<netbox-host>/dcim/devices/<id>/). The host isn't known at build time
+                 (it's whatever NetBox instance the user configures in Settings), so this matches
+                 the path on any https host rather than a fixed one. Not auto-verified (that
+                 requires a fixed, DNS-verified host), so Android offers this app in the "Open
+                 with" chooser for matching links rather than opening it automatically.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="*"
+                    android:pathPattern="/dcim/devices/.*" />
+            </intent-filter>
+
+            <!-- Share a device link into the app from any other app's share sheet. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- WorkManager is initialized manually in NetBoxAndChillApp (Configuration.Provider) so
+             Hilt can inject HiltWorkerFactory into it - disable the default ContentProvider-based
+             auto-init to avoid double initialization. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+    </application>
+
+</manifest>

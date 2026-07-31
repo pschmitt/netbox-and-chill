@@ -1,0 +1,201 @@
+name: Release
+
+# One pipeline, two release flavors depending on what got pushed:
+# - a push to main moves the rolling "latest" prerelease tag and republishes it (debug + release
+#   APKs, always prerelease, never the repo's "Latest release" badge)
+# - a push of a "vX.Y.Z" tag publishes a real, permanent release at that tag (release APKs only,
+#   becomes the repo's "Latest release")
+# Both need the identical build/sign/verify/checksum pipeline, so it's one job with a branch
+# partway through rather than two workflows that would only drift apart over time.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          # Exact patch pin so the toolchain that produces a release is reproducible run-to-run
+          # instead of silently drifting to whatever Temurin 21.x build happens to be current.
+          java-version: '21.0.11'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Decode CI signing keystore
+        id: ci_keystore
+        uses: timheuer/base64-to-file@v2
+        with:
+          fileName: 'netboxandchill-ci.jks'
+          encodedString: ${{ secrets.CI_KEYSTORE_BASE64 }}
+
+      - name: Determine release parameters
+        # A pushed "vX.Y.Z" tag gets its own permanent release; anything else (a main push, or a
+        # manual dispatch off main) republishes the rolling "latest" prerelease instead.
+        id: params
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            {
+              echo "tag_name=${{ github.ref_name }}"
+              echo "release_name=${{ github.ref_name }}"
+              echo "include_debug=false"
+              echo "move_tag=false"
+              echo "vacuum_stale_assets=false"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "tag_name=latest"
+              echo "release_name=Latest build"
+              echo "include_debug=true"
+              echo "move_tag=true"
+              echo "vacuum_stale_assets=true"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute git revision
+        id: git_revision
+        run: echo "value=$(git describe --always --abbrev=12 --dirty)" >> "$GITHUB_OUTPUT"
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build APKs
+        run: >
+          ./gradlew
+          ${{ steps.params.outputs.include_debug == 'true' && 'assembleDebug' || '' }}
+          assembleRelease
+          --stacktrace --build-cache
+        env:
+          CI_KEYSTORE_PATH: ${{ steps.ci_keystore.outputs.filePath }}
+          CI_KEYSTORE_PASSWORD: ${{ secrets.CI_KEYSTORE_PASSWORD }}
+          CI_KEY_ALIAS: ${{ secrets.CI_KEY_ALIAS }}
+          CI_KEY_PASSWORD: ${{ secrets.CI_KEY_PASSWORD }}
+          GIT_REVISION: ${{ steps.git_revision.outputs.value }}
+
+      - name: Verify embedded git revision
+        # Confirms GIT_REVISION actually made it into the built artifact instead of silently
+        # falling back to "unknown" - the same check `just build variant=release` runs locally.
+        run: |
+          revision="${{ steps.git_revision.outputs.value }}"
+          if ! unzip -p app/build/outputs/apk/release/app-arm64-v8a-release.apk 'classes*.dex' \
+              | strings | grep -Fx "$revision" >/dev/null; then
+            echo "::error::release APK does not contain expected revision: $revision" >&2
+            exit 1
+          fi
+
+      - name: Collect and rename APKs
+        id: apks
+        run: |
+          label="netbox-and-chill-${{ steps.params.outputs.tag_name }}"
+          dir="/tmp/$label"
+          mkdir -p "$dir"
+
+          apks=(
+            app/build/outputs/apk/release/app-arm64-v8a-release.apk
+            app/build/outputs/apk/release/app-armeabi-v7a-release.apk
+            app/build/outputs/apk/release/app-x86_64-release.apk
+            app/build/outputs/apk/release/app-x86-release.apk
+          )
+          if [ "${{ steps.params.outputs.include_debug }}" = "true" ]; then
+            apks+=(
+              app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+              app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
+              app/build/outputs/apk/debug/app-x86_64-debug.apk
+              app/build/outputs/apk/debug/app-x86-debug.apk
+            )
+          fi
+
+          for apk in "${apks[@]}"; do
+            cp "$apk" "$dir/$label-$(basename "$apk")"
+          done
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: Generate checksums
+        working-directory: ${{ steps.apks.outputs.dir }}
+        run: sha256sum -- *.apk > SHA256SUMS
+
+      - name: Move tag
+        if: steps.params.outputs.move_tag == 'true'
+        run: |
+          git tag -f ${{ steps.params.outputs.tag_name }}
+          git push origin ${{ steps.params.outputs.tag_name }} --force
+
+      - name: Record build time
+        if: steps.params.outputs.tag_name == 'latest'
+        id: date
+        run: echo "date=$(date -u +'%Y-%m-%d %H:%M UTC')" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release (latest)
+        if: steps.params.outputs.tag_name == 'latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Latest build"
+          body: |
+            Automated build of the latest main (${{ github.sha }}), built ${{ steps.date.outputs.date }}. Not a stable release.
+
+            Two variants are provided, both signed with the same CI key so upgrades between them work:
+            - `*-debug.apk` — debuggable, uses the `dev.pschmitt.netboxandchill.debug` applicationId so it installs side by side with a release install for testing.
+            - `*-release.apk` — minified/optimized like a real release build, uses the same `dev.pschmitt.netboxandchill` applicationId as every tagged release, so it upgrades cleanly over (or is upgraded by) any of them.
+
+            `SHA256SUMS` covers every APK above. Each APK also embeds this exact commit
+            (`${{ github.sha }}`) as `BuildConfig.GIT_REVISION`, checkable via Settings in the app.
+          files: ${{ steps.apks.outputs.dir }}/*
+          prerelease: true
+          make_latest: false
+
+      - name: Publish release (tag)
+        if: steps.params.outputs.tag_name != 'latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.params.outputs.tag_name }}
+          name: ${{ steps.params.outputs.release_name }}
+          body: |
+            Signed with the same CI key as every other build here - upgrades cleanly over an
+            existing `dev.pschmitt.netboxandchill` install (the `latest` prerelease, an older
+            tagged release, or this one reinstalled).
+
+            `SHA256SUMS` covers every APK above. Each APK also embeds this exact commit
+            (`${{ github.sha }}`) as `BuildConfig.GIT_REVISION`, checkable via Settings in the app.
+          files: ${{ steps.apks.outputs.dir }}/*
+          prerelease: false
+          make_latest: true
+
+      - name: Vacuum stale release assets
+        if: steps.params.outputs.vacuum_stale_assets == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -t expected < <(basename -a "${{ steps.apks.outputs.dir }}"/*)
+          gh release view ${{ steps.params.outputs.tag_name }} --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' |
+            while IFS= read -r name; do
+              keep=0
+              for f in "${expected[@]}"; do
+                [ "$name" = "$f" ] && keep=1 && break
+              done
+              if [ "$keep" -eq 0 ]; then
+                echo "Deleting stale asset: $name"
+                gh release delete-asset ${{ steps.params.outputs.tag_name }} "$name" --repo "$GITHUB_REPOSITORY" -y
+              fi
+            done

@@ -1,0 +1,1 @@
+Offline-first NetBox companion app with QR/barcode device lookup

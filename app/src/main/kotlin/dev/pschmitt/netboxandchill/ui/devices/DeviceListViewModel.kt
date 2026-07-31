@@ -1,0 +1,58 @@
+package dev.pschmitt.netboxandchill.ui.devices
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pschmitt.netboxandchill.data.db.DeviceEntity
+import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
+import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class DeviceListViewModel @Inject constructor(private val deviceRepository: DeviceRepository) :
+    ViewModel() {
+
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    val devices: StateFlow<List<DeviceEntity>> =
+        _query
+            .flatMapLatest { deviceRepository.observeDevices(it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        refresh()
+    }
+
+    fun onQueryChange(newQuery: String) {
+        _query.value = newQuery
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            deviceRepository
+                .syncAll()
+                .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached devices" }
+            _isRefreshing.value = false
+        }
+    }
+
+    fun errorShown() {
+        _errorMessage.value = null
+    }
+}
