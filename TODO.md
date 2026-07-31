@@ -1893,11 +1893,13 @@ installed on Mi Pad 4 and Pixel 5; physical pull gesture verification remains.
 The QR scanner should support digital zoom, including pinch-to-zoom gestures where the device
 supports them.
 
-- [ ] Add pinch-to-zoom to the camera preview.
-- [ ] Preserve the selected rear lens and zoom when switching front/rear cameras.
-- [ ] Keep zoom controls usable on devices without multiple rear lenses.
+- [x] Add pinch-to-zoom to the camera preview.
+- [x] Preserve the selected rear lens and zoom when switching front/rear cameras.
+- [x] Keep zoom controls usable on devices without multiple rear lenses.
 
-Status: not started, 2026-08-01 - backlog item recorded from user feedback.
+Status: mostly done, 2026-08-01 - pinch zoom and cross-camera clamping are implemented; remote
+lint/tests/debug build passed and the build was installed on Mi Pad 4. Physical pinch/lens testing
+and a PX5 retry remain (PX5 went offline during installation).
 
 ## NBC-73: reorder bottom navigation and add a Settings shortcut
 

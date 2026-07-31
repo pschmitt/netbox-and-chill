@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
 import android.util.Log
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.camera2.interop.Camera2CameraInfo
@@ -93,6 +94,7 @@ fun ScannerScreen(
     var availableCameras by remember { mutableStateOf<List<ScannerCameraOption>>(emptyList()) }
     var selectedRearCameraId by remember { mutableStateOf<String?>(null) }
     var torchOn by remember { mutableStateOf(false) }
+    var zoomRatio by remember { mutableStateOf(1f) }
 
     val rearCameras = availableCameras.filter { it.lens == ScannerLens.Back }
     val canSwitchFacing =
@@ -155,6 +157,8 @@ fun ScannerScreen(
                         }
                     },
                     onCameraReady = { camera = it },
+                    zoomRatio = zoomRatio,
+                    onZoomRatioChanged = { zoomRatio = it },
                 )
                 ScannerViewfinder(modifier = Modifier.fillMaxSize())
             } else {
@@ -180,6 +184,20 @@ fun ScannerScreen(
                             torchOn = false
                         },
                     )
+                }
+                if (zoomRatio > 1.01f) {
+                    Surface(
+                        modifier = Modifier.zIndex(1f),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = Color.Black.copy(alpha = 0.62f),
+                        contentColor = Color.White,
+                    ) {
+                        Text(
+                            text = "%.1f×".format(zoomRatio),
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        )
+                    }
                 }
                 ScannerControls(
                     modifier = Modifier.zIndex(1f),
@@ -333,6 +351,8 @@ private fun CameraPreview(
     onCodeScanned: (String) -> Unit,
     onAvailableCameras: (List<ScannerCameraOption>) -> Unit,
     onCameraReady: (Camera?) -> Unit,
+    zoomRatio: Float,
+    onZoomRatioChanged: (Float) -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -346,6 +366,14 @@ private fun CameraPreview(
 
     LaunchedEffect(cameraProviderFuture) {
         cameraProvider = cameraProviderFuture.get()
+    }
+
+    LaunchedEffect(boundCamera.value, zoomRatio) {
+        val camera = boundCamera.value ?: return@LaunchedEffect
+        val zoomState = camera.cameraInfo.zoomState.value ?: return@LaunchedEffect
+        val clamped = zoomRatio.coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
+        if (clamped != zoomRatio) onZoomRatioChanged(clamped)
+        camera.cameraControl.setZoomRatio(clamped)
     }
 
     DisposableEffect(cameraProvider, previewView, desiredLens, selectedCameraId) {
@@ -388,13 +416,9 @@ private fun CameraPreview(
                     provider
                         .bindToLifecycle(lifecycleOwner, activeCamera.selector, preview, analysis)
                         .also {
-                            // Optical rear lenses are selected through the physical camera ID.
-                            // A logical Pixel camera commonly exposes a zoom range beginning at
-                            // 1.0, so requesting 0.6x on its CameraControl is clamped and leaves
-                            // the primary sensor active.
-                            if (activeCamera.physicalCameraId == null) {
-                                it.cameraControl.setZoomRatio(activeCamera.zoomRatio)
-                            }
+                            // Physical rear-lens selection chooses the sensor; this zoom is a
+                            // separate digital crop applied to whichever sensor is active.
+                            it.cameraControl.setZoomRatio(zoomRatio)
                         }
                 }.onSuccess {
                     boundCamera.value = it
@@ -425,8 +449,34 @@ private fun CameraPreview(
             // Tap-to-focus: set directly on the PreviewView rather than a Compose pointerInput
             // modifier, since AndroidView touch dispatch to an embedded native View can otherwise
             // swallow gestures before Compose sees them - this is the standard CameraX recipe.
+            var scalingGesture = false
+            val scaleDetector =
+                ScaleGestureDetector(
+                    ctx,
+                    object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                            scalingGesture = true
+                            return true
+                        }
+
+                        override fun onScale(detector: ScaleGestureDetector): Boolean {
+                            val camera = boundCamera.value ?: return true
+                            val zoomState = camera.cameraInfo.zoomState.value ?: return true
+                            val nextZoom =
+                                (zoomState.zoomRatio * detector.scaleFactor).coerceIn(
+                                    zoomState.minZoomRatio,
+                                    zoomState.maxZoomRatio,
+                                )
+                            camera.cameraControl.setZoomRatio(nextZoom)
+                            onZoomRatioChanged(nextZoom)
+                            return true
+                        }
+                    },
+                )
             previewView.setOnTouchListener { view, event ->
-                if (event.action == MotionEvent.ACTION_UP) {
+                val wasScaling = scalingGesture
+                scaleDetector.onTouchEvent(event)
+                if (event.actionMasked == MotionEvent.ACTION_UP && !wasScaling && !scalingGesture) {
                     val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
                     val action =
                         FocusMeteringAction.Builder(point)
@@ -434,6 +484,9 @@ private fun CameraPreview(
                             .build()
                     boundCamera.value?.cameraControl?.startFocusAndMetering(action)
                     view.performClick()
+                }
+                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                    scalingGesture = false
                 }
                 true
             }
