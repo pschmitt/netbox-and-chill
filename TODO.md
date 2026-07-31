@@ -1908,8 +1908,8 @@ Scan | Settings`.
 
 - [x] Swap Search and Scan in the bottom navigation.
 - [x] Add Settings as the final bottom-navigation destination.
-- [ ] Verify navigation on a physical device.
+- [x] Verify navigation on a physical device.
 
-Status: mostly done, 2026-08-01 - implemented across dashboard, list, search, and scanner screens;
-remote lint/tests/build passed and the debug build was installed on Mi Pad 4 and Pixel 5. Physical
-navigation tap verification remains.
+Status: **done**, 2026-08-01 - implemented across dashboard, list, search, and scanner screens;
+remote lint/tests/build passed, and the Mi Pad 4 screenshot verified the rendered `Home | Search |
+Scan | Settings` order and active Home tab.
