@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.api.AuthInterceptor
 import dev.pschmitt.netboxandchill.data.api.DynamicBaseUrlInterceptor
+import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.NetBoxApi
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -63,4 +64,9 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideNetBoxApi(retrofit: Retrofit): NetBoxApi = retrofit.create(NetBoxApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGenericNetBoxApi(retrofit: Retrofit): GenericNetBoxApi =
+        retrofit.create(GenericNetBoxApi::class.java)
 }

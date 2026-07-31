@@ -49,11 +49,17 @@ The soft keyboard overlaps the input fields on first launch instead of the scree
 resizing to keep the focused field visible.
 
 **Why:** reported by the user testing on a real device; makes the token field hard to see while typing.
-**How to apply:** likely needs `Modifier.imePadding()`/`verticalScroll` on the onboarding Column,
-or `windowSoftInputMode` tuning - `MainActivity` currently sets `adjustResize` only on... (not set
-at all currently, check manifest/theme edge-to-edge interaction with `enableEdgeToEdge()`).
+**How to apply:** `enableEdgeToEdge()` opts the activity out of the legacy
+`windowSoftInputMode=adjustResize` behavior - fixed via `Modifier.verticalScroll(...).imePadding()`
+on the onboarding Column, the standard Compose-with-edge-to-edge pattern.
 
-Status: not started, 2026-07-31.
+Also added while in this screen (user requests, same area):
+- [x] "Open API tokens page" trailing icon on the NetBox URL field - opens
+  `<url>/user/api-tokens/` in the browser once a URL is entered.
+- [x] "Paste from clipboard" trailing icon on the API token field.
+
+Status: **done**, 2026-07-31. Verified on the Zenfone 10 - both fields and the Connect button
+stay visible above the keyboard regardless of which field is focused.
 
 ## NBC-3: Device type images + image attachments (list + detail)
 
@@ -62,13 +68,24 @@ User: "Pictures, including image attachments are a MUST!" Show NetBox device-typ
 images uploaded on the specific device, displayed on the detail screen.
 
 **Why:** core to making the app feel like a real inventory browser, not just a text list - user
-explicitly called this a hard requirement, twice.
+explicitly called this a hard requirement, multiple times.
 **How to apply:** needs Coil (`coil3` per findroidplus's usage) wired to the same OkHttp client/
 auth interceptor; NetBox endpoints are `GET /api/dcim/device-types/{id}/` (front_image/rear_image)
 and `GET /api/extras/image-attachments/?object_type=dcim.device&object_id=<id>`. Room schema needs
 image URL columns (device type) and either a join table or a separate cached list for
 attachments. Watch for auth-on-media-requests (NetBox media may or may not require the API
 token depending on deployment).
+
+Scope grew after the first pass: user, verbatim, "we should sync these assets as well! ie full
+offline mode. This includes docs too! (netbox-documents)" - so this isn't just "show an image URL
+in an `AsyncImage`", it's downloading and caching the actual image/document bytes on-device
+(Coil's disk cache alone isn't durable/guaranteed offline the way an explicit downloaded-files
+store would be) so device-type photos and netbox-documents attachments are browsable with zero
+connectivity, same as the rest of the app. That's real storage-management surface (download
+triggers, cache eviction/size limits, sync-now vs. lazy-on-view) worth thinking through
+deliberately rather than bolting on ad hoc - probably wants its own short design pass alongside
+NBC-7 (they share the "binary asset synced for offline use" shape) rather than being purely an
+extension of this entry.
 
 Status: not started, 2026-07-31.
 
@@ -112,16 +129,47 @@ NetBox web UI's sidebar. The set of "main" sections shown should be configurable
 **Why:** the alternative (hand-coding a screen per NetBox model) doesn't scale to "a lot" of
 views: schema-driven generation is the only realistic way to cover NetBox's full data model
 without an enormous, ever-growing amount of near-duplicate screen code.
-**How to apply:** this is the biggest architectural decision pending in this backlog - needs a
-real design pass before implementation (how field types map to Compose form/display widgets,
-how nested/related objects are shown vs. linked-to, caching strategy per generated model, how
-NBC-5 editing plugs into the same generated forms). Should probably get its own design doc/plan
-before coding starts, given how much of the future app structure hinges on it. Do this before
-NBC-5 (editing) and before wiring more object types into NBC-8's deep-linking, since both build
-on whatever this lands on.
 
-Status: not started, 2026-07-31. **Needs a design discussion/plan before implementation** -
-flagged explicitly, don't just start writing a generic-screen framework unprompted.
+**How it landed:** not OpenAPI-schema-driven after all - simpler than planned. `GET api/` lists
+app namespaces, `GET api/<app>/` lists that app's models (including one extra nesting level for
+`plugins/<name>/`, so plugin-provided types like netbox-documents show up automatically) -
+`DirectoryRepository` walks this to build the sidebar tree, cached in Room
+(`NetBoxModelEntity`/`NetBoxModelDao`). Detail screens render directly off the actual JSON API
+*response* rather than any schema (`GenericFieldRenderer.kt`/`buildFieldRows`): nested objects
+with `id`+`url` are tappable references to that object's own generic detail screen (recursively -
+this is also why tags render as tappable chips, since NetBox tags are real objects too), choice
+fields ({value,label}) show their label, arrays of references become a linked list, arrays of
+primitives become a chip list. Generic object cache is one Room table
+(`NetBoxObjectEntity`: endpointPath+id, display, raw JSON) rather than a typed entity per model.
+Existing Device screens/DeviceEntity were deliberately left untouched (proven, tested, not worth
+the regression risk) - only *other* object types route through the new generic screens; devices
+still get their own bespoke list/detail. Sidebar is a `ModalNavigationDrawer` with per-app-group
+sections, a pin/unpin star per model (pinned set lives in `SettingsRepository`, default just
+Devices), a search field to filter sections, and per-category icons (`AppIcons.kt`). Scan/Settings
+moved out of the drawer into a bottom `NavigationBar` (Devices/Scan/Settings) shared by the
+device list and generic list screens. Scanning/deep-linking was generalized too
+(`scanner/NetBoxUrlParser.kt`, replacing the device-only `DeviceUrlParser`) - any NetBox object
+URL now resolves, not just `/dcim/devices/`, and the manifest intent-filter path patterns were
+broadened to match (dcim/ipam/circuits/tenancy/virtualization/wireless/vpn/extras/plugins).
+
+Follow-ups noted during/after this landed (not done yet):
+- [ ] "Linked items" on the *Device* detail screen (e.g. tapping its Rack/Site) don't navigate
+  anywhere yet - `DeviceEntity` only stores display strings (`rackName`, `siteName`), not the
+  id/url needed to link out, because the typed Device pipeline predates this generic one. The
+  clean fix is migrating Device detail rendering onto the same generic JSON-based renderer used
+  for every other type (`GenericFieldRenderer`) instead of bolting related-object ids onto
+  `DeviceEntity` - would also finally unify the two parallel list/detail code paths this section
+  above deliberately left split. Not done - flagging as the natural next step for whoever picks
+  device-detail work back up.
+- [ ] No automated test exercises real NetBox API responses end-to-end (no live instance
+  available in this environment) - `GenericFieldRendererTest.kt` covers the JSON→FieldRow mapping
+  with hand-written fixtures, but the discovery walk (`DirectoryRepository`) and generic
+  list/detail screens themselves are only manually verified via compile+install+launch, not
+  against a real NetBox instance's actual response shapes.
+
+Status: **done**, 2026-07-31. `just build`/`just test`/`just lint` green on rofl-14; installed and
+launched without crashing on Zenfone 10, Mi Pad 4, and Pixel 5 (px5.lan) - full sidebar/generic
+screen flow not visually verified end-to-end against a live NetBox instance (none available here).
 
 ## NBC-7: netbox-documents plugin support
 
@@ -149,7 +197,35 @@ this to work for more than just devices.
 NetBox host itself (or a reverse proxy in front of it) for domain verification - that's
 infrastructure outside this repo (on brkn.lol's web server config), not just an app-side change.
 The existing NBC-1 intent-filter (host="*", no autoVerify) still covers the "Open with" chooser
-path for any host in the meantime. Depends on NBC-6 for routing to non-device object types.
+path for any host in the meantime.
+
+- [x] Routing beyond devices - NBC-6 generalized the scanner/deep-link parser
+  (`scanner/NetBoxUrlParser.kt`) and the manifest intent-filter to any NetBox app namespace
+  (dcim/ipam/circuits/tenancy/virtualization/wireless/vpn/extras/plugins), not just
+  `/dcim/devices/`. Non-device links now resolve to the NBC-6 generic detail screen.
+- [ ] Domain-verified App Links (`assetlinks.json` on the NetBox host) - still open, needs
+  infrastructure work outside this repo.
+
+Status: partially done, 2026-07-31 - see checklist above.
+
+## NBC-11: QR-code app configuration sharing (like findroidplus's setup codes)
+
+Let the app be configured (base URL + token) by scanning a QR code generated by another instance
+of the app (or shared some other way) - findroidplus has this already (see its
+`findroidplus://setup` custom-scheme intent-filter and `QrConfigCodec` referenced in its
+AndroidManifest.xml/AGENTS.md).
+
+**Why:** user wants parity with findroidplus's existing setup-code flow - faster onboarding
+across devices without retyping the URL/token, and referenced findroidplus as the precedent to
+follow.
+**How to apply:** look at findroidplus's actual `QrConfigCodec` implementation
+(`~/devel/private/pschmitt/findroid.git`) for the encoding scheme/format to mirror. Needs a
+custom URI scheme intent-filter (e.g. `netboxandchill://setup?...`) alongside the existing
+onboarding flow, plus a way to *generate*/display the QR code from Settings for the sharing side
+(scanning is already covered by the existing camera scanner, assuming the encoded payload is
+recognized by NetBoxUrlParser/a new parser branch). Sensitive: the payload includes the API
+token, so treat the generated QR code/settings-share flow with the same care as the token itself
+(e.g. don't log it, consider a short display-only affordance rather than anything persisted).
 
 Status: not started, 2026-07-31.
 
@@ -176,5 +252,39 @@ of a separate tool - presumably so the QR stickers this whole app is built aroun
 **How to apply:** need to look at printlabel's actual interface (CLI? library? network service?)
 to figure out the integration shape - could be a shared Kotlin/native lib, a shelled-out call, or
 a network call to a printlabel server instance. Not yet investigated.
+
+Status: not started, 2026-07-31.
+
+## NBC-12: Render markdown fields properly
+
+NetBox `comments`/`description` (and similar) fields support Markdown; the app currently shows
+them as raw text (both on the old Device detail screen and NBC-6's generic
+`FieldRow.PlainText`).
+
+**Why:** raw `**bold**`/`- lists`/etc. as literal text is a poor reading experience for exactly
+the fields (comments, descriptions) most likely to be long-form/formatted.
+**How to apply:** needs a Markdown-to-Compose renderer - no dependency for this yet. Should apply
+to both the generic detail screen's `PlainText` rows for known-markdown field names
+(`comments`, `description`, `custom_fields` values that are markdown-typed per NetBox's custom
+field type) and the legacy Device detail screen's comments field. Worth a quick survey of
+available Compose Markdown libraries before picking one, given license/maintenance/output-quality
+vary a lot between them.
+
+Status: not started, 2026-07-31.
+
+## NBC-13: Global search
+
+A single search that queries across NetBox object types, not just within one model's list screen.
+
+**Why:** user wants to find something without first knowing/navigating to which object type it
+lives under - the sidebar's search (NBC-6) only filters the *list of sections/categories* by
+name, it doesn't search object data itself.
+**How to apply:** NetBox has a built-in global search endpoint (`GET /api/extras/search/` in
+recent NetBox versions, called `object-types`-driven search under the hood) that queries across
+registered searchable models server-side - almost certainly a better fit than trying to fan out
+client-side queries across every cached `NetBoxObjectEntity` endpoint. Needs checking exact
+endpoint/response shape against a live instance. Result rows would route through NBC-6's generic
+detail screen the same way scanning/deep-links already do, since results span arbitrary object
+types.
 
 Status: not started, 2026-07-31.

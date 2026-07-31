@@ -40,21 +40,32 @@
             </intent-filter>
 
             <!--
-                 Device-sticker QR codes point at the public NetBox URL for that device
-                 (https://<netbox-host>/dcim/devices/<id>/). The host isn't known at build time
-                 (it's whatever NetBox instance the user configures in Settings), so this matches
-                 the path on any https host rather than a fixed one. Not auto-verified (that
-                 requires a fixed, DNS-verified host), so Android offers this app in the "Open
-                 with" chooser for matching links rather than opening it automatically.
+                 Sticker QR codes point at the public NetBox URL for that object (e.g.
+                 https://<netbox-host>/dcim/devices/<id>/) - not just devices, any of NetBox's
+                 object types (see NBC-6's generic list/detail screens). The host isn't known at
+                 build time (it's whatever NetBox instance the user configures in Settings), so
+                 this matches the path on any https host rather than a fixed one, scoped to
+                 NetBox's known top-level app namespaces (core, plugins included, so
+                 plugin-provided object links work too). Not auto-verified (that requires a
+                 fixed, DNS-verified host), so Android offers this app in the "Open with" chooser
+                 for matching links rather than opening it automatically.
             -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/dcim/.*" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/ipam/.*" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/circuits/.*" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/tenancy/.*" />
                 <data
                     android:scheme="https"
                     android:host="*"
-                    android:pathPattern="/dcim/devices/.*" />
+                    android:pathPattern="/virtualization/.*" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/wireless/.*" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/vpn/.*" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/extras/.*" />
+                <data android:scheme="https" android:host="*" android:pathPattern="/plugins/.*" />
             </intent-filter>
 
             <!-- Share a device link into the app from any other app's share sheet. -->

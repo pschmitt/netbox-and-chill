@@ -40,13 +40,14 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.scanner.BarcodeAnalyzer
+import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import java.util.concurrent.Executors
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScannerScreen(
-    onDeviceFound: (Int) -> Unit,
+    onTargetFound: (NetBoxTarget) -> Unit,
     onBack: () -> Unit,
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
@@ -68,7 +69,7 @@ fun ScannerScreen(
 
     LaunchedEffect(state) {
         val found = state as? ScanResultState.Found ?: return@LaunchedEffect
-        onDeviceFound(found.deviceId)
+        onTargetFound(found.target)
     }
 
     Scaffold(

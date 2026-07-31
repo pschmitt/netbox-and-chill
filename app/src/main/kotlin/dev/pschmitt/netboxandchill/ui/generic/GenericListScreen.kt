@@ -1,4 +1,4 @@
-package dev.pschmitt.netboxandchill.ui.devices
+package dev.pschmitt.netboxandchill.ui.generic
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,21 +27,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.pschmitt.netboxandchill.data.db.DeviceEntity
-import dev.pschmitt.netboxandchill.ui.common.BottomTab
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
-import dev.pschmitt.netboxandchill.ui.common.StatusChip
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceListScreen(
-    onDeviceClick: (Int) -> Unit,
+fun GenericListScreen(
+    onObjectClick: (Int) -> Unit,
+    onDevicesClick: () -> Unit,
     onScanClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onOpenDrawer: () -> Unit,
-    viewModel: DeviceListViewModel = hiltViewModel(),
+    viewModel: GenericListViewModel = hiltViewModel(),
 ) {
-    val devices by viewModel.devices.collectAsStateWithLifecycle()
+    val objects by viewModel.objects.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -58,7 +57,7 @@ fun DeviceListScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Devices") },
+                title = { Text(viewModel.route.label) },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Open navigation")
@@ -68,8 +67,10 @@ fun DeviceListScreen(
         },
         bottomBar = {
             NetBoxBottomBar(
-                selected = BottomTab.Devices,
-                onDevicesClick = {},
+                // None of the fixed bottom-nav tabs represents "browsing this particular model" -
+                // that's what the sidebar/drawer is for.
+                selected = null,
+                onDevicesClick = onDevicesClick,
                 onScanClick = onScanClick,
                 onSettingsClick = onSettingsClick,
             )
@@ -84,22 +85,21 @@ fun DeviceListScreen(
                 OutlinedTextField(
                     value = query,
                     onValueChange = viewModel::onQueryChange,
-                    label = { Text("Search devices") },
+                    label = { Text("Search ${viewModel.route.label.lowercase()}") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                 )
-                if (devices.isEmpty()) {
+                if (objects.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            if (isRefreshing) "Loading devices…"
-                            else "No devices cached yet - pull to sync",
+                            if (isRefreshing) "Loading…" else "Nothing cached yet - pull to sync",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(devices, key = { it.id }) { device ->
-                            DeviceRow(device = device, onClick = { onDeviceClick(device.id) })
+                        items(objects, key = { it.id }) { obj ->
+                            ObjectRow(obj = obj, onClick = { onObjectClick(obj.id) })
                         }
                     }
                 }
@@ -109,14 +109,10 @@ fun DeviceListScreen(
 }
 
 @Composable
-private fun DeviceRow(device: DeviceEntity, onClick: () -> Unit) {
+private fun ObjectRow(obj: NetBoxObjectEntity, onClick: () -> Unit) {
     ListItem(
-        headlineContent = { Text(device.name) },
-        supportingContent = {
-            val subtitle = listOfNotNull(device.siteName, device.deviceTypeModel).joinToString(" · ")
-            if (subtitle.isNotBlank()) Text(subtitle)
-        },
-        trailingContent = { StatusChip(label = device.statusLabel, value = device.statusValue) },
+        headlineContent = { Text(obj.display) },
+        supportingContent = obj.secondaryLine?.let { line -> { Text(line) } },
         modifier = Modifier.clickable(onClick = onClick),
     )
 }

@@ -25,6 +25,8 @@ mipad_host := env_var_or_default("MIPAD_HOST", "mi-pad-4.lan")
 mipad_ssh_port := env_var_or_default("MIPAD_SSH_PORT", "8022")
 mipad_adb_port := env_var_or_default("MIPAD_ADB_PORT", "5555")
 
+px5_host := env_var_or_default("PX5_HOST", "px5.lan")
+
 # List all available recipes
 default:
     @just --list
@@ -199,6 +201,63 @@ mipad-logcat filter="":
 deploy-mipad variant="debug":
     just build-fetch {{variant}}
     just mipad-install "{{local_dist}}/app-{{default_abi}}-{{variant}}.apk"
+
+# --- Pixel 5 (px5.lan, wireless adb enabled on demand via Home Assistant/Tasker) -------------
+
+# Enable wireless adb on the Pixel 5 (via `zhj adb::connect`, which triggers it through Home
+# Assistant/Tasker) and connect. The port is dynamic (assigned fresh each time wireless debugging
+# is (re)enabled), so this always re-discovers it from `adb devices` rather than assuming a fixed
+# one - prints the resulting "host:port" target on stdout, status goes to stderr.
+px5-connect:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    zhj adb::connect {{px5_host}} >&2
+    target=$(adb devices | awk -v h="{{px5_host}}" '$1 ~ h { print $1; exit }')
+    if [ -z "$target" ]; then
+        echo "px5 (host {{px5_host}}) not found in \`adb devices\` after connecting" >&2
+        exit 1
+    fi
+    echo "$target"
+
+# Install an APK on the Pixel 5 over adb (wireless, via px5-connect)
+px5-install apk:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    target=$(just px5-connect)
+    adb -s "$target" install -r {{apk}}
+
+# Uninstall a package from the Pixel 5. WARNING: wipes that app's local data.
+px5-uninstall pkg=application_id:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    target=$(just px5-connect)
+    adb -s "$target" uninstall {{pkg}}
+
+# Tail logcat from the Pixel 5, optionally filtered by a grep pattern
+px5-logcat filter="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    target=$(just px5-connect)
+    if [ -n "{{filter}}" ]; then
+        adb -s "$target" logcat | grep -i --line-buffered "{{filter}}"
+    else
+        adb -s "$target" logcat
+    fi
+
+# Build an APK remotely, fetch it, and install it on the Pixel 5. variant: debug (default) or release.
+deploy-px5 variant="debug":
+    just build-fetch {{variant}}
+    just px5-install "{{local_dist}}/app-{{default_abi}}-{{variant}}.apk"
+
+# --- All devices -------------------------------------------------------------
+
+# Build once, fetch once, install on every connected test device (Zenfone 10, Mi Pad 4, Pixel 5).
+# The default target device for iterating on changes - see AGENTS.md.
+deploy-all variant="debug":
+    just build-fetch {{variant}}
+    just zenfone-install "{{local_dist}}/app-{{default_abi}}-{{variant}}.apk"
+    just mipad-install "{{local_dist}}/app-{{default_abi}}-{{variant}}.apk"
+    just px5-install "{{local_dist}}/app-{{default_abi}}-{{variant}}.apk"
 
 # --- Formatting / hooks ----------------------------------------------------
 

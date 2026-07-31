@@ -53,11 +53,20 @@ Repository instructions for AI coding agents working on NetBox and Chill.
   Recipes mirror the Zenfone ones but go through `just mipad-connect` first (finds the port
   `adbd` is listening on via a root SSH shell, `adb connect`s to it): `just mipad-install <apk>`,
   `just mipad-uninstall [pkg]`, `just mipad-logcat [filter]`, `just deploy-mipad [variant]`.
+- **Pixel 5** (`arm64-v8a`, codename `redfin`), wireless adb at `px5.lan` - not always listening,
+  enabled on demand via `zhj adb::connect px5.lan` (triggers wireless debugging through Home
+  Assistant/Tasker on the phone). The port changes every time it's (re)enabled, so
+  `just px5-connect` always re-discovers it from `adb devices` rather than assuming a fixed one.
+  `just px5-install <apk>`, `just px5-uninstall [pkg]`, `just px5-logcat [filter]`,
+  `just deploy-px5 [variant]`.
+- **Deploy to all three in one step**: `just deploy-all [variant]` - the user's default ask is to
+  install onto whatever's connected "every chance you get" during active development, so prefer
+  this over a single-device deploy unless there's a reason to target just one.
 - Signature mismatch gotcha: if a device already has a build signed with a different key than the
   one you're installing, install fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Fix is
-  `just zenfone-uninstall`/`just mipad-uninstall` then install fresh - this wipes local app data
-  (Room DB cache, stored token). Confirm with the user before doing this if it's not their own
-  throwaway data.
+  `just zenfone-uninstall`/`just mipad-uninstall`/`just px5-uninstall` then install fresh - this
+  wipes local app data (Room DB cache, stored token). Confirm with the user before doing this if
+  it's not their own throwaway data.
 
 ## Architecture
 

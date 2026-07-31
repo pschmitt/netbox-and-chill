@@ -1,14 +1,21 @@
 package dev.pschmitt.netboxandchill.ui.onboarding
 
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -21,9 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -32,6 +41,7 @@ fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltVi
     var baseUrl by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(uiState) {
         if (uiState is OnboardingUiState.Success) onDone()
@@ -77,6 +87,17 @@ fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltVi
                 placeholder = { Text("https://netbox.example.com") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            val tokensUrl = baseUrl.trim().trimEnd('/') + "/user/api-tokens/"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tokensUrl)))
+                        },
+                        enabled = baseUrl.isNotBlank(),
+                    ) {
+                        Icon(Icons.Default.OpenInNew, contentDescription = "Open API tokens page")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
@@ -86,6 +107,20 @@ fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltVi
                 label = { Text("API token") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            val clipboard = context.getSystemService<ClipboardManager>()
+                            token = clipboard?.primaryClip?.takeIf { it.itemCount > 0 }
+                                    ?.getItemAt(0)
+                                    ?.text
+                                    ?.toString()
+                                    ?.trim() ?: token
+                        }
+                    ) {
+                        Icon(Icons.Default.ContentPaste, contentDescription = "Paste from clipboard")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(16.dp))
