@@ -59,6 +59,14 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
 
     suspend fun cachedCount(endpointPath: String): Int = dao.count(endpointPath)
 
+    /** Upserts arbitrary already-fetched objects (e.g. [GlobalSearchRepository]'s `?q=` hits) into
+     * the same cache [observeObjects] reads from, so a live search result is also offline-findable
+     * from then on - reuses the same [toEntity] mapping [syncAll] uses, not a separate path. */
+    suspend fun cacheSearchResults(endpointPath: String, objects: List<JsonObject>) {
+        if (objects.isEmpty()) return
+        dao.upsertAll(objects.map { it.toEntity(endpointPath) })
+    }
+
     private fun JsonObject.toEntity(endpointPath: String): NetBoxObjectEntity {
         val id = this["id"]?.jsonPrimitive?.intOrNull ?: error("NetBox object at $endpointPath has no id")
         val display =

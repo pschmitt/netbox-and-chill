@@ -19,13 +19,15 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Backs [GlobalSearchScreen] (NBC-13) - debounced free-text search fanned out across a curated
- * set of NetBox object types, since there's no server-side global-search endpoint to call into
- * (see [GlobalSearchRepository]'s doc comment for how that was confirmed). */
+/** Backs [GlobalSearchScreen] (NBC-13) - debounced free-text search, cache-first like every other
+ * screen in this app (see [GlobalSearchRepository]'s doc comment). [results] reads straight from
+ * Room so it's instant and offline-capable; [refresh] is a best-effort network pass that widens
+ * results and feeds the cache, mirroring `GenericListViewModel`'s `objects`/`refresh()` split. */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GlobalSearchViewModel
@@ -33,17 +35,32 @@ class GlobalSearchViewModel
 constructor(
     private val searchRepository: GlobalSearchRepository,
     directoryRepository: DirectoryRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    private val _results = MutableStateFlow<List<SearchHit>>(emptyList())
-    val results: StateFlow<List<SearchHit>> = _results.asStateFlow()
+    private val debouncedQuery: StateFlow<String> =
+        _query
+            .debounce(300)
+            .map { it.trim() }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    private val _isSearching = MutableStateFlow(false)
-    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+    /** Cache-first, offline-capable - re-emits automatically once [refresh] (or any other sync)
+     * upserts new rows into Room, the same "Flow straight from the DAO" shape `GenericListViewModel`
+     * uses, not a one-shot network call. */
+    val results: StateFlow<List<SearchHit>> =
+        debouncedQuery
+            .flatMapLatest { text ->
+                if (text.isBlank()) flowOf(emptyList()) else searchRepository.observeCached(text)
+            }
+            .map { hits -> hits.sortedBy { it.display.lowercase() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -59,26 +76,21 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     init {
+        // Best-effort network refresh per debounced query - purely additive: [results] above
+        // already answers from the cache regardless of this succeeding, so a failure (offline,
+        // ...) only gets a quiet message, never a blocking error - same "never gate on network"
+        // rule NBC-18 established for the rest of the app.
         viewModelScope.launch {
-            _query
-                .debounce(300)
-                .map { it.trim() }
-                .distinctUntilChanged()
-                .collectLatest { text ->
-                    if (text.isBlank()) {
-                        _results.value = emptyList()
-                        _isSearching.value = false
-                        return@collectLatest
-                    }
-                    _isSearching.value = true
-                    val endpointPaths =
-                        (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS + settingsRepository.pinnedModelPaths.value)
-                            .distinct()
-                    runCatching { searchRepository.search(text, endpointPaths) }
-                        .onSuccess { hits -> _results.value = hits.sortedBy { it.display.lowercase() } }
-                        .onFailure { _errorMessage.value = it.message ?: "Search failed" }
-                    _isSearching.value = false
-                }
+            debouncedQuery.collectLatest { text ->
+                if (text.isBlank()) return@collectLatest
+                _isRefreshing.value = true
+                val endpointPaths =
+                    (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS + settingsRepository.pinnedModelPaths.value)
+                        .distinct()
+                runCatching { searchRepository.refresh(text, endpointPaths) }
+                    .onFailure { _errorMessage.value = "Live search refresh failed - showing cached results" }
+                _isRefreshing.value = false
+            }
         }
     }
 

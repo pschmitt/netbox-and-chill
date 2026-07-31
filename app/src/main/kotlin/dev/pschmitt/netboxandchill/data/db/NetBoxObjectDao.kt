@@ -23,6 +23,18 @@ interface NetBoxObjectDao {
     @Query("SELECT * FROM netbox_objects WHERE endpointPath = :endpointPath AND id = :id")
     fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?>
 
+    /** Cross-endpoint search (NBC-13's global search) - unlike [search], not scoped to one model,
+     * since the whole point is finding a match regardless of which endpoint it's cached under. */
+    @Query(
+        """
+        SELECT * FROM netbox_objects
+        WHERE display LIKE '%' || :query || '%'
+        ORDER BY display COLLATE NOCASE
+        LIMIT :limit
+        """
+    )
+    fun searchAll(query: String, limit: Int): Flow<List<NetBoxObjectEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertAll(objects: List<NetBoxObjectEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(obj: NetBoxObjectEntity)

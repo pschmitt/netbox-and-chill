@@ -458,24 +458,44 @@ query a curated set of endpoint paths in parallel via the existing `GenericNetBo
 (the same call `GenericObjectRepository.syncAll` already uses, just with a `q` query param instead
 of pagination-only), merge, sort by display name.
 
-- [x] `GlobalSearchRepository` (`data/repository/GlobalSearchRepository.kt`) - fans out
-  `listObjects(endpointPath, mapOf("q" to term, "limit" to "15"))` across a baseline curated list
-  (devices, device-types, sites, racks, ip-addresses, prefixes, circuits, virtual-machines,
-  tenants - covers the TODO's own suggested set plus a few equally common ones) in parallel via
-  `coroutineScope`/`async`/`awaitAll`, one model's failure logged and skipped rather than failing
-  the whole search (mirrors `DirectoryRepository.refresh`'s per-app `runCatching`). Results aren't
-  written into the `NetBoxObjectEntity` cache - transient search-only, since the point is a live
-  merge across many models, not another sync path; tapping a result still funnels through the
-  normal `GenericDetailViewModel.refreshObject` cache-first flow once you land on its detail
-  screen.
+- [x] `GlobalSearchRepository` (`data/repository/GlobalSearchRepository.kt`) fans a search term out
+  across a baseline curated list of endpoint paths (devices, device-types, sites, racks,
+  ip-addresses, prefixes, circuits, virtual-machines, tenants - covers the TODO's own suggested set
+  plus a few equally common ones) in parallel via `coroutineScope`/`async`/`awaitAll`, one model's
+  failure logged and skipped rather than failing the whole thing (mirrors
+  `DirectoryRepository.refresh`'s per-app `runCatching`).
+- [x] **Cache-first, not network-only** - the first same-day pass made results transient/
+  network-only ("not written into the cache... since the point is a live merge, not another sync
+  path"), which is a direct violation of this app's whole premise (`AGENTS.md`: "reads come from
+  Room, writes/refreshes come from the API") - a search that stops working the moment NetBox is
+  unreachable is exactly the regression NBC-18 exists to prevent elsewhere, caught in review before
+  this ever shipped standalone. Reworked so results come from Room, like every other screen:
+  `NetBoxObjectDao.searchAll(query, limit)` (new: cross-endpoint, unlike the existing per-endpoint
+  `search`, so anything ever cached under *any* endpoint is instantly findable offline - the 9-model
+  baseline now only bounds the network refresh below, not the cached read) combined with
+  `DeviceDao.search(query)` (devices are cached in their own typed table, not `netbox_objects`, per
+  NBC-6). `listObjects(endpointPath, mapOf("q" to term, "limit" to "15"))` is now purely a
+  best-effort background *refresh* (`GlobalSearchRepository.refresh`) that upserts hits into
+  `netbox_objects` via a new `GenericObjectRepository.cacheSearchResults` (reuses the same private
+  `toEntity` mapping `syncAll` already uses) instead of returning them directly - devices are
+  skipped in this refresh entirely, since `DeviceDao` already gets a full periodic sync
+  (`DeviceRepository`/`SyncWorker`), so a redundant `?q=` round trip would add nothing.
+- [x] `GlobalSearchViewModel.results` reads reactively straight from the cache-combining Flow above
+  (renamed `isSearching` -> `isRefreshing`, since it now describes network activity, not whether
+  results exist) - mirrors `GenericListViewModel`'s `objects`/`refresh()` split. Fixed a state-
+  priority bug from the same first pass: `GlobalSearchScreen`'s `when` checked `isSearching` before
+  `results.isEmpty()`, so a background refresh would hide already-available cached hits behind a
+  full-screen "Searching…" - reordered so non-empty cached results always win, with a non-blocking
+  `LinearProgressIndicator` for the refresh-in-flight hint instead.
 - [x] `GlobalSearchViewModel` unions the baseline set with the user's *pinned* model paths
   (`SettingsRepository.pinnedModelPaths`) so anything a user has explicitly starred in the sidebar
   is searchable too, not just the fixed baseline - reuses `DirectoryRepository.observePinned(...)`
   (despite the "pinned" name, it's just a generic `WHERE endpointPath IN (...)` lookup) to resolve
   each hit's endpoint path back to a humanized model label + `appKey` for the icon.
 - [x] Input is debounced 300ms (`Flow.debounce` + `collectLatest`, so a fast typist's earlier
-  in-flight fan-out is dropped, not raced) before firing; empty query shows a hint, in-flight shows
-  "Searching…", zero results shows an explicit "No results" state.
+  in-flight fan-out is dropped, not raced) before firing; empty query shows a hint, no-cached-hits-
+  yet-with-a-refresh-in-flight shows "Searching…", zero results (refresh settled, still nothing)
+  shows an explicit "No results" state.
 - [x] New `GlobalSearchScreen` (`ui/search/`) - a dedicated full-screen search (not a dropdown),
   reachable via a new search `IconButton` added to the top bar `actions` of both `DeviceListScreen`
   and `GenericListScreen` (the two screens users land on most, per the bottom nav / sidebar model
@@ -484,9 +504,11 @@ of pagination-only), merge, sort by display name.
   its model label + optional secondary line (status/description), and `AppIcons.forAppKey(...)` for
   the icon - tapping navigates to `Route.Generic(endpointPath, id)`, the same generic detail route
   scanning/deep-links already use.
-- [x] Factored `appKeyFromEndpointPath` (endpointPath -> appKey for `AppIcons.forAppKey`) out of
-  `GenericListScreen` into `AppIcons.kt` itself, since `GlobalSearchScreen` needed the identical
-  logic - avoids two copies drifting apart.
+- [x] Reused `NetBoxRef.appKeyFromEndpointPath` (endpointPath -> appKey for `AppIcons.forAppKey`,
+  extracted by NBC-9 into `data/schema/NetBoxRef.kt`) rather than writing a second copy - this
+  entry's own first pass independently extracted an identical duplicate into `AppIcons.kt` while
+  NBC-9 was landing the same helper concurrently in a separate worktree; reconciled on merge by
+  keeping the one `NetBoxRef` copy and pointing `GlobalSearchScreen` at it.
 
 Not done / explicitly out of scope for this pass:
 - [ ] No debounce-level request cancellation of already-in-flight HTTP calls (only new user input
@@ -497,10 +519,11 @@ Not done / explicitly out of scope for this pass:
   scoring/highlighting of the matched substring).
 
 Status: **mostly done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13
-(lint re-verified with `--rerun-tasks` to rule out a stale up-to-date cache hit). **Not
-independently verified**: no physical device was available this session to install onto and
-interact with live (Zenfone/Mi Pad/Pixel 5 all out of reach from this worktree) - so the actual
-search UX (typing, debounce feel, tapping into a result) has not been visually confirmed
+(lint re-verified with `--rerun-tasks` to rule out a stale up-to-date cache hit) both before and
+after the cache-first rework above. **Not independently verified**: no physical device was
+available this session to install onto and interact with live (Zenfone/Mi Pad/Pixel 5 all out of
+reach) - so the actual search UX (typing, debounce feel, tapping into a result, and specifically
+that results really do keep showing with the radio off) has not been visually confirmed
 end-to-end on-device, only confirmed to build/compile/pass unit tests. Live API verification of
 the underlying approach (no global-search endpoint exists; `?q=` works on per-model endpoints)
 *was* done directly against the real netbox.brkn.lol instance via `curl`, see above.

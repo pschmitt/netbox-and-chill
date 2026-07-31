@@ -2,7 +2,7 @@ package dev.pschmitt.netboxandchill.ui.search
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -40,8 +41,10 @@ import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 /**
  * Cross-model search (NBC-13) - reachable from a search icon on the Devices/generic list top
  * bars, distinct from the sidebar's own search field (NBC-6/14), which only filters the list of
- * section/category names, not object data. Debounced in [GlobalSearchViewModel]; this screen just
- * renders query/result/loading/empty state.
+ * section/category names, not object data. Debounced in [GlobalSearchViewModel]; results come
+ * straight from the offline cache, so they render even with no connectivity - [isRefreshing] is
+ * just a best-effort background network pass, never a gate on showing what's already cached (see
+ * [GlobalSearchRepository]/[GlobalSearchViewModel] for why).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +55,7 @@ fun GlobalSearchScreen(
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
-    val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val modelsByEndpointPath by viewModel.modelsByEndpointPath.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -89,31 +92,35 @@ fun GlobalSearchScreen(
             )
         },
     ) { padding ->
-        when {
-            query.isBlank() ->
-                CenteredHint("Search devices, sites, racks, IPs, circuits, and more", padding)
-            isSearching -> CenteredHint("Searching…", padding)
-            results.isEmpty() -> CenteredHint("No results for \"$query\"", padding)
-            else ->
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
-                        val model = modelsByEndpointPath[hit.endpointPath]
-                        val appKey = model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
-                        SearchResultRow(
-                            hit = hit,
-                            modelLabel = model?.modelLabel,
-                            icon = AppIcons.forAppKey(appKey),
-                            onClick = { onResultClick(hit.endpointPath, hit.id) },
-                        )
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // Purely a "refresh in flight" hint, never hides already-cached results below - search
+            // must keep working with no connectivity, so cached hits always take priority.
+            if (isRefreshing) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            when {
+                query.isBlank() -> CenteredHint("Search devices, sites, racks, IPs, circuits, and more")
+                results.isNotEmpty() ->
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
+                            val model = modelsByEndpointPath[hit.endpointPath]
+                            val appKey = model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
+                            SearchResultRow(
+                                hit = hit,
+                                modelLabel = model?.modelLabel,
+                                icon = AppIcons.forAppKey(appKey),
+                                onClick = { onResultClick(hit.endpointPath, hit.id) },
+                            )
+                        }
                     }
-                }
+                isRefreshing -> CenteredHint("Searching…")
+                else -> CenteredHint("No results for \"$query\"")
+            }
         }
     }
 }
 
 @Composable
-private fun CenteredHint(text: String, padding: PaddingValues) {
-    Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+private fun CenteredHint(text: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

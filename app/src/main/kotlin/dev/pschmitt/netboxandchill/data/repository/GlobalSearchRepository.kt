@@ -1,15 +1,18 @@
 package dev.pschmitt.netboxandchill.data.repository
 
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
+import dev.pschmitt.netboxandchill.data.db.DeviceDao
+import dev.pschmitt.netboxandchill.data.db.DeviceEntity
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import timber.log.Timber
 
 /** A single global-search hit - just enough to render a result row and navigate into NBC-6's
@@ -17,62 +20,80 @@ import timber.log.Timber
 data class SearchHit(val endpointPath: String, val id: Int, val display: String, val secondaryLine: String?)
 
 /**
- * Cross-model search (NBC-13). NetBox has no global-search REST endpoint to call into - confirmed
- * against the real instance (netbox.brkn.lol, NetBox 4.5): `GET /api/extras/` lists no `search`
- * key, `GET /api/extras/search/` 404s, and the full `/api/schema/` OpenAPI document has zero paths
- * containing "search". What *does* work, also confirmed live: NetBox's per-model list endpoints
- * accept a free-text `?q=<term>` filter. So this fans a single search term out across a curated
- * set of endpoint paths in parallel via the same schema-free [GenericNetBoxApi.listObjects] the
- * generic list/detail screens already use, and merges the results - client-side fan-out instead of
- * a server-side global search.
+ * Cross-model search (NBC-13). **Cache-first**, matching every other repository in this app
+ * (`AGENTS.md`: "reads come from Room, writes/refreshes come from the API") - this app's whole
+ * point is working with no connectivity, so a search that only worked online would be a real
+ * regression, not a first-pass shortcut. [observeCached] reads instantly from Room - across every
+ * endpoint in `netbox_objects`, plus the typed `devices` table NBC-6 deliberately kept separate -
+ * and works fully offline. [refresh] is a best-effort network pass that both broadens what's
+ * findable right now *and* upserts hits back into `netbox_objects` via
+ * [GenericObjectRepository.cacheSearchResults], so they're cached for next time too - a *refresh*
+ * on top of the cache, not a parallel live-only path.
  *
- * Deliberately not cache-backed: unlike [GenericObjectRepository], results here are transient (not
- * upserted into `NetBoxObjectEntity`) since the point is a live merge across many models for one
- * search term, not another sync path - tapping a result still lands on the normal cache-first
- * generic detail screen.
+ * NetBox has no global-search REST endpoint to call into for the refresh step - confirmed against
+ * the real instance (netbox.brkn.lol, NetBox 4.5): `GET /api/extras/` lists no `search` key, `GET
+ * /api/extras/search/` 404s, and the full `/api/schema/` OpenAPI document has zero paths
+ * containing "search". What *does* work, also confirmed live: NetBox's per-model list endpoints
+ * accept a free-text `?q=<term>` filter - used here as the refresh mechanism.
  */
 @Singleton
-class GlobalSearchRepository @Inject constructor(private val api: GenericNetBoxApi) {
+class GlobalSearchRepository
+@Inject
+constructor(
+    private val api: GenericNetBoxApi,
+    private val netBoxObjectDao: NetBoxObjectDao,
+    private val deviceDao: DeviceDao,
+    private val genericObjectRepository: GenericObjectRepository,
+) {
 
-    /** Runs [endpointPaths] in parallel, each filtered by `?q=<queryText>`. A single model failing
-     * (unreachable, doesn't support `q`, ...) is logged and skipped rather than failing the whole
-     * search - mirrors [DirectoryRepository.refresh]'s per-app `runCatching`. */
-    suspend fun search(queryText: String, endpointPaths: List<String>, limitPerModel: Int = 15): List<SearchHit> =
-        coroutineScope {
-            endpointPaths
-                .map { endpointPath -> async { searchOne(endpointPath, queryText, limitPerModel) } }
-                .awaitAll()
-                .flatten()
+    /** Instant, offline-capable read - the primary result source, not scoped to
+     * [BASELINE_ENDPOINT_PATHS]: anything ever cached under any endpoint is findable offline. */
+    fun observeCached(queryText: String, limitPerSource: Int = 50): Flow<List<SearchHit>> =
+        combine(
+            netBoxObjectDao.searchAll(queryText, limitPerSource).map { rows -> rows.map { it.toSearchHit() } },
+            deviceDao.search(queryText).map { rows -> rows.take(limitPerSource).map { it.toSearchHit() } },
+        ) { generic, devices ->
+            generic + devices
         }
 
-    private suspend fun searchOne(endpointPath: String, queryText: String, limitPerModel: Int): List<SearchHit> =
-        runCatching {
-                api
-                    .listObjects(endpointPath, mapOf("q" to queryText, "limit" to limitPerModel.toString()))
-                    .results
-                    .map { it.toSearchHit(endpointPath) }
-            }
-            .onFailure { Timber.w(it, "Global search failed for %s", endpointPath) }
-            .getOrDefault(emptyList())
-
-    private fun JsonObject.toSearchHit(endpointPath: String): SearchHit {
-        val id = this["id"]?.jsonPrimitive?.intOrNull ?: 0
-        val display =
-            this["display"]?.jsonPrimitive?.contentOrNull ?: this["name"]?.jsonPrimitive?.contentOrNull ?: "#$id"
-        val secondaryLine =
-            (this["status"] as? JsonObject)?.get("label")?.jsonPrimitive?.contentOrNull
-                ?: this["description"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
-        return SearchHit(endpointPath = endpointPath, id = id, display = display, secondaryLine = secondaryLine)
+    /** Best-effort live refresh: fans [endpointPaths] out in parallel via `?q=`, upserting
+     * successful hits into `netbox_objects` so [observeCached] reflects them immediately and
+     * they're offline-findable from now on. Devices are deliberately skipped here - `DeviceDao`'s
+     * cache already gets a full periodic sync via `DeviceRepository`/`SyncWorker`, so it's already
+     * comprehensive without a redundant `?q=` round trip. A single model failing (unreachable,
+     * doesn't support `q`, offline entirely, ...) is logged and skipped rather than failing the
+     * whole refresh, mirroring [DirectoryRepository.refresh]'s per-app `runCatching` - the caller
+     * already has [observeCached]'s answer regardless of whether this succeeds. */
+    suspend fun refresh(queryText: String, endpointPaths: List<String>, limitPerModel: Int = 15) {
+        coroutineScope {
+            endpointPaths
+                .filter { it != DEVICES_ENDPOINT_PATH }
+                .map { endpointPath -> async { refreshOne(endpointPath, queryText, limitPerModel) } }
+                .awaitAll()
+        }
     }
 
+    private suspend fun refreshOne(endpointPath: String, queryText: String, limitPerModel: Int) {
+        runCatching { api.listObjects(endpointPath, mapOf("q" to queryText, "limit" to limitPerModel.toString())).results }
+            .onSuccess { genericObjectRepository.cacheSearchResults(endpointPath, it) }
+            .onFailure { Timber.w(it, "Global search refresh failed for %s", endpointPath) }
+    }
+
+    private fun NetBoxObjectEntity.toSearchHit() = SearchHit(endpointPath, id, display, secondaryLine)
+
+    private fun DeviceEntity.toSearchHit() =
+        SearchHit(endpointPath = DEVICES_ENDPOINT_PATH, id = id, display = name, secondaryLine = statusLabel ?: siteName)
+
     companion object {
-        // The TODO's own suggested set (devices/sites/racks/ip-addresses/circuits) plus a few
-        // equally common models - kept short so one search doesn't fan out to dozens of parallel
-        // requests. GlobalSearchViewModel unions this with the user's pinned model paths so
-        // anything explicitly starred in the sidebar is searchable too, not just this baseline.
+        private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+
+        // Baseline model set for the network refresh + result labeling - GlobalSearchViewModel
+        // unions this with the user's pinned model paths so anything explicitly starred in the
+        // sidebar is searchable too, not just this baseline. Kept short so one search doesn't fan
+        // out to dozens of parallel requests; the *cached* read side has no such limit.
         val BASELINE_ENDPOINT_PATHS =
             listOf(
-                "api/dcim/devices/",
+                DEVICES_ENDPOINT_PATH,
                 "api/dcim/device-types/",
                 "api/dcim/sites/",
                 "api/dcim/racks/",

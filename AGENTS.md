@@ -77,6 +77,17 @@ Repository instructions for AI coding agents working on NetBox and Chill.
   client (see `data/api/DynamicBaseUrlInterceptor.kt`).
 - Offline cache via Room (`data/db`). `DeviceRepository` is cache-first: reads come from Room,
   writes/refreshes come from the API and upsert into Room.
+- **Offline-first is a hard requirement of this app, not a nice-to-have.** It must stay fully
+  usable with zero connectivity for anything already synced. Any new read path - a screen, a
+  ViewModel, a repository - has to follow the same shape as `DeviceRepository`/
+  `GenericObjectRepository`: reads come from a Room `Flow` first, a network call is only ever a
+  best-effort *refresh* that upserts into Room, and its failure surfaces as a friendly message
+  (or is silently skipped) rather than blocking or replacing what's already cached. A feature that
+  only works while NetBox is reachable, with no cached fallback, is a regression - not a reasonable
+  first-pass scope-down. This bit a real review: NBC-13's global search first shipped as a live-
+  only network fan-out with explicitly "transient" (not cached) results, flagged and reworked to be
+  cache-first the same day. See also NBC-18 (cached data must render immediately even when a
+  refresh at launch fails).
 - The whole point of the app is scanning the device-sticker QR codes (public NetBox device URLs
   like `https://<netbox-host>/dcim/devices/<id>/`) with the in-app CameraX/ZXing scanner, and via
   the `/dcim/devices/*` deep-link intent-filter when such a link is opened from another app. Both
