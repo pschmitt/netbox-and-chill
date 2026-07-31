@@ -49,6 +49,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var settingsRepository: SettingsRepository
 
     private var pendingTarget by mutableStateOf<NetBoxTarget?>(null)
+    private var pendingSetup by mutableStateOf<NetBoxTarget.Setup?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -92,14 +93,26 @@ class MainActivity : FragmentActivity() {
                 // relaunch of this singleTask activity via onNewIntent below.
                 LaunchedEffect(pendingTarget) {
                     val target = pendingTarget ?: return@LaunchedEffect
-                    if (settingsRepository.isConfigured) {
-                        val destination =
-                            when (target) {
-                                is NetBoxTarget.Device -> Route.DeviceDetail(target.id)
-                                is NetBoxTarget.Object ->
-                                    Route.Generic(target.endpointPath, target.id)
+                    when (target) {
+                        is NetBoxTarget.Setup -> {
+                            pendingSetup = target
+                            if (settingsRepository.isConfigured) {
+                                navController.navigate(Route.Onboarding) { launchSingleTop = true }
                             }
-                        navController.navigate(destination)
+                        }
+                        is NetBoxTarget.Device,
+                        is NetBoxTarget.Object -> {
+                            if (settingsRepository.isConfigured) {
+                                val destination =
+                                    when (target) {
+                                        is NetBoxTarget.Device -> Route.DeviceDetail(target.id)
+                                        is NetBoxTarget.Object ->
+                                            Route.Generic(target.endpointPath, target.id)
+                                        is NetBoxTarget.Setup -> error("unreachable")
+                                    }
+                                navController.navigate(destination)
+                            }
+                        }
                     }
                     pendingTarget = null
                 }
@@ -148,6 +161,12 @@ class MainActivity : FragmentActivity() {
                             navController = navController,
                             startDestination = startDestination,
                             onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
+                            setup = pendingSetup,
+                            onSetupImport = { setup ->
+                                pendingSetup = setup
+                                navController.navigate(Route.Onboarding) { launchSingleTop = true }
+                            },
+                            onSetupConsumed = { pendingSetup = null },
                         )
                         SyncStatusIndicator(
                             modifier =

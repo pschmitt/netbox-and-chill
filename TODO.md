@@ -313,7 +313,13 @@ recognized by NetBoxUrlParser/a new parser branch). Sensitive: the payload inclu
 token, so treat the generated QR code/settings-share flow with the same care as the token itself
 (e.g. don't log it, consider a short display-only affordance rather than anything persisted).
 
-Status: not started, 2026-07-31.
+- [x] Encode and decode versioned, URL-safe setup payloads without logging or persisting them.
+- [x] Generate a display-only setup QR from Settings behind biometric/PIN authentication.
+- [x] Import setup URIs from Android deep links and the existing scanner, pre-filling onboarding.
+- [x] Validate with remote unit tests/lint/build and a Mi Pad 4 smoke test using a dummy payload.
+
+Status: **done**, 2026-07-31 - remote `just test`, `just lint`, and debug build passed; Mi Pad 4
+verified the biometric/PIN gate and dummy setup-URI onboarding import without connecting to NetBox.
 
 ## NBC-9: Dashboard/home page
 

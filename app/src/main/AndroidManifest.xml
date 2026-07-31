@@ -78,6 +78,15 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+
+            <!-- Setup QR payloads are self-identifying custom-scheme URIs, so another QR reader
+                 can hand them back to the app as well as the in-app scanner. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="netboxandchill" android:host="setup" />
+            </intent-filter>
         </activity>
 
         <!-- WorkManager is initialized manually in NetBoxAndChillApp (Configuration.Provider) so

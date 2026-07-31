@@ -1,5 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.settings
 
+import android.graphics.Bitmap
 import android.content.ClipData
 import android.content.ClipboardManager
 import androidx.biometric.BiometricManager
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -40,6 +42,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -57,6 +60,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -66,6 +70,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
+import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
+import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
+import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +97,7 @@ fun SettingsScreen(
     var pendingTokenAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var tokenAuthError by remember { mutableStateOf<String?>(null) }
     var tokenCopied by remember { mutableStateOf(false) }
+    var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var gestureMenuExpanded by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
 
@@ -147,6 +155,7 @@ fun SettingsScreen(
         // allow a pending authentication callback to act on credentials that are no longer shown.
         tokenVisible = false
         pendingTokenAction = null
+        qrBitmap = null
     }
 
     LaunchedEffect(errorMessage) {
@@ -180,6 +189,10 @@ fun SettingsScreen(
                 showEditServerDialog = false
             },
         )
+    }
+
+    qrBitmap?.let { bitmap ->
+        SetupQrDialog(bitmap = bitmap, onDismiss = { qrBitmap = null })
     }
 
     Scaffold(
@@ -240,6 +253,24 @@ fun SettingsScreen(
                             enabled = credentials.token.isNotBlank(),
                         ) {
                             Icon(Icons.Default.ContentCopy, contentDescription = "Copy API token")
+                        }
+                        IconButton(
+                            onClick = {
+                                authenticateForToken {
+                                    val payload =
+                                        QrConfigCodec.encodePayload(
+                                            QrConfigEnvelope(
+                                                createdAt = System.currentTimeMillis(),
+                                                baseUrl = credentials.baseUrl,
+                                                token = credentials.token,
+                                            )
+                                        )
+                                    qrBitmap = QrBitmap.encode(payload)
+                                }
+                            },
+                            enabled = credentials.token.isNotBlank(),
+                        ) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Show setup QR code")
                         }
                     }
                 },
@@ -375,5 +406,29 @@ private fun EditServerDialog(
             }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !isUpdating) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun SetupQrDialog(bitmap: Bitmap, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Share NetBox setup") },
+        text = {
+            Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "NetBox setup QR code",
+                    modifier = Modifier.size(280.dp),
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "This QR code contains the API token. Only show it to the person configuring a trusted device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
     )
 }

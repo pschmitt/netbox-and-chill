@@ -51,6 +51,7 @@ constructor(
             when (target) {
                 is NetBoxTarget.Device -> deviceRepository.refreshDevice(target.id)
                 is NetBoxTarget.Object -> genericObjectRepository.refreshObject(target.endpointPath, target.id)
+                is NetBoxTarget.Setup -> Unit
             }
             _state.value = ScanResultState.Found(target)
         }

@@ -1,5 +1,7 @@
 package dev.pschmitt.netboxandchill.scanner
 
+import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
+import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -25,6 +27,23 @@ class NetBoxUrlParserTest {
     @Test
     fun `parses bare numeric id as a device`() {
         assertEquals(NetBoxTarget.Device(393), NetBoxUrlParser.parse("393"))
+    }
+
+    @Test
+    fun `parses a setup QR payload without treating it as a NetBox object`() {
+        val payload =
+            QrConfigCodec.encodePayload(
+                QrConfigEnvelope(
+                    createdAt = 1,
+                    baseUrl = "https://netbox.example.test",
+                    token = "nbt_key.secret",
+                )
+            )
+
+        assertEquals(
+            NetBoxTarget.Setup("https://netbox.example.test", "nbt_key.secret"),
+            NetBoxUrlParser.parse(payload),
+        )
     }
 
     @Test

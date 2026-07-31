@@ -25,11 +25,20 @@ private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
 private const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
 
 @Composable
-fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onOpenDrawer: () -> Unit) {
+fun NetBoxNavHost(
+    navController: NavHostController,
+    startDestination: Route,
+    onOpenDrawer: () -> Unit,
+    setup: NetBoxTarget.Setup?,
+    onSetupImport: (NetBoxTarget.Setup) -> Unit,
+    onSetupConsumed: () -> Unit,
+) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable<Route.Onboarding> {
             OnboardingScreen(
+                initialSetup = setup,
                 onDone = {
+                    onSetupConsumed()
                     navController.navigate(Route.Dashboard) {
                         popUpTo(Route.Onboarding) { inclusive = true }
                     }
@@ -111,6 +120,10 @@ fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onO
                         when (target) {
                             is NetBoxTarget.Device -> Route.DeviceDetail(target.id)
                             is NetBoxTarget.Object -> Route.Generic(target.endpointPath, target.id)
+                            is NetBoxTarget.Setup -> {
+                                onSetupImport(target)
+                                return@ScannerScreen
+                            }
                         }
                     navController.navigate(destination) { popUpTo(Route.Scanner) { inclusive = true } }
                 },

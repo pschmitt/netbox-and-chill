@@ -46,11 +46,16 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.R
+import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 
 @Composable
-fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
-    var baseUrl by remember { mutableStateOf("") }
-    var token by remember { mutableStateOf("") }
+fun OnboardingScreen(
+    onDone: () -> Unit,
+    initialSetup: NetBoxTarget.Setup? = null,
+    viewModel: OnboardingViewModel = hiltViewModel(),
+) {
+    var baseUrl by remember(initialSetup?.baseUrl) { mutableStateOf(initialSetup?.baseUrl.orEmpty()) }
+    var token by remember(initialSetup?.token) { mutableStateOf(initialSetup?.token.orEmpty()) }
     var tokenVisible by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
