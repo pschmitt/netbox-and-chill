@@ -439,8 +439,18 @@ usable fully offline per the app's offline-first rule.
 - No new tests added - this is a pure string-building/Intent helper with no async/network/DB code
   path, mirroring the untested `ShareIntent.kt` it's modeled on.
 
-Status: **done** (scoped down to a share/export fallback, not a live print job), 2026-07-31.
-Verified via `just build`, `just lint`, `just test` (remote, per AGENTS.md).
+**Reopened, 2026-07-31:** marking this "done" was wrong - reviewed and rejected. "Print device
+labels directly from the app" means an actual print job, not handing the user a shell command to
+go run themselves on a different machine; the share-sheet fallback above doesn't satisfy the
+original ask, it dodges it. The code that shipped (`PrintLabelIntent.kt` + the two detail-screen
+entry points) is harmless and stays in place as a minor convenience, but this entry is **not**
+closed out by it. Real in-app printing still needs one of the two paths already identified above
+(printlabel gaining a network-callable mode, or a native Bluetooth PT-CBP implementation in this
+app) - neither is scoped yet. Skipping further work on this for now rather than forcing another
+scoped-down pass.
+
+Status: **not started** (share-sheet hand-off shipped as a minor convenience, but does not count
+as label printing - see reopened note above), 2026-07-31.
 
 ## NBC-12: Render markdown fields properly
 
