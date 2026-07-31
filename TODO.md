@@ -1091,15 +1091,18 @@ just created for yourself, confirmed live against netbox.brkn.lol). User's frami
 button to display the current api token on the login page would be a great start."
 **How to apply:** the app can only ever show back what NetBox already gave *this* app instance when
 it was first configured (`SettingsRepository`'s stored `token` - EncryptedSharedPreferences, already
-plaintext-accessible in-process, just never surfaced in the UI) - it can't retroactively recover a
-full `nbp_...` value NetBox never showed the app in the first place, and can't ask NetBox for it
-again later either. Add a reveal/copy affordance for the currently-stored token - most likely on
-`SettingsScreen` (which already shows the "NetBox instance" URL as connection info) alongside a
-"copy to clipboard" action, so a user can transfer their existing token to a new device without
-regenerating one from the NetBox web UI each time. A show/hide toggle on `OnboardingScreen`'s own
-token field (a standard eye-icon `PasswordVisualTransformation` toggle) is a related but distinct,
-smaller affordance worth considering too - un-masking what was just typed/pasted before hitting
-Connect, not viewing an already-saved value.
+plaintext-accessible in-process) - it can't retroactively recover a full `nbp_...` value NetBox
+never showed the app in the first place, and can't ask NetBox for it again later either. The login
+page gets an ordinary eye-icon toggle for the token currently being entered. Settings gets reveal
+and copy actions for the stored token, but both actions must first pass Android biometric/device
+credential authentication (fingerprint or PIN); without an enrolled device credential the token
+stays inaccessible.
+
+- [x] `OnboardingScreen`: show/hide the token currently being entered; it remains local UI state and
+  is never persisted or logged.
+- [x] `SettingsScreen`: add masked stored-token display plus reveal and copy actions.
+- [x] Gate both Settings actions with `BiometricPrompt` allowing a strong biometric or device
+  credential fallback, and keep the token masked when authentication is unavailable or cancelled.
 
 Follow-up, same thread: added a placeholder (not label) on `OnboardingScreen`'s API token field
 showing the real format, `nbt_xxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` - confirmed
@@ -1118,8 +1121,9 @@ do. Also: `Authorization: Token <value>` and `Authorization: Bearer <value>` are
 this instance for v2 tokens (confirmed live) - the app's `AuthInterceptor` hardcodes `"Token "`,
 which is fine, no change needed there.
 
-Status: not started, 2026-07-31 - the placeholder-hint half is done; the reveal/copy-stored-token
-feature itself is not.
+Status: **done**, 2026-07-31 - verified with remote `just lint`, `just test`, and `just build` on
+rofl-13; biometric/device-credential behavior was code-reviewed but not exercised on a physical
+device in this session.
 
 ## NBC-26: narrower sidebar + real app icon in the footer
 
@@ -1175,7 +1179,8 @@ different job than "find something anywhere") but merge just the sidebar section
 search. Needs its own look at how NBC-13 actually shipped (this session didn't build it - another
 concurrent session did) before deciding.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31 - verified with the generic renderer unit tests plus remote `just lint`,
+`just test`, and `just build` on rofl-13.
 
 ## NBC-28: real app icon on the onboarding screen + dashboard stat-card overflow fix
 
@@ -1217,7 +1222,9 @@ maintaining two parallel detail-rendering implementations, which would get this 
 way NBC-15's Journal tab and NBC-16's file attachments did. Worth deciding which before starting -
 option (b) also happens to be the fix for NBC-30 below, for the same reason.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31 - verified with the generic renderer unit test plus remote `just lint`,
+`just test`, and `just build` on rofl-13; visual rendering was not exercised on a physical device
+in this session.
 
 ## NBC-30: device/item title belongs in the page body, not the top app bar
 
@@ -1254,7 +1261,12 @@ every field indiscriminately; on the generic engine (NBC-6) that likely means op
 `FieldRow.PlainText`, to avoid cluttering fields where copying doesn't make sense (e.g. `comments`,
 free-text descriptions).
 
-Status: not started, 2026-07-31.
+- [x] Added the identifier allowlist to the generic renderer and copy icons to generic reference/
+  text rows and the typed device detail screen.
+- [x] Added coverage for serial, asset tag, primary IP, and non-copyable fields.
+
+Status: **done**, 2026-07-31 - verified with the generic renderer unit tests plus remote `just lint`,
+`just test`, and `just build` on rofl-13.
 
 ## NBC-32: detect and resolve edit conflicts (offline edit vs. server-side change)
 
@@ -1395,7 +1407,14 @@ use `ContentScale.Fit` instead of the default `Crop`. Find wherever the device-*
 screen) renders its own front/rear images and apply the same `contentScale = ContentScale.Fit`
 `RemoteThumbnail` parameter (added in NBC-22 specifically to support this).
 
-Status: not started, 2026-07-31.
+- [x] Generic device-type `front_image`/`rear_image` fields now render as inline image rows with
+  `RemoteThumbnail(..., contentScale = ContentScale.Fit)`; other media fields keep their existing
+  download-row behavior.
+- [x] Added renderer coverage for both device-type image fields.
+
+Status: **done**, 2026-07-31 - verified with the generic renderer unit test plus remote `just lint`,
+`just test`, and `just build` on rofl-13; visual rendering was not exercised on a physical device
+in this session.
 
 ## NBC-39: Settings screen has no way to change the configured NetBox server
 
@@ -1440,3 +1459,89 @@ Status: **done**, 2026-07-31. `just build`/`just lint`/`just test` all green on 
 verified on a physical device this session (no device available to actually switch servers and
 confirm the revert-on-failure/cache-wipe-on-success behavior end-to-end) - reasoned through by
 mirroring `OnboardingViewModel.connect()`'s already-verified save-then-validate shape instead.
+
+## NBC-40: fix "edit does not work" - saves sent every field, not just the diff
+
+Editing any object was silently unreliable, and editing a device *type* specifically failed every
+time: the save button's PATCH body included every editable field's current value, not just the
+ones actually changed - which both cluttered NetBox's change log with untouched fields, and for
+device types, outright broke every save (`front_image`/`rear_image` are absolute media URLs NetBox
+computes itself; resending one unmodified gets rejected with "The submitted data was not a file",
+which failed the *entire* PATCH regardless of what the user meant to change).
+
+**Why:** user report - "edit does not seem to work at all atm?", narrowed down live (with real
+device access and log capture) to specifically device-type edits, confirmed via a live PATCH
+against netbox.brkn.lol/api/dcim/device-types/244/ returning HTTP 400 with exactly that message.
+Same thread, a sharp follow-up catch from the user comparing NetBox's own before/after change-log
+diff: "shouldnt our edits also ONLY include the stuff we changed? might be worth-while to compute
+the diff and only send that" - the *actual* root cause and the better fix, not just a band-aid for
+the one field that happened to break outright.
+**How to apply:**
+- **Root fix**: `GenericDetailScreen`'s save handler now diffs `editValues` against each field's
+  original `EditableField.value` and only includes entries that actually differ in the `edits` map
+  passed to `viewModel.save(...)` - untouched fields are never resent, which fixes the device-type
+  case too (an untouched `front_image` is no longer part of the PATCH at all) without needing to
+  special-case it.
+- **Defense in depth**: `buildEditableFields()` also now excludes any field whose value is a media
+  URL (reusing `isMediaUrl()`, already used elsewhere for `FieldRow.FileAttachment` detection) -
+  belt-and-suspenders in case a future field is ever *actually* edited and diffed as changed.
+- **Error visibility**: a save failure previously only showed a `Snackbar`, which the user found
+  easy to miss - "there is a toast - behind the keyboard..? I expected something more bold and
+  clear." Failures during editing now render as a persistent `errorContainer`-colored banner at
+  the top of the edit form instead (survives the keyboard being open, doesn't auto-dismiss), while
+  non-editing failures (e.g. a refresh) keep using the Snackbar as before.
+- **Success confirmation**: a successful save now also shows a positive `"<item> updated!"`
+  Snackbar (reusing the same `refreshedMessage` flow as the NBC-33 manual-refresh confirmation),
+  per the user's follow-up request once the fix was confirmed working live.
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green; root cause confirmed live via direct
+`curl` reproduction of the 400 against the real instance, and the fix itself confirmed live too -
+retried the exact same edit (Mi Pad 4 device type's U Height) on the Zenfone 10 after installing
+the fix, and it saved successfully this time ("yes it worked! u height was updated correctly!").
+
+## NBC-41: configurable gestures (two-finger swipe down for global search, etc.)
+
+No gesture shortcuts exist today - navigating to global search or the scanner always requires
+going through the sidebar/bottom nav.
+
+**Why:** user request - "gestures! I'd be great to have configurable gestures. For now I primarily
+want a way to trigger global search, by swiping down on any screen (with 2 fingers). Kinda like
+the HA app does. Other possible action could be a gesture to open the QR code scanner."
+**How to apply:** needs a global gesture-detection layer that works across every screen, not just
+one - likely wants to live high up the composition (e.g. wrapping `NetBoxNavHost`'s content, or in
+`MainActivity`'s root `Surface`) using `Modifier.pointerInput` + `awaitPointerEventScope` to detect
+a 2-pointer vertical drag distinct from normal single-finger scrolling within whatever screen is
+underneath (needs care not to steal normal scroll gestures - a 2-finger-specific detector should
+naturally not conflict with single-finger `LazyColumn` scrolling, but verify in practice). "For now"
+and "other possible action" in the request both point at wanting this configurable/extensible from
+day one, not just one hardcoded gesture - suggests a small `GestureAction` enum (`GlobalSearch`,
+`Scanner`, ...) mapped from a `SettingsRepository`-backed preference, with the two-finger-swipe-down
+gesture as the first (and initially only) configurable trigger, rather than hardcoding "swipe down
+= search" directly.
+
+Status: not started, 2026-07-31.
+
+## NBC-42: dashboard "Recent changes" should link to the item and show the actual diff
+
+The dashboard's recent-changes list currently shows only a change summary line - it doesn't link
+anywhere, and even if it did, opening the item's current detail view wouldn't show what actually
+changed (the object may have changed again since, or the field in question isn't rendered at all).
+
+**Why:** user request - "on the home page the recent change entries should indeed allow us to open
+the item view page directly - but we should also have a way to dispaly the diff ie the change
+itself! (that's gotta be a separate view)."
+**How to apply:** two distinct pieces:
+- Tapping a recent-change entry should navigate to that object's existing generic detail screen
+  (`Route.Generic`), same as any other reference elsewhere in the app - the changelog entry already
+  carries the object's `changed_object_type`/`changed_object_id` (or an embedded `url`), which is
+  what `NetBoxRef.endpointFromDetailUrl()` elsewhere in the codebase already turns into a route.
+- A *separate* diff view is needed for the change itself: NetBox's changelog API
+  (`/api/extras/object-changes/{id}/`) returns `prechange_data`/`postchange_data` JSON snapshots -
+  this needs a new screen that fetches that single change-log entry and renders a field-by-field
+  before/after diff (this is exactly the kind of before/after comparison the user pasted earlier
+  in the NBC-40 discussion when pointing out the edit form was resending unchanged fields - a
+  generic "diff two JsonObjects, list keys that differ" helper would serve both that intuition and
+  this view). Reachable from a distinct affordance on each recent-change row (e.g. a trailing "view
+  diff" icon button) separate from the row tap itself, per "that's gotta be a separate view."
+
+Status: not started, 2026-07-31.

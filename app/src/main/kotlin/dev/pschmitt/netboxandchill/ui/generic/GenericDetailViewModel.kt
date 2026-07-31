@@ -59,6 +59,8 @@ constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    // Positive-confirmation Snackbar text - shared by a manual refresh ("Refreshed") and a
+    // successful save ("<item> updated!"), both simple "your action worked" acknowledgements.
     private val _refreshedMessage = MutableStateFlow<String?>(null)
     val refreshedMessage: StateFlow<String?> = _refreshedMessage.asStateFlow()
 
@@ -150,10 +152,12 @@ constructor(
     }
 
     fun startEditing() {
+        _errorMessage.value = null
         _isEditing.value = true
     }
 
     fun cancelEditing() {
+        _errorMessage.value = null
         _isEditing.value = false
     }
 
@@ -169,6 +173,7 @@ constructor(
                 .updateObject(route.endpointPath, route.id, buildPatchBody(edits))
                 .onSuccess {
                     _isEditing.value = false
+                    _refreshedMessage.value = "${title.value ?: "Item"} updated!"
                     // Refreshes the wider offline cache (and, if enabled, synced attachments) so
                     // an edit's side effects elsewhere in NetBox aren't only reflected here.
                     syncScheduler.syncNow()

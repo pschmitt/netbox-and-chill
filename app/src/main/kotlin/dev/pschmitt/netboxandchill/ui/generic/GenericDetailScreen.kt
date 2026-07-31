@@ -1,5 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
@@ -34,6 +38,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -47,15 +52,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.printLabelShareIntent
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
+import androidx.core.content.getSystemService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,13 +89,20 @@ fun GenericDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var editValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var copiedMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isEditing) {
         if (isEditing) editValues = editableFields.associate { it.key to it.value }
     }
 
     LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
+        val message = errorMessage ?: return@LaunchedEffect
+        // While editing, the bold inline banner in EditForm below is the primary signal - a
+        // Snackbar on top of that (and, on smaller screens, behind the open keyboard) is both
+        // redundant and easy to miss, and dismissing it here would also clear the banner before
+        // the user has a chance to read it. Outside of editing (e.g. a refresh failure), the
+        // Snackbar is still the only signal.
+        if (!isEditing) {
+            snackbarHostState.showSnackbar(message)
             viewModel.errorShown()
         }
     }
@@ -97,6 +112,18 @@ fun GenericDetailScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.refreshedMessageShown()
         }
+    }
+
+    LaunchedEffect(copiedMessage) {
+        copiedMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            copiedMessage = null
+        }
+    }
+
+    val onCopyValue: (String, String) -> Unit = { label, value ->
+        context.getSystemService<ClipboardManager>()?.setPrimaryClip(ClipData.newPlainText(label, value))
+        copiedMessage = "Copied $label"
     }
 
     LaunchedEffect(fileToOpen) {
@@ -131,9 +158,17 @@ fun GenericDetailScreen(
                             IconButton(
                                 onClick = {
                                     val kindByKey = editableFields.associateBy { it.key }
+                                    // Only the fields actually changed from their original value -
+                                    // editValues holds the *entire* form's current state (it's
+                                    // seeded from every editable field when entering edit mode),
+                                    // so PATCHing all of it back unconditionally resends untouched
+                                    // fields too. Beyond the unnecessary noise in NetBox's own
+                                    // change log, this can outright break the save: a field NetBox
+                                    // computes itself (e.g. an absolute media URL) may reject being
+                                    // resent as-is even when nothing about it changed.
                                     val edits = editValues.mapNotNull { (key, value) ->
                                         kindByKey[key]?.let { field ->
-                                            key to (field.kind to value)
+                                            if (value != field.value) key to (field.kind to value) else null
                                         }
                                     }
                                     viewModel.save(edits.toMap())
@@ -201,6 +236,7 @@ fun GenericDetailScreen(
                     fields = editableFields,
                     values = editValues,
                     onValueChange = { key, value -> editValues = editValues + (key to value) },
+                    errorMessage = errorMessage,
                     modifier = Modifier.padding(padding).fillMaxSize(),
                 )
             else -> {
@@ -240,6 +276,7 @@ fun GenericDetailScreen(
                                     },
                                     onDownloadAttachment = viewModel::downloadAttachment,
                                     isDownloading = isDownloading,
+                                    onCopyValue = onCopyValue,
                                 )
                             }
                         }
@@ -264,6 +301,7 @@ private fun EditForm(
     fields: List<EditableField>,
     values: Map<String, String>,
     onValueChange: (key: String, value: String) -> Unit,
+    errorMessage: String?,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -271,6 +309,25 @@ private fun EditForm(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // A bold, persistent banner rather than a Snackbar - a toast is easy to miss entirely
+        // while the keyboard is open (it can render behind it), and a save failure here is
+        // exactly the moment the user most needs to notice something went wrong.
+        errorMessage?.let { message ->
+            item {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Default.Error, contentDescription = null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(message, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
         items(fields, key = { it.key }) { field ->
             val value = values[field.key] ?: field.value
             when (field.kind) {
@@ -313,13 +370,21 @@ private fun LazyListScope.fieldRow(
     onOpenUrl: (String) -> Unit,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
     isDownloading: Boolean,
+    onCopyValue: (label: String, value: String) -> Unit,
 ) {
     when (row) {
         is FieldRow.PlainText ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label)
-                    Text(row.value, style = MaterialTheme.typography.bodyLarge)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(row.value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        if (row.copyable) {
+                            IconButton(onClick = { onCopyValue(row.label, row.value) }) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy ${row.label}")
+                            }
+                        }
+                    }
                 }
             }
         is FieldRow.Markdown ->
@@ -333,14 +398,32 @@ private fun LazyListScope.fieldRow(
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label)
-                    Text(
-                        row.target.display,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier =
-                            Modifier.clickable {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            row.target.display,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f).clickable {
                                 onNavigateToReference(row.target.endpointPath, row.target.id)
                             },
+                        )
+                        if (row.copyable) {
+                            IconButton(onClick = { onCopyValue(row.label, row.target.display) }) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy ${row.label}")
+                            }
+                        }
+                    }
+                }
+            }
+        is FieldRow.Image ->
+            item {
+                Column(Modifier.padding(vertical = 6.dp)) {
+                    FieldLabel(row.label)
+                    RemoteThumbnail(
+                        imageUrl = row.url,
+                        contentDescription = row.label,
+                        modifier = Modifier.fillMaxWidth().height(160.dp).padding(top = 4.dp),
+                        contentScale = ContentScale.Fit,
                     )
                 }
             }

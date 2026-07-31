@@ -19,6 +19,13 @@ private val SKIPPED_KEYS = setOf("id", "url", "display", "custom_fields")
 // "description" is deliberately not included, it's plain short text, not Markdown.
 private val MARKDOWN_KEYS = setOf("comments")
 
+// Device-type stock photos are shown inline; other media URLs remain downloadable attachments.
+private val IMAGE_KEYS = setOf("front_image", "rear_image")
+
+// Keep copy actions focused on values users commonly transfer elsewhere, rather than adding one
+// to every free-text field.
+private val COPYABLE_KEYS = setOf("serial", "asset_tag", "primary_ip", "primary_ip4", "primary_ip6")
+
 // Meta/system fields NetBox manages itself - not user-editable, or too complex to round-trip as
 // plain text yet (custom_fields needs its own per-field-type handling, not a blanket text field).
 private val EDIT_BLOCKLIST =
@@ -37,13 +44,15 @@ fun buildFieldRows(obj: JsonObject): List<FieldRow> = buildList {
             key in SKIPPED_KEYS -> Unit
             key in MARKDOWN_KEYS ->
                 text?.takeIf { it.isNotBlank() }?.let { add(FieldRow.Markdown(Humanize.label(key), it)) }
+            key in IMAGE_KEYS && text != null && isMediaUrl(text) ->
+                add(FieldRow.Image(Humanize.label(key), text))
             text != null && isMediaUrl(text) -> {
                 val filename =
                     (obj["filename"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
                         ?: text.substringAfterLast('/')
                 add(FieldRow.FileAttachment(Humanize.label(key), text, filename))
             }
-            else -> renderField(Humanize.label(key), value)?.let(::add)
+            else -> renderField(key, Humanize.label(key), value)?.let(::add)
         }
     }
     // custom_fields is a NetBox-instance-specific map of {field_name: value} - each one gets its
@@ -52,26 +61,26 @@ fun buildFieldRows(obj: JsonObject): List<FieldRow> = buildList {
     // fields).
     (obj["custom_fields"] as? JsonObject)?.let { customFields ->
         for ((key, value) in customFields) {
-            renderField(Humanize.label(key), value)?.let(::add)
+            renderField(key, Humanize.label(key), value)?.let(::add)
         }
     }
 }
 
-private fun renderField(label: String, value: JsonElement): FieldRow? =
+private fun renderField(key: String, label: String, value: JsonElement): FieldRow? =
     when (value) {
         is JsonNull -> null
-        is JsonPrimitive -> renderPrimitive(label, value)
-        is JsonObject -> renderObject(label, value)
+        is JsonPrimitive -> renderPrimitive(key, label, value)
+        is JsonObject -> renderObject(key, label, value)
         is JsonArray -> renderArray(label, value)
     }
 
-private fun renderPrimitive(label: String, value: JsonPrimitive): FieldRow? {
+private fun renderPrimitive(key: String, label: String, value: JsonPrimitive): FieldRow? {
     value.booleanOrNull?.let {
         return FieldRow.PlainText(label, if (it) "Yes" else "No")
     }
     val text = value.contentOrNull?.takeIf { it.isNotBlank() } ?: return null
     if (value.isString && isHttpUrl(text)) return FieldRow.ExternalLink(label, text)
-    return FieldRow.PlainText(label, text)
+    return FieldRow.PlainText(label, text, copyable = key in COPYABLE_KEYS)
 }
 
 private fun isHttpUrl(text: String): Boolean =
@@ -81,8 +90,8 @@ private fun isHttpUrl(text: String): Boolean =
 private fun isMediaUrl(text: String): Boolean =
     isHttpUrl(text) && text.toHttpUrlOrNull()?.encodedPath?.contains("/media/") == true
 
-private fun renderObject(label: String, value: JsonObject): FieldRow? {
-    asRefTarget(value)?.let { return FieldRow.Reference(label, it) }
+private fun renderObject(key: String, label: String, value: JsonObject): FieldRow? {
+    asRefTarget(value)?.let { return FieldRow.Reference(label, it, copyable = key in COPYABLE_KEYS) }
     // Choice-style field, e.g. status: {"value": "active", "label": "Active"}.
     val choiceLabel = (value["label"] as? JsonPrimitive)?.contentOrNull
     if (choiceLabel != null) return FieldRow.PlainText(label, choiceLabel)
@@ -126,6 +135,17 @@ fun buildEditableFields(obj: JsonObject): List<EditableField> =
     obj.mapNotNull { (key, value) ->
         if (key in EDIT_BLOCKLIST) return@mapNotNull null
         if (value !is JsonPrimitive || value is JsonNull) return@mapNotNull null
+        // Fields like device-type's front_image/rear_image are absolute media URLs computed by
+        // NetBox, not plain text - PATCHing one back as-is fails server-side ("The submitted data
+        // was not a file."), and since buildPatchBody() sends every editable field's current
+        // value (not just the ones actually changed), a single such field breaks the *entire* save
+        // even when the user only meant to edit something else entirely. Confirmed live against a
+        // real device type (Mi Pad 4, dcim/device-types/244) - "edit does not work at all" turned
+        // out to be this, not a device-type-specific issue.
+        if (value.isString) {
+            val text = value.contentOrNull
+            if (text != null && isMediaUrl(text)) return@mapNotNull null
+        }
         val kind =
             when {
                 !value.isString && (value.content == "true" || value.content == "false") -> EditFieldKind.BOOLEAN
