@@ -14,7 +14,7 @@ remote_host := env_var_or_default("NBC_REMOTE_HOST", "rofl-13.brkn.lol")
 # from clobbering each other's remote sync directory mid-build.
 worktree_suffix := `gd=$(git rev-parse --git-dir); gcd=$(git rev-parse --git-common-dir); if [ "$gd" != "$gcd" ]; then basename "$(git rev-parse --show-toplevel)" | sed 's/^/-/'; fi`
 
-remote_path := env_var_or_default("NBC_REMOTE_PATH", "~/devel/private/pschmitt/netbox-and-chill-verify" + worktree_suffix)
+remote_path := env_var_or_default("NBC_REMOTE_PATH", "~/build/netbox-and-chill" + worktree_suffix)
 local_dist := env_var_or_default("NBC_DIST_DIR", "./dist")
 
 default_abi := env_var_or_default("NBC_ABI", "arm64-v8a")

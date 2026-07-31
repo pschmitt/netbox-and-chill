@@ -26,3 +26,10 @@
 -dontwarn org.openjsse.javax.net.ssl.SSLParameters
 -dontwarn org.openjsse.javax.net.ssl.SSLSocket
 -dontwarn org.openjsse.net.ssl.OpenJSSE
+
+# Google Tink (pulled in by androidx.security.crypto for EncryptedSharedPreferences) references
+# these build-time-only annotation packages; none of them are needed at runtime.
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.**
+-dontwarn org.checkerframework.**
+-dontwarn org.joda.time.**
