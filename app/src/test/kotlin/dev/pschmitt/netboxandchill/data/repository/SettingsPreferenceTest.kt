@@ -15,4 +15,17 @@ class SettingsPreferenceTest {
         assertEquals(ScannerLens.Back, ScannerLens.fromStorage(ScannerLens.Back.storageKey))
         assertEquals(ScannerLens.Front, ScannerLens.fromStorage(ScannerLens.Front.storageKey))
     }
+
+    @Test
+    fun `hidden field keys use a stable singular object name`() {
+        assertEquals("device/model", hiddenFieldPreferenceKey("api/dcim/devices/", "Model"))
+        assertEquals("device-type/front_image", hiddenFieldPreferenceKey("api/dcim/device-types/", "front_image"))
+    }
+
+    @Test
+    fun `hidden field preference input is normalized and validated`() {
+        assertEquals("device/model", normalizeHiddenFieldPreferenceKey(" Device / Model "))
+        assertEquals(null, normalizeHiddenFieldPreferenceKey("model"))
+        assertEquals("device/model", normalizeHiddenFieldPreferenceKey("device/model?"))
+    }
 }

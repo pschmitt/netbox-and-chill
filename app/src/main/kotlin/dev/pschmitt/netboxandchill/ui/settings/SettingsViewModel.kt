@@ -106,6 +106,14 @@ constructor(
         settingsRepository.setOfflineMode(enabled)
     }
 
+    fun addHiddenField(key: String) {
+        settingsRepository.addHiddenField(key)
+    }
+
+    fun removeHiddenField(key: String) {
+        settingsRepository.removeHiddenField(key)
+    }
+
     /** Switches the configured NetBox server. Saves eagerly (the dynamic base-URL interceptor
      * reads from [SettingsRepository] reactively, so there's no other way to actually test the new
      * URL) then validates reachability, reverting back to the previous URL/token on failure rather

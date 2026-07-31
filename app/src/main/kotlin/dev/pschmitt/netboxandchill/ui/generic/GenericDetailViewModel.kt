@@ -14,6 +14,7 @@ import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import java.io.File
@@ -122,6 +123,12 @@ constructor(
 
     private val _choiceOptions = MutableStateFlow<Map<String, List<EditOption>>>(emptyMap())
     val choiceOptions: StateFlow<Map<String, List<EditOption>>> = _choiceOptions.asStateFlow()
+
+    val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
+
+    fun hideField(label: String) {
+        settingsRepository.addHiddenField(hiddenFieldPreferenceKey(route.endpointPath, label))
+    }
 
     // Web URL mirrors the API path structure with "api/" dropped, e.g. api/dcim/racks/5/ ->
     // <base>/dcim/racks/5/.

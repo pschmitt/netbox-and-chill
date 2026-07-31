@@ -4,7 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,10 +27,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -62,11 +69,12 @@ import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import java.text.DateFormat
 import java.io.File
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DeviceDetailScreen(
     deviceId: Int,
@@ -83,6 +91,7 @@ fun DeviceDetailScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
+    val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     // Full-screen image viewer state (NBC-20) - which item list + which index within it is open,
@@ -90,6 +99,13 @@ fun DeviceDetailScreen(
     var imageViewer by remember { mutableStateOf<Pair<List<ImageViewerItem>, Int>?>(null) }
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
+    var actionMenuExpanded by remember { mutableStateOf(false) }
+    var showHiddenFields by remember { mutableStateOf(false) }
+    var fieldActionLabel by remember { mutableStateOf<String?>(null) }
+    val hiddenFieldsForDevice = hiddenFieldKeys.filter { it.startsWith("device/") }
+    val isFieldVisible: (String) -> Boolean = { label ->
+        showHiddenFields || hiddenFieldPreferenceKey("api/dcim/devices/", label) !in hiddenFieldKeys
+    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -128,36 +144,71 @@ fun DeviceDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onEditClick, enabled = device != null) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit device")
-                    }
                     IconButton(onClick = { viewModel.refresh(showConfirmation = true) }, enabled = !isRefreshing) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                    IconButton(
-                        onClick = {
-                            val current = device
-                            val url = webUrl
-                            if (current != null && url != null) {
-                                printRequest =
-                                    PrintLabelRequest(
-                                        objectUrl = url,
-                                        labelText = current.assetTag?.takeIf { it.isNotBlank() } ?: current.name,
-                                    )
-                            }
-                        },
-                        enabled = device != null && webUrl != null,
-                    ) {
-                        Icon(Icons.Default.Print, contentDescription = "Print label")
-                    }
-                    webUrl?.let { url ->
-                        IconButton(
-                            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                        ) {
-                            Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser")
+                    Box {
+                        IconButton(onClick = { actionMenuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More actions")
                         }
-                        IconButton(onClick = { context.startActivity(shareIntent(url)) }) {
-                            Icon(Icons.Default.Share, contentDescription = "Share")
+                        DropdownMenu(
+                            expanded = actionMenuExpanded,
+                            onDismissRequest = { actionMenuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                enabled = device != null,
+                                onClick = {
+                                    onEditClick()
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Print label") },
+                                leadingIcon = { Icon(Icons.Default.Print, contentDescription = null) },
+                                enabled = device != null && webUrl != null,
+                                onClick = {
+                                    val current = device
+                                    val url = webUrl
+                                    if (current != null && url != null) {
+                                        printRequest =
+                                            PrintLabelRequest(
+                                                objectUrl = url,
+                                                labelText = current.assetTag?.takeIf { it.isNotBlank() } ?: current.name,
+                                            )
+                                    }
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            webUrl?.let { url ->
+                                DropdownMenuItem(
+                                    text = { Text("Open in browser") },
+                                    leadingIcon = { Icon(Icons.Default.OpenInBrowser, contentDescription = null) },
+                                    onClick = {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Share") },
+                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                    onClick = {
+                                        context.startActivity(shareIntent(url))
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                            }
+                            if (hiddenFieldsForDevice.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Show hidden fields") },
+                                    leadingIcon = { Icon(Icons.Default.Visibility, contentDescription = null) },
+                                    onClick = {
+                                        showHiddenFields = true
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                            }
                         }
                     }
                 },
@@ -182,35 +233,25 @@ fun DeviceDetailScreen(
                     Spacer(Modifier.height(12.dp))
                 }
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        StatusChip(label = current.statusLabel, value = current.statusValue)
+                    if (isFieldVisible("status")) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            StatusChip(label = current.statusLabel, value = current.statusValue)
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
                 }
                 deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index -> imageViewer = items to index }
                 imageAttachmentRow(imageAttachments, viewModel::localImageFile) { items, index -> imageViewer = items to index }
-                detailField(
-                    "Site",
-                    current.siteName,
-                    onClick = current.siteId?.let { id -> { onReferenceClick("api/dcim/sites/", id) } },
-                )
-                detailField(
-                    "Rack",
-                    current.rackName,
-                    onClick = current.rackId?.let { id -> { onReferenceClick("api/dcim/racks/", id) } },
-                )
-                detailField("Position", current.position?.toString())
-                detailField("Role", current.roleName)
-                detailField("Manufacturer", current.manufacturerName)
-                detailField(
-                    "Model",
-                    current.deviceTypeModel,
-                    onClick = deviceType?.id?.let { id -> { onDeviceTypeClick(id) } },
-                )
-                detailField("Serial", current.serial, copyable = true, onCopyValue = onCopyValue)
-                detailField("Asset tag", current.assetTag, copyable = true, onCopyValue = onCopyValue)
-                detailField("Primary IP", current.primaryIp, copyable = true, onCopyValue = onCopyValue)
-                detailMarkdownField("Comments", current.comments)
+                if (isFieldVisible("site")) detailField("Site", current.siteName, onClick = current.siteId?.let { id -> { onReferenceClick("api/dcim/sites/", id) } }, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("rack")) detailField("Rack", current.rackName, onClick = current.rackId?.let { id -> { onReferenceClick("api/dcim/racks/", id) } }, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("position")) detailField("Position", current.position?.toString(), onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("role")) detailField("Role", current.roleName, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("manufacturer")) detailField("Manufacturer", current.manufacturerName, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("model")) detailField("Model", current.deviceTypeModel, onClick = deviceType?.id?.let { id -> { onDeviceTypeClick(id) } }, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("serial")) detailField("Serial", current.serial, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("asset_tag")) detailField("Asset tag", current.assetTag, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("primary_ip")) detailField("Primary IP", current.primaryIp, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
+                if (isFieldVisible("comments")) detailMarkdownField("Comments", current.comments, onFieldLongPress = { fieldActionLabel = it })
                 item {
                     Spacer(Modifier.height(24.dp))
                     Text(
@@ -228,6 +269,21 @@ fun DeviceDetailScreen(
     }
     printRequest?.let { request ->
         PrintLabelDialog(request = request, onDismiss = { printRequest = null })
+    }
+    fieldActionLabel?.let { label ->
+        FieldActionDialog(
+            fieldLabel = label,
+            canEdit = true,
+            onEdit = {
+                fieldActionLabel = null
+                onEditClick()
+            },
+            onHide = {
+                viewModel.hideField(label)
+                fieldActionLabel = null
+            },
+            onDismiss = { fieldActionLabel = null },
+        )
     }
 }
 
@@ -368,6 +424,7 @@ private fun LazyListScope.detailField(
     copyable: Boolean = false,
     onCopyValue: (label: String, value: String) -> Unit = { _, _ -> },
     onClick: (() -> Unit)? = null,
+    onFieldLongPress: (label: String) -> Unit = {},
 ) {
     if (value.isNullOrBlank()) return
     item {
@@ -380,6 +437,7 @@ private fun LazyListScope.detailField(
                 label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.combinedClickable(onClick = {}, onLongClick = { onFieldLongPress(label) }),
             )
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
@@ -397,7 +455,11 @@ private fun LazyListScope.detailField(
 }
 
 /** NetBox's "comments" field supports Markdown - rendered, not shown as literal text. */
-private fun LazyListScope.detailMarkdownField(label: String, value: String?) {
+private fun LazyListScope.detailMarkdownField(
+    label: String,
+    value: String?,
+    onFieldLongPress: (label: String) -> Unit = {},
+) {
     if (value.isNullOrBlank()) return
     item {
         Column(Modifier.padding(vertical = 6.dp)) {
@@ -405,6 +467,7 @@ private fun LazyListScope.detailMarkdownField(label: String, value: String?) {
                 label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.combinedClickable(onClick = {}, onLongClick = { onFieldLongPress(label) }),
             )
             CommentCard(content = value, modifier = Modifier.fillMaxWidth())
         }

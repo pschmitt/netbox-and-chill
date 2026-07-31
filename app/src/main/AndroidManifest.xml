@@ -80,6 +80,30 @@
                 <data android:scheme="https" android:host="*" android:pathPattern="/plugins/.*" />
             </intent-filter>
 
+            <!--
+                 Domain verification for the user's primary NetBox instance. The wildcard filter
+                 above remains the portable chooser fallback for other configured instances; this
+                 exact-host filter lets Android verify the configured build host when its administrator serves
+                 the matching /.well-known/assetlinks.json file.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/dcim/.*" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/ipam/.*" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/circuits/.*" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/tenancy/.*" />
+                <data
+                    android:scheme="https"
+                    android:host="${appLinkHost}"
+                    android:pathPattern="/virtualization/.*" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/wireless/.*" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/vpn/.*" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/extras/.*" />
+                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/plugins/.*" />
+            </intent-filter>
+
             <!-- Share a device link into the app from any other app's share sheet. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

@@ -26,7 +26,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storage
@@ -72,6 +74,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
+import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
@@ -105,6 +108,7 @@ fun SettingsScreen(
     val gestureAction by viewModel.settingsRepository.gestureAction.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
+    val hiddenFieldKeys by viewModel.settingsRepository.hiddenFieldKeys.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditServerDialog by remember { mutableStateOf(false) }
@@ -117,6 +121,7 @@ fun SettingsScreen(
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var gestureMenuExpanded by remember { mutableStateOf(false) }
     var scannerLensMenuExpanded by remember { mutableStateOf(false) }
+    var hiddenFieldsDialogVisible by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
 
     val biometricPrompt =
@@ -211,6 +216,15 @@ fun SettingsScreen(
 
     qrBitmap?.let { bitmap ->
         SetupQrDialog(bitmap = bitmap, onDismiss = { qrBitmap = null })
+    }
+
+    if (hiddenFieldsDialogVisible) {
+        HiddenFieldsDialog(
+            keys = hiddenFieldKeys,
+            onAdd = viewModel::addHiddenField,
+            onRemove = viewModel::removeHiddenField,
+            onDismiss = { hiddenFieldsDialogVisible = false },
+        )
     }
 
     Scaffold(
@@ -334,6 +348,21 @@ fun SettingsScreen(
                 },
             )
             ListItem(
+                leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
+                headlineContent = { Text("Hidden fields") },
+                supportingContent = {
+                    Text(
+                        if (hiddenFieldKeys.isEmpty()) "None configured"
+                        else hiddenFieldKeys.sorted().joinToString(", ")
+                    )
+                },
+                trailingContent = {
+                    IconButton(onClick = { hiddenFieldsDialogVisible = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Configure hidden fields")
+                    }
+                },
+            )
+            ListItem(
                 leadingContent = { Icon(Icons.Default.TouchApp, contentDescription = null) },
                 headlineContent = { Text("Two-finger swipe down") },
                 supportingContent = { Text(gestureAction.label) },
@@ -444,6 +473,69 @@ fun SettingsScreen(
             )
         }
     }
+}
+
+@Composable
+private fun HiddenFieldsDialog(
+    keys: Set<String>,
+    onAdd: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var newKey by remember { mutableStateOf("") }
+    val normalizedKey = normalizeHiddenFieldPreferenceKey(newKey)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Hidden fields") },
+        text = {
+            Column(Modifier.fillMaxWidth()) {
+                Text(
+                    "Use object/field keys such as device/model. Long-press a field to add it here.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(12.dp))
+                keys.sorted().forEach { key ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(key, modifier = Modifier.weight(1f))
+                        IconButton(onClick = { onRemove(key) }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Remove $key")
+                        }
+                    }
+                }
+                if (keys.isEmpty()) {
+                    Text(
+                        "No fields are hidden by default.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = newKey,
+                    onValueChange = { newKey = it },
+                    label = { Text("Object/field key") },
+                    placeholder = { Text("device/model") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        normalizedKey?.let {
+                            onAdd(it)
+                            newKey = ""
+                        }
+                    },
+                    enabled = normalizedKey != null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Hide field by default")
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+    )
 }
 
 /** Edit the configured NetBox base URL (NBC-39). Save triggers

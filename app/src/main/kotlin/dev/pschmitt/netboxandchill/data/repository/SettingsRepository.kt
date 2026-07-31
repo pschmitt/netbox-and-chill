@@ -15,6 +15,38 @@ data class NetBoxCredentials(val baseUrl: String, val token: String) {
         get() = baseUrl.isNotBlank() && token.isNotBlank()
 }
 
+/** Stable object key used by field preferences, e.g. `device`. */
+fun hiddenFieldObjectKey(endpointPath: String): String =
+    endpointPath.trim('/').substringAfterLast('/').lowercase().let(::singularizeModel)
+
+/** Stable user-facing key for a field preference, e.g. `device/model`. */
+fun hiddenFieldPreferenceKey(endpointPath: String, fieldName: String): String {
+    val model = hiddenFieldObjectKey(endpointPath)
+    val field = fieldName.trim().lowercase().replace(Regex("\\s+"), "_")
+    return "$model/$field"
+}
+
+private fun singularizeModel(model: String): String =
+    when {
+        model.endsWith("ies") -> model.removeSuffix("ies") + "y"
+        model.endsWith("sses") -> model.removeSuffix("es")
+        model.endsWith("xes") -> model.removeSuffix("es")
+        model.endsWith("s") -> model.removeSuffix("s")
+        else -> model
+    }
+
+fun normalizeHiddenFieldPreferenceKey(value: String): String? {
+    val normalized =
+        value
+            .trim()
+            .lowercase()
+            .replace(Regex("\\s*/\\s*"), "/")
+            .replace(Regex("\\s+"), "_")
+            .replace(Regex("[^a-z0-9_./-]"), "")
+    val parts = normalized.split('/', limit = 2)
+    return normalized.takeIf { parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank() }
+}
+
 enum class GestureAction(val storageKey: String, val label: String) {
     Off("off", "Off"),
     GlobalSearch("global_search", "Global search"),
@@ -78,6 +110,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _offlineMode = MutableStateFlow(prefs.getBoolean(KEY_OFFLINE_MODE, false))
     val offlineMode: StateFlow<Boolean> = _offlineMode.asStateFlow()
 
+    private val _hiddenFieldKeys = MutableStateFlow(loadHiddenFieldKeys())
+    val hiddenFieldKeys: StateFlow<Set<String>> = _hiddenFieldKeys.asStateFlow()
+
     private val _sidebarAppOrder = MutableStateFlow(loadOrder(KEY_SIDEBAR_APP_ORDER))
     val sidebarAppOrder: StateFlow<List<String>> = _sidebarAppOrder.asStateFlow()
 
@@ -102,6 +137,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setOfflineMode(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_OFFLINE_MODE, enabled).apply()
         _offlineMode.value = enabled
+    }
+
+    fun addHiddenField(key: String) {
+        val normalized = normalizeHiddenFieldPreferenceKey(key) ?: return
+        val updated = _hiddenFieldKeys.value + normalized
+        prefs.edit().putStringSet(KEY_HIDDEN_FIELDS, updated).apply()
+        _hiddenFieldKeys.value = updated
+    }
+
+    fun removeHiddenField(key: String) {
+        val updated = _hiddenFieldKeys.value - key
+        prefs.edit().putStringSet(KEY_HIDDEN_FIELDS, updated).apply()
+        _hiddenFieldKeys.value = updated
     }
 
     fun setSidebarAppOrder(order: List<String>) {
@@ -143,6 +191,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         prefs.edit().clear().apply()
         _credentials.value = NetBoxCredentials("", "")
         _offlineMode.value = false
+        _hiddenFieldKeys.value = emptySet()
     }
 
     private fun loadCredentials() =
@@ -156,6 +205,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
+
+    private fun loadHiddenFieldKeys(): Set<String> =
+        prefs.getStringSet(KEY_HIDDEN_FIELDS, null).orEmpty().mapNotNull(::normalizeHiddenFieldPreferenceKey).toSet()
 
     private fun loadOrder(key: String): List<String> =
         prefs.getString(key, null).orEmpty().split(ORDER_SEPARATOR).filter(String::isNotBlank)
@@ -186,6 +238,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
         const val KEY_OFFLINE_MODE = "offline_mode"
+        const val KEY_HIDDEN_FIELDS = "hidden_field_keys"
         const val KEY_SIDEBAR_APP_ORDER = "sidebar_app_order"
         const val KEY_SIDEBAR_MODEL_ORDERS = "sidebar_model_orders"
         const val ORDER_SEPARATOR = "\u001F"

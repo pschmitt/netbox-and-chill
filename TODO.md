@@ -290,10 +290,14 @@ path for any host in the meantime.
   (`scanner/NetBoxUrlParser.kt`) and the manifest intent-filter to any NetBox app namespace
   (dcim/ipam/circuits/tenancy/virtualization/wireless/vpn/extras/plugins), not just
   `/dcim/devices/`. Non-device links now resolve to the NBC-6 generic detail screen.
-- [ ] Domain-verified App Links (`assetlinks.json` on the NetBox host) - still open, needs
+- [x] Add an exact-host `android:autoVerify` filter whose host is a compile-time setting (defaults
+  to `netbox.brkn.lol`; override with `-PnetboxAppLinkHost=...` or `NETBOX_APP_LINK_HOST`); the
+  wildcard chooser filter remains available for other configured NetBox instances.
+- [ ] Publish the matching `/.well-known/assetlinks.json` on the NetBox host - still needs
   infrastructure work outside this repo.
 
-Status: partially done, 2026-07-31 - see checklist above.
+Status: partially done, 2026-07-31 - the app-side verification filter is implemented and validated;
+server-side Digital Asset Links publication remains required before Android can mark it verified.
 
 ## NBC-11: QR-code app configuration sharing (like findroidplus's setup codes)
 
@@ -1716,3 +1720,18 @@ when the typed device cache already contains an older device-type record.
 
 Status: **done**, 2026-07-31 - the detail flow refreshes connected metadata and retains cached image
 fallbacks for offline use.
+
+## NBC-58: configurable hidden fields and item overflow actions
+
+Allow users to keep noisy fields out of object detail pages by default, while retaining an explicit
+way to reveal them temporarily. Field keys use a stable `object/field` shape such as
+`device/model`.
+
+- [x] Persist and manage a user-configurable hidden-field list in Settings.
+- [x] Hide matching fields on typed and generic detail pages, with an overflow action to show them
+  temporarily.
+- [x] Add long-press field actions for edit/hide and move secondary item actions into overflow menus.
+- [x] Cover hidden-field key normalization and object/field mapping with unit tests.
+
+Status: in progress, 2026-07-31 - implementation and remote tests/build are passing; physical-device
+UI smoke verification remains for this pass.

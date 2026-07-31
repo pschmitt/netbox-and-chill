@@ -4,7 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -27,12 +29,14 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
@@ -67,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -74,9 +79,11 @@ import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import androidx.core.content.getSystemService
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun GenericDetailScreen(
     onBack: () -> Unit,
@@ -98,6 +105,7 @@ fun GenericDetailScreen(
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -105,6 +113,18 @@ fun GenericDetailScreen(
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
+    var actionMenuExpanded by remember { mutableStateOf(false) }
+    var showHiddenFields by remember { mutableStateOf(false) }
+    var fieldActionLabel by remember { mutableStateOf<String?>(null) }
+    val hiddenObjectKey = hiddenFieldObjectKey(viewModel.route.endpointPath)
+    val hiddenFieldsForObject = hiddenFieldKeys.filter { it.startsWith("$hiddenObjectKey/") }
+    val visibleFields =
+        visibleFieldRows(
+            fields,
+            viewModel.route.endpointPath,
+            hiddenFieldKeys,
+            showHiddenFields,
+        )
     LaunchedEffect(isEditing) {
         if (isEditing) editValues = editableFields.associate { it.key to it.value }
     }
@@ -196,42 +216,69 @@ fun GenericDetailScreen(
                         IconButton(onClick = { viewModel.refresh(showConfirmation = true) }, enabled = !isRefreshing) {
                             Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                         }
-                        if (viewModel.isPrintableDevice) {
-                            IconButton(
-                                onClick = {
-                                    webUrl?.let { url ->
-                                        printRequest =
-                                            PrintLabelRequest(
-                                                objectUrl = url,
-                                                labelText = title.orEmpty(),
-                                            )
-                                    }
-                                },
-                                enabled = webUrl != null,
+                        Box {
+                            IconButton(onClick = { actionMenuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More actions")
+                            }
+                            DropdownMenu(
+                                expanded = actionMenuExpanded,
+                                onDismissRequest = { actionMenuExpanded = false },
                             ) {
-                                Icon(Icons.Default.Print, contentDescription = "Print label")
-                            }
-                        }
-                        if (editableFields.isNotEmpty()) {
-                            IconButton(onClick = viewModel::startEditing) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit")
-                            }
-                        }
-                        webUrl?.let { url ->
-                            IconButton(
-                                onClick = {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                if (viewModel.isPrintableDevice) {
+                                    DropdownMenuItem(
+                                        text = { Text("Print label") },
+                                        leadingIcon = { Icon(Icons.Default.Print, contentDescription = null) },
+                                        enabled = webUrl != null,
+                                        onClick = {
+                                            webUrl?.let { url ->
+                                                printRequest =
+                                                    PrintLabelRequest(
+                                                        objectUrl = url,
+                                                        labelText = title.orEmpty(),
+                                                    )
+                                            }
+                                            actionMenuExpanded = false
+                                        },
                                     )
                                 }
-                            ) {
-                                Icon(
-                                    Icons.Default.OpenInBrowser,
-                                    contentDescription = "Open in browser",
-                                )
-                            }
-                            IconButton(onClick = { context.startActivity(shareIntent(url)) }) {
-                                Icon(Icons.Default.Share, contentDescription = "Share")
+                                if (editableFields.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit") },
+                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                        onClick = {
+                                            viewModel.startEditing()
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
+                                webUrl?.let { url ->
+                                    DropdownMenuItem(
+                                        text = { Text("Open in browser") },
+                                        leadingIcon = { Icon(Icons.Default.OpenInBrowser, contentDescription = null) },
+                                        onClick = {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Share") },
+                                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                        onClick = {
+                                            context.startActivity(shareIntent(url))
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
+                                if (hiddenFieldsForObject.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text("Show hidden fields") },
+                                        leadingIcon = { Icon(Icons.Default.Visibility, contentDescription = null) },
+                                        onClick = {
+                                            showHiddenFields = true
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -288,7 +335,7 @@ fun GenericDetailScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
                         ) {
-                            fields.forEach { row ->
+                            visibleFields.forEach { row ->
                                 fieldRow(
                                     row,
                                     onNavigateToReference,
@@ -303,6 +350,7 @@ fun GenericDetailScreen(
                                     onImageClick = { imageViewerItem = it },
                                     isDownloading = isDownloading,
                                     onCopyValue = onCopyValue,
+                                    onFieldLongPress = { fieldActionLabel = it },
                                 )
                             }
                         }
@@ -325,6 +373,21 @@ fun GenericDetailScreen(
     }
     imageViewerItem?.let { item ->
         ImageViewerDialog(items = listOf(item), initialIndex = 0, onDismiss = { imageViewerItem = null })
+    }
+    fieldActionLabel?.let { label ->
+        FieldActionDialog(
+            fieldLabel = label,
+            canEdit = editableFields.any { it.label == label },
+            onEdit = {
+                fieldActionLabel = null
+                viewModel.startEditing()
+            },
+            onHide = {
+                viewModel.hideField(label)
+                fieldActionLabel = null
+            },
+            onDismiss = { fieldActionLabel = null },
+        )
     }
 }
 
@@ -578,6 +641,33 @@ private fun EditPickerField(
     }
 }
 
+private fun visibleFieldRows(
+    rows: List<FieldRow>,
+    endpointPath: String,
+    hiddenFieldKeys: Set<String>,
+    showHiddenFields: Boolean,
+): List<FieldRow> {
+    if (showHiddenFields) return rows
+    val filtered =
+        rows.filterNot { row ->
+            row !is FieldRow.CustomGroup && hiddenFieldPreferenceKey(endpointPath, row.label) in hiddenFieldKeys
+        }
+    return buildList {
+        var pendingGroup: FieldRow.CustomGroup? = null
+        filtered.forEach { row ->
+            if (row is FieldRow.CustomGroup) {
+                pendingGroup = row
+            } else {
+                pendingGroup?.let {
+                    add(it)
+                    pendingGroup = null
+                }
+                add(row)
+            }
+        }
+    }
+}
+
 private fun LazyListScope.fieldRow(
     row: FieldRow,
     onNavigateToReference: (String, Int) -> Unit,
@@ -588,6 +678,7 @@ private fun LazyListScope.fieldRow(
     onImageClick: (ImageViewerItem) -> Unit,
     isDownloading: Boolean,
     onCopyValue: (label: String, value: String) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
 ) {
     when (row) {
         is FieldRow.CustomGroup ->
@@ -613,7 +704,7 @@ private fun LazyListScope.fieldRow(
         is FieldRow.PlainText ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text(row.value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                         if (row.copyable) {
@@ -627,7 +718,7 @@ private fun LazyListScope.fieldRow(
         is FieldRow.Count ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier =
@@ -653,14 +744,14 @@ private fun LazyListScope.fieldRow(
         is FieldRow.Markdown ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     CommentCard(content = row.content, modifier = Modifier.fillMaxWidth())
                 }
             }
         is FieldRow.Reference ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             row.target.display,
@@ -681,7 +772,7 @@ private fun LazyListScope.fieldRow(
         is FieldRow.Image ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     RemoteThumbnail(
                         imageUrl = row.url,
                         contentDescription = row.label,
@@ -703,7 +794,7 @@ private fun LazyListScope.fieldRow(
         is FieldRow.ReferenceList ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     row.targets.forEach { target ->
                         Text(
                             "• " + target.display,
@@ -721,14 +812,14 @@ private fun LazyListScope.fieldRow(
         is FieldRow.ChipList ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Text(row.values.joinToString(", "), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         is FieldRow.ExternalLink ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable { onOpenUrl(row.url) },
@@ -751,7 +842,7 @@ private fun LazyListScope.fieldRow(
         is FieldRow.FileAttachment ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label)
+                    FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier =
@@ -812,11 +903,16 @@ private fun JournalEntryItem(entry: JournalEntryUi) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FieldLabel(text: String) {
+private fun FieldLabel(text: String, onLongPress: (() -> Unit)? = null) {
     Text(
         text,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier =
+            onLongPress?.let {
+                Modifier.combinedClickable(onClick = {}, onLongClick = it)
+            } ?: Modifier,
     )
 }

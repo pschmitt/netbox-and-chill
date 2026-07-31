@@ -14,6 +14,7 @@ import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import java.io.File
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import javax.inject.Inject
@@ -53,6 +54,12 @@ constructor(
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
+
+    fun hideField(label: String) {
+        settingsRepository.addHiddenField(hiddenFieldPreferenceKey("api/dcim/devices/", label))
+    }
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
