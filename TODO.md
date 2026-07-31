@@ -445,15 +445,65 @@ A single search that queries across NetBox object types, not just within one mod
 **Why:** user wants to find something without first knowing/navigating to which object type it
 lives under - the sidebar's search (NBC-6) only filters the *list of sections/categories* by
 name, it doesn't search object data itself.
-**How to apply:** NetBox has a built-in global search endpoint (`GET /api/extras/search/` in
-recent NetBox versions, called `object-types`-driven search under the hood) that queries across
-registered searchable models server-side - almost certainly a better fit than trying to fan out
-client-side queries across every cached `NetBoxObjectEntity` endpoint. Needs checking exact
-endpoint/response shape against a live instance. Result rows would route through NBC-6's generic
-detail screen the same way scanning/deep-links already do, since results span arbitrary object
-types.
 
-Status: not started, 2026-07-31.
+**Investigated first, per this entry's own note not to blindly trust the `/api/extras/search/`
+guess:** checked the real instance (netbox.brkn.lol, NetBox 4.5) directly - `GET /api/extras/`'s
+own root listing has no `search` key, `GET /api/extras/search/` itself 404s, and the full
+`/api/schema/` OpenAPI document has zero paths containing "search". So there is no global-search
+REST endpoint on this NetBox version - the TODO's original guess doesn't hold. Confirmed the
+fallback instead: per-model list endpoints (`/api/dcim/devices/`, `/api/dcim/sites/`,
+`/api/dcim/racks/`, `/api/circuits/circuits/`, ...) all accept `?q=<term>` and return 200 with
+filtered results, verified live against each of those four. **Landed on client-side fan-out**:
+query a curated set of endpoint paths in parallel via the existing `GenericNetBoxApi.listObjects`
+(the same call `GenericObjectRepository.syncAll` already uses, just with a `q` query param instead
+of pagination-only), merge, sort by display name.
+
+- [x] `GlobalSearchRepository` (`data/repository/GlobalSearchRepository.kt`) - fans out
+  `listObjects(endpointPath, mapOf("q" to term, "limit" to "15"))` across a baseline curated list
+  (devices, device-types, sites, racks, ip-addresses, prefixes, circuits, virtual-machines,
+  tenants - covers the TODO's own suggested set plus a few equally common ones) in parallel via
+  `coroutineScope`/`async`/`awaitAll`, one model's failure logged and skipped rather than failing
+  the whole search (mirrors `DirectoryRepository.refresh`'s per-app `runCatching`). Results aren't
+  written into the `NetBoxObjectEntity` cache - transient search-only, since the point is a live
+  merge across many models, not another sync path; tapping a result still funnels through the
+  normal `GenericDetailViewModel.refreshObject` cache-first flow once you land on its detail
+  screen.
+- [x] `GlobalSearchViewModel` unions the baseline set with the user's *pinned* model paths
+  (`SettingsRepository.pinnedModelPaths`) so anything a user has explicitly starred in the sidebar
+  is searchable too, not just the fixed baseline - reuses `DirectoryRepository.observePinned(...)`
+  (despite the "pinned" name, it's just a generic `WHERE endpointPath IN (...)` lookup) to resolve
+  each hit's endpoint path back to a humanized model label + `appKey` for the icon.
+- [x] Input is debounced 300ms (`Flow.debounce` + `collectLatest`, so a fast typist's earlier
+  in-flight fan-out is dropped, not raced) before firing; empty query shows a hint, in-flight shows
+  "Searching…", zero results shows an explicit "No results" state.
+- [x] New `GlobalSearchScreen` (`ui/search/`) - a dedicated full-screen search (not a dropdown),
+  reachable via a new search `IconButton` added to the top bar `actions` of both `DeviceListScreen`
+  and `GenericListScreen` (the two screens users land on most, per the bottom nav / sidebar model
+  clicks) - deliberately separate from NBC-6/14's existing sidebar search field, which still only
+  filters section/category *names* and is untouched. Result rows show the object's display name,
+  its model label + optional secondary line (status/description), and `AppIcons.forAppKey(...)` for
+  the icon - tapping navigates to `Route.Generic(endpointPath, id)`, the same generic detail route
+  scanning/deep-links already use.
+- [x] Factored `appKeyFromEndpointPath` (endpointPath -> appKey for `AppIcons.forAppKey`) out of
+  `GenericListScreen` into `AppIcons.kt` itself, since `GlobalSearchScreen` needed the identical
+  logic - avoids two copies drifting apart.
+
+Not done / explicitly out of scope for this pass:
+- [ ] No debounce-level request cancellation of already-in-flight HTTP calls (only new user input
+  cancels the *collector*, via `collectLatest` - the underlying OkHttp calls from an outdated
+  keystroke may still complete and get discarded rather than being aborted mid-flight). Not a
+  correctness bug, just not maximally efficient.
+- [ ] Result ranking is naive (alphabetical by display name across the merged set, no relevance
+  scoring/highlighting of the matched substring).
+
+Status: **mostly done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13
+(lint re-verified with `--rerun-tasks` to rule out a stale up-to-date cache hit). **Not
+independently verified**: no physical device was available this session to install onto and
+interact with live (Zenfone/Mi Pad/Pixel 5 all out of reach from this worktree) - so the actual
+search UX (typing, debounce feel, tapping into a result) has not been visually confirmed
+end-to-end on-device, only confirmed to build/compile/pass unit tests. Live API verification of
+the underlying approach (no global-search endpoint exists; `?q=` works on per-model endpoints)
+*was* done directly against the real netbox.brkn.lol instance via `curl`, see above.
 
 ## NBC-14: UI polish batch (sidebar, comments, custom fields, share, scanner)
 
