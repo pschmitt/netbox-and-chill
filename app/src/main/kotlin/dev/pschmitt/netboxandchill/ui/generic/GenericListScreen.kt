@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +40,7 @@ fun GenericListScreen(
     onDevicesClick: () -> Unit,
     onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
+    onSearchClick: () -> Unit,
     viewModel: GenericListViewModel = hiltViewModel(),
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
@@ -62,6 +64,11 @@ fun GenericListScreen(
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Open navigation")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onSearchClick) {
+                        Icon(Icons.Default.Search, contentDescription = "Search all NetBox objects")
                     }
                 },
             )
@@ -97,7 +104,8 @@ fun GenericListScreen(
                         )
                     }
                 } else {
-                    val rowIcon = AppIcons.forAppKey(appKeyFromEndpointPath(viewModel.route.endpointPath))
+                    val rowIcon =
+                        AppIcons.forAppKey(AppIcons.appKeyFromEndpointPath(viewModel.route.endpointPath))
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(objects, key = { it.id }) { obj ->
                             ObjectRow(obj = obj, icon = rowIcon, onClick = { onObjectClick(obj.id) })
@@ -117,13 +125,4 @@ private fun ObjectRow(obj: NetBoxObjectEntity, icon: ImageVector, onClick: () ->
         supportingContent = obj.secondaryLine?.let { line -> { Text(line) } },
         modifier = Modifier.clickable(onClick = onClick),
     )
-}
-
-/** Mirrors [dev.pschmitt.netboxandchill.data.repository.DirectoryRepository]'s `appKey` shape
- * (`"plugins/<plugin>"` for plugin models, else the plain app segment) so [AppIcons] picks the
- * same icon here as it does in the sidebar. */
-private fun appKeyFromEndpointPath(endpointPath: String): String {
-    val segments = endpointPath.trim('/').split('/')
-    return if (segments.size >= 4 && segments[1] == "plugins") "plugins/${segments[2]}"
-    else segments.getOrElse(1) { "" }
 }

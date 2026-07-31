@@ -33,4 +33,15 @@ object AppIcons {
         BY_APP_KEY[appKey] ?: if (appKey.startsWith("plugins/")) Icons.Default.Extension else Icons.Outlined.Category
 
     val Devices: ImageVector = Icons.Default.Hub
+
+    /** Mirrors [dev.pschmitt.netboxandchill.data.repository.DirectoryRepository]'s `appKey` shape
+     * (`"plugins/<plugin>"` for plugin models, else the plain app segment) so a raw `endpointPath`
+     * (e.g. `"api/dcim/racks/"`) resolves to the same icon [forAppKey] would pick from the
+     * sidebar's own discovered `NetBoxModelEntity.appKey` - used anywhere a screen only has the
+     * endpoint path on hand (generic list rows, global search results). */
+    fun appKeyFromEndpointPath(endpointPath: String): String {
+        val segments = endpointPath.trim('/').split('/')
+        return if (segments.size >= 4 && segments[1] == "plugins") "plugins/${segments[2]}"
+        else segments.getOrElse(1) { "" }
+    }
 }

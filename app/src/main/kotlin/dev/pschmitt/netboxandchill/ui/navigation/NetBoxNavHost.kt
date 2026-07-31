@@ -12,6 +12,7 @@ import dev.pschmitt.netboxandchill.ui.generic.GenericListScreen
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.ui.onboarding.OnboardingScreen
 import dev.pschmitt.netboxandchill.ui.scanner.ScannerScreen
+import dev.pschmitt.netboxandchill.ui.search.GlobalSearchScreen
 import dev.pschmitt.netboxandchill.ui.settings.SettingsScreen
 
 @Composable
@@ -31,6 +32,7 @@ fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onO
                 onDeviceClick = { id -> navController.navigate(Route.DeviceDetail(id)) },
                 onScanClick = { navController.navigate(Route.Scanner) },
                 onOpenDrawer = onOpenDrawer,
+                onSearchClick = { navController.navigate(Route.GlobalSearch) },
             )
         }
         composable<Route.DeviceDetail> { backStackEntry ->
@@ -44,6 +46,13 @@ fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onO
                 onDevicesClick = { navController.navigate(Route.DeviceList) { launchSingleTop = true } },
                 onScanClick = { navController.navigate(Route.Scanner) },
                 onOpenDrawer = onOpenDrawer,
+                onSearchClick = { navController.navigate(Route.GlobalSearch) },
+            )
+        }
+        composable<Route.GlobalSearch> {
+            GlobalSearchScreen(
+                onResultClick = { endpointPath, id -> navController.navigate(Route.Generic(endpointPath, id)) },
+                onBack = { navController.popBackStack() },
             )
         }
         composable<Route.Generic> {
