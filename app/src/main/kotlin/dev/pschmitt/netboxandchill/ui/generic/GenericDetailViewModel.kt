@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
+import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import java.io.File
@@ -30,6 +31,7 @@ constructor(
     private val repository: GenericObjectRepository,
     private val settingsRepository: SettingsRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    private val journalEntryRepository: JournalEntryRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -52,6 +54,9 @@ constructor(
 
     private val _fileToOpen = MutableStateFlow<File?>(null)
     val fileToOpen: StateFlow<File?> = _fileToOpen.asStateFlow()
+
+    private val _journalEntries = MutableStateFlow<List<JournalEntryUi>>(emptyList())
+    val journalEntries: StateFlow<List<JournalEntryUi>> = _journalEntries.asStateFlow()
 
     private val objectFlow = repository.observeObject(route.endpointPath, route.id)
 
@@ -79,24 +84,39 @@ constructor(
     // <base>/dcim/racks/5/.
     val webUrl: StateFlow<String?> =
         objectFlow
-            .combine(settingsRepository.credentials) { entity, credentials -> entity to credentials }
+            .combine(settingsRepository.credentials) { entity, credentials ->
+                entity to credentials
+            }
             .map { (entity, credentials) ->
                 if (entity == null || credentials.baseUrl.isBlank()) null
-                else "${credentials.baseUrl}/${route.endpointPath.removePrefix("api/")}${entity.id}/"
+                else
+                    "${credentials.baseUrl}/${route.endpointPath.removePrefix("api/")}${entity.id}/"
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
         refresh()
+        loadJournalEntries()
     }
 
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            repository
-                .refreshObject(route.endpointPath, route.id)
-                .onFailure { _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data" }
+            repository.refreshObject(route.endpointPath, route.id).onFailure {
+                _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data"
+            }
             _isRefreshing.value = false
+        }
+    }
+
+    private fun loadJournalEntries() {
+        viewModelScope.launch {
+            journalEntryRepository.fetchJournalEntries(route.endpointPath, route.id).onSuccess {
+                entries ->
+                _journalEntries.value = entries.mapNotNull { it.toJournalEntryUi() }
+            }
+            // Silently no-op on failure - the journal is a secondary panel, not core object data,
+            // and content-type resolution can legitimately come up empty for unusual object types.
         }
     }
 

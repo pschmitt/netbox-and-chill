@@ -434,16 +434,29 @@ Show an object's Journal (`/api/extras/journal-entries/`) on its generic detail 
 free-form timestamped notes attached to any object, distinct from the auto-generated changelog.
 
 **Why:** user request - journal entries are a normal part of how NetBox users track
-context/history on an object, not currently visible anywhere in the app.
+context/history on an object, not currently visible anywhere in the app. Follow-up user request -
+"journal entries should prolly be a separate 'tab' on the device view" - moved it out of the
+inline field list into its own tab.
 **How to apply:** `GET /api/extras/journal-entries/?assigned_object_type=<app.model>&assigned_object_id=<id>`
-(the `assigned_object_type` filter takes a `"app_label.model"` string, e.g. `"dcim.device"" - need
-to derive that from the generic screen's `endpointPath`, which is close but not identical:
-`api/dcim/devices/` -> `dcim.device` needs de-pluralizing the model segment, not just a string
-slice). Each entry has `created`, `kind` (info/success/warning/danger), and a Markdown `comments`
-body - should reuse `CommentCard`/the Markdown renderer from NBC-12/NBC-14 rather than plain text.
-Not investigated yet: whether posting new journal entries (not just reading) is wanted too.
+- the `assigned_object_type` filter takes a `"app_label.model"` string (e.g. `"dcim.device"`), which
+isn't derivable from `endpointPath` (`api/dcim/devices/`) by a fixed string transform alone
+(`devices` -> `device` is easy, but e.g. `ip-addresses` -> `ipaddress` isn't a plain de-pluralize).
+`JournalEntryRepository.resolveAssignedObjectType()` instead fetches the real choice list from
+journal-entries' own `OPTIONS` response (`GenericNetBoxApi.getJournalEntryOptions()`, cached
+in-memory) and matches our discovered model segment against it using a small set of candidate
+singular forms (strip `-`/`_`, then try as-is / drop trailing `s` / drop trailing `es` / `ies`->`y`)
+- validated against the real instance for plain de-pluralization cases; plugin models resolve via
+their URL plugin key as a best-effort app_label guess, not guaranteed to match. `GenericDetailScreen`
+now shows a Material3 `TabRow` ("Details"/"Journal") instead of a single scrolling list, only when
+there's at least one journal entry to show (kept the previous single-list layout when there are
+none, to avoid an empty tab for object types that never carry journal entries). Each entry renders
+via `CommentCard` (NBC-12/14) with a kind icon (info/success/warning/danger, using Material icons
+already wired in via the extended icon set) + timestamp header. Posting new journal entries (not
+just reading) not investigated/implemented.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31. `just test`/`just lint` green on rofl-14 (compiles clean, only
+pre-existing deprecation warnings unrelated to this change). Not yet live-verified against the real
+instance or installed on-device this session - do that before considering this fully closed out.
 
 ## NBC-16: download and open file/document attachments (PDFs etc.)
 
@@ -472,4 +485,69 @@ netbox-documents PDF (LG monitor dismantling instructions) from the "Documents" 
 the natural Android "Open with" chooser appears (multiple PDF-capable apps installed) and the PDF
 renders correctly once opened. Zenfone 10 not reachable over adb this session - install there next
 time it's available. Actual offline caching/pre-sync of attachments (vs. on-demand download when
-tapped) is still open, tracked under the broader NBC-3/NBC-7 offline-assets scope.
+tapped) is still open, tracked under NBC-17.
+
+## NBC-17: full offline sync - attachments, sync-on-edit, scheduled background sync, error handling
+
+Extends the NBC-3/NBC-6/NBC-16 offline foundation from "objects sync, attachments download
+on-demand" to a real offline-first experience: attachments optionally pre-synced to local disk,
+sync triggered automatically (not just manually) on edits and on a schedule, and sync
+failures surfaced to the user instead of failing silently.
+
+**Why:** user request, in four parts across one message - "we should add a settings option to sync
+attachments to local disk when we sync. off by default. But I want the full offline experience to
+be possible", "we should sync on edits, AND schedule regular syncs - in the background. Kinda like
+findroid handles auto-downloads" - then a follow-up - "we need to handle sync errors. With an
+appropriate toast message if we are in the app. Maybe even retries."
+**How to apply:**
+- New `SettingsRepository` boolean pref (default off), e.g. `syncAttachmentsToDisk`, surfaced as a
+  switch in `SettingsScreen` - mirrors the existing settings patterns there.
+- When on, `GenericObjectRepository.syncAll()` (or a new pass after it) should walk the synced
+  objects' `FieldRow.FileAttachment`-eligible fields (reuse `GenericFieldRenderer`'s `isMediaUrl()`
+  detection) and pull each through `FileDownloadRepository` into a durable location - NOT
+  `cacheDir` (NBC-16's download target), since cache can be evicted by the OS at any time and the
+  whole point here is durable offline availability; needs its own `filesDir`-backed directory and
+  a lookup so `GenericDetailScreen` prefers the locally-synced copy over re-downloading when
+  present.
+- Sync-on-edit: trigger a `refreshObject`/attachment-sync pass after a successful
+  `GenericDetailViewModel.save()`, not just on manual pull-to-refresh.
+- Scheduled background sync: a WorkManager periodic worker (`WorkManager` is already a project
+  dependency, currently unused for this) - look at how findroidplus (`~/devel/private/pschmitt/findroid.git`)
+  structures its auto-download worker for the interval/constraints (network-connected, etc.)
+  pattern to follow, rather than inventing a new convention.
+- Error handling: sync failures (manual or background) should surface as a Snackbar/Toast when the
+  app is in the foreground (reuse the `errorMessage`/`SnackbarHostState` pattern already used by
+  `GenericDetailViewModel`/`GenericDetailScreen`), and the background worker should retry with
+  backoff (`Result.retry()`) rather than silently giving up on transient failures (e.g. temporary
+  network loss) - distinguish those from permanent failures (e.g. revoked API token) where retrying
+  forever is pointless.
+
+Status: not started, 2026-07-31.
+
+## NBC-18: show cached data immediately when the server is unreachable at launch
+
+Don't let a down/unreachable NetBox instance block the app on an empty state - if there's cached
+data from a previous sync, show it right away and let the (failed) refresh just report an error
+around it, rather than the user seeing nothing until the network call resolves or times out.
+
+**Why:** user request - "if the server is down at app launch we really should be displaying the
+offline cache we have and not just fail." Directly hit this live while verifying NBC-15: this
+session's network lost the route to netbox.brkn.lol entirely partway through (confirmed via a raw
+`curl` timeout to the instance from both the dev host and the Mi Pad 4 over SSH, not an app bug),
+which is exactly the scenario this todo describes.
+**How to apply:** most of this may already work as intended - `DeviceListViewModel.devices` and
+`GenericDetailViewModel`'s `decodedObject`/`fields` are Room-`Flow`-backed and independent of
+`refresh()`'s success, so cached rows should already render regardless of a failed refresh; verify
+that's actually true end-to-end once connectivity is back (this session's outage hit right as a
+fresh install had zero cached rows to begin with, so "does a *populated* cache still show through a
+failed refresh" wasn't actually provable this session - it needs its own real check, not just
+reasoning about the code). Also check `DirectoryViewModel` (drives the sidebar's app/model
+sections) - it only calls `refresh()` when `cachedModelCount() == 0`, so an already-populated
+sidebar shouldn't be affected by a down server either, but same caveat: unverified this session.
+If the reasoning above doesn't hold up once retested, the fix is ensuring every list/detail
+ViewModel always emits from its Room `Flow` first and treats `refresh()` purely as a
+best-effort background update, never a gate on what's rendered.
+
+Status: not started, 2026-07-31 - needs verification against a populated cache once
+netbox.brkn.lol is reachable again; unable to test today due to a live network outage encountered
+mid-session (see above).
