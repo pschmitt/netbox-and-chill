@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.ui.generic
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
 import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -241,65 +242,154 @@ private fun asRefTarget(value: JsonObject): RefTarget? {
 }
 
 /** The fields that can round-trip through the generic edit form and PATCH cleanly. */
-fun buildEditableFields(obj: JsonObject): List<EditableField> =
-    obj.mapNotNull { (key, value) ->
-        if (key in EDIT_BLOCKLIST) return@mapNotNull null
-        when (value) {
-            is JsonNull -> null
-            is JsonObject -> {
-                asRefTarget(value)?.let { target ->
-                    return@mapNotNull EditableField(
-                        key = key,
-                        label = Humanize.label(key),
-                        kind = EditFieldKind.REFERENCE,
-                        value = target.id.toString(),
-                        referenceEndpointPath = target.endpointPath,
-                        currentDisplay = target.display,
-                    )
-                }
-                val choiceValue = (value["value"] as? JsonPrimitive)?.contentOrNull
-                val choiceLabel = (value["label"] as? JsonPrimitive)?.contentOrNull
-                if (choiceValue != null && choiceLabel != null) {
-                    EditableField(
-                        key = key,
-                        label = Humanize.label(key),
-                        kind = EditFieldKind.CHOICE,
-                        value = choiceValue,
-                        currentDisplay = choiceLabel,
-                    )
-                } else null
-            }
-            is JsonPrimitive -> {
-                // Fields like device-type's front_image/rear_image are absolute media URLs
-                // computed by NetBox, not plain text - PATCHing one back as-is fails server-side
-                // ("The submitted data was not a file.").
-                if (value.isString && value.contentOrNull?.let(::isMediaUrl) == true) return@mapNotNull null
-                val kind =
-                    when {
-                        !value.isString && (value.content == "true" || value.content == "false") ->
-                            EditFieldKind.BOOLEAN
-                        !value.isString && value.doubleOrNull != null -> EditFieldKind.NUMBER
-                        else -> EditFieldKind.STRING
-                    }
-                EditableField(key, Humanize.label(key), kind, value.contentOrNull ?: "")
-            }
-            is JsonArray -> null
-        }
+fun buildEditableFields(obj: JsonObject): List<EditableField> = buildEditableFields(obj, emptyList())
+
+fun buildEditableFields(
+    obj: JsonObject,
+    customFieldDefinitions: List<CustomFieldDefinition>,
+): List<EditableField> = buildList {
+    for ((key, value) in obj) {
+        if (key in EDIT_BLOCKLIST) continue
+        editableTopLevelField(key, value)?.let(::add)
     }
+    val definitions = customFieldDefinitions.associateBy { it.name }
+    (obj["custom_fields"] as? JsonObject)?.forEach { (name, value) ->
+        customFieldEditableField(name, value, definitions[name])?.let(::add)
+    }
+}
+
+private fun editableTopLevelField(key: String, value: JsonElement): EditableField? =
+    when (value) {
+        is JsonNull -> null
+        is JsonObject -> {
+            asRefTarget(value)?.let { target ->
+                EditableField(
+                    key = key,
+                    label = Humanize.label(key),
+                    kind = EditFieldKind.REFERENCE,
+                    value = target.id.toString(),
+                    referenceEndpointPath = target.endpointPath,
+                    currentDisplay = target.display,
+                )
+            }
+                ?: run {
+                    val choiceValue = (value["value"] as? JsonPrimitive)?.contentOrNull
+                    val choiceLabel = (value["label"] as? JsonPrimitive)?.contentOrNull
+                    if (choiceValue != null && choiceLabel != null) {
+                        EditableField(
+                            key = key,
+                            label = Humanize.label(key),
+                            kind = EditFieldKind.CHOICE,
+                            value = choiceValue,
+                            currentDisplay = choiceLabel,
+                        )
+                    } else null
+                }
+        }
+        is JsonPrimitive -> {
+            // Fields like device-type's front_image/rear_image are absolute media URLs computed by
+            // NetBox, not plain text - PATCHing one back as-is fails server-side.
+            if (value.isString && value.contentOrNull?.let(::isMediaUrl) == true) return null
+            val kind =
+                when {
+                    !value.isString && (value.content == "true" || value.content == "false") ->
+                        EditFieldKind.BOOLEAN
+                    !value.isString && value.doubleOrNull != null -> EditFieldKind.NUMBER
+                    else -> EditFieldKind.STRING
+                }
+            EditableField(key, Humanize.label(key), kind, value.contentOrNull ?: "")
+        }
+        is JsonArray -> null
+    }
+
+private fun customFieldEditableField(
+    name: String,
+    value: JsonElement,
+    definition: CustomFieldDefinition?,
+): EditableField? {
+    definition ?: return null
+    val type = definition.type.lowercase()
+    val key = "custom_fields.$name"
+    val label = definition.label?.takeIf { it.isNotBlank() } ?: Humanize.label(name)
+    fun common(
+        kind: EditFieldKind,
+        currentValue: String,
+        endpoint: String? = null,
+        display: String? = null,
+    ): EditableField =
+        EditableField(
+            key = key,
+            label = label,
+            kind = kind,
+            value = currentValue,
+            referenceEndpointPath = endpoint,
+            currentDisplay = display,
+            customFieldName = name,
+        )
+    return when (type) {
+        "object" -> {
+            val target = (value as? JsonObject)?.let(::asRefTarget) ?: return null
+            common(EditFieldKind.REFERENCE, target.id.toString(), target.endpointPath, target.display)
+        }
+        "multiple-object", "multiple_object" -> {
+            val targets = (value as? JsonArray)?.mapNotNull { (it as? JsonObject)?.let(::asRefTarget) } ?: return null
+            val endpoint = targets.firstOrNull()?.endpointPath ?: return null
+            common(
+                EditFieldKind.MULTI_REFERENCE,
+                selectedValuesToJson(targets.map { it.id.toString() }),
+                endpoint,
+                targets.joinToString(", ") { it.display },
+            )
+        }
+        "select", "choice" ->
+            common(EditFieldKind.CHOICE, (value as? JsonPrimitive)?.contentOrNull.orEmpty())
+        "multiselect", "multi-select", "multiple-choice", "multiple_choice" ->
+            common(
+                EditFieldKind.MULTI_CHOICE,
+                if (value is JsonArray) value.toString() else selectedValuesToJson(emptyList()),
+            )
+        "boolean" -> common(EditFieldKind.BOOLEAN, (value as? JsonPrimitive)?.contentOrNull ?: "false")
+        "integer" -> common(EditFieldKind.INTEGER, (value as? JsonPrimitive)?.contentOrNull.orEmpty())
+        "decimal", "float" -> common(EditFieldKind.NUMBER, (value as? JsonPrimitive)?.contentOrNull.orEmpty())
+        "longtext", "markdown" -> common(EditFieldKind.LONG_TEXT, (value as? JsonPrimitive)?.contentOrNull.orEmpty())
+        "text", "url", "date", "datetime" ->
+            common(EditFieldKind.STRING, (value as? JsonPrimitive)?.contentOrNull.orEmpty())
+        else -> null
+    }
+}
 
 /** Converts edited text back to the JSON type NetBox expects for that field. */
 fun EditFieldKind.toJsonElement(text: String): JsonElement =
     when (this) {
         EditFieldKind.STRING,
-        EditFieldKind.CHOICE -> JsonPrimitive(text)
+        EditFieldKind.LONG_TEXT -> JsonPrimitive(text)
+        EditFieldKind.CHOICE -> text.takeIf { it.isNotBlank() }?.let(::JsonPrimitive) ?: JsonNull
         EditFieldKind.NUMBER -> text.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(text)
+        EditFieldKind.INTEGER -> text.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(text)
         EditFieldKind.BOOLEAN -> JsonPrimitive(text.toBooleanStrictOrNull() ?: false)
         EditFieldKind.REFERENCE -> text.toIntOrNull()?.let(::JsonPrimitive) ?: JsonNull
+        EditFieldKind.MULTI_REFERENCE ->
+            runCatching {
+                Json.decodeFromString(JsonArray.serializer(), text)
+                    .mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.toIntOrNull()?.let(::JsonPrimitive) }
+                    .let(::JsonArray)
+            }.getOrDefault(JsonArray(emptyList()))
+        EditFieldKind.MULTI_CHOICE ->
+            runCatching { Json.decodeFromString(JsonArray.serializer(), text) }.getOrDefault(JsonArray(emptyList()))
     }
 
 /** Kept as a convenience for callers/tests that only handle primitive field kinds. */
 fun EditFieldKind.toJsonPrimitive(text: String): JsonPrimitive =
     (toJsonElement(text) as? JsonPrimitive) ?: JsonPrimitive(text)
 
-fun buildPatchBody(edits: Map<String, Pair<EditFieldKind, String>>): JsonObject =
-    JsonObject(edits.mapValues { (_, kindAndValue) -> kindAndValue.first.toJsonElement(kindAndValue.second) })
+fun buildPatchBody(edits: Map<String, Pair<EditFieldKind, String>>): JsonObject {
+    val topLevel = linkedMapOf<String, JsonElement>()
+    val customFields = linkedMapOf<String, JsonElement>()
+    edits.forEach { (key, kindAndValue) ->
+        val target = kindAndValue.first.toJsonElement(kindAndValue.second)
+        if (key.startsWith("custom_fields.")) customFields[key.removePrefix("custom_fields.")] = target
+        else topLevel[key] = target
+    }
+    if (customFields.isNotEmpty()) topLevel["custom_fields"] = JsonObject(customFields)
+    return JsonObject(topLevel)
+}

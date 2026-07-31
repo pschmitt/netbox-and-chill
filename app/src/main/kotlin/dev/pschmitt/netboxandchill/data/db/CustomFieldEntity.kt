@@ -9,5 +9,7 @@ data class CustomFieldEntity(
     val label: String?,
     val groupName: String?,
     val weight: Int,
+    val objectTypes: String?,
+    val choiceSetUrl: String?,
     val syncedAt: Long,
 )

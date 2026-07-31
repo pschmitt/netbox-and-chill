@@ -164,8 +164,11 @@ boolean), reference, and choice top-level fields from the raw JSON, skipping a b
 server-managed/computed ones
 (`id`, `url`, `display`, `display_url`, `created`, `last_updated`, `custom_fields`). Edit mode on
 `GenericDetailScreen` swaps the read-only field list for text inputs (a `Switch` for booleans),
-Save PATCHes only via `GenericNetBoxApi.patchObject`/`GenericObjectRepository.updateObject`, which
-re-caches the server's response. **Verified against the user's real NetBox instance** (via the
+Custom fields use the cached NetBox definitions and choice-set metadata to select text, long-text,
+number, integer, boolean, choice, multi-choice, reference, and multi-reference editors; unsupported
+custom-field types remain read-only. Save PATCHes only via `GenericNetBoxApi.patchObject`/
+`GenericObjectRepository.updateObject`, which re-caches the server's response. **Verified against
+the user's real NetBox instance** (via the
 Mi Pad 4, which is already logged in): edited and saved a live Provider Account, confirmed the
 `last_updated` timestamp actually changed server-side - full round trip works, not just
 simulated/unit-tested.
@@ -173,14 +176,15 @@ simulated/unit-tested.
 - [x] Editing reference fields (site, rack, tenant, ...) and choice fields (status, ...) - generic
   edit mode now uses cached relation pickers and DRF `OPTIONS` choices, with current values still
   available when offline.
-- [ ] `custom_fields` editing - each custom field has its own type (text/select/object/multi-object/
-  boolean/...) that would need its own per-type handling, not a blanket text field.
+- [x] `custom_fields` editing - use cached definitions and choice sets for type-aware text,
+  long-text, URL/date/datetime, number/integer, boolean, select/multi-select, and object/multi-object
+  editors; unknown types remain read-only.
 - [ ] The *old* Device detail screen (`DeviceDetailScreen`/`DeviceEntity`) still isn't editable -
   only objects routed through NBC-6's generic engine are. Same unification note as NBC-6's
   "Linked items" follow-up: migrating Devices onto the generic engine would fix both at once.
 
-Status: **done** (generic objects), 2026-07-31. `just test`/`just lint` green; live-verified
-end-to-end on the Mi Pad 4 against the real NetBox instance, not just simulated.
+Status: **done** (generic objects), 2026-07-31. Custom-field editor coverage is unit-tested; the
+generic edit flow remains live-verified end-to-end on the Mi Pad 4 against the real NetBox instance.
 
 ## NBC-6: Generic/generated object views (device types, regions, racks, sites, ...) + nav
 

@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
@@ -111,8 +112,9 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val editableFields: StateFlow<List<EditableField>> =
-        decodedObject
-            .map { it?.let(::buildEditableFields) ?: emptyList() }
+        combine(decodedObject, customFieldRepository.observeDefinitions()) { obj, definitions ->
+                obj?.let { buildEditableFields(it, definitions) } ?: emptyList()
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _referenceOptions = MutableStateFlow<Map<String, List<EditOption>>>(emptyMap())
@@ -238,7 +240,7 @@ constructor(
 
     private suspend fun loadEditOptions(fields: List<EditableField>) {
         val references = mutableMapOf<String, List<EditOption>>()
-        fields.filter { it.kind == EditFieldKind.REFERENCE }.forEach { field ->
+        fields.filter { it.kind in setOf(EditFieldKind.REFERENCE, EditFieldKind.MULTI_REFERENCE) }.forEach { field ->
             val endpoint = field.referenceEndpointPath ?: return@forEach
             var cached = repository.cachedObjects(endpoint)
             if (cached.isEmpty() && !settingsRepository.offlineMode.value) {
@@ -254,14 +256,29 @@ constructor(
         }
         _referenceOptions.value = references
 
+        val choices = mutableMapOf<String, List<EditOption>>()
         if (fields.any { it.kind == EditFieldKind.CHOICE } && !settingsRepository.offlineMode.value) {
-            val choices =
-                    runCatching { api.getObjectOptions("${route.endpointPath}${route.id}/") }
+            choices.putAll(
+                runCatching { api.getObjectOptions("${route.endpointPath}${route.id}/") }
                     .getOrNull()
                     ?.let(::parseChoiceOptions)
                     .orEmpty()
-            _choiceOptions.value = choices
+            )
         }
+        if (!settingsRepository.offlineMode.value) {
+            val definitions = customFieldRepository.observeDefinitions().first()
+            fields.filter { it.customFieldName != null && it.kind in setOf(EditFieldKind.CHOICE, EditFieldKind.MULTI_CHOICE) }
+                .forEach { field ->
+                    val definition = definitions.firstOrNull { it.name == field.customFieldName } ?: return@forEach
+                    val url = definition.choiceSetUrl ?: return@forEach
+                    runCatching { api.getObject(url) }
+                        .getOrNull()
+                        ?.let(::parseCustomChoiceOptions)
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { choices[field.key] = it }
+                }
+        }
+        _choiceOptions.value = choices
     }
 
     fun downloadAttachment(url: String, filename: String) {
@@ -310,3 +327,15 @@ internal fun parseChoiceOptions(response: JsonObject): Map<String, List<EditOpti
         key to options
     }.toMap()
 }
+
+internal fun parseCustomChoiceOptions(response: JsonObject): List<EditOption> =
+    listOf("base_choices", "extra_choices")
+        .flatMap { key ->
+            (response[key] as? JsonArray).orEmpty().mapNotNull { choice ->
+                val pair = choice as? JsonArray ?: return@mapNotNull null
+                val value = (pair.getOrNull(0) as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                val label = (pair.getOrNull(1) as? JsonPrimitive)?.contentOrNull ?: value
+                EditOption(value, label)
+            }
+        }
+        .distinctBy { it.value }

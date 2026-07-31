@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -385,6 +386,24 @@ private fun EditForm(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                     )
+                EditFieldKind.INTEGER ->
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { onValueChange(field.key, it) },
+                        label = { Text(field.label) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                EditFieldKind.LONG_TEXT ->
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { onValueChange(field.key, it) },
+                        label = { Text(field.label) },
+                        minLines = 3,
+                        maxLines = 8,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 EditFieldKind.STRING ->
                     OutlinedTextField(
                         value = value,
@@ -406,8 +425,90 @@ private fun EditForm(
                         value = value,
                         options = choiceOptions[field.key].orEmpty(),
                         onValueChange = onValueChange,
-                        allowClear = false,
+                        allowClear = field.customFieldName != null,
                     )
+                EditFieldKind.MULTI_REFERENCE,
+                EditFieldKind.MULTI_CHOICE ->
+                    EditMultiPickerField(
+                        field = field,
+                        value = value,
+                        options =
+                            if (field.kind == EditFieldKind.MULTI_REFERENCE) {
+                                referenceOptions[field.key].orEmpty()
+                            } else {
+                                choiceOptions[field.key].orEmpty()
+                            },
+                        onValueChange = onValueChange,
+                    )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditMultiPickerField(
+    field: EditableField,
+    value: String,
+    options: List<EditOption>,
+    onValueChange: (key: String, value: String) -> Unit,
+) {
+    var expanded by remember(field.key) { mutableStateOf(false) }
+    val selected = selectedValuesFromJson(value).toSet()
+    val selectedLabel =
+        options.filter { it.value in selected }.joinToString(", ") { it.label }
+            .takeIf { it.isNotBlank() }
+            ?: field.currentDisplay?.takeIf { it.isNotBlank() }
+            ?: "None"
+    Column {
+        OutlinedTextField(
+            value = selectedLabel,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(field.label) },
+            trailingIcon = {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
+                }
+            },
+            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.9f),
+        ) {
+            DropdownMenuItem(
+                text = { Text("Clear all") },
+                leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
+                onClick = {
+                    onValueChange(field.key, selectedValuesToJson(emptyList()))
+                    expanded = false
+                },
+            )
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    leadingIcon = {
+                        Checkbox(
+                            checked = option.value in selected,
+                            onCheckedChange = null,
+                        )
+                    },
+                    onClick = {
+                        val next =
+                            if (option.value in selected) selected - option.value
+                            else selected + option.value
+                        onValueChange(field.key, selectedValuesToJson(next))
+                    },
+                )
+            }
+            if (options.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("No choices available") },
+                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
+                    enabled = false,
+                    onClick = {},
+                )
             }
         }
     }

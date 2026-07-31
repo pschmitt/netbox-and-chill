@@ -18,6 +18,8 @@ data class CustomFieldDefinition(
     val label: String?,
     val group: String?,
     val weight: Int,
+    val objectTypes: List<String> = emptyList(),
+    val choiceSetUrl: String? = null,
 )
 
 /** Cache-first access to NetBox's per-instance custom-field type definitions. */
@@ -31,7 +33,15 @@ constructor(private val api: GenericNetBoxApi, private val dao: CustomFieldDao) 
     fun observeDefinitions(): Flow<List<CustomFieldDefinition>> =
         dao.observeAll().map { fields ->
             fields.map { field ->
-                CustomFieldDefinition(field.name, field.type, field.label, field.groupName, field.weight)
+                CustomFieldDefinition(
+                    name = field.name,
+                    type = field.type,
+                    label = field.label,
+                    group = field.groupName,
+                    weight = field.weight,
+                    objectTypes = field.objectTypes.orEmpty().split(OBJECT_TYPE_SEPARATOR).filter(String::isNotBlank),
+                    choiceSetUrl = field.choiceSetUrl,
+                )
             }
         }
 
@@ -68,17 +78,26 @@ constructor(private val api: GenericNetBoxApi, private val dao: CustomFieldDao) 
         val label = (this["label"] as? JsonPrimitive)?.contentOrNull
         val group = (this["group"] as? JsonPrimitive)?.contentOrNull
         val weight = (this["weight"] as? JsonPrimitive)?.intOrNull ?: Int.MAX_VALUE
+        val objectTypes =
+            (this["object_types"] as? kotlinx.serialization.json.JsonArray)
+                ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                ?.joinToString(OBJECT_TYPE_SEPARATOR)
+        val choiceSetUrl =
+            ((this["choice_set"] as? JsonObject)?.get("url") as? JsonPrimitive)?.contentOrNull
         return CustomFieldEntity(
             name = name,
             type = type,
             label = label,
             groupName = group,
             weight = weight,
+            objectTypes = objectTypes,
+            choiceSetUrl = choiceSetUrl,
             syncedAt = System.currentTimeMillis(),
         )
     }
 
     private companion object {
         const val PAGE_SIZE = 200
+        const val OBJECT_TYPE_SEPARATOR = "\u001F"
     }
 }
