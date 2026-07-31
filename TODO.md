@@ -1804,10 +1804,11 @@ the complete offline cache for those responses, and real failures/warnings must 
 - [x] Persist the latest sync failure or partial-sync warning across app restarts.
 - [x] Show sync issues with a retry action on Dashboard and Settings.
 - [x] Show an ongoing system notification while background/manual sync is running.
-- [ ] Verify a real sync against the configured NetBox instance and physical test devices.
+- [x] Verify a real sync against the configured NetBox instance and physical test devices.
 
-Status: in progress, 2026-07-31 - generic handling, UI surface, notification progress, remote
-checks, and all-device deployment completed; a post-fix full sync verification remains.
+Status: **done**, 2026-08-01 - Mi Pad 4 completed a real full sync (383 devices, 630 durable
+attachments) with WorkManager SUCCESS and no persisted sync issue; the final build was deployed
+to all three physical test devices.
 
 ## NBC-72: keep router actions out of the offline sync model list
 
@@ -1815,12 +1816,13 @@ NetBox's API root also exposes action/export routes such as `connected-device`, 
 plugin XML export. They are not paginated object collections and currently create noisy sync
 failures on Mi Pad 4.
 
-- [ ] Validate discovered routes as paginated JSON collections before caching them as models.
-- [ ] Keep action/export routes out of the sidebar and generic sync loop.
-- [ ] Verify a retry on Mi Pad 4 completes without the known false-positive route errors.
+- [x] Validate discovered routes as paginated JSON collections before caching them as models.
+- [x] Keep action/export routes out of the sidebar and generic sync loop.
+- [x] Verify a retry on Mi Pad 4 completes without the known false-positive route errors.
 
-Status: in progress, 2026-08-01 - Mi Pad 4 exposed the three invalid routes in its persisted sync
-issue; implementation and physical retry verification remain.
+Status: **done**, 2026-08-01 - route probes now exclude action/export endpoints and ID-less
+operational summaries; Mi Pad 4's retry cleared the persisted issue and reported WorkManager
+SUCCESS without the three original route errors.
 
 ## NBC-66: make QR scanner lens switching reliable
 
