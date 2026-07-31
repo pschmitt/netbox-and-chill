@@ -8,11 +8,14 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
+import dev.pschmitt.netboxandchill.data.db.BookmarkDao
+import dev.pschmitt.netboxandchill.data.db.DashboardStatDao
 import dev.pschmitt.netboxandchill.data.db.DeviceDao
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeDao
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
+import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import javax.inject.Singleton
 
 @Module
@@ -39,4 +42,12 @@ object DatabaseModule {
 
     @Provides
     fun provideImageAttachmentDao(database: AppDatabase): ImageAttachmentDao = database.imageAttachmentDao()
+
+    @Provides fun provideBookmarkDao(database: AppDatabase): BookmarkDao = database.bookmarkDao()
+
+    @Provides
+    fun provideObjectChangeDao(database: AppDatabase): ObjectChangeDao = database.objectChangeDao()
+
+    @Provides
+    fun provideDashboardStatDao(database: AppDatabase): DashboardStatDao = database.dashboardStatDao()
 }

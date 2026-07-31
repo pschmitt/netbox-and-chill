@@ -323,7 +323,76 @@ power user would want to see first.
 (NetBox 3.5+), and various count endpoints for stats. "NetBox news" has no obvious API source yet
 (NetBox's own release notes / blog?) - needs clarification on what "news" should pull from.
 
-Status: not started, 2026-07-31.
+**Scoped down for this pass** (matching NBC-3/NBC-17's habit of a scoped-down first pass with the
+rest tracked as follow-ups): changelog + bookmarks + stats only. "NetBox news" is deliberately
+**deferred/out of scope** - still no obvious API source (confirmed again this session against the
+real instance's `/api/` root: nothing resembling news/announcements), not invented.
+
+**Confirmed against the real instance (netbox.brkn.lol, NetBox 4.5.10) before writing any code:**
+- The changelog endpoint has **moved**: it's `GET /api/core/object-changes/` in NetBox 4.x, not
+  `/api/extras/object-changes/` as the original ask assumed (that was true pre-4.0) - `extras`'s own
+  app root (`GET /api/extras/`) doesn't list it at all; `GET /api/core/` does. Shape: paginated,
+  each row has `time`, `user` (nested ref), `action` ({value,label}), `object_repr`,
+  `changed_object_type` (content-type string), and `changed_object` - a nested `{id, url, display,
+  ...}` ref **when the object still exists**, `null` for deletes (confirmed live: a delete-action
+  row's `changed_object` was absent from a same-session create/update sample - handled as nullable).
+- `GET /api/extras/bookmarks/` confirmed exactly as expected: `{id, display, object_type, object_id,
+  object: {id, url, display, ...}, user, created}` - `object` is the same `id`+`url`+`display` shape
+  NBC-6's generic reference-field renderer already knows how to turn into a navigable target.
+- Stats: confirmed `count` on `dcim/devices/`, `dcim/device-types/`, `dcim/sites/`, `dcim/racks/`
+  (`382`/live count/`5`/`1` on the real instance) - picked these four as "a handful of key models,"
+  not an exhaustive sweep; cheap (`?limit=1`, only `count` read, no full sync needed).
+
+**How it landed:** new cache-first `DashboardRepository` (mirrors `GenericObjectRepository`'s
+shape) backed by three new Room tables/DAOs (`bookmarks`, `object_changes`, `dashboard_stats` -
+`AppDatabase` bumped to version 4, fine under the existing `fallbackToDestructiveMigration`).
+Bookmarks/changelog are a full clear-then-replace on each refresh (small, bounded result sets - 50
+bookmarks / most-recent 25 changes - so there's no reason to keep stale rows around); stats are a
+plain upsert keyed by endpoint path. Reused `GenericNetBoxApi.listObjects(url, query)` (the same
+schema-free call `GenericObjectRepository`/`JournalEntryRepository` already use) rather than adding
+new typed Retrofit endpoints - no new API surface needed. Extracted the URL->endpointPath and
+endpointPath->app-icon-key logic that used to live as private functions inside
+`GenericFieldRenderer`/`GenericListScreen` into a shared `data/schema/NetBoxRef.kt` object, so the
+dashboard's bookmark/changelog rows resolve navigation targets and pick icons (`AppIcons.
+forAppKey(...)`) exactly the same way NBC-6's reference-field rendering already does, instead of
+duplicating that logic a third time - both original call sites now delegate to it.
+
+Bookmark/changelog rows navigate via the *same* `onNavigateToReference(endpointPath, id) ->
+Route.Generic(...)` callback `GenericDetailScreen` already uses for reference fields - deliberately
+**not** special-cased for devices, matching the existing precedent that reference fields elsewhere
+(e.g. an IP address's assigned device) already route through the generic detail screen, not the
+typed one. Rows with no resolvable target (a changelog delete, chiefly) render non-clickable rather
+than silently going nowhere. Changelog row icon is action-based (add/edit/delete glyph) rather than
+object-type-based, since a delete has no object to derive an icon from anyway.
+
+**Navigation placement decision:** made the dashboard **both** the default post-login/post-onboarding
+landing destination *and* a third bottom-nav tab (`Dashboard`/`Devices`/`Scan`, was just
+`Devices`/`Scan` since NBC-14) rather than only one or the other - a "home page" that isn't also
+where you land by default doesn't really function as one, but it still needs to be reachable
+on-demand from anywhere the bottom bar shows (device list, generic list screens), so both.
+**Stat tiles:** tapping the Devices tile specifically navigates to the existing typed `Route.
+DeviceList` (richer, already-synced screen with thumbnails/status chips) rather than `Route.
+GenericList("api/dcim/devices/", ...)` - a deliberate one-off special case (unlike the
+bookmark/changelog reference-navigation decision above) since the generic object cache for that
+endpoint path may well be empty until a user has separately visited it, whereas the typed Device
+cache is very likely already populated; the other three stat tiles (device types/sites/racks) go
+through the generic list route since there's no typed alternative for them.
+
+- [x] Cache-first `DashboardRepository` + Room tables (bookmarks, changelog, stats)
+- [x] `DashboardScreen`/`DashboardViewModel` (stat tiles, bookmarks list, recent-changes list, all
+  icon-covered per `AGENTS.md`)
+- [x] Wired into navigation as both the default landing destination and a third bottom-nav tab
+- [x] Bookmark/changelog rows navigate into NBC-6's generic detail screen, reusing its existing
+  reference-navigation callback
+- [ ] "NetBox news" - deliberately deferred, no API source identified
+
+Status: **done** (changelog + bookmarks + stats), 2026-07-31. `just build`/`just lint`/`just test`
+green on rofl-14 - see below. **Not live-verified visually** - no physical device/live-instance
+visual check was available in this session (this agent has no adb/device access); the live-instance
+checks above were API-shape confirmation via direct `curl` against netbox.brkn.lol (real data,
+real response bodies), not an in-app check. Needs an install + real look on a device next session,
+same caveat as several other recent entries. "NetBox news" is out of scope for this pass, not
+forgotten - no obvious API source exists on this NetBox instance.
 
 ## NBC-10: Label printing from the app
 
