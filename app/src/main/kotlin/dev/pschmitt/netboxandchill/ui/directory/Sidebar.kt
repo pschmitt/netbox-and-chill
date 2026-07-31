@@ -1,9 +1,11 @@
 package dev.pschmitt.netboxandchill.ui.directory
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -26,12 +28,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
+import dev.pschmitt.netboxandchill.R
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 
 private const val DEVICES_PATH = "api/dcim/devices/"
@@ -59,7 +67,7 @@ fun Sidebar(
                 .mapValues { (_, models) -> models.filter { it.modelLabel.contains(searchQuery, ignoreCase = true) } }
                 .filterValues { it.isNotEmpty() }
 
-    ModalDrawerSheet {
+    ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
         Column(Modifier.fillMaxHeight()) {
             LazyColumn(Modifier.weight(1f)) {
                 item {
@@ -182,16 +190,31 @@ fun Sidebar(
 /** Static (non-scrolling) footer pinned to the bottom of the drawer. */
 @Composable
 private fun SidebarFooter(appVersion: String, netboxUrl: String, onSettingsClick: () -> Unit) {
+    val context = LocalContext.current
+    // ic_launcher is an <adaptive-icon> (background + foreground layers) - painterResource() only
+    // supports VectorDrawables and raster assets, not that wrapper format, and throws at runtime.
+    // Rendering it through a Drawable -> Bitmap first works for any drawable type.
+    val appIconBitmap =
+        remember { ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.toBitmap()?.asImageBitmap() }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Icon(
-            AppIcons.Devices,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp),
-        )
+        if (appIconBitmap != null) {
+            Image(
+                bitmap = appIconBitmap,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)),
+            )
+        } else {
+            Icon(
+                AppIcons.Devices,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp),
+            )
+        }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text("Version $appVersion", style = MaterialTheme.typography.labelMedium)

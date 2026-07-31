@@ -630,9 +630,11 @@ via `CommentCard` (NBC-12/14) with a kind icon (info/success/warning/danger, usi
 already wired in via the extended icon set) + timestamp header. Posting new journal entries (not
 just reading) not investigated/implemented.
 
-Status: **done**, 2026-07-31. `just test`/`just lint` green on rofl-14 (compiles clean, only
-pre-existing deprecation warnings unrelated to this change). Not yet live-verified against the real
-instance or installed on-device this session - do that before considering this fully closed out.
+Status: **done**, 2026-07-31. `just test`/`just lint` green on rofl-14. Live-verified end-to-end on
+the Mi Pad 4 once netbox.brkn.lol's outage (NBC-18) resolved: navigated to the real "Office light
+(retired)" device, tapped the Journal tab, and its real warning-kind entry rendered correctly -
+kind icon, timestamp, and the full Markdown body (headers, bullets, inline code spans) via
+`CommentCard`.
 
 ## NBC-16: download and open file/document attachments (PDFs etc.)
 
@@ -717,10 +719,12 @@ legacy device list; surfacing background (not just manual) sync failures to the 
 (a background `WorkManager` failure has no `Activity` to show a `Snackbar` in - probably wants a
 `Notification`, unlike the manual-sync case slice 1 covers).
 
-Status: **in progress**, 2026-07-31 - slice 1 done (`just test`/`just lint` green on rofl-14,
-installed on the Mi Pad 4, smoke-tested crash-free - full UI verification blocked by the same
-netbox.brkn.lol outage as NBC-15/18, since the device is currently logged out and can't reconnect
-until the instance is reachable again). Slice 2 not started.
+Status: **in progress**, 2026-07-31 - slice 1 done (`just test`/`just lint` green on rofl-14).
+Live-verified on the Mi Pad 4 once netbox.brkn.lol's outage resolved: Settings shows the new "Sync
+attachments to disk" toggle (flips cleanly, off by default as intended), "Sync now" completed
+without error against the real instance (382 real cached devices), and editing an object (NBC-15's
+own detail screen) no longer needs a manual pull-to-refresh to reflect the change. Slice 2 (the
+actual attachment-download sweep) not started.
 
 ## NBC-18: show cached data immediately when the server is unreachable at launch
 
@@ -845,10 +849,8 @@ pointing at `AppIcons.forAppKey` as the thing to reuse rather than picking new i
 
 Status: **done**, 2026-07-31. `just test`/`just lint` green on rofl-14; installed on the Mi Pad 4
 and visually confirmed (Settings screen icons, Onboarding "Connect" button icon) - screenshots
-match the intended layout with no crash. Not yet installed on Pixel 5/Zenfone 10 this session.
-Side effect of testing: logged the Mi Pad 4 out to see the onboarding screen, and couldn't log it
-back in before netbox.brkn.lol's outage (see NBC-18) resolved - needs re-connecting once the
-instance is reachable again.
+match the intended layout with no crash. Installed on Pixel 5 too; Zenfone 10 not reachable this
+session. Mi Pad 4 was reconnected once netbox.brkn.lol's outage resolved.
 
 ## NBC-20: tap an image to view it full-size with pinch/swipe zoom
 
@@ -856,14 +858,27 @@ Device-type stock photos and image attachments (NBC-3) currently just sit inline
 thumbnail size - tapping one should open a full-screen viewer with pinch-to-zoom/pan, not require
 falling back to "open in browser" the way a document attachment does.
 
-**Why:** user request - "images need to be clickable -> show in full size + swipe to zoom".
-**How to apply:** needs a full-screen image viewer composable (Coil3 `AsyncImage` + a zoom/pan
-gesture modifier - either hand-rolled via `detectTransformGestures`/`graphicsLayer` scale-translate,
-or a small dependency like Telephoto/Zoomable if one's already idiomatic for Coil3 - check what
-findroidplus uses for any full-screen image viewing before picking). Applies to both
-`RemoteThumbnail` usages from NBC-3 (device list row thumbnail probably shouldn't open this - the
-detail screen's front/rear photos and image-attachment thumbnails should) - needs its own look at
-how NBC-3 wired those up before implementing.
+**Why:** user request - "images need to be clickable -> show in full size + swipe to zoom" - then
+two follow-ups: "image attachments should open a popup (the kind you slide down to dismiss) when
+clicked. on there i would expect the img to be displayed and the metadata of the img attachment.
+btw pls refrain from renaming stuff. in netbox these are image attachments, not 'photos'. and: we
+should be able to swipe left and right to see the next/prev img attachment."
+**How to apply:** needs a full-screen image viewer shown as a swipe-to-dismiss popup/`Dialog`
+(vertical drag-down closes it, matching the common photo-viewer gesture - not just a tap-to-close),
+not a navigation route. Content: the image itself (Coil3 `AsyncImage` + zoom/pan - hand-rolled via
+`detectTransformGestures`/`graphicsLayer`, or a small Zoomable-style dependency if one's already
+idiomatic for Coil3 - check findroidplus's usage before picking) plus the `extras.ImageAttachment`'s
+own metadata (name, size, upload/created date, content type - whatever the API response actually
+carries, don't guess the field list) shown alongside/below it. Horizontal swipe moves between the
+image attachments already loaded in `DeviceDetailScreen.imageAttachmentRow`'s `LazyRow` (a
+`HorizontalPager` over that same list, opened to the tapped index, is the natural fit). Applies to
+the image-attachment row (`imageAttachmentRow`'s `RemoteThumbnail`, currently opening the external
+browser via `clickableIfUrl` - replace with this popup) - the device-type front/rear photos
+(`deviceTypePhotos`) are a separate, single-image, non-"image attachment" case and may not want
+the same swipe-between-siblings behavior; decide when implementing whether they get the popup too
+or stay as-is. Terminology note for this whole entry and anywhere else in the app: NetBox calls
+these "image attachments," not "photos" - keep using NetBox's own name for the object type, not a
+friendlier paraphrase (this app should read like a faithful NetBox companion).
 
 Status: not started, 2026-07-31.
 
@@ -886,10 +901,11 @@ features) is threaded out of `CameraPreview`'s `AndroidView` factory via a new `
 callback into `ScannerScreen`'s Compose state.
 
 Status: **done**, 2026-07-31. `just test`/`just lint` green on rofl-14 (zero warnings beyond the
-two pre-existing unrelated deprecations); installed on Mi Pad 4 and Pixel 5, app launches
-crash-free. Not visually verified interacting with the actual camera view this session - the
-Scanner tab lives behind login, and the Mi Pad is logged out pending the netbox.brkn.lol outage
-(see NBC-18) resolving - needs a live tap-to-focus/flashlight check once reconnected.
+two pre-existing unrelated deprecations); installed on Mi Pad 4 and Pixel 5. Live-verified on the
+Mi Pad 4 once reconnected: camera preview renders live video, tapping the preview to focus doesn't
+crash (checked logcat directly), and the flashlight button correctly does NOT appear - this tablet
+has no rear flash unit, confirming the `hasFlashUnit()` gate works as intended (couldn't verify the
+torch actually turning on/off without a device that has one).
 
 ## NBC-22: bigger device-list thumbnails + un-crop the detail-screen photos
 
@@ -907,4 +923,265 @@ front/rear photos need their `Image`/`AsyncImage` `contentScale` checked - `Crop
 `.height(...)` combined with the default `Fit` behavior clipping at the container bounds) is likely
 the culprit; `ContentScale.Fit` (or `FillWidth` with no fixed height) shows the whole image instead.
 
+Status: **done**, 2026-07-31. `RemoteThumbnail` gained a `contentScale` parameter (default `Crop`,
+unchanged everywhere else); `DeviceDetailScreen`'s front/rear photo row now passes `Fit`;
+`DeviceListScreen.DeviceRow`'s thumbnail bumped from 48.dp to 72.dp. Live-verified on the Mi Pad 4
+against real device-type photos - the PDU and 8-inch-monitor detail pages show their full stock
+photos un-cropped, and list-row thumbnails are visibly bigger.
+
+## NBC-23: "sync in progress" indicator + surfaced sync errors (background, not just manual)
+
+A sync happening in the background (the periodic `SyncWorker`, or a future sync-on-edit/full offline
+sync per NBC-17) is currently invisible to the user - no progress indicator while it runs, and no
+way to learn a background sync failed at all (only the manual "Sync now" button surfaces errors,
+per NBC-17 slice 1).
+
+**Why:** user request - "we should probably display a 'sync in progress' notification when we sync,
+right? and surface sync errors. Esp when we add propper change sync (ie we edit an item offline,
+and then sync again) this will be very very useful." - explicitly framed as more valuable once
+NBC-17's sync-on-edit/full offline sync lands, since a background sync becomes a much more common
+occurrence once edits queue and flush automatically rather than only firing on an explicit tap.
+**How to apply:** two distinct pieces - an in-app "syncing" indicator (a small persistent
+indicator/badge, not just the existing per-screen `PullToRefreshBox` spinners which only show while
+that specific screen is visible) for when `SyncWorker` is actively running, and a background-capable
+error surface for when it fails - `WorkManager`'s `WorkInfo`/`getWorkInfoByIdLiveData` can be
+observed app-wide to know when `SyncWorker` is running/failed regardless of which screen is open. A
+failure with no foreground `Activity` (the gap flagged in NBC-17 slice 2) likely needs an actual
+Android `Notification`, not just a `Snackbar` - overlaps directly with NBC-17 slice 2's own
+"surfacing background sync failures" follow-up, should probably be designed together with it rather
+than as a fully separate feature.
+
 Status: not started, 2026-07-31.
+
+## NBC-24: list-view scrolling performance (device list is the worst)
+
+Scrolling the device list is janky/slow - the worst offender among the app's list screens.
+
+**Why:** user request - "improve scrolling performance of the list view (device list is the worst
+atm)."
+**How to apply:** not yet profiled - needs an actual investigation (Android Studio profiler /
+`adb shell dumpsys gfxinfo`, or at minimum careful code reading) before assuming a fix, rather than
+guessing. Prime suspects given what's known about `DeviceListScreen`/`DeviceRow`: NBC-3's
+`deviceTypeImages` backfill and NBC-22's just-landed thumbnail-size bump interacting with
+`RemoteThumbnail`'s Coil `AsyncImage` - recomposition/measurement cost per row, whether `LazyColumn`
+`items(..., key = ...)` is used correctly (it already is, per current code, so that's likely not it),
+and whether Coil is re-decoding/re-requesting images on every recomposition rather than caching
+effectively. Compare against the generic list screen (`GenericListScreen`) - if that one *isn't*
+janky, the difference is almost certainly image-loading-related rather than something structural in
+`LazyColumn` itself.
+
+Status: not started, 2026-07-31.
+
+## NBC-25: a way to view/copy the currently-configured API token
+
+There's no way to see the API token the app currently has stored - useful when setting up a new
+device and wanting to reuse (or manually re-derive) an existing token rather than generating a new
+one from scratch.
+
+**Why:** user request/observation while helping debug why a NetBox REST-API-created token wouldn't
+authenticate - NetBox 4.x tokens use a "token pepper" scheme where the full secret is
+`nbp_<TOKEN_NAME>.<KEY>`, and the REST API's `key` field on a `Token` object only ever returns the
+raw `<KEY>` suffix, never the full prefixed value - the complete secret is shown exactly once, in
+the web UI, at creation time (the API's own `token` field comes back `null` even for a token you
+just created for yourself, confirmed live against netbox.brkn.lol). User's framing: "A little
+button to display the current api token on the login page would be a great start."
+**How to apply:** the app can only ever show back what NetBox already gave *this* app instance when
+it was first configured (`SettingsRepository`'s stored `token` - EncryptedSharedPreferences, already
+plaintext-accessible in-process, just never surfaced in the UI) - it can't retroactively recover a
+full `nbp_...` value NetBox never showed the app in the first place, and can't ask NetBox for it
+again later either. Add a reveal/copy affordance for the currently-stored token - most likely on
+`SettingsScreen` (which already shows the "NetBox instance" URL as connection info) alongside a
+"copy to clipboard" action, so a user can transfer their existing token to a new device without
+regenerating one from the NetBox web UI each time. A show/hide toggle on `OnboardingScreen`'s own
+token field (a standard eye-icon `PasswordVisualTransformation` toggle) is a related but distinct,
+smaller affordance worth considering too - un-masking what was just typed/pasted before hitting
+Connect, not viewing an already-saved value.
+
+Follow-up, same thread: added a placeholder (not label) on `OnboardingScreen`'s API token field
+showing the real format, `nbt_xxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` - confirmed
+against netbox.brkn.lol's actual `Token` model source (`TOKEN_PREFIX = 'nbt_'`,
+`TOKEN_KEY_LENGTH = 12`, `TOKEN_DEFAULT_LENGTH = 40`) while debugging why a REST-API-created token
+wouldn't authenticate (see below) - the user's own recollection of the prefix was "nbp_", the actual
+constant is "nbt_".
+
+Notes from that same debugging session, useful context for whoever eventually builds the
+view/copy-token feature above: NetBox 4.x v2 tokens never return their plaintext secret via the
+REST API under any circumstances (confirmed by creating a token for the *AI agent's own account* via
+API and getting `"token": null` back regardless) - the only place the full secret is ever shown is
+the web UI at creation time. The only way it was recoverable this session was direct
+`netbox-manage shell` (Django ORM) access on the actual NetBox host, which the app obviously can't
+do. Also: `Authorization: Token <value>` and `Authorization: Bearer <value>` are BOTH accepted by
+this instance for v2 tokens (confirmed live) - the app's `AuthInterceptor` hardcodes `"Token "`,
+which is fine, no change needed there.
+
+Status: not started, 2026-07-31 - the placeholder-hint half is done; the reveal/copy-stored-token
+feature itself is not.
+
+## NBC-26: narrower sidebar + real app icon in the footer
+
+The navigation drawer is wider than it needs to be, and its footer currently shows a generic
+`AppIcons.Devices` glyph instead of the app's own icon.
+
+**Why:** user request - "sidebar - can we make it less wide? and we should display our app icon in
+the bottom right (left of the version info and netbox url)" (the existing footer layout is
+ICON | version/URL | settings cog, so "bottom right" here means the already-present leading icon
+slot, not a new position).
+**How to apply:** `Sidebar.kt`'s `ModalDrawerSheet` had no explicit width (Material3's default,
+which reads wide on a phone) - constrained to `Modifier.width(280.dp)`, the Material Design minimum
+recommended drawer width. `SidebarFooter`'s leading `Icon(AppIcons.Devices, ...)` swapped for the
+actual app icon. Note: NBC-4 (a real custom app icon design - NetBox logo × 🤨 emoji mashup) is
+still not started, so this currently surfaces whatever placeholder/default launcher icon exists
+today, not a finished design - revisit this footer once NBC-4 lands.
+
+**Real bug caught live, not just theoretical:** the first attempt used
+`Image(painterResource(R.mipmap.ic_launcher), ...)` directly, which crashed the app on every launch
+- `ic_launcher.xml` is an `<adaptive-icon>` (separate background/foreground layers), and Compose's
+`painterResource()` only supports VectorDrawables and flat raster assets, not that wrapper format
+(`IllegalArgumentException: Only VectorDrawables and rasterized asset types are supported`). This
+wasn't caught by `just test`/`just lint` (a Compose runtime failure, not a compile error) - only
+surfaced when actually installed on the Zenfone 10, which then repeatedly crash-looped and got
+force-killed by Android, making it *look* like the device's launcher (`projekt.launcher`) was
+blocking the app from ever opening - a real, embarrassing dead end chased for a while before
+checking logcat properly. Fixed by rendering the drawable through `ContextCompat.getDrawable(...)
+?.toBitmap()?.asImageBitmap()` first (works for any drawable type, adaptive icons included) instead
+of `painterResource`. Same pattern reused for NBC-28's onboarding-screen app icon.
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green; live-verified crash-free on the
+Zenfone 10 after the fix, sidebar narrower and footer showing the real launcher icon.
+
+## NBC-27: unify the app's three separate search boxes
+
+There are currently (at least) three different search entry points that all feel like they should
+be one thing: the sidebar's "Search sections" box (filters the model/section list itself), NBC-13's
+global search (searches NetBox object data), and each list screen's own "Search devices"/etc. box
+(filters within that one object type). Confusing to a user who just wants "search" without knowing
+which of the three they need.
+
+**Why:** user request - "we should combine our searchbar somehow. There'd only 1 search ideally.
+currently we have at least 3: section search in the navbar, global search and the search on the
+(device/item) list pages. not sure how to best marry them, but it's a bit confusing atm."
+**How to apply:** genuinely needs a design decision, not just a mechanical merge - the three
+searches operate on different scopes (sidebar sections/model names vs. NetBox object data
+everywhere vs. one object type's already-cached rows) and a single box needs a clear model for
+which scope applies when. Options worth weighing rather than picking blind: (a) one global-search
+entry point reachable from everywhere (e.g. promoted into the top app bar) that also offers to
+jump to a matching sidebar section, retiring the sidebar's own local filter box; (b) keep the
+per-list-screen search (it's filtering already-loaded local data, cheap and fast, arguably a
+different job than "find something anywhere") but merge just the sidebar section-search into global
+search. Needs its own look at how NBC-13 actually shipped (this session didn't build it - another
+concurrent session did) before deciding.
+
+Status: not started, 2026-07-31.
+
+## NBC-28: real app icon on the onboarding screen + dashboard stat-card overflow fix
+
+Two small fixes landed together with NBC-26's sidebar-icon work, same session: the onboarding
+screen's "Connect to NetBox" header used a generic `Icons.Default.Inventory2` glyph instead of the
+app's own icon, and NBC-9's dashboard stat cards (fixed-height from NBC-22's own uniform-sizing
+fix) were clipping longer labels like "Device Types" instead of wrapping them cleanly.
+
+**Why:** user requests - "on the login page we should display our app logo instead of the random
+icon you put there", and a live-testing catch of the dashboard card issue right after connecting a
+freshly-provisioned device and seeing "Device Types" visibly cut off mid-word.
+**How to apply:** `OnboardingScreen`'s icon replaced with the same `ContextCompat.getDrawable(...)
+?.toBitmap()?.asImageBitmap()` pattern from NBC-26 (not `painterResource` - same adaptive-icon crash
+risk). `DashboardScreen.StatTile`'s fixed card size bumped from 110×120dp to 110×136dp and its label
+`Text` given `maxLines = 2` + `TextOverflow.Ellipsis` as a safety net for even longer labels in the
+future.
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green; live-verified on the Zenfone 10 -
+onboarding shows the real launcher icon, dashboard cards render uniform height with no clipping.
+
+## NBC-29: manufacturer/model (and similar) fields should link to their own object
+
+On the legacy (non-generic) device detail screen, fields like "Manufacturer" and "Model" render as
+plain text - unlike NBC-6's generic detail screen, which already turns any NetBox reference field
+into a tappable link to that object's own page.
+
+**Why:** user request - "stuff like 'manufacturer', 'model' etc should be clickable and open the
+relevant page (The manufacturer, or model page for instance in this example)."
+**How to apply:** `DeviceDetailScreen.kt`'s `detailField(...)` helper renders plain
+`Text`/`ListItem`-style rows from typed `DeviceEntity` columns (`manufacturerName`,
+`deviceTypeModel`, ...) which only ever stored the *display string*, not the referenced object's
+id/endpoint - there's currently no id to navigate to even if the row were made clickable. Either (a)
+extend `DeviceEntity`/`DeviceDto`/the sync mapping to also capture each reference's id (manufacturer
+id, device-type id already exists via `deviceTypeId`, site/rack/role ids do not), then make those
+specific rows navigate via the same `onNavigateToReference`-style callback `GenericDetailScreen`
+uses, or (b) simplest and most consistent with how the rest of this app has been trending (NBC-6
+onward): route the legacy device detail screen through the generic engine entirely instead of
+maintaining two parallel detail-rendering implementations, which would get this "for free" the same
+way NBC-15's Journal tab and NBC-16's file attachments did. Worth deciding which before starting -
+option (b) also happens to be the fix for NBC-30 below, for the same reason.
+
+Status: not started, 2026-07-31.
+
+## NBC-30: device/item title belongs in the page body, not the top app bar
+
+Long device/item names make the `TopAppBar` title wrap and grow the header to an awkward height.
+
+**Why:** user request - "device/item view page -> we should move the title of the device/item from
+the header back to the body/content of the page. We have some items with long names, that make the
+header weirdly large in height."
+**How to apply:** applies to whichever detail screen(s) currently put the object's full name in
+`TopAppBar`'s `title` - move it into the scrollable body instead (a `Text` at the top of the content
+column, `TopAppBar` keeping just a short/generic title or none) so a long name wraps within the page
+instead of stretching the fixed app bar. Check both `DeviceDetailScreen` and `GenericDetailScreen`
+(NBC-15's `title` `StateFlow` currently feeds the `TopAppBar` title directly) - likely wants the same
+treatment in both, which is also another point in favor of NBC-29's option (b) (route everything
+through the generic engine) rather than fixing this twice.
+
+Status: not started, 2026-07-31.
+
+## NBC-31: copy-to-clipboard icons on identifier fields (Serial, Primary IP, Asset tag, ...)
+
+Fields that are short identifiers someone would realistically want to copy elsewhere (Serial,
+Primary IP, Asset tag, and similar) have no quick copy action - currently requires long-press
+text selection.
+
+**Why:** user request - "we should 'copy-to-clipboard' icons next to the fields (Serial, Primary IP,
+Asset tag etc etc...)."
+**How to apply:** needs a small trailing `IconButton` (`Icons.Default.ContentCopy`, matching the
+icon-everywhere convention from NBC-19/AGENTS.md) next to specific field rows that copies the
+value via `ClipboardManager` (same API already used for "Paste from clipboard" on
+`OnboardingScreen`'s token field). Open question worth deciding before implementing: *which* fields
+get this - the user named Serial/Primary IP/Asset tag specifically (identifier-shaped values), not
+every field indiscriminately; on the generic engine (NBC-6) that likely means opt-in per field *key*
+(a small allowlist: `serial`, `asset_tag`, `primary_ip4`, `primary_ip6`, ...) rather than every
+`FieldRow.PlainText`, to avoid cluttering fields where copying doesn't make sense (e.g. `comments`,
+free-text descriptions).
+
+Status: not started, 2026-07-31.
+
+## NBC-32: detect and resolve edit conflicts (offline edit vs. server-side change)
+
+No conflict handling exists today: if an object is edited offline in the app, then also changed on
+the server (or by someone else) before the app's edit syncs, the last write silently wins - the
+user gets no warning and no way to see or resolve what actually differs.
+
+**Why:** user request - "how do we handle conflicts atm? ie i change something offline and in the
+app in parallel. How do we reconcile this? I expect a warning on the home page and a view to
+properly resolve the merge conflict (with diffs and all)."
+**How to apply:** genuinely needs design work before implementation, not just a mechanical PATCH
+tweak - a few things worth resolving first:
+- **Detection**: `GenericObjectRepository.updateObject()` (NBC-5) currently does a blind PATCH with
+  no precondition - NetBox's `last_updated` field (already cached per-object, see
+  `GenericDetailScreen`'s "Last synced"/timestamps) is the natural conflict signal: compare the
+  server's `last_updated` at PATCH time against what was cached when the edit started, or use
+  HTTP conditional headers (`If-Unmodified-Since`/ETags) if NetBox's API supports them - needs
+  checking, not assuming.
+- **Where edits actually queue offline**: today, `save()` in `GenericDetailViewModel` PATCHes
+  immediately and only works if online at that moment (per `AGENTS.md`'s offline-first
+  requirement, this itself might be a gap - true "edit offline, sync later" implies edits need
+  their own durable outbox/queue, not just an inline API call that fails when offline). This
+  entry may end up depending on that queueing existing first, or on NBC-17's sync-on-edit slice 2
+  work, rather than being fully independent.
+- **The "warning on the home page"**: NBC-9's new Dashboard is the natural home for a "N items
+  have unsynced local changes / M have conflicts" banner.
+- **The resolve view**: "with diffs and all" implies a side-by-side or inline diff of local vs.
+  server field values per conflicting object, with a way to pick a winner per field (or
+  wholesale) - closest existing precedent in this app is NBC-5's edit form, but that's a single
+  source of truth (local, about to overwrite server), not a three-way comparison
+  (last-known-synced vs. local-edit vs. current-server).
+
+Status: not started, 2026-07-31 - needs a design decision on the points above before implementation
+starts.

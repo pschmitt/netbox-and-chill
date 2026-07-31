@@ -128,7 +128,7 @@ private fun DeviceRow(device: DeviceEntity, frontImageUrl: String?, onClick: () 
             RemoteThumbnail(
                 imageUrl = frontImageUrl,
                 contentDescription = device.deviceTypeModel,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(72.dp),
             )
         },
         headlineContent = { Text(device.name) },

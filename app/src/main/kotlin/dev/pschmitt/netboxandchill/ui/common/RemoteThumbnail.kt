@@ -20,7 +20,12 @@ import coil3.compose.AsyncImage
  * back to a generic device icon when [imageUrl] is null/blank (not yet synced, or none set).
  */
 @Composable
-fun RemoteThumbnail(imageUrl: String?, contentDescription: String?, modifier: Modifier = Modifier) {
+fun RemoteThumbnail(
+    imageUrl: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+) {
     if (imageUrl.isNullOrBlank()) {
         Box(
             modifier = modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
@@ -37,7 +42,7 @@ fun RemoteThumbnail(imageUrl: String?, contentDescription: String?, modifier: Mo
             model = imageUrl,
             contentDescription = contentDescription,
             modifier = modifier.clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop,
+            contentScale = contentScale,
         )
     }
 }

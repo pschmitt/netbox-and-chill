@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -165,10 +166,14 @@ private fun StatsRow(stats: List<DashboardStatEntity>, onStatClick: (String, Str
 
 @Composable
 private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
-    ElevatedCard(onClick = onClick, modifier = Modifier.width(110.dp)) {
+    // Fixed height too, not just width - the label ("Device Types" vs. "Racks") wraps to a
+    // different number of lines depending on its length, which otherwise leaves the cards in a
+    // row at different heights.
+    ElevatedCard(onClick = onClick, modifier = Modifier.size(110.dp, 136.dp)) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             Icon(AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(stat.endpointPath)), contentDescription = null)
             Spacer(Modifier.height(8.dp))
@@ -178,6 +183,8 @@ private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
                 style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

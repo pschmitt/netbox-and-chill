@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -171,6 +172,11 @@ private fun LazyListScope.deviceTypePhotos(deviceType: DeviceTypeEntity?) {
                     imageUrl = front,
                     contentDescription = "Front of $model",
                     modifier = Modifier.weight(1f).height(140.dp),
+                    // Fit, not the default Crop - these are stock product photos with varying
+                    // aspect ratios; cropping to fill a fixed square/rect chops off real content
+                    // (e.g. a wide rack-mount unit's edges), unlike the row/grid thumbnails below
+                    // where a uniform crop is the point.
+                    contentScale = ContentScale.Fit,
                 )
             }
             if (!front.isNullOrBlank() && !rear.isNullOrBlank()) Spacer(Modifier.width(8.dp))
@@ -179,6 +185,7 @@ private fun LazyListScope.deviceTypePhotos(deviceType: DeviceTypeEntity?) {
                     imageUrl = rear,
                     contentDescription = "Rear of $model",
                     modifier = Modifier.weight(1f).height(140.dp),
+                    contentScale = ContentScale.Fit,
                 )
             }
         }
