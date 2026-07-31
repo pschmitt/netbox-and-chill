@@ -1809,6 +1809,19 @@ the complete offline cache for those responses, and real failures/warnings must 
 Status: in progress, 2026-07-31 - generic handling, UI surface, notification progress, remote
 checks, and all-device deployment completed; a post-fix full sync verification remains.
 
+## NBC-72: keep router actions out of the offline sync model list
+
+NetBox's API root also exposes action/export routes such as `connected-device`, script upload, and
+plugin XML export. They are not paginated object collections and currently create noisy sync
+failures on Mi Pad 4.
+
+- [ ] Validate discovered routes as paginated JSON collections before caching them as models.
+- [ ] Keep action/export routes out of the sidebar and generic sync loop.
+- [ ] Verify a retry on Mi Pad 4 completes without the known false-positive route errors.
+
+Status: in progress, 2026-08-01 - Mi Pad 4 exposed the three invalid routes in its persisted sync
+issue; implementation and physical retry verification remain.
+
 ## NBC-66: make QR scanner lens switching reliable
 
 The scanner's front/rear and rear-lens controls must rebind CameraX to the selected camera

@@ -8,6 +8,9 @@ import dev.pschmitt.netboxandchill.sync.SyncIssueReporter
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 
@@ -60,30 +63,62 @@ constructor(
             for ((pluginKey, pluginUrl) in appModels) {
                 val pluginModels = runCatching { api.getUrlMap(relativePath(pluginUrl)) }.getOrNull() ?: continue
                 for ((modelKey, modelUrl) in pluginModels) {
-                    into +=
-                        NetBoxModelEntity(
-                            appKey = "plugins/$pluginKey",
-                            appLabel = Humanize.label(pluginKey),
-                            modelKey = modelKey,
-                            modelLabel = Humanize.label(modelKey),
-                            endpointPath = relativePath(modelUrl),
-                        )
+                    addCollectionModel(
+                        into = into,
+                        appKey = "plugins/$pluginKey",
+                        appLabel = Humanize.label(pluginKey),
+                        modelKey = modelKey,
+                        modelUrl = modelUrl,
+                    )
                 }
             }
             return
         }
         val appLabel = if (appKey.length <= 5) appKey.uppercase() else Humanize.label(appKey)
         for ((modelKey, modelUrl) in appModels) {
-            into +=
-                NetBoxModelEntity(
-                    appKey = appKey,
-                    appLabel = appLabel,
-                    modelKey = modelKey,
-                    modelLabel = Humanize.label(modelKey),
-                    endpointPath = relativePath(modelUrl),
-                )
+            addCollectionModel(
+                into = into,
+                appKey = appKey,
+                appLabel = appLabel,
+                modelKey = modelKey,
+                modelUrl = modelUrl,
+            )
         }
     }
+
+    private suspend fun addCollectionModel(
+        into: MutableList<NetBoxModelEntity>,
+        appKey: String,
+        appLabel: String,
+        modelKey: String,
+        modelUrl: String,
+    ) {
+        val endpointPath = relativePath(modelUrl)
+        if (!isPaginatedCollection(endpointPath)) {
+            Timber.i("Skipping non-collection NetBox route %s", endpointPath)
+            return
+        }
+        into +=
+            NetBoxModelEntity(
+                appKey = appKey,
+                appLabel = appLabel,
+                modelKey = modelKey,
+                modelLabel = Humanize.label(modelKey),
+                endpointPath = endpointPath,
+            )
+    }
+
+    /**
+     * DRF's API root includes custom actions alongside router collections. A one-row list probe is
+     * deliberately used here because it validates the HTTP method, response shape, and numeric
+     * object identity; OPTIONS alone cannot distinguish an XML export, an action that happens to
+     * allow GET, or an operational summary collection such as background queues.
+     */
+    private suspend fun isPaginatedCollection(endpointPath: String): Boolean =
+        runCatching {
+            val page = api.listObjects(endpointPath, mapOf("limit" to "1", "offset" to "0"))
+            page.results.isEmpty() || page.results.any(JsonObject::hasNumericId)
+        }.getOrDefault(false)
 
     private fun relativePath(url: String): String =
         url.toHttpUrlOrNull()?.encodedPath?.trimStart('/') ?: url.trimStart('/')
@@ -94,3 +129,5 @@ constructor(
         val SKIPPED_ROOT_KEYS = setOf("status", "schema", "graphql", "swagger", "redoc", "docs")
     }
 }
+
+private fun JsonObject.hasNumericId(): Boolean = this["id"]?.jsonPrimitive?.intOrNull != null
