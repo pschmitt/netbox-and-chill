@@ -49,6 +49,9 @@ constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _refreshedMessage = MutableStateFlow<String?>(null)
+    val refreshedMessage: StateFlow<String?> = _refreshedMessage.asStateFlow()
+
     val device: StateFlow<DeviceEntity?> =
         deviceRepository
             .observeDevice(deviceId)
@@ -93,11 +96,12 @@ constructor(
         }
     }
 
-    fun refresh() {
+    fun refresh(showConfirmation: Boolean = false) {
         viewModelScope.launch {
             _isRefreshing.value = true
             deviceRepository
                 .refreshDevice(deviceId)
+                .onSuccess { if (showConfirmation) _refreshedMessage.value = "Refreshed" }
                 .onFailure { _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data" }
             _isRefreshing.value = false
         }
@@ -105,6 +109,10 @@ constructor(
 
     fun errorShown() {
         _errorMessage.value = null
+    }
+
+    fun refreshedMessageShown() {
+        _refreshedMessage.value = null
     }
 
     private fun apiUrlToWebUrl(apiUrl: HttpUrl): String =

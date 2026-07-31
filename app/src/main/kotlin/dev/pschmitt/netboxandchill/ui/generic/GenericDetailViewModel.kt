@@ -59,6 +59,9 @@ constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _refreshedMessage = MutableStateFlow<String?>(null)
+    val refreshedMessage: StateFlow<String?> = _refreshedMessage.asStateFlow()
+
     private val _isDownloading = MutableStateFlow(false)
     val isDownloading: StateFlow<Boolean> = _isDownloading.asStateFlow()
 
@@ -116,12 +119,13 @@ constructor(
         loadJournalEntries()
     }
 
-    fun refresh() {
+    fun refresh(showConfirmation: Boolean = false) {
         viewModelScope.launch {
             _isRefreshing.value = true
-            repository.refreshObject(route.endpointPath, route.id).onFailure {
-                _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data"
-            }
+            repository
+                .refreshObject(route.endpointPath, route.id)
+                .onSuccess { if (showConfirmation) _refreshedMessage.value = "Refreshed" }
+                .onFailure { _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data" }
             _isRefreshing.value = false
         }
     }
@@ -139,6 +143,10 @@ constructor(
 
     fun errorShown() {
         _errorMessage.value = null
+    }
+
+    fun refreshedMessageShown() {
+        _refreshedMessage.value = null
     }
 
     fun startEditing() {

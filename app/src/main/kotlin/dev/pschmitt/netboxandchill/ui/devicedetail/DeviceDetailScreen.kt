@@ -68,6 +68,7 @@ fun DeviceDetailScreen(
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -75,6 +76,13 @@ fun DeviceDetailScreen(
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
+        }
+    }
+
+    LaunchedEffect(refreshedMessage) {
+        refreshedMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.refreshedMessageShown()
         }
     }
 
@@ -89,7 +97,7 @@ fun DeviceDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
+                    IconButton(onClick = { viewModel.refresh(showConfirmation = true) }, enabled = !isRefreshing) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                     IconButton(

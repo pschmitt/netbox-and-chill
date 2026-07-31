@@ -71,6 +71,7 @@ fun GenericDetailScreen(
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
@@ -88,6 +89,13 @@ fun GenericDetailScreen(
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
+        }
+    }
+
+    LaunchedEffect(refreshedMessage) {
+        refreshedMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.refreshedMessageShown()
         }
     }
 
@@ -135,7 +143,7 @@ fun GenericDetailScreen(
                             }
                         }
                     } else {
-                        IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
+                        IconButton(onClick = { viewModel.refresh(showConfirmation = true) }, enabled = !isRefreshing) {
                             Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                         }
                         if (viewModel.isPrintableDevice) {

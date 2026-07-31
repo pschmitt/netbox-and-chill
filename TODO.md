@@ -1234,3 +1234,110 @@ tweak - a few things worth resolving first:
 
 Status: not started, 2026-07-31 - needs a design decision on the points above before implementation
 starts.
+
+## NBC-33: confirm a manual refresh on the detail screen with a toast/snackbar
+
+Tapping the refresh icon on a device/item detail page gives no feedback on success - only a
+failure shows anything (the existing error Snackbar). A successful refresh just silently updates
+the fields, easy to miss.
+
+**Why:** user request - "we should at least show a little toast msg when we hit the refresh button
+on a device view page."
+**How to apply:** `GenericDetailViewModel.refresh()`/`DeviceDetailViewModel.refresh()` already have
+an `onFailure` branch wired to `_errorMessage`/`SnackbarHostState` (NBC-17-adjacent pattern) - add
+an `onSuccess` branch that shows a brief confirmation the same way (reusing the existing Snackbar
+host rather than a separate `Toast`, for visual consistency with how errors are already shown on
+these screens).
+
+Status: **done**, 2026-07-31. `refresh()` on both `GenericDetailViewModel` and
+`DeviceDetailViewModel` gained a `showConfirmation: Boolean = false` parameter (default false, so
+the automatic `init{}`-time refresh stays silent - only the explicit refresh-button tap passes
+`true`) driving a new `refreshedMessage` Snackbar, mirroring the existing `errorMessage` pattern on
+both screens. `just test`/`just lint` green; not yet live-verified on a device this round.
+
+## NBC-34: render markdown in custom fields NetBox itself marks as markdown-type
+
+Custom fields configured as markdown type in NetBox (e.g. a `purchase_store` field) render as plain
+text in the app instead of formatted markdown - only the hardcoded `comments` field gets Markdown
+treatment today (NBC-12).
+
+**Why:** user request - "we should support markdown formatting in the fields that explicitly do
+support it, such as our 'purchase_store' custom field for example."
+**How to apply:** `GenericFieldRenderer.MARKDOWN_KEYS` is currently a hardcoded `setOf("comments")`
+- custom fields need a different source of truth, since which ones are markdown-type is
+per-instance configuration, not a fixed key name. NetBox's `GET /api/extras/custom-fields/` lists
+each custom field's `name` and `type` (`{"value": "markdown", ...}` for markdown-type ones) - needs
+fetching/caching that list (similar shape to `JournalEntryRepository`'s content-type lookup) and
+checking a given custom field's key against it before deciding `FieldRow.Markdown` vs.
+`FieldRow.PlainText` in `buildFieldRows()`.
+
+Status: not started, 2026-07-31.
+
+## NBC-35: comment/markdown card had excess top/bottom padding from blank lines
+
+`CommentCard` (NBC-12/14) looked like it had too much vertical padding - actually blank leading/
+trailing lines in the source markdown being rendered as real empty paragraphs by the Markdown
+renderer, stacking with the card's own 16dp padding.
+
+**Why:** user request - "there seems to be a bit too much top and bottom padding on the comments
+widget. Looks like there are trailing newlines this way. make it more compact." - correctly
+self-diagnosed the actual cause.
+**How to apply:** `CommentCard` now calls `content.trim()` before handing it to the `Markdown`
+composable, stripping leading/trailing blank lines before they're parsed into paragraphs.
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green; not yet live-verified against a
+real comments field with trailing newlines this round.
+
+## NBC-36: clickable count summaries (rack count, VM count, ...) filter into the list view
+
+Summary count fields like "Rack Count"/"Virtual Machine Count" on a location (or similar rollup
+counts on other object types) render as plain numbers - tapping one should jump to that object
+type's list, pre-filtered to the item being viewed (e.g. tapping a location's rack count shows
+that location's racks).
+
+**Why:** user request - "the 'Rack count', 'Virtualmachine count' etc items that are displayed on
+the location view should be clickable. This should also be the case for the other views that
+display such summaries. clicking on it should bring us to the list view - prefiltered with the
+current location (or the other relevant item we are coming from)."
+**How to apply:** NetBox's own object detail pages compute these as reverse-relation counts (not
+regular fields NetBox's API necessarily returns inline on every object - needs checking exactly
+what `buildFieldRows()` currently receives for a location and whether counts like this are even
+present in the raw API response, or whether they'd need a separate `?location_id=<id>`-filtered
+count query per relation). If the data's there, rendering it as a `FieldRow.Reference`-like tappable
+row that navigates to `GenericListScreen` with a pre-applied filter needs `GenericListViewModel`/
+`GenericListScreen` to support an incoming filter query param in the first place - check whether
+that exists yet (NBC-6's list screens currently only support the user's own free-text search box)
+before assuming it's just a navigation-argument plumbing job.
+
+Status: not started, 2026-07-31.
+
+## NBC-37: device view should link to its device type page
+
+The device detail view shows the device type (e.g. as a "Model" field) but doesn't link to that
+device type's own page.
+
+**Why:** user request - "devices views currently lack the link to their dev type."
+**How to apply:** overlaps directly with NBC-29 (manufacturer/model fields should be tappable
+references) - device type is exactly one of the fields NBC-29 already covers. On the generic
+engine (NBC-6) this may already work if the raw device object's `device_type` field comes back as
+a full nested reference object (id + url), since `buildFieldRows()` already turns those into
+tappable `FieldRow.Reference`s automatically - needs checking whether it's actually missing there
+too, or only on the legacy `DeviceDetailScreen` (which is the one NBC-29 diagnosed as lacking ids
+for its typed fields, `deviceTypeModel` being a display-string-only column).
+
+Status: not started, 2026-07-31 - likely resolved by NBC-29's fix, verify once that lands.
+
+## NBC-38: device-type page should render front/rear images like the device page does
+
+The device-type detail page's front/rear stock photos don't render the same way NBC-22 fixed them
+to on the device page (un-cropped, `ContentScale.Fit`).
+
+**Why:** user request - "on the dev-type page the front/rear images should render similarly to how
+they do on the dev page."
+**How to apply:** NBC-22 fixed `DeviceDetailScreen.deviceTypePhotos()`'s `RemoteThumbnail` calls to
+use `ContentScale.Fit` instead of the default `Crop`. Find wherever the device-*type* detail page
+(likely reached via NBC-29/37's device-type link, or already existing as its own generic-engine
+screen) renders its own front/rear images and apply the same `contentScale = ContentScale.Fit`
+`RemoteThumbnail` parameter (added in NBC-22 specifically to support this).
+
+Status: not started, 2026-07-31.

@@ -21,6 +21,9 @@ fun CommentCard(content: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 2.dp,
     ) {
-        Markdown(content = content, modifier = Modifier.padding(16.dp))
+        // NetBox comments often carry leading/trailing blank lines - the Markdown renderer treats
+        // those as real empty paragraphs, padding the card out further than the 16dp below adds
+        // on its own.
+        Markdown(content = content.trim(), modifier = Modifier.padding(16.dp))
     }
 }
