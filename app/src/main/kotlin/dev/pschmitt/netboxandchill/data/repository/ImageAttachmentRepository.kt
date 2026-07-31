@@ -17,6 +17,8 @@ constructor(private val api: NetBoxApi, private val dao: ImageAttachmentDao) {
     fun observeFor(objectType: String, objectId: Int): Flow<List<ImageAttachmentEntity>> =
         dao.observeFor(objectType, objectId)
 
+    suspend fun cachedAll(): List<ImageAttachmentEntity> = dao.getAll()
+
     suspend fun refresh(objectType: String, objectId: Int): Result<List<ImageAttachmentEntity>> = runCatching {
         val entities =
             api.listImageAttachments(objectType, objectId).results.map { it.toEntity(objectType, objectId) }

@@ -16,6 +16,8 @@ class DeviceTypeRepository @Inject constructor(private val api: NetBoxApi, priva
 
     fun observe(id: Int): Flow<DeviceTypeEntity?> = dao.observeById(id)
 
+    suspend fun cachedAll(): List<DeviceTypeEntity> = dao.getAll()
+
     /** Fetches and caches [id] only if it isn't already cached - device-type photos rarely change. */
     suspend fun ensureCached(id: Int) {
         if (dao.getById(id) == null) refresh(id)

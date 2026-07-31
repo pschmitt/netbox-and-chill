@@ -1,6 +1,11 @@
 package dev.pschmitt.netboxandchill.ui.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,12 +16,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,9 +47,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
@@ -61,11 +75,88 @@ fun SettingsScreen(
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditServerDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
+    var tokenVisible by remember { mutableStateOf(false) }
+    var pendingTokenAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var tokenAuthError by remember { mutableStateOf<String?>(null) }
+    var tokenCopied by remember { mutableStateOf(false) }
+    val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
+
+    val biometricPrompt =
+        remember(activity) {
+            activity?.let { host ->
+                BiometricPrompt(
+                    host,
+                    ContextCompat.getMainExecutor(host),
+                    object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(
+                            result: BiometricPrompt.AuthenticationResult
+                        ) {
+                            currentPendingTokenAction?.invoke()
+                            pendingTokenAction = null
+                        }
+
+                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                            pendingTokenAction = null
+                            tokenAuthError = errString.toString()
+                        }
+                    },
+                )
+            }
+        }
+    val authenticateForToken: (() -> Unit) -> Unit = { action ->
+        val host = activity
+        if (host == null) {
+            tokenAuthError = "Device authentication is unavailable"
+        } else {
+            val authenticators =
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            when (BiometricManager.from(host).canAuthenticate(authenticators)) {
+                BiometricManager.BIOMETRIC_SUCCESS -> {
+                    tokenAuthError = null
+                    pendingTokenAction = action
+                    biometricPrompt?.authenticate(
+                        BiometricPrompt.PromptInfo.Builder()
+                            .setTitle("Authenticate to access API token")
+                            .setSubtitle("Confirm your fingerprint or device PIN")
+                            .setAllowedAuthenticators(authenticators)
+                            .build()
+                    )
+                }
+                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
+                    tokenAuthError = "Set up a fingerprint or device PIN to access the API token"
+                else -> tokenAuthError = "Device authentication is unavailable"
+            }
+        }
+    }
+
+    LaunchedEffect(credentials) {
+        // A server switch or disconnect must never leave a previously-authorized token visible or
+        // allow a pending authentication callback to act on credentials that are no longer shown.
+        tokenVisible = false
+        pendingTokenAction = null
+    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
+        }
+    }
+
+    LaunchedEffect(tokenAuthError) {
+        tokenAuthError?.let {
+            snackbarHostState.showSnackbar(it)
+            tokenAuthError = null
+        }
+    }
+
+    LaunchedEffect(tokenCopied) {
+        if (tokenCopied) {
+            snackbarHostState.showSnackbar("API token copied")
+            tokenCopied = false
         }
     }
 
@@ -102,6 +193,44 @@ fun SettingsScreen(
                 trailingContent = {
                     IconButton(onClick = { showEditServerDialog = true }) {
                         Icon(Icons.Default.Edit, contentDescription = "Change NetBox server")
+                    }
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
+                headlineContent = { Text("API token") },
+                supportingContent = {
+                    Text(if (tokenVisible) credentials.token else "••••••••••••")
+                },
+                trailingContent = {
+                    Row {
+                        IconButton(
+                            onClick = {
+                                if (tokenVisible) {
+                                    tokenVisible = false
+                                } else {
+                                    authenticateForToken { tokenVisible = true }
+                                }
+                            },
+                        ) {
+                            Icon(
+                                if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (tokenVisible) "Hide API token" else "Show API token",
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                authenticateForToken {
+                                    context.getSystemService<ClipboardManager>()?.setPrimaryClip(
+                                        ClipData.newPlainText("API token", credentials.token)
+                                    )
+                                    tokenCopied = true
+                                }
+                            },
+                            enabled = credentials.token.isNotBlank(),
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy API token")
+                        }
                     }
                 },
             )

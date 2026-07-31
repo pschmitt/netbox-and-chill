@@ -38,6 +38,23 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `renders device type front and rear images as inline Image rows`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"front_image":"https://x/media/devicetype-images/front.jpg","rear_image":"https://x/media/devicetype-images/rear.jpg"}"""
+                )
+            )
+        assertEquals(
+            listOf(
+                FieldRow.Image("Front Image", "https://x/media/devicetype-images/front.jpg"),
+                FieldRow.Image("Rear Image", "https://x/media/devicetype-images/rear.jpg"),
+            ),
+            rows,
+        )
+    }
+
+    @Test
     fun `a plain http url field becomes an ExternalLink, not PlainText`() {
         val rows = buildFieldRows(parse("""{"external_url":"https://vendor.example.com/support"}"""))
         assertEquals(listOf(FieldRow.ExternalLink("External URL", "https://vendor.example.com/support")), rows)
@@ -111,8 +128,39 @@ class GenericFieldRendererTest {
 
     @Test
     fun `renders a plain string field`() {
-        val rows = buildFieldRows(parse("""{"serial":"ABC123"}"""))
-        assertEquals(listOf(FieldRow.PlainText("Serial", "ABC123")), rows)
+        val rows = buildFieldRows(parse("""{"model":"PowerEdge R730"}"""))
+        assertEquals(listOf(FieldRow.PlainText("Model", "PowerEdge R730")), rows)
+    }
+
+    @Test
+    fun `identifier fields are copyable`() {
+        val rows = buildFieldRows(parse("""{"serial":"ABC123","asset_tag":"AT-001","primary_ip4":"10.0.0.5/24"}"""))
+        assertEquals(
+            listOf(
+                FieldRow.PlainText("Serial", "ABC123", copyable = true),
+                FieldRow.PlainText("Asset Tag", "AT-001", copyable = true),
+                FieldRow.PlainText("Primary IP4", "10.0.0.5/24", copyable = true),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `primary ip reference is copyable while other references are not`() {
+        val primaryIp =
+            buildFieldRows(
+                parse(
+                    """{"primary_ip":{"id":7,"url":"https://x/api/ipam/ip-addresses/7/","display":"10.0.0.5/24"}}"""
+                )
+            )
+        val site =
+            buildFieldRows(
+                parse(
+                    """{"site":{"id":3,"url":"https://x/api/dcim/sites/3/","display":"HQ"}}"""
+                )
+            )
+        assertEquals(true, (primaryIp.single() as FieldRow.Reference).copyable)
+        assertEquals(false, (site.single() as FieldRow.Reference).copyable)
     }
 
     @Test

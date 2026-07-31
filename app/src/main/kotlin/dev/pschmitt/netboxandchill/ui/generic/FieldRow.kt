@@ -4,12 +4,22 @@ package dev.pschmitt.netboxandchill.ui.generic
 sealed interface FieldRow {
     val label: String
 
-    data class PlainText(override val label: String, val value: String) : FieldRow
+    /** Identifier-shaped fields may expose a trailing copy action. */
+    data class PlainText(
+        override val label: String,
+        val value: String,
+        val copyable: Boolean = false,
+    ) : FieldRow
 
     /** NetBox's "comments" fields support Markdown - rendered, not shown as literal text. */
     data class Markdown(override val label: String, val content: String) : FieldRow
 
-    data class Reference(override val label: String, val target: RefTarget) : FieldRow
+    /** A reference can remain navigable while also exposing its display value for copying. */
+    data class Reference(
+        override val label: String,
+        val target: RefTarget,
+        val copyable: Boolean = false,
+    ) : FieldRow
 
     data class ReferenceList(override val label: String, val targets: List<RefTarget>) : FieldRow
 
@@ -18,6 +28,9 @@ sealed interface FieldRow {
     /** A downloadable NetBox-served file (a netbox-documents document, an image, ...) - see
      * GenericFieldRenderer's media-URL detection. */
     data class FileAttachment(override val label: String, val url: String, val filename: String) : FieldRow
+
+    /** A device-type stock photo rendered inline rather than as a download row. */
+    data class Image(override val label: String, val url: String) : FieldRow
 
     /** A plain string field whose value is itself a URL (e.g. a "vendor support URL" custom
      * field) - opens in the browser, as opposed to [Reference] which navigates in-app. */

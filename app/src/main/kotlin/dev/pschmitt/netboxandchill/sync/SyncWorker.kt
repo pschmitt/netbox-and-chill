@@ -6,7 +6,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 
 @HiltWorker
@@ -15,13 +14,13 @@ class SyncWorker
 constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val deviceRepository: DeviceRepository,
+    private val offlineSyncRepository: OfflineSyncRepository,
     private val settingsRepository: SettingsRepository,
     private val syncNotifier: SyncNotifier,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (!settingsRepository.isConfigured) return Result.success()
-        return deviceRepository
+        return offlineSyncRepository
             .syncAll()
             .fold(
                 onSuccess = { Result.success() },

@@ -137,7 +137,7 @@ fun GenericDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(title ?: "Object #${viewModel.route.id}") },
+                title = { Text("Details") },
                 navigationIcon = {
                     IconButton(onClick = if (isEditing) viewModel::cancelEditing else onBack) {
                         Icon(
@@ -242,6 +242,11 @@ fun GenericDetailScreen(
             else -> {
                 var selectedTab by remember { mutableStateOf(0) }
                 Column(Modifier.padding(padding).fillMaxSize()) {
+                    Text(
+                        title ?: "Object #${viewModel.route.id}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
                     if (journalEntries.isNotEmpty()) {
                         TabRow(selectedTabIndex = selectedTab) {
                             Tab(
@@ -275,6 +280,7 @@ fun GenericDetailScreen(
                                         )
                                     },
                                     onDownloadAttachment = viewModel::downloadAttachment,
+                                    localAttachmentFile = viewModel::localAttachmentFile,
                                     isDownloading = isDownloading,
                                     onCopyValue = onCopyValue,
                                 )
@@ -369,6 +375,7 @@ private fun LazyListScope.fieldRow(
     onNavigateToReference: (String, Int) -> Unit,
     onOpenUrl: (String) -> Unit,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
+    localAttachmentFile: (url: String, filename: String) -> java.io.File?,
     isDownloading: Boolean,
     onCopyValue: (label: String, value: String) -> Unit,
 ) {
@@ -422,6 +429,7 @@ private fun LazyListScope.fieldRow(
                     RemoteThumbnail(
                         imageUrl = row.url,
                         contentDescription = row.label,
+                        localFile = localAttachmentFile(row.url, row.url.attachmentFilename()),
                         modifier = Modifier.fillMaxWidth().height(160.dp).padding(top = 4.dp),
                         contentScale = ContentScale.Fit,
                     )
@@ -506,6 +514,9 @@ private fun LazyListScope.fieldRow(
             }
     }
 }
+
+private fun String.attachmentFilename(): String =
+    substringAfterLast('/').substringBefore('?').ifBlank { "attachment" }
 
 @Composable
 private fun JournalEntryItem(entry: JournalEntryUi) {

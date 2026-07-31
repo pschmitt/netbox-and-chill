@@ -185,6 +185,10 @@ constructor(
 
     fun downloadAttachment(url: String, filename: String) {
         if (_isDownloading.value) return
+        fileDownloadRepository.persistentFile(url, filename)?.let {
+            _fileToOpen.value = it
+            return
+        }
         viewModelScope.launch {
             _isDownloading.value = true
             fileDownloadRepository
@@ -198,6 +202,9 @@ constructor(
     fun fileOpened() {
         _fileToOpen.value = null
     }
+
+    fun localAttachmentFile(url: String, filename: String): File? =
+        fileDownloadRepository.persistentFile(url, filename)
 
     private fun decode(rawJson: String): JsonObject? =
         runCatching { json.decodeFromString(JsonObject.serializer(), rawJson) }.getOrNull()

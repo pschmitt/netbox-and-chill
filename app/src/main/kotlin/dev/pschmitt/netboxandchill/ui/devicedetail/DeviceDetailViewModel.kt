@@ -10,7 +10,9 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
+import java.io.File
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +41,7 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
+    private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
 
     private val deviceId: Int = savedStateHandle.toRoute<Route.DeviceDetail>().deviceId
@@ -114,6 +117,9 @@ constructor(
     fun refreshedMessageShown() {
         _refreshedMessage.value = null
     }
+
+    fun localImageFile(url: String, filename: String): File? =
+        fileDownloadRepository.persistentFile(url, filename)
 
     private fun apiUrlToWebUrl(apiUrl: HttpUrl): String =
         apiUrl.newBuilder().encodedPath(apiUrl.encodedPath.removePrefix("/api")).build().toString()

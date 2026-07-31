@@ -26,6 +26,8 @@ class DirectoryRepository @Inject constructor(private val api: GenericNetBoxApi,
 
     suspend fun cachedModelCount(): Int = dao.count()
 
+    suspend fun cachedModels(): List<NetBoxModelEntity> = dao.getAll()
+
     suspend fun refresh(): Result<Int> = runCatching {
         val root = api.getApiRoot()
         val models = mutableListOf<NetBoxModelEntity>()

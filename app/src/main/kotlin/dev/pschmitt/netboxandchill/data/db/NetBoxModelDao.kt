@@ -16,6 +16,8 @@ interface NetBoxModelDao {
 
     @Query("SELECT COUNT(*) FROM netbox_models") suspend fun count(): Int
 
+    @Query("SELECT * FROM netbox_models") suspend fun getAll(): List<NetBoxModelEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertAll(models: List<NetBoxModelEntity>)
 
     @Query("DELETE FROM netbox_models") suspend fun clear()

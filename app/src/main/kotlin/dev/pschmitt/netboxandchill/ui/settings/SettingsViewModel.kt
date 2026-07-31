@@ -7,6 +7,7 @@ import dev.pschmitt.netboxandchill.data.db.AppDatabase
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.sync.OfflineSyncRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ class SettingsViewModel
 constructor(
     val settingsRepository: SettingsRepository,
     private val deviceRepository: DeviceRepository,
+    private val offlineSyncRepository: OfflineSyncRepository,
     private val directoryRepository: DirectoryRepository,
     private val appDatabase: AppDatabase,
 ) : ViewModel() {
@@ -44,7 +46,7 @@ constructor(
     fun syncNow() {
         viewModelScope.launch {
             _isSyncing.value = true
-            deviceRepository
+            offlineSyncRepository
                 .syncAll()
                 .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached data" }
             _cachedDeviceCount.value = deviceRepository.cachedDeviceCount()

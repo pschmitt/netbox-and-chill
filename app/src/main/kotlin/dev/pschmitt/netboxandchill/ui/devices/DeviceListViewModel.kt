@@ -7,6 +7,8 @@ import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,7 @@ class DeviceListViewModel
 constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
+    private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -78,4 +81,7 @@ constructor(
     fun errorShown() {
         _errorMessage.value = null
     }
+
+    fun localImageFile(url: String, filename: String): File? =
+        fileDownloadRepository.persistentFile(url, filename)
 }

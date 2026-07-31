@@ -111,6 +111,7 @@ fun DeviceListScreen(
                             DeviceRow(
                                 device = device,
                                 frontImageUrl = deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
+                                localImageFile = viewModel::localImageFile,
                                 onClick = { onDeviceClick(device.id) },
                             )
                         }
@@ -122,12 +123,18 @@ fun DeviceListScreen(
 }
 
 @Composable
-private fun DeviceRow(device: DeviceEntity, frontImageUrl: String?, onClick: () -> Unit) {
+private fun DeviceRow(
+    device: DeviceEntity,
+    frontImageUrl: String?,
+    localImageFile: (String, String) -> java.io.File?,
+    onClick: () -> Unit,
+) {
     ListItem(
         leadingContent = {
             RemoteThumbnail(
                 imageUrl = frontImageUrl,
                 contentDescription = device.deviceTypeModel,
+                localFile = frontImageUrl?.let { localImageFile(it, "device-type-${device.deviceTypeId}-front") },
                 modifier = Modifier.size(72.dp),
             )
         },

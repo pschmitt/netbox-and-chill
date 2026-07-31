@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import java.io.File
 
 /**
  * Square thumbnail for a NetBox-hosted image (device-type stock photo, image attachment). Falls
@@ -23,10 +24,11 @@ import coil3.compose.AsyncImage
 fun RemoteThumbnail(
     imageUrl: String?,
     contentDescription: String?,
+    localFile: File? = null,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
 ) {
-    if (imageUrl.isNullOrBlank()) {
+    if (imageUrl.isNullOrBlank() && localFile == null) {
         Box(
             modifier = modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
@@ -39,7 +41,7 @@ fun RemoteThumbnail(
         }
     } else {
         AsyncImage(
-            model = imageUrl,
+            model = localFile ?: imageUrl,
             contentDescription = contentDescription,
             modifier = modifier.clip(RoundedCornerShape(8.dp)),
             contentScale = contentScale,

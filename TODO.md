@@ -116,9 +116,8 @@ prefixing it for a subpath-reverse-proxied instance. NBC-16 (merged concurrently
 case (auth still applied, base-URL rewrite skipped) - `provideImageLoader` was pointed at that
 client instead of the plain one, so this never shipped as a live bug.
 
-Not done (still needs its own pass, see above): downloading/caching image *bytes* to disk for
-true offline browsing (Coil's disk cache is best-effort, not a durable offline store) - same
-"binary asset synced for offline use" shape as NBC-7's document-viewing gap.
+The durable offline-asset pass now stores image/document bytes under `filesDir` when the Settings
+toggle is enabled, and all image/document views prefer those local files before using the network.
 
 `just build`/`just lint`/`just test` all green on rofl-14. Installed on all three physical
 devices (Zenfone 10, Mi Pad 4, Pixel 5) via `just deploy-all` - app launches cleanly on all three,
@@ -133,10 +132,9 @@ an existing infrastructure issue unrelated to this change, not something introdu
 once the instance is healthy again to actually see the thumbnails/photos render, not just confirm
 the app doesn't crash while trying.
 
-Status: mostly done (network-backed image display) - code complete, build/lint/test green,
-installed and launches cleanly on all three devices, 2026-07-31. Live visual verification against
-real device-type photos/image-attachments still pending due to an unrelated netbox.brkn.lol
-outage during this session. Offline asset sync intentionally out of scope for this pass.
+Status: **done**, 2026-07-31 - durable image syncing, local-file rendering, and generic media
+discovery are implemented; remote `just lint`, `just test`, and `just build` pass. Live visual
+verification against current NetBox media remains a physical-device follow-up.
 
 ## NBC-4: New app icon - NetBox logo x raised-eyebrow emoji mashup
 
@@ -150,8 +148,7 @@ non-affiliated fan app needs the same care findroidplus took with the Jellyfin l
 theirs is "a combination of the Jellyfin logo and the Android robot"). Produce as a vector
 adaptive icon (foreground + background layers) like the current one, not a raster mashup image.
 
-Status: in progress, 2026-07-31 - detail titles are being moved into the scrollable page bodies
-for both typed devices and generic objects; verification remains.
+Status: not started, 2026-07-31.
 
 ## NBC-5: Editable objects (generic PATCH-based editing)
 
@@ -257,17 +254,18 @@ sidebar section with no plugin-specific code - confirmed live on the Mi Pad 4: t
 section listed real PDF filenames from the user's instance via the plain generic list/detail
 screens, no special-casing needed.
 
-Still missing for *full* support:
-- [ ] Opening/downloading/previewing the actual file content - the generic detail screen shows
-  the document's metadata fields, but there's no in-app file viewer or download/cache step yet.
-  This is the same "binary asset synced for offline use" work NBC-3 already flagged wanting a
-  joint design pass for.
+The generic detail screen now opens/downloads media-backed document fields and the optional offline
+sync sweep stores them durably, so the plugin needs no special API code for ordinary document files.
+
+Still open for full support:
+- [ ] Verify any plugin-specific actions or nested structures that do not fit the generic
+  list/detail shape; ordinary file fields are covered by the generic media path.
 - [ ] Nothing plugin-specific has been verified beyond "list + basic metadata detail" - e.g.
   whether netbox-documents exposes anything (custom actions, nested structure) that doesn't fit
   the generic list/detail shape.
 
-Status: partially done (list/detail browsing works via NBC-6, confirmed live), 2026-07-31 - file
-content viewing still open, see NBC-3.
+Status: mostly done (generic list/detail plus file opening and durable offline copies), 2026-07-31 -
+remote `just lint`, `just test`, and `just build` pass; plugin-specific behavior remains unverified.
 
 ## NBC-8: App Links for the user's NetBox domain + deep link to specific object views
 
@@ -673,8 +671,8 @@ Mi Pad 4 and Pixel 5; live-verified end-to-end against the real instance - opene
 netbox-documents PDF (LG monitor dismantling instructions) from the "Documents" section, confirmed
 the natural Android "Open with" chooser appears (multiple PDF-capable apps installed) and the PDF
 renders correctly once opened. Zenfone 10 not reachable over adb this session - install there next
-time it's available. Actual offline caching/pre-sync of attachments (vs. on-demand download when
-tapped) is still open, tracked under NBC-17.
+time it's available. Durable pre-sync of attachments is now covered by NBC-17's opt-in `filesDir`
+sweep; this entry describes the original on-demand cache behavior.
 
 ## NBC-17: full offline sync - attachments, sync-on-edit, scheduled background sync, error handling
 
@@ -721,25 +719,21 @@ sync errors" request was pointing at for the one sync path already wired to the 
 (sync-on-edit), enqueuing the *existing* `SyncWorker` in the background - inert/safe to ship even
 while offline, since it's just a WorkManager enqueue.
 
-**Slice 2 (not started):** the actual attachment-to-disk download sweep (extend `SyncWorker` to
-scan all cached `NetBoxObjectEntity` rows when the new setting is on, downloading each detected
-attachment via a new durable - not cache-dir - `FileDownloadRepository` method, with
-`GenericDetailScreen` preferring an already-synced local copy over re-downloading); extending the
-existing `SyncWorker`/`SyncScheduler` to also sync the NBC-6 generic-object cache, not just the
-legacy device list. The "surface background sync failures via a `Notification` (a background
-`WorkManager` failure has no `Activity` to show a `Snackbar` in, unlike the manual-sync case slice 1
-covers)" part of this slice has been split out and done as NBC-23, since it turned out to overlap
-with that task's app-wide sync indicator - see NBC-23 for the notification/permission/channel work;
-`SyncWorker` now posts via `SyncNotifier` on exhausted retries. The attachment sweep and
-generic-object-cache sync remain open here.
+**Slice 2 (now done):** the attachment-to-disk download sweep extends `SyncWorker` through a shared
+coordinator that scans cached generic objects and typed image metadata, downloads detected media
+through a durable (not cache-dir) `FileDownloadRepository` method, and makes detail/list image views
+prefer an already-synced local copy. The coordinator also syncs the NBC-6 generic-object cache,
+not just the legacy device list. The "surface background sync failures via a `Notification` (a
+background `WorkManager` failure has no `Activity` to show a `Snackbar` in, unlike the manual-sync
+case slice 1 covers)" part of this slice has been split out and done as NBC-23, since it turned out
+to overlap with that task's app-wide sync indicator - see NBC-23 for the notification/permission/
+channel work; `SyncWorker` posts via `SyncNotifier` on exhausted retries.
 
-Status: **in progress**, 2026-07-31 - slice 1 done (`just test`/`just lint` green on rofl-14).
-Live-verified on the Mi Pad 4 once netbox.brkn.lol's outage resolved: Settings shows the new "Sync
-attachments to disk" toggle (flips cleanly, off by default as intended), "Sync now" completed
-without error against the real instance (382 real cached devices), and editing an object (NBC-15's
-own detail screen) no longer needs a manual pull-to-refresh to reflect the change. Slice 2's
-background-failure-notification piece done via NBC-23 (see above); the attachment-to-disk sweep
-and generic-object-cache sync are still not started.
+Status: **done**, 2026-07-31 - the existing toggle now drives a durable `filesDir` attachment sweep;
+manual and WorkManager sync share one coordinator that refreshes typed devices, the directory, all
+generic object collections, device-type/image-attachment metadata, and media bytes. Successful
+edits continue to enqueue sync-on-edit, and NBC-23 covers background failure notifications. Remote
+`just lint`, `just test`, and `just build` pass; live offline rendering remains a device follow-up.
 
 ## NBC-18: show cached data immediately when the server is unreachable at launch
 
@@ -1242,7 +1236,9 @@ instead of stretching the fixed app bar. Check both `DeviceDetailScreen` and `Ge
 treatment in both, which is also another point in favor of NBC-29's option (b) (route everything
 through the generic engine) rather than fixing this twice.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31 - typed and generic detail titles now render at the top of the
+scrollable page body while the app bars keep short labels; remote verification is recorded in this
+pass.
 
 ## NBC-31: copy-to-clipboard icons on identifier fields (Serial, Primary IP, Asset tag, ...)
 

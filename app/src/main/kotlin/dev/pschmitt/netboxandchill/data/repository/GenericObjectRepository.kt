@@ -8,6 +8,9 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -59,6 +62,13 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
 
     suspend fun cachedCount(endpointPath: String): Int = dao.count(endpointPath)
 
+    suspend fun cachedMediaAttachments(): List<OfflineAttachment> =
+        dao.getAll().flatMap { entity ->
+            val objectJson = runCatching { json.decodeFromString(JsonObject.serializer(), entity.json) }.getOrNull()
+                ?: return@flatMap emptyList()
+            objectJson.mediaAttachments()
+        }
+
     /** Upserts arbitrary already-fetched objects (e.g. [GlobalSearchRepository]'s `?q=` hits) into
      * the same cache [observeObjects] reads from, so a live search result is also offline-findable
      * from then on - reuses the same [toEntity] mapping [syncAll] uses, not a separate path. */
@@ -85,4 +95,33 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
             syncedAt = System.currentTimeMillis(),
         )
     }
+}
+
+data class OfflineAttachment(val url: String, val filename: String)
+
+internal fun JsonObject.mediaAttachments(): List<OfflineAttachment> {
+    val attachments = linkedMapOf<String, OfflineAttachment>()
+
+    fun visit(element: JsonElement, fallbackName: String?) {
+        when (element) {
+            is JsonPrimitive -> {
+                val value = element.contentOrNull
+                if (value != null && value.startsWith("http") && "/media/" in value) {
+                    val filename =
+                        fallbackName?.takeIf { '.' in it && '/' !in it }
+                            ?: value.substringAfterLast('/').substringBefore('?')
+                    attachments.putIfAbsent(value, OfflineAttachment(value, filename.ifBlank { "attachment" }))
+                }
+            }
+            is JsonObject ->
+                element.forEach { (key, child) ->
+                    visit(child, (element["filename"] as? JsonPrimitive)?.contentOrNull ?: key)
+                }
+            is JsonArray -> element.forEach { child -> visit(child, fallbackName) }
+        }
+    }
+
+    val filename = (this["filename"] as? JsonPrimitive)?.contentOrNull
+    for ((key, value) in this) visit(value, filename ?: key)
+    return attachments.values.toList()
 }

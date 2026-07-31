@@ -4,6 +4,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.pschmitt.netboxandchill.di.DownloadClient
 import java.io.File
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +27,37 @@ constructor(
     @ApplicationContext private val context: Context,
 ) {
 
+    /** Returns a previously synced durable copy, if one exists for this exact media URL. */
+    fun persistentFile(url: String, filename: String): File? =
+        persistentPath(url, filename).takeIf { it.isFile }
+
+    /** Downloads an attachment into filesDir so Android's cache eviction cannot remove it. */
+    suspend fun downloadToPersistent(url: String, filename: String): Result<File> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val target = persistentPath(url, filename)
+                if (target.isFile) return@runCatching target
+                target.parentFile?.mkdirs()
+                val temp = File(target.parentFile, "${target.name}.part")
+                okHttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
+                    if (!response.isSuccessful) error("Download failed: HTTP ${response.code}")
+                    response.body.byteStream().use { input ->
+                        temp.outputStream().use { output -> input.copyTo(output) }
+                    }
+                }
+                check(temp.renameTo(target)) { "Couldn't finalize downloaded attachment" }
+                target
+            }
+        }
+
     suspend fun downloadToCache(url: String, filename: String): Result<File> =
         withContext(Dispatchers.IO) {
             runCatching {
                 okHttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
                     if (!response.isSuccessful) error("Download failed: HTTP ${response.code}")
                     val downloadsDir = File(context.cacheDir, "downloads").apply { mkdirs() }
-                    val outFile = File(downloadsDir, filename.ifBlank { "attachment" })
+                    val safeFilename = filename.substringAfterLast('/').substringAfterLast('\\')
+                    val outFile = File(downloadsDir, safeFilename.ifBlank { "attachment" })
                     response.body.byteStream().use { input ->
                         outFile.outputStream().use { output -> input.copyTo(output) }
                     }
@@ -40,4 +65,15 @@ constructor(
                 }
             }
         }
+
+    private fun persistentPath(url: String, filename: String): File {
+        val digest = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
+        val hash = digest.joinToString("") { "%02x".format(it) }
+        val extension =
+            filename.substringAfterLast('.', "")
+                .takeIf { it.length in 1..10 && it.all(Char::isLetterOrDigit) }
+                ?.let { ".${it.lowercase()}" }
+                ?: ""
+        return File(File(context.filesDir, "offline-attachments"), "$hash$extension")
+    }
 }

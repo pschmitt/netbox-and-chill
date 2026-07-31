@@ -15,6 +15,8 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -36,6 +38,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -48,6 +51,7 @@ import dev.pschmitt.netboxandchill.R
 fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
     var baseUrl by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }
+    var tokenVisible by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     // ic_launcher is an <adaptive-icon> (background + foreground layers) - painterResource() only
@@ -133,19 +137,28 @@ fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltVi
                 // label) since it's an example format, not something to type verbatim.
                 placeholder = { Text("nbt_xxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation =
+                    if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            val clipboard = context.getSystemService<ClipboardManager>()
-                            token = clipboard?.primaryClip?.takeIf { it.itemCount > 0 }
-                                    ?.getItemAt(0)
-                                    ?.text
-                                    ?.toString()
-                                    ?.trim() ?: token
+                    Row {
+                        IconButton(onClick = { tokenVisible = !tokenVisible }) {
+                            Icon(
+                                if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (tokenVisible) "Hide token" else "Show token",
+                            )
                         }
-                    ) {
-                        Icon(Icons.Default.ContentPaste, contentDescription = "Paste from clipboard")
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService<ClipboardManager>()
+                                token = clipboard?.primaryClip?.takeIf { it.itemCount > 0 }
+                                        ?.getItemAt(0)
+                                        ?.text
+                                        ?.toString()
+                                        ?.trim() ?: token
+                            }
+                        ) {
+                            Icon(Icons.Default.ContentPaste, contentDescription = "Paste from clipboard")
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

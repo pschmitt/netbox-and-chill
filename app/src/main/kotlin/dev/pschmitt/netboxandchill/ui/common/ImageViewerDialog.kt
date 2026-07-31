@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import java.io.File
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -52,7 +53,12 @@ import kotlinx.coroutines.launch
  * `ImageAttachmentEntity` so the same viewer also covers the device-type front/rear photos, which
  * carry no attachment metadata at all (see NBC-20's device-type-photos scope decision).
  */
-data class ImageViewerItem(val url: String, val title: String, val metadata: List<Pair<String, String>> = emptyList())
+data class ImageViewerItem(
+    val url: String,
+    val title: String,
+    val metadata: List<Pair<String, String>> = emptyList(),
+    val localFile: File? = null,
+)
 
 private val DismissThreshold = 120.dp
 private const val MIN_SCALE = 1f
@@ -152,7 +158,7 @@ private fun ZoomableImagePage(item: ImageViewerItem, onZoomChanged: (Boolean) ->
             }
     ) {
         AsyncImage(
-            model = item.url,
+            model = item.localFile ?: item.url,
             contentDescription = item.title,
             modifier =
                 Modifier.fillMaxSize().graphicsLayer {

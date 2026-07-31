@@ -25,6 +25,8 @@ interface DeviceDao {
 
     @Query("SELECT * FROM devices WHERE id = :id") suspend fun getById(id: Int): DeviceEntity?
 
+    @Query("SELECT * FROM devices") suspend fun getAll(): List<DeviceEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertAll(devices: List<DeviceEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(device: DeviceEntity)

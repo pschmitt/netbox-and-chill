@@ -136,6 +136,7 @@ dependencies {
 
     // Encrypted settings (base URL + API token)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.biometric)
 
     // Background sync
     implementation(libs.androidx.work)
