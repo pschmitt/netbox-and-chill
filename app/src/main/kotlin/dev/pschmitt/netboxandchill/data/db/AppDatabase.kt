@@ -18,7 +18,7 @@ import androidx.room.RoomDatabase
             PendingEditEntity::class,
             RecentVisitEntity::class,
         ],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

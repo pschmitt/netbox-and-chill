@@ -86,6 +86,7 @@ fun NetBoxNavHost(
                 deviceId = route.deviceId,
                 onBack = { navController.popBackStack() },
                 onDeviceTypeClick = { id -> navController.navigate(Route.Generic(DEVICE_TYPES_ENDPOINT_PATH, id)) },
+                onReferenceClick = { endpointPath, id -> navController.navigate(Route.Generic(endpointPath, id)) },
             )
         }
         composable<Route.GenericList> { backStackEntry ->

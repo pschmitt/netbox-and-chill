@@ -71,6 +71,7 @@ fun DeviceDetailScreen(
     deviceId: Int,
     onBack: () -> Unit,
     onDeviceTypeClick: (Int) -> Unit,
+    onReferenceClick: (endpointPath: String, id: Int) -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
@@ -183,8 +184,16 @@ fun DeviceDetailScreen(
                 }
                 deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index -> imageViewer = items to index }
                 imageAttachmentRow(imageAttachments, viewModel::localImageFile) { items, index -> imageViewer = items to index }
-                detailField("Site", current.siteName)
-                detailField("Rack", current.rackName)
+                detailField(
+                    "Site",
+                    current.siteName,
+                    onClick = current.siteId?.let { id -> { onReferenceClick("api/dcim/sites/", id) } },
+                )
+                detailField(
+                    "Rack",
+                    current.rackName,
+                    onClick = current.rackId?.let { id -> { onReferenceClick("api/dcim/racks/", id) } },
+                )
                 detailField("Position", current.position?.toString())
                 detailField("Role", current.roleName)
                 detailField("Manufacturer", current.manufacturerName)

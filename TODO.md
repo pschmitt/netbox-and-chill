@@ -218,15 +218,10 @@ device list and generic list screens. Scanning/deep-linking was generalized too
 URL now resolves, not just `/dcim/devices/`, and the manifest intent-filter path patterns were
 broadened to match (dcim/ipam/circuits/tenancy/virtualization/wireless/vpn/extras/plugins).
 
-Follow-ups noted during/after this landed (not done yet):
-- [ ] "Linked items" on the *Device* detail screen (e.g. tapping its Rack/Site) don't navigate
-  anywhere yet - `DeviceEntity` only stores display strings (`rackName`, `siteName`), not the
-  id/url needed to link out, because the typed Device pipeline predates this generic one. The
-  clean fix is migrating Device detail rendering onto the same generic JSON-based renderer used
-  for every other type (`GenericFieldRenderer`) instead of bolting related-object ids onto
-  `DeviceEntity` - would also finally unify the two parallel list/detail code paths this section
-  above deliberately left split. Not done - flagging as the natural next step for whoever picks
-  device-detail work back up.
+Follow-up noted during/after this landed:
+- [x] "Linked items" on the *Device* detail screen (e.g. tapping its Rack/Site) now navigate to
+  the existing generic detail screens. The typed cache persists the related IDs while retaining
+  its proven device-specific rendering; full migration to the generic renderer remains optional.
 - [x] Live verification - the Mi Pad 4 is logged into the user's real NetBox instance
   (netbox.brkn.lol). Confirmed against real data: directory discovery correctly builds the full
   sidebar tree (Circuits/Core/... groups, each with all their models, pin stars working), the
