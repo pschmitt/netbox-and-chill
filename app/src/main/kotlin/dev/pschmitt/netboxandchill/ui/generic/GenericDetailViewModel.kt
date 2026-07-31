@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,6 +29,7 @@ constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: GenericObjectRepository,
     private val settingsRepository: SettingsRepository,
+    private val fileDownloadRepository: FileDownloadRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -43,6 +46,12 @@ constructor(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _isDownloading = MutableStateFlow(false)
+    val isDownloading: StateFlow<Boolean> = _isDownloading.asStateFlow()
+
+    private val _fileToOpen = MutableStateFlow<File?>(null)
+    val fileToOpen: StateFlow<File?> = _fileToOpen.asStateFlow()
 
     private val objectFlow = repository.observeObject(route.endpointPath, route.id)
 
@@ -117,6 +126,22 @@ constructor(
                 .onFailure { _errorMessage.value = it.message ?: "Couldn't save changes" }
             _isSaving.value = false
         }
+    }
+
+    fun downloadAttachment(url: String, filename: String) {
+        if (_isDownloading.value) return
+        viewModelScope.launch {
+            _isDownloading.value = true
+            fileDownloadRepository
+                .downloadToCache(url, filename)
+                .onSuccess { _fileToOpen.value = it }
+                .onFailure { _errorMessage.value = it.message ?: "Couldn't download $filename" }
+            _isDownloading.value = false
+        }
+    }
+
+    fun fileOpened() {
+        _fileToOpen.value = null
     }
 
     private fun decode(rawJson: String): JsonObject? =

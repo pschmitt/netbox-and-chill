@@ -31,12 +31,17 @@ private val EDIT_BLOCKLIST =
  */
 fun buildFieldRows(obj: JsonObject): List<FieldRow> = buildList {
     for ((key, value) in obj) {
+        val text = (value as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
         when {
             key in SKIPPED_KEYS -> Unit
             key in MARKDOWN_KEYS ->
-                (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let {
-                    add(FieldRow.Markdown(Humanize.label(key), it))
-                }
+                text?.takeIf { it.isNotBlank() }?.let { add(FieldRow.Markdown(Humanize.label(key), it)) }
+            text != null && isMediaUrl(text) -> {
+                val filename =
+                    (obj["filename"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+                        ?: text.substringAfterLast('/')
+                add(FieldRow.FileAttachment(Humanize.label(key), text, filename))
+            }
             else -> renderField(Humanize.label(key), value)?.let(::add)
         }
     }
@@ -64,8 +69,16 @@ private fun renderPrimitive(label: String, value: JsonPrimitive): FieldRow? {
         return FieldRow.PlainText(label, if (it) "Yes" else "No")
     }
     val text = value.contentOrNull?.takeIf { it.isNotBlank() } ?: return null
+    if (value.isString && isHttpUrl(text)) return FieldRow.ExternalLink(label, text)
     return FieldRow.PlainText(label, text)
 }
+
+private fun isHttpUrl(text: String): Boolean =
+    (text.startsWith("http://") || text.startsWith("https://")) && text.toHttpUrlOrNull() != null
+
+/** NetBox-served uploaded files are always under a `/media/` path, regardless of app/plugin. */
+private fun isMediaUrl(text: String): Boolean =
+    isHttpUrl(text) && text.toHttpUrlOrNull()?.encodedPath?.contains("/media/") == true
 
 private fun renderObject(label: String, value: JsonObject): FieldRow? {
     asRefTarget(value)?.let { return FieldRow.Reference(label, it) }

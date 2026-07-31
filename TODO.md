@@ -443,3 +443,32 @@ body - should reuse `CommentCard`/the Markdown renderer from NBC-12/NBC-14 rathe
 Not investigated yet: whether posting new journal entries (not just reading) is wanted too.
 
 Status: not started, 2026-07-31.
+
+## NBC-16: download and open file/document attachments (PDFs etc.)
+
+Detail screens now render any NetBox-hosted file field (documents, images, ...) as a tappable
+"FileAttachment" row instead of a raw media URL. Tapping it downloads the file to the app's cache
+dir and hands it to Android's normal `ACTION_VIEW` resolution via a FileProvider content URI - so
+known types (PDF, images, ...) open directly in whichever app the user has set as default, and
+anything ambiguous/unhandled falls through to the standard "Open with" chooser. Deliberately not
+using `createChooser` - always forcing a chooser would fight Android's own default-app handling.
+
+**Why:** user request - "we need a way to actually support displaying documents, esp. pdf!" plus a
+follow-up constraint - "attachments with unsupported filetypes should go through the regular 'open
+with' android dialog" - ruling out a custom in-app viewer or a forced chooser.
+**How to apply:** `GenericFieldRenderer.isMediaUrl()` flags any field whose value is an http(s) URL
+under a `/media/` path as `FieldRow.FileAttachment`; `GenericDetailViewModel.downloadAttachment()`
+pulls it via `FileDownloadRepository` (a dedicated `@DownloadClient` OkHttpClient - auth header
+only, no `DynamicBaseUrlInterceptor`, since NetBox's returned media URLs are already
+complete/correct and must not be re-prefixed) into `cacheDir/downloads/`, then
+`FileOpener.fileViewIntent()` builds the `ACTION_VIEW` intent via
+`FileProvider`/`res/xml/file_paths.xml`. Plain (non-media) http(s) fields instead render as
+`FieldRow.ExternalLink` and open in the browser.
+
+Status: **done**, 2026-07-31. `just test`/`just lint`/`just build` green on rofl-14; installed on
+Mi Pad 4 and Pixel 5; live-verified end-to-end against the real instance - opened a real
+netbox-documents PDF (LG monitor dismantling instructions) from the "Documents" section, confirmed
+the natural Android "Open with" chooser appears (multiple PDF-capable apps installed) and the PDF
+renders correctly once opened. Zenfone 10 not reachable over adb this session - install there next
+time it's available. Actual offline caching/pre-sync of attachments (vs. on-demand download when
+tapped) is still open, tracked under the broader NBC-3/NBC-7 offline-assets scope.

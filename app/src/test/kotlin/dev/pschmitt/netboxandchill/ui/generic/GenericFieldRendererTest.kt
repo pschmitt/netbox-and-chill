@@ -12,6 +12,45 @@ class GenericFieldRendererTest {
     private fun parse(rawJson: String): JsonObject = Json.decodeFromString(JsonObject.serializer(), rawJson)
 
     @Test
+    fun `detects a netbox media URL as a FileAttachment using the sibling filename field`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"document":"https://netbox.brkn.lol/media/netbox-documents/188_x.pdf","filename":"x.pdf"}"""
+                )
+            )
+        // "filename" is also its own top-level field and renders as its own PlainText row too -
+        // only asserting the FileAttachment row we actually care about here.
+        assertTrue(
+            rows.contains(
+                FieldRow.FileAttachment("Document", "https://netbox.brkn.lol/media/netbox-documents/188_x.pdf", "x.pdf")
+            )
+        )
+    }
+
+    @Test
+    fun `falls back to the URL's last path segment when there is no filename field`() {
+        val rows = buildFieldRows(parse("""{"image":"https://x/media/image-attachments/foo.png"}"""))
+        assertEquals(
+            listOf(FieldRow.FileAttachment("Image", "https://x/media/image-attachments/foo.png", "foo.png")),
+            rows,
+        )
+    }
+
+    @Test
+    fun `a plain http url field becomes an ExternalLink, not PlainText`() {
+        val rows = buildFieldRows(parse("""{"external_url":"https://vendor.example.com/support"}"""))
+        assertEquals(listOf(FieldRow.ExternalLink("External URL", "https://vendor.example.com/support")), rows)
+    }
+
+    @Test
+    fun `a url-shaped custom field also becomes an ExternalLink`() {
+        val rows =
+            buildFieldRows(parse("""{"custom_fields":{"vendor_support_url":"https://vendor.example.com/x"}}"""))
+        assertEquals(listOf(FieldRow.ExternalLink("Vendor Support URL", "https://vendor.example.com/x")), rows)
+    }
+
+    @Test
     fun `skips id, url and display`() {
         val rows = buildFieldRows(parse("""{"id":1,"url":"https://x/api/dcim/racks/1/","display":"Rack 1"}"""))
         assertTrue(rows.isEmpty())
