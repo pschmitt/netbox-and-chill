@@ -504,7 +504,7 @@ private fun LazyListScope.fieldRow(
                         modifier = Modifier.clickable { onOpenUrl(row.url) },
                     ) {
                         Text(
-                            row.url,
+                            shortenDisplayedUrl(row.url),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )

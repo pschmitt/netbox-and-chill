@@ -22,6 +22,14 @@ class QrConfigCodecTest {
     }
 
     @Test
+    fun `setup payload carries the complete connection rather than token alone`() {
+        val decoded = QrConfigCodec.decodePayload(QrConfigCodec.encodePayload(envelope))
+
+        assertEquals("https://netbox.example.test", decoded.baseUrl)
+        assertEquals("nbt_example.secret-value", decoded.token)
+    }
+
+    @Test
     fun `payload is url safe and self identifying`() {
         val payload = QrConfigCodec.encodePayload(envelope)
 

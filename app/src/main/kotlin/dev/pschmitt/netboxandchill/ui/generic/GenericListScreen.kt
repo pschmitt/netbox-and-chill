@@ -39,7 +39,6 @@ import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 fun GenericListScreen(
     onObjectClick: (Int) -> Unit,
     onDashboardClick: () -> Unit,
-    onDevicesClick: () -> Unit,
     onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
     onSearchClick: () -> Unit,
@@ -81,8 +80,8 @@ fun GenericListScreen(
                 // that's what the sidebar/drawer is for.
                 selected = null,
                 onDashboardClick = onDashboardClick,
-                onDevicesClick = onDevicesClick,
                 onScanClick = onScanClick,
+                onSearchClick = onSearchClick,
             )
         },
     ) { padding ->

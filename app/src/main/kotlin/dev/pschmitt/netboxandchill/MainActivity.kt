@@ -151,7 +151,7 @@ class MainActivity : FragmentActivity() {
                                 when (gestureAction) {
                                     GestureAction.GlobalSearch ->
                                         navController.navigate(Route.GlobalSearch) { launchSingleTop = true }
-                                    GestureAction.Scanner -> navController.navigate(Route.Scanner)
+                                    GestureAction.Scanner -> navController.navigate(Route.Scanner())
                                     GestureAction.Off -> Unit
                                 }
                             }
@@ -164,7 +164,6 @@ class MainActivity : FragmentActivity() {
                             setup = pendingSetup,
                             onSetupImport = { setup ->
                                 pendingSetup = setup
-                                navController.navigate(Route.Onboarding) { launchSingleTop = true }
                             },
                             onSetupConsumed = { pendingSetup = null },
                         )

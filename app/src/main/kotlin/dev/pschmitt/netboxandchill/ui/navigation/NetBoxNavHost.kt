@@ -38,6 +38,7 @@ fun NetBoxNavHost(
         composable<Route.Onboarding> {
             OnboardingScreen(
                 initialSetup = setup,
+                onScanSetupClick = { navController.navigate(Route.Scanner(fromOnboarding = true)) },
                 onDone = {
                     onSetupConsumed()
                     navController.navigate(Route.Dashboard) {
@@ -49,8 +50,8 @@ fun NetBoxNavHost(
         composable<Route.Dashboard> {
             DashboardScreen(
                 onOpenDrawer = onOpenDrawer,
-                onDevicesClick = { navController.navigate(Route.DeviceList) { launchSingleTop = true } },
-                onScanClick = { navController.navigate(Route.Scanner) },
+                onScanClick = { navController.navigate(Route.Scanner()) },
+                onSearchClick = { navController.navigate(Route.GlobalSearch) { launchSingleTop = true } },
                 onNavigateToReference = { endpointPath, id ->
                     navController.navigate(Route.Generic(endpointPath, id))
                 },
@@ -74,7 +75,7 @@ fun NetBoxNavHost(
             DeviceListScreen(
                 onDeviceClick = { id -> navController.navigate(Route.DeviceDetail(id)) },
                 onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
-                onScanClick = { navController.navigate(Route.Scanner) },
+                onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
                 onSearchClick = { navController.navigate(Route.GlobalSearch) },
             )
@@ -92,8 +93,7 @@ fun NetBoxNavHost(
             GenericListScreen(
                 onObjectClick = { id -> navController.navigate(Route.Generic(route.endpointPath, id)) },
                 onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
-                onDevicesClick = { navController.navigate(Route.DeviceList) { launchSingleTop = true } },
-                onScanClick = { navController.navigate(Route.Scanner) },
+                onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
                 onSearchClick = { navController.navigate(Route.GlobalSearch) },
             )
@@ -102,6 +102,8 @@ fun NetBoxNavHost(
             GlobalSearchScreen(
                 onResultClick = { endpointPath, id -> navController.navigate(Route.Generic(endpointPath, id)) },
                 onBack = { navController.popBackStack() },
+                onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
+                onScanClick = { navController.navigate(Route.Scanner()) },
             )
         }
         composable<Route.Generic> {
@@ -115,7 +117,8 @@ fun NetBoxNavHost(
                 },
             )
         }
-        composable<Route.Scanner> {
+        composable<Route.Scanner> { backStackEntry ->
+            val route: Route.Scanner = backStackEntry.toRoute()
             ScannerScreen(
                 onTargetFound = { target ->
                     val destination =
@@ -124,12 +127,19 @@ fun NetBoxNavHost(
                             is NetBoxTarget.Object -> Route.Generic(target.endpointPath, target.id)
                             is NetBoxTarget.Setup -> {
                                 onSetupImport(target)
+                                navController.navigate(Route.Onboarding) {
+                                    popUpTo(Route.Scanner()) { inclusive = true }
+                                    launchSingleTop = true
+                                }
                                 return@ScannerScreen
                             }
                         }
-                    navController.navigate(destination) { popUpTo(Route.Scanner) { inclusive = true } }
+                    navController.navigate(destination) { popUpTo(Route.Scanner()) { inclusive = true } }
                 },
                 onBack = { navController.popBackStack() },
+                onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
+                onSearchClick = { navController.navigate(Route.GlobalSearch) { launchSingleTop = true } },
+                showBottomBar = !route.fromOnboarding,
             )
         }
         composable<Route.Settings> {

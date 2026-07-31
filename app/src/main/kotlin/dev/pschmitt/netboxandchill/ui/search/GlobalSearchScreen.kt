@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,10 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.ui.common.BottomTab
+import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 /**
@@ -51,10 +56,13 @@ import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 fun GlobalSearchScreen(
     onResultClick: (endpointPath: String, id: Int) -> Unit,
     onBack: () -> Unit,
+    onDashboardClick: () -> Unit,
+    onScanClick: () -> Unit,
     viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
+    val recentResults by viewModel.recentResults.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val modelsByEndpointPath by viewModel.modelsByEndpointPath.collectAsStateWithLifecycle()
@@ -72,6 +80,14 @@ fun GlobalSearchScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            NetBoxBottomBar(
+                selected = BottomTab.Search,
+                onDashboardClick = onDashboardClick,
+                onScanClick = onScanClick,
+                onSearchClick = {},
+            )
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -97,7 +113,32 @@ fun GlobalSearchScreen(
             // must keep working with no connectivity, so cached hits always take priority.
             if (isRefreshing) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             when {
-                query.isBlank() -> CenteredHint("Search devices, sites, racks, IPs, circuits, and more")
+                query.isBlank() && recentResults.isNotEmpty() ->
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item {
+                            ListItem(
+                                leadingContent = {
+                                    Icon(Icons.Default.History, contentDescription = null)
+                                },
+                                headlineContent = { Text("Recently visited") },
+                                supportingContent = { Text("Your latest devices and NetBox pages") },
+                            )
+                        }
+                        items(recentResults, key = { "recent-${it.endpointPath}-${it.id}" }) { hit ->
+                            val model = modelsByEndpointPath[hit.endpointPath]
+                            val appKey = model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
+                            SearchResultRow(
+                                hit = hit,
+                                modelLabel = model?.modelLabel,
+                                icon = AppIcons.forAppKey(appKey),
+                                onClick = { onResultClick(hit.endpointPath, hit.id) },
+                            )
+                        }
+                    }
+                query.isBlank() -> SearchEmptyState(
+                    title = "Search your NetBox",
+                    message = "Find devices, sites, racks, IPs, circuits, and more",
+                )
                 results.isNotEmpty() ->
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
@@ -112,7 +153,11 @@ fun GlobalSearchScreen(
                         }
                     }
                 isRefreshing -> CenteredHint("Searching…")
-                else -> CenteredHint("No results for \"$query\"")
+                else ->
+                    SearchEmptyState(
+                        title = "No matches yet",
+                        message = "Try a device name, asset tag, IP address, or model",
+                    )
             }
         }
     }
@@ -122,6 +167,26 @@ fun GlobalSearchScreen(
 private fun CenteredHint(text: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SearchEmptyState(title: String, message: String) {
+    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(52.dp),
+            )
+            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
+            Text(
+                message,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
     }
 }
 

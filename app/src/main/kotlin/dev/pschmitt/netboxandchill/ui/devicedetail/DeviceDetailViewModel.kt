@@ -12,6 +12,7 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
+import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import java.io.File
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import javax.inject.Inject
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -42,6 +44,7 @@ constructor(
     private val deviceTypeRepository: DeviceTypeRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    private val recentVisitRepository: RecentVisitRepository,
 ) : ViewModel() {
 
     private val deviceId: Int = savedStateHandle.toRoute<Route.DeviceDetail>().deviceId
@@ -91,6 +94,9 @@ constructor(
             imageAttachmentRepository
                 .refresh(DEVICE_OBJECT_TYPE, deviceId)
                 .onFailure { Timber.w(it, "Couldn't refresh image attachments for device %d", deviceId) }
+        }
+        viewModelScope.launch {
+            device.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
         viewModelScope.launch {
             device.filterNotNull().collect { entity ->

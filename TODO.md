@@ -1541,3 +1541,67 @@ no-op cases).
 
 Status: **done**, 2026-07-31. `just test`/`just lint` green (including a rerun-tasks ktfmt check to
 rule out a stale cache hit).
+
+## NBC-43: shorten displayed URL values
+
+Absolute URLs in generic object fields repeat the configured scheme and host, making otherwise
+useful paths hard to scan (for example, display `https://netbox.brkn.lol/dcim/device-types/244/`
+as `/dcim/device-types/244/`). Keep the full URL for opening/sharing; shorten only its visible
+label.
+
+- [x] Shorten absolute URL text in generic external-link rows while preserving path, query, and
+  fragment components.
+- [x] Add regression coverage for the requested NetBox URL shape and malformed/non-URL fallback.
+
+Status: **done**, 2026-07-31 - visible URL shortening is covered by `GenericFieldRendererTest`;
+the original URL remains the click target.
+
+## NBC-44: replace the bottom Devices tab with Search
+
+The fixed bottom navigation should prioritize the app's most useful universal actions: `Home | QR
+CODE | SEARCH`. Device browsing remains available from the drawer and dashboard stat cards, while
+the bottom bar should no longer duplicate that entry point.
+
+- [x] Replace the Devices tab with Search and use the QR CODE label for the scanner destination.
+- [x] Keep the three destinations reachable from dashboard, list, search, and scanner screens.
+
+Status: **done**, 2026-07-31 - `just lint`, `just test`, and `just build debug` passed remotely;
+the three-tab layout was smoke-tested on the Mi Pad 4.
+
+## NBC-45: make the global search landing page useful before typing
+
+Opening global search currently presents an empty state until the user enters a query. Show the
+most recently visited devices and NetBox pages by default, using the local cache so the screen is
+useful offline as well.
+
+- [x] Persist a small, bounded recent-visit history for typed and generic detail pages.
+- [x] Render the recent pages before a query and improve the blank/no-match presentation.
+
+Status: **done**, 2026-07-31 - cache-backed recent visits and empty states are covered by repository
+tests; the remote test/lint/build checks passed.
+
+## NBC-46: switch scanner lenses and choose a default lens
+
+The QR scanner always opens the back camera and offers no way to switch to another available lens.
+Add an in-scanner switch and a Settings preference for the default lens, with a safe fallback on
+devices that expose only one camera.
+
+- [x] Discover available CameraX lenses and show the switch only when at least two are available.
+- [x] Persist the default front/back preference and fall back to an available lens if needed.
+- [x] Add focused preference/selection coverage and validate on the available devices.
+
+Status: **done**, 2026-07-31 - preference tests passed; the Mi Pad 4 opened the scanner,
+exposed `Switch camera`, and switched lenses without camera errors.
+
+## NBC-47: share/import complete connection setup QR codes
+
+The setup QR code must represent a complete NetBox and Chill connection, not a token-only export.
+It should contain the server URL and API token, be generated from Settings behind device auth, and
+be scannable directly from the login screen on another device.
+
+- [x] Make the Settings action and warning explicitly describe a complete connection setup code.
+- [x] Add a login-screen action to scan a setup code and prefill both required fields.
+- [x] Keep the versioned payload format and round-trip coverage for server URL plus token.
+
+Status: **done**, 2026-07-31 - codec tests passed; a valid setup deep link on the Mi Pad 4 opened
+onboarding with both fields populated. Settings export remains device-auth protected.

@@ -92,10 +92,10 @@ fun DeviceListScreen(
         },
         bottomBar = {
             NetBoxBottomBar(
-                selected = BottomTab.Devices,
+                selected = null,
                 onDashboardClick = onDashboardClick,
-                onDevicesClick = {},
                 onScanClick = onScanClick,
+                onSearchClick = onSearchClick,
             )
         },
     ) { padding ->

@@ -18,6 +18,7 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxModelDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import dev.pschmitt.netboxandchill.data.db.PendingEditDao
+import dev.pschmitt.netboxandchill.data.db.RecentVisitDao
 import javax.inject.Singleton
 
 @Module
@@ -56,4 +57,6 @@ object DatabaseModule {
     @Provides fun provideCustomFieldDao(database: AppDatabase): CustomFieldDao = database.customFieldDao()
 
     @Provides fun providePendingEditDao(database: AppDatabase): PendingEditDao = database.pendingEditDao()
+
+    @Provides fun provideRecentVisitDao(database: AppDatabase): RecentVisitDao = database.recentVisitDao()
 }

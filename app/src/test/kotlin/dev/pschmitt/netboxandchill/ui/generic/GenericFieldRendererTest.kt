@@ -12,6 +12,19 @@ class GenericFieldRendererTest {
     private fun parse(rawJson: String): JsonObject = Json.decodeFromString(JsonObject.serializer(), rawJson)
 
     @Test
+    fun `shortens displayed absolute urls to their path and suffix`() {
+        assertEquals(
+            "/dcim/device-types/244/?tab=details#photos",
+            shortenDisplayedUrl("https://netbox.brkn.lol/dcim/device-types/244/?tab=details#photos"),
+        )
+    }
+
+    @Test
+    fun `keeps malformed url text unchanged`() {
+        assertEquals("not a url", shortenDisplayedUrl("not a url"))
+    }
+
+    @Test
     fun `detects a netbox media URL as a FileAttachment using the sibling filename field`() {
         val rows =
             buildFieldRows(

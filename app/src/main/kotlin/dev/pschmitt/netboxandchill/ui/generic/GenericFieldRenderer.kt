@@ -120,6 +120,16 @@ private fun renderPrimitive(key: String, label: String, value: JsonPrimitive): F
 private fun isHttpUrl(text: String): Boolean =
     (text.startsWith("http://") || text.startsWith("https://")) && text.toHttpUrlOrNull() != null
 
+/** Visible URL text omits the repeated scheme/host; callers still retain the original URL. */
+fun shortenDisplayedUrl(url: String): String {
+    val parsed = url.toHttpUrlOrNull() ?: return url
+    return buildString {
+        append(parsed.encodedPath.ifBlank { "/" })
+        parsed.encodedQuery?.let { append('?').append(it) }
+        parsed.encodedFragment?.let { append('#').append(it) }
+    }
+}
+
 /** NetBox-served uploaded files are always under a `/media/` path, regardless of app/plugin. */
 private fun isMediaUrl(text: String): Boolean =
     isHttpUrl(text) && text.toHttpUrlOrNull()?.encodedPath?.contains("/media/") == true

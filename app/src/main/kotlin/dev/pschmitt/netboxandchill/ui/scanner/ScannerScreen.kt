@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -52,6 +53,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.scanner.BarcodeAnalyzer
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
+import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.ui.common.BottomTab
+import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
@@ -61,11 +65,16 @@ import kotlinx.coroutines.delay
 fun ScannerScreen(
     onTargetFound: (NetBoxTarget) -> Unit,
     onBack: () -> Unit,
+    onDashboardClick: () -> Unit,
+    onSearchClick: () -> Unit,
+    showBottomBar: Boolean = true,
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val scannerLens by viewModel.scannerLens.collectAsStateWithLifecycle()
     var camera by remember { mutableStateOf<Camera?>(null) }
+    var availableLenses by remember { mutableStateOf<Set<ScannerLens>>(emptySet()) }
     var torchOn by remember { mutableStateOf(false) }
 
     var hasCameraPermission by remember {
@@ -87,6 +96,16 @@ fun ScannerScreen(
     }
 
     Scaffold(
+        bottomBar = {
+            if (showBottomBar) {
+                NetBoxBottomBar(
+                    selected = BottomTab.Scan,
+                    onDashboardClick = onDashboardClick,
+                    onScanClick = {},
+                    onSearchClick = onSearchClick,
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { Text("Scan device sticker") },
@@ -96,6 +115,18 @@ fun ScannerScreen(
                     }
                 },
                 actions = {
+                    if (availableLenses.size > 1) {
+                        IconButton(
+                            onClick = {
+                                val nextLens = availableLenses.firstOrNull { it != scannerLens } ?: scannerLens
+                                viewModel.setScannerLens(nextLens)
+                                camera?.cameraControl?.enableTorch(false)
+                                torchOn = false
+                            }
+                        ) {
+                            Icon(Icons.Default.Cameraswitch, contentDescription = "Switch camera")
+                        }
+                    }
                     if (camera?.cameraInfo?.hasFlashUnit() == true) {
                         IconButton(
                             onClick = {
@@ -115,7 +146,12 @@ fun ScannerScreen(
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (hasCameraPermission) {
-                CameraPreview(onCodeScanned = viewModel::onCodeScanned, onCameraReady = { camera = it })
+                CameraPreview(
+                    desiredLens = scannerLens,
+                    onCodeScanned = viewModel::onCodeScanned,
+                    onAvailableLenses = { availableLenses = it },
+                    onCameraReady = { camera = it },
+                )
                 ScannerViewfinder(modifier = Modifier.fillMaxSize())
             } else {
                 Text(
@@ -179,12 +215,67 @@ private fun ScanOverlay(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun CameraPreview(onCodeScanned: (String) -> Unit, onCameraReady: (Camera) -> Unit) {
+private fun CameraPreview(
+    desiredLens: ScannerLens,
+    onCodeScanned: (String) -> Unit,
+    onAvailableLenses: (Set<ScannerLens>) -> Unit,
+    onCameraReady: (Camera?) -> Unit,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    val cameraProviderFuture = remember(context) { ProcessCameraProvider.getInstance(context) }
+    var previewView by remember { mutableStateOf<PreviewView?>(null) }
 
     DisposableEffect(Unit) { onDispose { cameraExecutor.shutdown() } }
+
+    DisposableEffect(previewView, desiredLens) {
+        val view = previewView
+        if (view == null) {
+            onDispose { }
+        } else {
+            var disposed = false
+            onCameraReady(null)
+            cameraProviderFuture.addListener(
+                {
+                    if (disposed) return@addListener
+                    runCatching {
+                        val cameraProvider = cameraProviderFuture.get()
+                        val available =
+                            ScannerLens.values().filter { lens ->
+                                runCatching { cameraProvider.hasCamera(lens.selector()) }.getOrDefault(false)
+                            }.toSet()
+                        onAvailableLenses(available)
+                        val activeLens = if (desiredLens in available) desiredLens else available.firstOrNull()
+                        if (activeLens != null) {
+                            val preview =
+                                Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
+                            val analysis =
+                                ImageAnalysis.Builder()
+                                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                    .build()
+                                    .also { it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned)) }
+                            cameraProvider.unbindAll()
+                            onCameraReady(
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    activeLens.selector(),
+                                    preview,
+                                    analysis,
+                                )
+                            )
+                        }
+                    }
+                },
+                ContextCompat.getMainExecutor(context),
+            )
+            onDispose {
+                disposed = true
+                onCameraReady(null)
+                runCatching { cameraProviderFuture.get().unbindAll() }
+            }
+        }
+    }
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
@@ -208,32 +299,18 @@ private fun CameraPreview(onCodeScanned: (String) -> Unit, onCameraReady: (Camer
                 true
             }
 
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-            cameraProviderFuture.addListener(
-                {
-                    val cameraProvider = cameraProviderFuture.get()
-                    val preview =
-                        Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
-                    val analysis =
-                        ImageAnalysis.Builder()
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                            .build()
-                            .also { it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned)) }
-
-                    cameraProvider.unbindAll()
-                    val camera =
-                        cameraProvider.bindToLifecycle(
-                            lifecycleOwner,
-                            CameraSelector.DEFAULT_BACK_CAMERA,
-                            preview,
-                            analysis,
-                        )
-                    boundCamera = camera
-                    onCameraReady(camera)
-                },
-                ContextCompat.getMainExecutor(ctx),
-            )
             previewView
+        },
+        update = { view ->
+            previewView = view
         },
     )
 }
+
+private fun ScannerLens.selector(): CameraSelector =
+    CameraSelector.Builder()
+        .requireLensFacing(
+            if (this == ScannerLens.Front) CameraSelector.LENS_FACING_FRONT
+            else CameraSelector.LENS_FACING_BACK
+        )
+        .build()

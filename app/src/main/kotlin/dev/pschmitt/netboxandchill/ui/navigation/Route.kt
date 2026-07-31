@@ -13,7 +13,7 @@ sealed interface Route {
 
     @Serializable data class DeviceDetail(val deviceId: Int) : Route
 
-    @Serializable data object Scanner : Route
+    @Serializable data class Scanner(val fromOnboarding: Boolean = false) : Route
 
     @Serializable data object Settings : Route
 

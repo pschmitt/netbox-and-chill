@@ -6,7 +6,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
+import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
+import dev.pschmitt.netboxandchill.data.repository.recentVisitsToSearchHits
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.rankSearchHits
 import javax.inject.Inject
@@ -38,6 +40,7 @@ constructor(
     private val searchRepository: GlobalSearchRepository,
     directoryRepository: DirectoryRepository,
     private val settingsRepository: SettingsRepository,
+    recentVisitRepository: RecentVisitRepository,
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -63,6 +66,12 @@ constructor(
         kotlinx.coroutines.flow.combine(debouncedQuery, cachedResults) { text, hits ->
                 rankSearchHits(text, hits)
             }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val recentResults: StateFlow<List<SearchHit>> =
+        recentVisitRepository
+            .observeRecent()
+            .map(::recentVisitsToSearchHits)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isRefreshing = MutableStateFlow(false)

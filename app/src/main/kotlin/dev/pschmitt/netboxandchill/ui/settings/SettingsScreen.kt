@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storage
@@ -70,6 +71,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
+import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
@@ -88,6 +90,7 @@ fun SettingsScreen(
     val syncAttachmentsToDisk by
         viewModel.settingsRepository.syncAttachmentsToDisk.collectAsStateWithLifecycle()
     val gestureAction by viewModel.settingsRepository.gestureAction.collectAsStateWithLifecycle()
+    val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditServerDialog by remember { mutableStateOf(false) }
@@ -99,6 +102,7 @@ fun SettingsScreen(
     var tokenCopied by remember { mutableStateOf(false) }
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var gestureMenuExpanded by remember { mutableStateOf(false) }
+    var scannerLensMenuExpanded by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
 
     val biometricPrompt =
@@ -254,24 +258,33 @@ fun SettingsScreen(
                         ) {
                             Icon(Icons.Default.ContentCopy, contentDescription = "Copy API token")
                         }
-                        IconButton(
-                            onClick = {
-                                authenticateForToken {
-                                    val payload =
-                                        QrConfigCodec.encodePayload(
-                                            QrConfigEnvelope(
-                                                createdAt = System.currentTimeMillis(),
-                                                baseUrl = credentials.baseUrl,
-                                                token = credentials.token,
-                                            )
+                    }
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
+                headlineContent = { Text("Share connection setup") },
+                supportingContent = {
+                    Text("Show a QR code with this server URL and API token for another app")
+                },
+                trailingContent = {
+                    IconButton(
+                        onClick = {
+                            authenticateForToken {
+                                val payload =
+                                    QrConfigCodec.encodePayload(
+                                        QrConfigEnvelope(
+                                            createdAt = System.currentTimeMillis(),
+                                            baseUrl = credentials.baseUrl,
+                                            token = credentials.token,
                                         )
-                                    qrBitmap = QrBitmap.encode(payload)
-                                }
-                            },
-                            enabled = credentials.token.isNotBlank(),
-                        ) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Show setup QR code")
-                        }
+                                    )
+                                qrBitmap = QrBitmap.encode(payload)
+                            }
+                        },
+                        enabled = credentials.baseUrl.isNotBlank() && credentials.token.isNotBlank(),
+                    ) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Show connection setup QR code")
                     }
                 },
             )
@@ -319,6 +332,35 @@ fun SettingsScreen(
                                     onClick = {
                                         viewModel.setGestureAction(action)
                                         gestureMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+                headlineContent = { Text("Scanner default camera") },
+                supportingContent = {
+                    Text("${scannerLens.label}; falls back when this camera is unavailable")
+                },
+                trailingContent = {
+                    Box {
+                        IconButton(onClick = { scannerLensMenuExpanded = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Configure scanner camera")
+                        }
+                        DropdownMenu(
+                            expanded = scannerLensMenuExpanded,
+                            onDismissRequest = { scannerLensMenuExpanded = false },
+                        ) {
+                            ScannerLens.entries.forEach { lens ->
+                                DropdownMenuItem(
+                                    text = { Text(lens.label) },
+                                    leadingIcon = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+                                    onClick = {
+                                        viewModel.setScannerLens(lens)
+                                        scannerLensMenuExpanded = false
                                     },
                                 )
                             }
@@ -423,7 +465,7 @@ private fun SetupQrDialog(bitmap: Bitmap, onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "This QR code contains the API token. Only show it to the person configuring a trusted device.",
+                    "This QR code contains the NetBox server URL and API token. Scan it from the login screen on a trusted device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )

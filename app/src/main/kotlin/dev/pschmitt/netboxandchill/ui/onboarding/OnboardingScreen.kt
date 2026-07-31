@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -51,6 +52,7 @@ import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit,
+    onScanSetupClick: () -> Unit,
     initialSetup: NetBoxTarget.Setup? = null,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
@@ -190,6 +192,15 @@ fun OnboardingScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("Connect")
                 }
+            }
+            Spacer(Modifier.height(10.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = onScanSetupClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Scan connection setup QR code")
             }
         }
     }

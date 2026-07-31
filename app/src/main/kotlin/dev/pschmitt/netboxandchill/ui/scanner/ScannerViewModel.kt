@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
+import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
 import javax.inject.Inject
@@ -29,10 +31,13 @@ class ScannerViewModel
 constructor(
     private val deviceRepository: DeviceRepository,
     private val genericObjectRepository: GenericObjectRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ScanResultState>(ScanResultState.Scanning)
     val state: StateFlow<ScanResultState> = _state.asStateFlow()
+
+    val scannerLens: StateFlow<ScannerLens> = settingsRepository.scannerLens
 
     private var handled = false
 
@@ -60,5 +65,9 @@ constructor(
     fun reset() {
         handled = false
         _state.value = ScanResultState.Scanning
+    }
+
+    fun setScannerLens(lens: ScannerLens) {
+        settingsRepository.setScannerLens(lens)
     }
 }

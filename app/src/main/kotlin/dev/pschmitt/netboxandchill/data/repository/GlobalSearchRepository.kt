@@ -5,6 +5,7 @@ import dev.pschmitt.netboxandchill.data.db.DeviceDao
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.async
@@ -19,6 +20,16 @@ import timber.log.Timber
 /** A single global-search hit - just enough to render a result row and navigate into NBC-6's
  * generic detail screen (`Route.Generic(endpointPath, id)`), not a full cached object. */
 data class SearchHit(val endpointPath: String, val id: Int, val display: String, val secondaryLine: String?)
+
+fun recentVisitsToSearchHits(visits: List<RecentVisitEntity>): List<SearchHit> =
+    visits.map { visit ->
+        SearchHit(
+            endpointPath = visit.endpointPath,
+            id = visit.id,
+            display = visit.display,
+            secondaryLine = visit.secondaryLine,
+        )
+    }
 
 /**
  * Cross-model search (NBC-13). **Cache-first**, matching every other repository in this app

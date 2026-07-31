@@ -61,8 +61,8 @@ import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 @Composable
 fun DashboardScreen(
     onOpenDrawer: () -> Unit,
-    onDevicesClick: () -> Unit,
     onScanClick: () -> Unit,
+    onSearchClick: () -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int) -> Unit,
     onStatClick: (endpointPath: String, label: String) -> Unit,
     onChangeDiffClick: (changeId: Int) -> Unit,
@@ -100,8 +100,8 @@ fun DashboardScreen(
             NetBoxBottomBar(
                 selected = BottomTab.Dashboard,
                 onDashboardClick = {},
-                onDevicesClick = onDevicesClick,
                 onScanClick = onScanClick,
+                onSearchClick = onSearchClick,
             )
         },
     ) { padding ->

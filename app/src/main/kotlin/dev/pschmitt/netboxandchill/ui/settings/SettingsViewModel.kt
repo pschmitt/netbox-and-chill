@@ -8,6 +8,7 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.sync.OfflineSyncRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -65,6 +66,10 @@ constructor(
 
     fun setGestureAction(action: GestureAction) {
         settingsRepository.setGestureAction(action)
+    }
+
+    fun setScannerLens(lens: ScannerLens) {
+        settingsRepository.setScannerLens(lens)
     }
 
     /** Switches the configured NetBox server. Saves eagerly (the dynamic base-URL interceptor

@@ -11,6 +11,7 @@ import dev.pschmitt.netboxandchill.data.repository.EditSubmission
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
+import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.ui.navigation.Route
@@ -21,8 +22,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -42,6 +45,7 @@ constructor(
     private val journalEntryRepository: JournalEntryRepository,
     private val customFieldRepository: CustomFieldRepository,
     private val pendingEditRepository: PendingEditRepository,
+    private val recentVisitRepository: RecentVisitRepository,
     private val syncScheduler: SyncScheduler,
     private val json: Json,
 ) : ViewModel() {
@@ -131,6 +135,9 @@ constructor(
         refresh()
         loadJournalEntries()
         viewModelScope.launch { customFieldRepository.refresh() }
+        viewModelScope.launch {
+            objectFlow.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
+        }
     }
 
     fun refresh(showConfirmation: Boolean = false) {

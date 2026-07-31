@@ -1,9 +1,24 @@
 package dev.pschmitt.netboxandchill.data.repository
 
+import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class GlobalSearchRankingTest {
+    @Test
+    fun `recent visits become navigable search hits in visit order`() {
+        val hits =
+            recentVisitsToSearchHits(
+                listOf(
+                    RecentVisitEntity("api/dcim/devices/", 1, "Router", "active", 2),
+                    RecentVisitEntity("api/dcim/sites/", 4, "HQ", null, 1),
+                )
+            )
+
+        assertEquals(listOf("Router", "HQ"), hits.map { it.display })
+        assertEquals("api/dcim/sites/", hits[1].endpointPath)
+    }
+
     @Test
     fun `ranks exact and prefix display matches before substring and secondary matches`() {
         val hits =

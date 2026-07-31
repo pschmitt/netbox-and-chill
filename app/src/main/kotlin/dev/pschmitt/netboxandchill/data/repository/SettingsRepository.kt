@@ -26,6 +26,16 @@ enum class GestureAction(val storageKey: String, val label: String) {
     }
 }
 
+enum class ScannerLens(val storageKey: String, val label: String) {
+    Back("back", "Back camera"),
+    Front("front", "Front camera");
+
+    companion object {
+        fun fromStorage(value: String?): ScannerLens =
+            entries.firstOrNull { it.storageKey == value } ?: Back
+    }
+}
+
 /**
  * Base URL and API token, backed by [EncryptedSharedPreferences] (Android Keystore-tied, hence
  * `allowBackup=false` in the manifest - a restored backup couldn't decrypt these anyway).
@@ -62,6 +72,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _gestureAction = MutableStateFlow(loadGestureAction())
     val gestureAction: StateFlow<GestureAction> = _gestureAction.asStateFlow()
 
+    private val _scannerLens = MutableStateFlow(loadScannerLens())
+    val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
+
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()
         _syncAttachmentsToDisk.value = enabled
@@ -70,6 +83,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setGestureAction(action: GestureAction) {
         prefs.edit().putString(KEY_GESTURE_ACTION, action.storageKey).apply()
         _gestureAction.value = action
+    }
+
+    fun setScannerLens(lens: ScannerLens) {
+        prefs.edit().putString(KEY_SCANNER_LENS, lens.storageKey).apply()
+        _scannerLens.value = lens
     }
 
     fun togglePinned(endpointPath: String) {
@@ -107,6 +125,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private fun loadGestureAction(): GestureAction =
         GestureAction.fromStorage(prefs.getString(KEY_GESTURE_ACTION, GestureAction.GlobalSearch.storageKey))
 
+    private fun loadScannerLens(): ScannerLens =
+        ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
+
     private companion object {
         const val KEY_BASE_URL = "base_url"
         const val KEY_TOKEN = "token"
@@ -114,5 +135,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val DEFAULT_PINNED_MODEL_PATH = "api/dcim/devices/"
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
+        const val KEY_SCANNER_LENS = "scanner_default_lens"
     }
 }
