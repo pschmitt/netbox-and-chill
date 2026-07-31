@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.EditSubmission
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
@@ -28,7 +29,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 // Mirrors NetBoxNavHost's/GlobalSearchRepository's DEVICES_ENDPOINT_PATH constant - kept local
 // rather than shared to avoid a broader refactor while other agents are touching those files.
@@ -48,6 +52,7 @@ constructor(
     private val recentVisitRepository: RecentVisitRepository,
     private val syncScheduler: SyncScheduler,
     private val json: Json,
+    private val api: GenericNetBoxApi,
 ) : ViewModel() {
 
     val route: Route.Generic = savedStateHandle.toRoute()
@@ -109,6 +114,12 @@ constructor(
         decodedObject
             .map { it?.let(::buildEditableFields) ?: emptyList() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _referenceOptions = MutableStateFlow<Map<String, List<EditOption>>>(emptyMap())
+    val referenceOptions: StateFlow<Map<String, List<EditOption>>> = _referenceOptions.asStateFlow()
+
+    private val _choiceOptions = MutableStateFlow<Map<String, List<EditOption>>>(emptyMap())
+    val choiceOptions: StateFlow<Map<String, List<EditOption>>> = _choiceOptions.asStateFlow()
 
     // Web URL mirrors the API path structure with "api/" dropped, e.g. api/dcim/racks/5/ ->
     // <base>/dcim/racks/5/.
@@ -174,12 +185,17 @@ constructor(
         _errorMessage.value = null
         editBaseJson = objectEntity.value?.json
         _isEditing.value = true
+        _referenceOptions.value = emptyMap()
+        _choiceOptions.value = emptyMap()
+        viewModelScope.launch { loadEditOptions(editableFields.value) }
     }
 
     fun cancelEditing() {
         _errorMessage.value = null
         editBaseJson = null
         _isEditing.value = false
+        _referenceOptions.value = emptyMap()
+        _choiceOptions.value = emptyMap()
     }
 
     /** [edits] maps field key -> (kind, edited text), one entry per changed field. */
@@ -218,6 +234,53 @@ constructor(
             }
             _isSaving.value = false
         }
+    }
+
+    private suspend fun loadEditOptions(fields: List<EditableField>) {
+        val references = mutableMapOf<String, List<EditOption>>()
+        fields.filter { it.kind == EditFieldKind.REFERENCE }.forEach { field ->
+            val endpoint = field.referenceEndpointPath ?: return@forEach
+            var cached = repository.cachedObjects(endpoint)
+            if (cached.isEmpty() && !settingsRepository.offlineMode.value) {
+                repository.syncAll(endpoint, pageSize = 100)
+                cached = repository.cachedObjects(endpoint)
+            }
+            val options =
+                buildList {
+                    field.currentDisplay?.let { add(EditOption(field.value, it)) }
+                    addAll(cached.map { EditOption(it.id.toString(), it.display) })
+                }.distinctBy { it.value }
+            references[field.key] = options
+        }
+        _referenceOptions.value = references
+
+        if (fields.any { it.kind == EditFieldKind.CHOICE } && !settingsRepository.offlineMode.value) {
+            val choices =
+                runCatching { api.getObjectOptions("${route.endpointPath}${route.id}/") }
+                    .getOrNull()
+                    ?.let(::choiceOptionsFromResponse)
+                    .orEmpty()
+            _choiceOptions.value = choices
+        }
+    }
+
+    private fun choiceOptionsFromResponse(response: JsonObject): Map<String, List<EditOption>> {
+        val patchFields =
+            ((response["actions"] as? JsonObject)?.get("PATCH") as? JsonObject).orEmpty()
+        return patchFields.mapNotNull { (key, definition) ->
+            val choices = (definition as? JsonObject)?.get("choices") as? JsonArray ?: return@mapNotNull null
+            val options =
+                choices.mapNotNull { choice ->
+                    val obj = choice as? JsonObject ?: return@mapNotNull null
+                    val value = (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                    val label =
+                        (obj["display_name"] as? JsonPrimitive)?.contentOrNull
+                            ?: (obj["display"] as? JsonPrimitive)?.contentOrNull
+                            ?: value
+                    EditOption(value, label)
+                }
+            key to options
+        }.toMap()
     }
 
     fun downloadAttachment(url: String, filename: String) {

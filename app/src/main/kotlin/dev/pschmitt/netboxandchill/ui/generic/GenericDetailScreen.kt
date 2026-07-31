@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
@@ -32,6 +34,8 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,6 +85,8 @@ fun GenericDetailScreen(
     val title by viewModel.title.collectAsStateWithLifecycle()
     val fields by viewModel.fields.collectAsStateWithLifecycle()
     val editableFields by viewModel.editableFields.collectAsStateWithLifecycle()
+    val referenceOptions by viewModel.referenceOptions.collectAsStateWithLifecycle()
+    val choiceOptions by viewModel.choiceOptions.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
@@ -243,6 +249,8 @@ fun GenericDetailScreen(
                 EditForm(
                     fields = editableFields,
                     values = editValues,
+                    referenceOptions = referenceOptions,
+                    choiceOptions = choiceOptions,
                     onValueChange = { key, value -> editValues = editValues + (key to value) },
                     errorMessage = errorMessage,
                     modifier = Modifier.padding(padding).fillMaxSize(),
@@ -322,6 +330,8 @@ fun GenericDetailScreen(
 private fun EditForm(
     fields: List<EditableField>,
     values: Map<String, String>,
+    referenceOptions: Map<String, List<EditOption>>,
+    choiceOptions: Map<String, List<EditOption>>,
     onValueChange: (key: String, value: String) -> Unit,
     errorMessage: String?,
     modifier: Modifier = Modifier,
@@ -381,6 +391,82 @@ private fun EditForm(
                         label = { Text(field.label) },
                         modifier = Modifier.fillMaxWidth(),
                     )
+                EditFieldKind.REFERENCE ->
+                    EditPickerField(
+                        field = field,
+                        value = value,
+                        options = referenceOptions[field.key].orEmpty(),
+                        onValueChange = onValueChange,
+                        allowClear = true,
+                    )
+                EditFieldKind.CHOICE ->
+                    EditPickerField(
+                        field = field,
+                        value = value,
+                        options = choiceOptions[field.key].orEmpty(),
+                        onValueChange = onValueChange,
+                        allowClear = false,
+                    )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditPickerField(
+    field: EditableField,
+    value: String,
+    options: List<EditOption>,
+    onValueChange: (key: String, value: String) -> Unit,
+    allowClear: Boolean,
+) {
+    var expanded by remember(field.key) { mutableStateOf(false) }
+    val selectedLabel =
+        options.firstOrNull { it.value == value }?.label
+            ?: field.currentDisplay
+            ?: value.takeIf { it.isNotBlank() }
+            ?: "None"
+    Column {
+        OutlinedTextField(
+            value = selectedLabel,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(field.label) },
+            trailingIcon = { Text("▾") },
+            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.9f),
+        ) {
+            if (allowClear) {
+                DropdownMenuItem(
+                    text = { Text("None") },
+                    leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
+                    onClick = {
+                        onValueChange(field.key, "")
+                        expanded = false
+                    },
+                )
+            }
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
+                    onClick = {
+                        onValueChange(field.key, option.value)
+                        expanded = false
+                    },
+                )
+            }
+            if (options.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("No choices available while offline") },
+                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
+                    enabled = false,
+                    onClick = {},
+                )
             }
         }
     }

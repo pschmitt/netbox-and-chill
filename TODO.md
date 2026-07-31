@@ -160,7 +160,8 @@ Allow editing object fields from the app (not just read-only browsing), via NetB
 **Why:** user request - the app should be a two-way tool, not just a lookup/scan viewer.
 **How it landed:** built on top of NBC-6's generic engine rather than as a Device-specific
 feature - `buildEditableFields` (`GenericFieldRenderer.kt`) picks out primitive (string/number/
-boolean) top-level fields from the raw JSON, skipping a blocklist of server-managed/computed ones
+boolean), reference, and choice top-level fields from the raw JSON, skipping a blocklist of
+server-managed/computed ones
 (`id`, `url`, `display`, `display_url`, `created`, `last_updated`, `custom_fields`). Edit mode on
 `GenericDetailScreen` swaps the read-only field list for text inputs (a `Switch` for booleans),
 Save PATCHes only via `GenericNetBoxApi.patchObject`/`GenericObjectRepository.updateObject`, which
@@ -169,9 +170,9 @@ Mi Pad 4, which is already logged in): edited and saved a live Provider Account,
 `last_updated` timestamp actually changed server-side - full round trip works, not just
 simulated/unit-tested.
 
-Explicitly out of scope for this pass (noted, not forgotten):
-- [ ] Editing reference fields (site, rack, tenant, ...) or choice fields (status, ...) - both
-  need a picker UI, not a text field. Only plain primitives are editable right now.
+- [x] Editing reference fields (site, rack, tenant, ...) and choice fields (status, ...) - generic
+  edit mode now uses cached relation pickers and DRF `OPTIONS` choices, with current values still
+  available when offline.
 - [ ] `custom_fields` editing - each custom field has its own type (text/select/object/multi-object/
   boolean/...) that would need its own per-type handling, not a blanket text field.
 - [ ] The *old* Device detail screen (`DeviceDetailScreen`/`DeviceEntity`) still isn't editable -

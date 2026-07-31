@@ -240,39 +240,66 @@ private fun asRefTarget(value: JsonObject): RefTarget? {
     return RefTarget(display, endpointPath, id)
 }
 
-/** The subset of [buildFieldRows]'s fields that can round-trip through a plain text/switch input
- * and PATCH back cleanly - see [EditableField]. */
+/** The fields that can round-trip through the generic edit form and PATCH cleanly. */
 fun buildEditableFields(obj: JsonObject): List<EditableField> =
     obj.mapNotNull { (key, value) ->
         if (key in EDIT_BLOCKLIST) return@mapNotNull null
-        if (value !is JsonPrimitive || value is JsonNull) return@mapNotNull null
-        // Fields like device-type's front_image/rear_image are absolute media URLs computed by
-        // NetBox, not plain text - PATCHing one back as-is fails server-side ("The submitted data
-        // was not a file."), and since buildPatchBody() sends every editable field's current
-        // value (not just the ones actually changed), a single such field breaks the *entire* save
-        // even when the user only meant to edit something else entirely. Confirmed live against a
-        // real device type (Mi Pad 4, dcim/device-types/244) - "edit does not work at all" turned
-        // out to be this, not a device-type-specific issue.
-        if (value.isString) {
-            val text = value.contentOrNull
-            if (text != null && isMediaUrl(text)) return@mapNotNull null
-        }
-        val kind =
-            when {
-                !value.isString && (value.content == "true" || value.content == "false") -> EditFieldKind.BOOLEAN
-                !value.isString && value.doubleOrNull != null -> EditFieldKind.NUMBER
-                else -> EditFieldKind.STRING
+        when (value) {
+            is JsonNull -> null
+            is JsonObject -> {
+                asRefTarget(value)?.let { target ->
+                    return@mapNotNull EditableField(
+                        key = key,
+                        label = Humanize.label(key),
+                        kind = EditFieldKind.REFERENCE,
+                        value = target.id.toString(),
+                        referenceEndpointPath = target.endpointPath,
+                        currentDisplay = target.display,
+                    )
+                }
+                val choiceValue = (value["value"] as? JsonPrimitive)?.contentOrNull
+                val choiceLabel = (value["label"] as? JsonPrimitive)?.contentOrNull
+                if (choiceValue != null && choiceLabel != null) {
+                    EditableField(
+                        key = key,
+                        label = Humanize.label(key),
+                        kind = EditFieldKind.CHOICE,
+                        value = choiceValue,
+                        currentDisplay = choiceLabel,
+                    )
+                } else null
             }
-        EditableField(key, Humanize.label(key), kind, value.contentOrNull ?: "")
+            is JsonPrimitive -> {
+                // Fields like device-type's front_image/rear_image are absolute media URLs
+                // computed by NetBox, not plain text - PATCHing one back as-is fails server-side
+                // ("The submitted data was not a file.").
+                if (value.isString && value.contentOrNull?.let(::isMediaUrl) == true) return@mapNotNull null
+                val kind =
+                    when {
+                        !value.isString && (value.content == "true" || value.content == "false") ->
+                            EditFieldKind.BOOLEAN
+                        !value.isString && value.doubleOrNull != null -> EditFieldKind.NUMBER
+                        else -> EditFieldKind.STRING
+                    }
+                EditableField(key, Humanize.label(key), kind, value.contentOrNull ?: "")
+            }
+            is JsonArray -> null
+        }
     }
 
-/** Converts edited text back to the JSON type NetBox expects for that field, for the PATCH body. */
-fun EditFieldKind.toJsonPrimitive(text: String): JsonPrimitive =
+/** Converts edited text back to the JSON type NetBox expects for that field. */
+fun EditFieldKind.toJsonElement(text: String): JsonElement =
     when (this) {
-        EditFieldKind.STRING -> JsonPrimitive(text)
-        EditFieldKind.NUMBER -> text.toDoubleOrNull()?.let { JsonPrimitive(it) } ?: JsonPrimitive(text)
+        EditFieldKind.STRING,
+        EditFieldKind.CHOICE -> JsonPrimitive(text)
+        EditFieldKind.NUMBER -> text.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(text)
         EditFieldKind.BOOLEAN -> JsonPrimitive(text.toBooleanStrictOrNull() ?: false)
+        EditFieldKind.REFERENCE -> text.toIntOrNull()?.let(::JsonPrimitive) ?: JsonNull
     }
+
+/** Kept as a convenience for callers/tests that only handle primitive field kinds. */
+fun EditFieldKind.toJsonPrimitive(text: String): JsonPrimitive =
+    (toJsonElement(text) as? JsonPrimitive) ?: JsonPrimitive(text)
 
 fun buildPatchBody(edits: Map<String, Pair<EditFieldKind, String>>): JsonObject =
-    JsonObject(edits.mapValues { (_, kindAndValue) -> kindAndValue.first.toJsonPrimitive(kindAndValue.second) })
+    JsonObject(edits.mapValues { (_, kindAndValue) -> kindAndValue.first.toJsonElement(kindAndValue.second) })

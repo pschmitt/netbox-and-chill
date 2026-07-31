@@ -24,9 +24,31 @@ class EditableFieldTest {
     }
 
     @Test
-    fun `excludes nested objects and arrays`() {
-        val fields = buildEditableFields(parse("""{"status":{"value":"active","label":"Active"},"tags":[]}"""))
+    fun `excludes unrecognized nested objects and arrays`() {
+        val fields = buildEditableFields(parse("""{"weight":{"value":5,"unit":"kg"},"tags":[]}"""))
         assertTrue(fields.isEmpty())
+    }
+
+    @Test
+    fun `detects a reference field with its endpoint and display`() {
+        val field =
+            buildEditableFields(
+                parse(
+                    """{"site":{"id":7,"url":"https://x/api/dcim/sites/7/","display":"Berlin"}}"""
+                )
+            ).single()
+        assertEquals(EditFieldKind.REFERENCE, field.kind)
+        assertEquals("7", field.value)
+        assertEquals("api/dcim/sites/", field.referenceEndpointPath)
+        assertEquals("Berlin", field.currentDisplay)
+    }
+
+    @Test
+    fun `detects a choice field and keeps its wire value`() {
+        val field = buildEditableFields(parse("""{"status":{"value":"active","label":"Active"}}""")).single()
+        assertEquals(EditFieldKind.CHOICE, field.kind)
+        assertEquals("active", field.value)
+        assertEquals("Active", field.currentDisplay)
     }
 
     @Test
@@ -60,6 +82,13 @@ class EditableFieldTest {
         assertEquals(JsonPrimitive(5.5), EditFieldKind.NUMBER.toJsonPrimitive("5.5"))
         assertEquals(JsonPrimitive(true), EditFieldKind.BOOLEAN.toJsonPrimitive("true"))
         assertEquals(JsonPrimitive(false), EditFieldKind.BOOLEAN.toJsonPrimitive("nonsense"))
+    }
+
+    @Test
+    fun `reference and choice values use NetBox PATCH wire formats`() {
+        assertEquals(JsonPrimitive(7), EditFieldKind.REFERENCE.toJsonElement("7"))
+        assertEquals(JsonPrimitive("active"), EditFieldKind.CHOICE.toJsonElement("active"))
+        assertEquals(kotlinx.serialization.json.JsonNull, EditFieldKind.REFERENCE.toJsonElement(""))
     }
 
     @Test

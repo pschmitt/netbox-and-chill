@@ -33,6 +33,9 @@ interface GenericNetBoxApi {
 
     @GET suspend fun getObject(@Url url: String): JsonObject
 
+    @HTTP(method = "OPTIONS", hasBody = false)
+    suspend fun getObjectOptions(@Url url: String): JsonObject
+
     @PATCH suspend fun patchObject(@Url url: String, @Body body: JsonObject): JsonObject
 
     /**

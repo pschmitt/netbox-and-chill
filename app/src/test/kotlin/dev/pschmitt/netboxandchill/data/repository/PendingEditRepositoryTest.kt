@@ -107,6 +107,8 @@ private class FakeApi(
         return server
     }
 
+    override suspend fun getObjectOptions(url: String): JsonObject = error("unused")
+
     override suspend fun patchObject(url: String, body: JsonObject): JsonObject {
         lastPatch = body
         server = JsonObject(buildMap {
@@ -161,6 +163,9 @@ private class FakeNetBoxObjectDao : NetBoxObjectDao {
     override suspend fun count(endpointPath: String): Int = if (last?.endpointPath == endpointPath) 1 else 0
 
     override suspend fun countAll(): Int = if (last == null) 0 else 1
+
+    override suspend fun getAll(endpointPath: String): List<NetBoxObjectEntity> =
+        listOfNotNull(last).filter { it.endpointPath == endpointPath }
 
     override suspend fun getAll(): List<NetBoxObjectEntity> = listOfNotNull(last)
 }

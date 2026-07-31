@@ -72,6 +72,8 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
 
     suspend fun cachedCount(endpointPath: String): Int = dao.count(endpointPath)
 
+    suspend fun cachedObjects(endpointPath: String): List<NetBoxObjectEntity> = dao.getAll(endpointPath)
+
     suspend fun cachedMediaAttachments(): List<OfflineAttachment> =
         dao.getAll().flatMap { entity ->
             val objectJson = runCatching { json.decodeFromString(JsonObject.serializer(), entity.json) }.getOrNull()
