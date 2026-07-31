@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
@@ -37,6 +38,7 @@ constructor(
     private val settingsRepository: SettingsRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val journalEntryRepository: JournalEntryRepository,
+    private val customFieldRepository: CustomFieldRepository,
     private val syncScheduler: SyncScheduler,
     private val json: Json,
 ) : ViewModel() {
@@ -86,8 +88,9 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val fields: StateFlow<List<FieldRow>> =
-        decodedObject
-            .map { it?.let(::buildFieldRows) ?: emptyList() }
+        combine(decodedObject, customFieldRepository.observeMarkdownNames()) { obj, markdownNames ->
+                obj?.let { buildFieldRows(it, markdownNames) } ?: emptyList()
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val editableFields: StateFlow<List<EditableField>> =
@@ -119,6 +122,7 @@ constructor(
     init {
         refresh()
         loadJournalEntries()
+        viewModelScope.launch { customFieldRepository.refresh() }
     }
 
     fun refresh(showConfirmation: Boolean = false) {

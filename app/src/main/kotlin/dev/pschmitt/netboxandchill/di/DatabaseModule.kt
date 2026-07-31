@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
 import dev.pschmitt.netboxandchill.data.db.BookmarkDao
+import dev.pschmitt.netboxandchill.data.db.CustomFieldDao
 import dev.pschmitt.netboxandchill.data.db.DashboardStatDao
 import dev.pschmitt.netboxandchill.data.db.DeviceDao
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeDao
@@ -50,4 +51,6 @@ object DatabaseModule {
 
     @Provides
     fun provideDashboardStatDao(database: AppDatabase): DashboardStatDao = database.dashboardStatDao()
+
+    @Provides fun provideCustomFieldDao(database: AppDatabase): CustomFieldDao = database.customFieldDao()
 }

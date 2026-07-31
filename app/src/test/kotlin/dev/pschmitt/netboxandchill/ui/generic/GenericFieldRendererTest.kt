@@ -110,6 +110,20 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `configured markdown custom field renders as Markdown`() {
+        val rows =
+            buildFieldRows(
+                parse("""{"custom_fields":{"purchase_store":"[Store](https://store.example)"}}"""),
+                markdownCustomFieldNames = setOf("purchase_store"),
+            )
+
+        assertEquals(
+            listOf(FieldRow.Markdown("Purchase Store", "[Store](https://store.example)")),
+            rows,
+        )
+    }
+
+    @Test
     fun `custom_fields reference values become tappable Reference rows`() {
         val rows =
             buildFieldRows(

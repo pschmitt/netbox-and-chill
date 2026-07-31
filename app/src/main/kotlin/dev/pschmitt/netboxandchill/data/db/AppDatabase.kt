@@ -14,8 +14,9 @@ import androidx.room.RoomDatabase
             BookmarkEntity::class,
             ObjectChangeEntity::class,
             DashboardStatEntity::class,
+            CustomFieldEntity::class,
         ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -34,4 +35,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun objectChangeDao(): ObjectChangeDao
 
     abstract fun dashboardStatDao(): DashboardStatDao
+
+    abstract fun customFieldDao(): CustomFieldDao
 }

@@ -1326,15 +1326,17 @@ treatment today (NBC-12).
 
 **Why:** user request - "we should support markdown formatting in the fields that explicitly do
 support it, such as our 'purchase_store' custom field for example."
-**How to apply:** `GenericFieldRenderer.MARKDOWN_KEYS` is currently a hardcoded `setOf("comments")`
-- custom fields need a different source of truth, since which ones are markdown-type is
-per-instance configuration, not a fixed key name. NetBox's `GET /api/extras/custom-fields/` lists
-each custom field's `name` and `type` (`{"value": "markdown", ...}` for markdown-type ones) - needs
-fetching/caching that list (similar shape to `JournalEntryRepository`'s content-type lookup) and
-checking a given custom field's key against it before deciding `FieldRow.Markdown` vs.
-`FieldRow.PlainText` in `buildFieldRows()`.
+**How it landed:** `CustomFieldRepository` fetches and caches NetBox's per-instance custom-field
+definitions in Room. `GenericDetailViewModel` combines that offline Flow with the cached object;
+custom fields whose server type is `markdown` become `FieldRow.Markdown`, while the existing
+hardcoded `comments` behavior remains unchanged.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31 - custom-field definitions are cached in Room and refreshed
+best-effort, configured markdown fields now render through the existing Markdown card, and the
+renderer has unit coverage. Remote `just lint`/`just test` and a debug build passed; the Mi Pad 4
+live check fetched the real custom-field endpoint and opened a generic detail without errors. The
+current instance has no custom field configured with NetBox's `markdown` type, so that branch was
+not visually exercised with live data.
 
 ## NBC-35: comment/markdown card had excess top/bottom padding from blank lines
 

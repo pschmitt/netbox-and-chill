@@ -37,7 +37,7 @@ private val EDIT_BLOCKLIST =
  * object (tappable, navigable to that object's own generic detail screen - this is also how tags
  * end up as tappable chips, since NetBox tags are real objects with their own detail view too).
  */
-fun buildFieldRows(obj: JsonObject): List<FieldRow> = buildList {
+fun buildFieldRows(obj: JsonObject, markdownCustomFieldNames: Set<String> = emptySet()): List<FieldRow> = buildList {
     for ((key, value) in obj) {
         val text = (value as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
         when {
@@ -61,7 +61,13 @@ fun buildFieldRows(obj: JsonObject): List<FieldRow> = buildList {
     // fields).
     (obj["custom_fields"] as? JsonObject)?.let { customFields ->
         for ((key, value) in customFields) {
-            renderField(key, Humanize.label(key), value)?.let(::add)
+            if (key in markdownCustomFieldNames) {
+                (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let {
+                    add(FieldRow.Markdown(Humanize.label(key), it))
+                }
+            } else {
+                renderField(key, Humanize.label(key), value)?.let(::add)
+            }
         }
     }
 }
