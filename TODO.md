@@ -1216,9 +1216,9 @@ maintaining two parallel detail-rendering implementations, which would get this 
 way NBC-15's Journal tab and NBC-16's file attachments did. Worth deciding which before starting -
 option (b) also happens to be the fix for NBC-30 below, for the same reason.
 
-Status: **done**, 2026-07-31 - verified with the generic renderer unit test plus remote `just lint`,
-`just test`, and `just build` on rofl-13; visual rendering was not exercised on a physical device
-in this session.
+Status: **done**, 2026-07-31 - verified with the generic renderer unit test, remote `just lint`,
+`just test`, and `just build` on rofl-13, plus a live Mi Pad 4 device-type detail screenshot showing
+the un-cropped front image.
 
 ## NBC-30: device/item title belongs in the page body, not the top app bar
 
