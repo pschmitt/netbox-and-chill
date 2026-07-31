@@ -147,6 +147,24 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `renders known location counts as filtered list targets`() {
+        val rows =
+            buildFieldRows(
+                parse("""{"id":17,"rack_count":1,"device_count":136,"prefix_count":0}"""),
+                endpointPath = "api/dcim/locations/",
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.Count("Rack Count", "1", CountTarget("api/dcim/racks/", "Racks", "location", 17)),
+                FieldRow.Count("Device Count", "136", CountTarget("api/dcim/devices/", "Devices", "location", 17)),
+                FieldRow.Count("Prefix Count", "0", CountTarget("api/ipam/prefixes/", "Prefixes", "scope", 17)),
+            ),
+            rows,
+        )
+    }
+
+    @Test
     fun `identifier fields are copyable`() {
         val rows = buildFieldRows(parse("""{"serial":"ABC123","asset_tag":"AT-001","primary_ip4":"10.0.0.5/24"}"""))
         assertEquals(

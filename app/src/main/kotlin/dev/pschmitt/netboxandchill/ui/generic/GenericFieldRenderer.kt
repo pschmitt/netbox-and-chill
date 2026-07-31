@@ -37,7 +37,11 @@ private val EDIT_BLOCKLIST =
  * object (tappable, navigable to that object's own generic detail screen - this is also how tags
  * end up as tappable chips, since NetBox tags are real objects with their own detail view too).
  */
-fun buildFieldRows(obj: JsonObject, markdownCustomFieldNames: Set<String> = emptySet()): List<FieldRow> = buildList {
+fun buildFieldRows(
+    obj: JsonObject,
+    markdownCustomFieldNames: Set<String> = emptySet(),
+    endpointPath: String? = null,
+): List<FieldRow> = buildList {
     for ((key, value) in obj) {
         val text = (value as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
         when {
@@ -52,7 +56,15 @@ fun buildFieldRows(obj: JsonObject, markdownCustomFieldNames: Set<String> = empt
                         ?: text.substringAfterLast('/')
                 add(FieldRow.FileAttachment(Humanize.label(key), text, filename))
             }
-            else -> renderField(key, Humanize.label(key), value)?.let(::add)
+            else -> {
+                val count = (value as? JsonPrimitive)?.intOrNull
+                val target = countTargetFor(key, obj, endpointPath)
+                if (count != null && target != null) {
+                    add(FieldRow.Count(Humanize.label(key), count.toString(), target))
+                } else {
+                    renderField(key, Humanize.label(key), value)?.let(::add)
+                }
+            }
         }
     }
     // custom_fields is a NetBox-instance-specific map of {field_name: value} - each one gets its
@@ -70,6 +82,22 @@ fun buildFieldRows(obj: JsonObject, markdownCustomFieldNames: Set<String> = empt
             }
         }
     }
+}
+
+private fun countTargetFor(key: String, obj: JsonObject, endpointPath: String?): CountTarget? {
+    val parentId = (obj["id"] as? JsonPrimitive)?.intOrNull ?: return null
+    val definition =
+        when (endpointPath) {
+            "api/dcim/locations/", "api/dcim/sites/" ->
+                when (key) {
+                    "rack_count" -> CountTarget("api/dcim/racks/", "Racks", "location", parentId)
+                    "device_count" -> CountTarget("api/dcim/devices/", "Devices", "location", parentId)
+                    "prefix_count" -> CountTarget("api/ipam/prefixes/", "Prefixes", "scope", parentId)
+                    else -> null
+                }
+            else -> null
+        }
+    return definition
 }
 
 private fun renderField(key: String, label: String, value: JsonElement): FieldRow? =

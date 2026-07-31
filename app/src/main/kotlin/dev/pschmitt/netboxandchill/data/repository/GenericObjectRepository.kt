@@ -6,6 +6,7 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonElement
@@ -22,8 +23,16 @@ class GenericObjectRepository
 @Inject
 constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao, private val json: Json) {
 
-    fun observeObjects(endpointPath: String, query: String): Flow<List<NetBoxObjectEntity>> =
-        if (query.isBlank()) dao.observeAll(endpointPath) else dao.search(endpointPath, query)
+    fun observeObjects(
+        endpointPath: String,
+        query: String,
+        filterKey: String? = null,
+        filterValue: Int? = null,
+    ): Flow<List<NetBoxObjectEntity>> {
+        val source = if (query.isBlank()) dao.observeAll(endpointPath) else dao.search(endpointPath, query)
+        if (filterKey == null || filterValue == null) return source
+        return source.map { objects -> objects.filter { it.matchesRelation(json, filterKey, filterValue) } }
+    }
 
     fun observeObject(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
         dao.observeById(endpointPath, id)
@@ -41,14 +50,22 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
             entity
         }
 
-    suspend fun syncAll(endpointPath: String, pageSize: Int = 200): Result<Int> = runCatching {
+    suspend fun syncAll(
+        endpointPath: String,
+        pageSize: Int = 200,
+        filters: Map<String, String> = emptyMap(),
+    ): Result<Int> = runCatching {
         var offset = 0
         var total = 0
         while (true) {
             val page =
                 api.listObjects(
                     endpointPath,
-                    mapOf("limit" to pageSize.toString(), "offset" to offset.toString()),
+                    buildMap {
+                        put("limit", pageSize.toString())
+                        put("offset", offset.toString())
+                        putAll(filters)
+                    },
                 )
             if (page.results.isEmpty()) break
             dao.upsertAll(page.results.map { it.toEntity(endpointPath) })
@@ -94,6 +111,16 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
             json = json.encodeToString(JsonObject.serializer(), this),
             syncedAt = System.currentTimeMillis(),
         )
+    }
+}
+
+private fun NetBoxObjectEntity.matchesRelation(parser: Json, relationKey: String, expectedId: Int): Boolean {
+    val objectJson = runCatching { parser.decodeFromString(JsonObject.serializer(), json) }.getOrNull() ?: return false
+    return when (val relation = objectJson[relationKey]) {
+        is JsonObject -> relation["id"]?.jsonPrimitive?.intOrNull == expectedId
+        is JsonArray -> relation.any { (it as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull == expectedId }
+        is JsonPrimitive -> relation.intOrNull == expectedId
+        else -> false
     }
 }
 

@@ -99,6 +99,9 @@ fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onO
                 onNavigateToReference = { endpointPath, id ->
                     navController.navigate(Route.Generic(endpointPath, id))
                 },
+                onNavigateToList = { endpointPath, label, filterKey, filterValue ->
+                    navController.navigate(Route.GenericList(endpointPath, label, filterKey, filterValue))
+                },
             )
         }
         composable<Route.Scanner> {

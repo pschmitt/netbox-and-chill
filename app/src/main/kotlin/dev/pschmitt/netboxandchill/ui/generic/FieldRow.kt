@@ -11,6 +11,9 @@ sealed interface FieldRow {
         val copyable: Boolean = false,
     ) : FieldRow
 
+    /** A reverse-relation count that can open the related model with the current object as a filter. */
+    data class Count(override val label: String, val value: String, val target: CountTarget) : FieldRow
+
     /** NetBox's "comments" fields support Markdown - rendered, not shown as literal text. */
     data class Markdown(override val label: String, val content: String) : FieldRow
 
@@ -39,3 +42,10 @@ sealed interface FieldRow {
 
 /** A tappable link to another NetBox object's generic detail screen. */
 data class RefTarget(val display: String, val endpointPath: String, val id: Int)
+
+data class CountTarget(
+    val endpointPath: String,
+    val listLabel: String,
+    val relationKey: String,
+    val parentId: Int,
+)

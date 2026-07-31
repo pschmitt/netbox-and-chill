@@ -89,7 +89,7 @@ constructor(
 
     val fields: StateFlow<List<FieldRow>> =
         combine(decodedObject, customFieldRepository.observeMarkdownNames()) { obj, markdownNames ->
-                obj?.let { buildFieldRows(it, markdownNames) } ?: emptyList()
+                obj?.let { buildFieldRows(it, markdownNames, route.endpointPath) } ?: emptyList()
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

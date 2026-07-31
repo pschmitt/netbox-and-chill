@@ -1374,7 +1374,11 @@ row that navigates to `GenericListScreen` with a pre-applied filter needs `Gener
 that exists yet (NBC-6's list screens currently only support the user's own free-text search box)
 before assuming it's just a navigation-argument plumbing job.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31 - known location/site reverse counts (`rack_count`, `device_count`, and
+`prefix_count`) now render as tappable filtered-list actions. The generic list keeps the relation
+filter over cached JSON for offline use and performs a best-effort server refresh using the matching
+`*_id` query. Remote tests/lint/build passed; Mi Pad 4 live verification opened Office and confirmed
+Rack Count filtered to the one Office rack without any write request.
 
 ## NBC-37: device view should link to its device type page
 

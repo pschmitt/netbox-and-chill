@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -70,6 +71,7 @@ import androidx.core.content.getSystemService
 fun GenericDetailScreen(
     onBack: () -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int) -> Unit,
+    onNavigateToList: (endpointPath: String, label: String, filterKey: String, filterValue: Int) -> Unit,
     viewModel: GenericDetailViewModel = hiltViewModel(),
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
@@ -274,6 +276,7 @@ fun GenericDetailScreen(
                                 fieldRow(
                                     row,
                                     onNavigateToReference,
+                                    onNavigateToList,
                                     onOpenUrl = { url ->
                                         context.startActivity(
                                             Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -373,6 +376,7 @@ private fun EditForm(
 private fun LazyListScope.fieldRow(
     row: FieldRow,
     onNavigateToReference: (String, Int) -> Unit,
+    onNavigateToList: (String, String, String, Int) -> Unit,
     onOpenUrl: (String) -> Unit,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
     localAttachmentFile: (url: String, filename: String) -> java.io.File?,
@@ -391,6 +395,32 @@ private fun LazyListScope.fieldRow(
                                 Icon(Icons.Default.ContentCopy, contentDescription = "Copy ${row.label}")
                             }
                         }
+                    }
+                }
+            }
+        is FieldRow.Count ->
+            item {
+                Column(Modifier.padding(vertical = 6.dp)) {
+                    FieldLabel(row.label)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier =
+                            Modifier.fillMaxWidth().clickable {
+                                onNavigateToList(
+                                    row.target.endpointPath,
+                                    row.target.listLabel,
+                                    row.target.relationKey,
+                                    row.target.parentId,
+                                )
+                            },
+                    ) {
+                        Text(
+                            row.value,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(Icons.Default.FilterList, contentDescription = "Filter ${row.label}")
                     }
                 }
             }

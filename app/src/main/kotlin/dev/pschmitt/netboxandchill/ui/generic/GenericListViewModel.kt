@@ -38,7 +38,9 @@ constructor(savedStateHandle: SavedStateHandle, private val repository: GenericO
 
     val objects: StateFlow<List<NetBoxObjectEntity>> =
         _query
-            .flatMapLatest { repository.observeObjects(route.endpointPath, it) }
+            .flatMapLatest {
+                repository.observeObjects(route.endpointPath, it, route.filterKey, route.filterValue)
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
@@ -53,7 +55,13 @@ constructor(savedStateHandle: SavedStateHandle, private val repository: GenericO
         viewModelScope.launch {
             _isRefreshing.value = true
             repository
-                .syncAll(route.endpointPath)
+                .syncAll(
+                    route.endpointPath,
+                    filters =
+                        route.filterKey?.let { key ->
+                            route.filterValue?.let { value -> mapOf("${key}_id" to value.toString()) }
+                        } ?: emptyMap(),
+                )
                 .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached data" }
             _isRefreshing.value = false
         }
