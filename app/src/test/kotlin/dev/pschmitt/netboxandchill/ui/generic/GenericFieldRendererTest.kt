@@ -29,6 +29,40 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `renders the netbox documents plugin detail shape without special casing`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{
+                        "document":"https://netbox.brkn.lol/media/netbox-documents/127_manual.pdf",
+                        "filename":"manual.pdf",
+                        "document_type":"manual",
+                        "assigned_object":{"id":127,"url":"https://netbox.brkn.lol/api/dcim/device-types/127/","display":"Aranet4 Home"},
+                        "comments":"",
+                        "tags":[]
+                    }"""
+                )
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.FileAttachment(
+                    "Document",
+                    "https://netbox.brkn.lol/media/netbox-documents/127_manual.pdf",
+                    "manual.pdf",
+                ),
+                FieldRow.PlainText("Filename", "manual.pdf"),
+                FieldRow.PlainText("Document Type", "manual"),
+                FieldRow.Reference(
+                    "Assigned Object",
+                    RefTarget("Aranet4 Home", "api/dcim/device-types/", 127),
+                ),
+            ),
+            rows,
+        )
+    }
+
+    @Test
     fun `falls back to the URL's last path segment when there is no filename field`() {
         val rows = buildFieldRows(parse("""{"image":"https://x/media/image-attachments/foo.png"}"""))
         assertEquals(

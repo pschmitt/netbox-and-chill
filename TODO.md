@@ -260,15 +260,17 @@ screens, no special-casing needed.
 The generic detail screen now opens/downloads media-backed document fields and the optional offline
 sync sweep stores them durably, so the plugin needs no special API code for ordinary document files.
 
-Still open for full support:
-- [ ] Verify any plugin-specific actions or nested structures that do not fit the generic
-  list/detail shape; ordinary file fields are covered by the generic media path.
-- [ ] Nothing plugin-specific has been verified beyond "list + basic metadata detail" - e.g.
-  whether netbox-documents exposes anything (custom actions, nested structure) that doesn't fit
-  the generic list/detail shape.
+- [x] Verify the live plugin API surface: `/api/plugins/documents/` exposes the standard
+  `documents` collection, and its detail payload is a normal media URL plus filename, nested
+  assigned-object reference, tags, and scalar metadata.
+- [x] Verify there are no plugin-specific actions or nested structures requiring special handling:
+  the collection's live `OPTIONS` response advertises only ordinary POST/PUT actions, while the
+  generic renderer handles the observed detail payload.
+- [x] Add a regression fixture for the observed `netbox-documents` detail shape.
 
-Status: mostly done (generic list/detail plus file opening and durable offline copies), 2026-07-31 -
-remote `just lint`, `just test`, and `just build` pass; plugin-specific behavior remains unverified.
+Status: **done**, 2026-07-31 - live read-only API audit against netbox.brkn.lol, focused renderer
+test, and the existing remote lint/test/build validation confirm generic list/detail, media opening,
+and durable offline copies cover this plugin without special-case code.
 
 ## NBC-8: App Links for the user's NetBox domain + deep link to specific object views
 
