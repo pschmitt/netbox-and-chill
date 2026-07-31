@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mikepenz.markdown.m3.Markdown
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -204,6 +205,13 @@ private fun LazyListScope.fieldRow(row: FieldRow, onNavigateToReference: (String
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label)
                     Text(row.value, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        is FieldRow.Markdown ->
+            item {
+                Column(Modifier.padding(vertical = 6.dp)) {
+                    FieldLabel(row.label)
+                    Markdown(content = row.content, modifier = Modifier.fillMaxWidth())
                 }
             }
         is FieldRow.Reference ->

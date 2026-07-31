@@ -45,3 +45,6 @@ fastlane/test_output
 
 # dist output from justfile fetch recipes
 /dist/
+
+# Session-local Claude Code harness state (scheduled/looped task locking), not repo content
+/.claude/

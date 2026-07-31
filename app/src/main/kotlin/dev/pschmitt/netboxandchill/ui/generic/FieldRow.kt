@@ -6,6 +6,9 @@ sealed interface FieldRow {
 
     data class PlainText(override val label: String, val value: String) : FieldRow
 
+    /** NetBox's "comments" fields support Markdown - rendered, not shown as literal text. */
+    data class Markdown(override val label: String, val content: String) : FieldRow
+
     data class Reference(override val label: String, val target: RefTarget) : FieldRow
 
     data class ReferenceList(override val label: String, val targets: List<RefTarget>) : FieldRow

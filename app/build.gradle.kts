@@ -121,6 +121,10 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.kotlinx.serialization.json)
 
+    // Markdown rendering (NetBox "comments" fields support Markdown)
+    implementation(libs.markdown.renderer)
+    implementation(libs.markdown.renderer.m3)
+
     // Offline cache
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

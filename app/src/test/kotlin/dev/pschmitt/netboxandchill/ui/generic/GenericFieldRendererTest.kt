@@ -18,6 +18,18 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `renders comments as Markdown, not PlainText`() {
+        val rows = buildFieldRows(parse("""{"comments":"- Started: `2021-10-01`"}"""))
+        assertEquals(listOf(FieldRow.Markdown("Comments", "- Started: `2021-10-01`")), rows)
+    }
+
+    @Test
+    fun `description is not treated as Markdown`() {
+        val rows = buildFieldRows(parse("""{"description":"Not markdown"}"""))
+        assertEquals(listOf(FieldRow.PlainText("Description", "Not markdown")), rows)
+    }
+
+    @Test
     fun `skips null and blank fields`() {
         val rows = buildFieldRows(parse("""{"comments":null,"description":""}"""))
         assertTrue(rows.isEmpty())

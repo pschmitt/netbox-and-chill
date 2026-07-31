@@ -281,15 +281,28 @@ them as raw text (both on the old Device detail screen and NBC-6's generic
 `FieldRow.PlainText`).
 
 **Why:** raw `**bold**`/`- lists`/etc. as literal text is a poor reading experience for exactly
-the fields (comments, descriptions) most likely to be long-form/formatted.
-**How to apply:** needs a Markdown-to-Compose renderer - no dependency for this yet. Should apply
-to both the generic detail screen's `PlainText` rows for known-markdown field names
-(`comments`, `description`, `custom_fields` values that are markdown-typed per NetBox's custom
-field type) and the legacy Device detail screen's comments field. Worth a quick survey of
-available Compose Markdown libraries before picking one, given license/maintenance/output-quality
-vary a lot between them.
+the fields (comments, descriptions) most likely to be long-form/formatted. Confirmed as a real,
+visible gap (not hypothetical) while live-testing NBC-5 against the user's actual NetBox data - a
+real Comments field was full of literal backtick/list markup.
+**How it landed:** added `com.mikepenz:multiplatform-markdown-renderer(-m3)`, pinned to **0.41.0**
+rather than latest (0.43.0 bumps `minCompileSdk` to 37; we're on 36 - see the version catalog
+comment). Only the `comments` field is treated as Markdown (`description` is plain short text per
+NetBox's own docs, deliberately excluded) - both NBC-6's generic detail screen
+(`FieldRow.Markdown`) and the legacy Device detail screen's Comments field now render through the
+same `com.mikepenz.markdown.m3.Markdown` composable. Edit mode is unaffected - editing still shows
+the raw Markdown source in a plain text field, which is correct (you edit source, not rendered
+output).
 
-Status: not started, 2026-07-31.
+Live-verified on the Mi Pad 4 against the real NetBox instance: a Comments field with a bullet
+list and several `` `inline code` `` spans now renders as an actual bulleted list with proper
+monospace code chips, not literal asterisks/backticks.
+
+Not covered: `custom_fields` values that are Markdown-typed per NetBox's custom field type system
+- custom fields aren't rendered at all yet (see NBC-5's out-of-scope note), so this is moot until
+custom field support exists.
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green; live-verified on the Mi Pad 4 against
+real Markdown content.
 
 ## NBC-13: Global search
 

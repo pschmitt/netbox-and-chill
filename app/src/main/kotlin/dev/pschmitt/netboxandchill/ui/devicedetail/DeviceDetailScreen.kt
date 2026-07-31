@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mikepenz.markdown.m3.Markdown
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import java.text.DateFormat
 import java.util.Date
@@ -112,7 +114,7 @@ fun DeviceDetailScreen(
                 detailField("Serial", current.serial)
                 detailField("Asset tag", current.assetTag)
                 detailField("Primary IP", current.primaryIp)
-                detailField("Comments", current.comments)
+                detailMarkdownField("Comments", current.comments)
                 item {
                     Spacer(Modifier.height(24.dp))
                     Text(
@@ -136,6 +138,21 @@ private fun LazyListScope.detailField(label: String, value: String?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(value, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+/** NetBox's "comments" field supports Markdown - rendered, not shown as literal text. */
+private fun LazyListScope.detailMarkdownField(label: String, value: String?) {
+    if (value.isNullOrBlank()) return
+    item {
+        Column(Modifier.padding(vertical = 6.dp)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Markdown(content = value, modifier = Modifier.fillMaxWidth())
         }
     }
 }

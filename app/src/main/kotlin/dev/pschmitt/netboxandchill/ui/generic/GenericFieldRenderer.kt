@@ -14,6 +14,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 private val SKIPPED_KEYS = setOf("id", "url", "display")
 
+// NetBox documents these specific fields as Markdown-enabled across (almost) every model -
+// "description" is deliberately not included, it's plain short text, not Markdown.
+private val MARKDOWN_KEYS = setOf("comments")
+
 // Meta/system fields NetBox manages itself - not user-editable, or too complex to round-trip as
 // plain text yet (custom_fields needs its own per-field-type handling, not a blanket text field).
 private val EDIT_BLOCKLIST =
@@ -27,7 +31,14 @@ private val EDIT_BLOCKLIST =
  */
 fun buildFieldRows(obj: JsonObject): List<FieldRow> =
     obj.mapNotNull { (key, value) ->
-        if (key in SKIPPED_KEYS) null else renderField(Humanize.label(key), value)
+        when {
+            key in SKIPPED_KEYS -> null
+            key in MARKDOWN_KEYS ->
+                (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let {
+                    FieldRow.Markdown(Humanize.label(key), it)
+                }
+            else -> renderField(Humanize.label(key), value)
+        }
     }
 
 private fun renderField(label: String, value: JsonElement): FieldRow? =
