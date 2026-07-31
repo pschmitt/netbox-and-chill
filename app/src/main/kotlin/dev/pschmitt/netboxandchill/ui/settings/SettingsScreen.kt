@@ -12,10 +12,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -23,16 +25,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,17 +54,31 @@ fun SettingsScreen(
 ) {
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    val isUpdatingBaseUrl by viewModel.isUpdatingBaseUrl.collectAsStateWithLifecycle()
     val cachedDeviceCount by viewModel.cachedDeviceCount.collectAsStateWithLifecycle()
     val syncAttachmentsToDisk by
         viewModel.settingsRepository.syncAttachmentsToDisk.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showEditServerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
         }
+    }
+
+    if (showEditServerDialog) {
+        EditServerDialog(
+            currentBaseUrl = credentials.baseUrl,
+            isUpdating = isUpdatingBaseUrl,
+            onDismiss = { showEditServerDialog = false },
+            onSave = { newBaseUrl ->
+                viewModel.updateBaseUrl(newBaseUrl)
+                showEditServerDialog = false
+            },
+        )
     }
 
     Scaffold(
@@ -79,6 +99,11 @@ fun SettingsScreen(
                 leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
                 headlineContent = { Text("NetBox instance") },
                 supportingContent = { Text(credentials.baseUrl) },
+                trailingContent = {
+                    IconButton(onClick = { showEditServerDialog = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Change NetBox server")
+                    }
+                },
             )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
@@ -141,4 +166,39 @@ fun SettingsScreen(
             )
         }
     }
+}
+
+/** Edit the configured NetBox base URL (NBC-39). Save triggers
+ * [SettingsViewModel.updateBaseUrl], which validates reachability before committing and reverts on
+ * failure - this dialog doesn't wait around for that, it dismisses immediately and any failure
+ * surfaces via the screen's existing Snackbar, same as every other async action here. */
+@Composable
+private fun EditServerDialog(
+    currentBaseUrl: String,
+    isUpdating: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf(currentBaseUrl) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Change NetBox server") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("NetBox URL") },
+                singleLine = true,
+                enabled = !isUpdating,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(text) }, enabled = !isUpdating && text.isNotBlank()) {
+                Text("Save")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !isUpdating) { Text("Cancel") } },
+    )
 }

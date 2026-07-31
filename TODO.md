@@ -1396,3 +1396,47 @@ screen) renders its own front/rear images and apply the same `contentScale = Con
 `RemoteThumbnail` parameter (added in NBC-22 specifically to support this).
 
 Status: not started, 2026-07-31.
+
+## NBC-39: Settings screen has no way to change the configured NetBox server
+
+The "NetBox instance" row on `SettingsScreen` only ever displays the currently-configured base
+URL as read-only text - there's no way to point the app at a different NetBox instance without
+disconnecting entirely and going back through onboarding from scratch.
+
+**Why:** user request/observation - "the settings page currently does not allow changing the
+netbox server."
+**How to apply:** `SettingsRepository.save(baseUrl, token)` already exists and is exactly what
+`OnboardingViewModel.connect()` uses - the dynamic base-URL interceptor picks up a saved change at
+runtime with no rebuild needed (per `AGENTS.md`'s architecture note), so the plumbing already
+supports this, it's just never been exposed as an edit affordance post-onboarding. Needs: an edit
+icon/dialog on the "NetBox instance" row (`OutlinedTextField` pre-filled with the current URL),
+validate reachability against the *new* URL before committing to it (mirror
+`OnboardingViewModel.connect()`'s save-then-validate-then-revert-on-failure shape, not a blind
+save), and - important, not just cosmetic - the local Room cache must be treated as
+server-specific: switching to a different NetBox instance while keeping old cached
+devices/objects around would silently mix data from two different servers (same object ids
+meaning different things), so a successful server switch should wipe the cache
+(`AppDatabase.clearAllTables()`), not just repoint the API base URL.
+
+**Related pre-existing gap, noted but out of scope here:** `SettingsViewModel.logOut()` ->
+`SettingsRepository.clear()` only clears the stored credentials, not the Room cache either - so
+disconnecting and connecting to a *different* server today already has this same stale-cache
+mixing problem. Not fixed as part of this entry (kept scoped to the specific "change server while
+still connected" ask), but the same `clearAllTables()` fix would apply there too if picked up
+later.
+
+**How it landed:** `SettingsScreen`'s "NetBox instance" row gets a trailing edit `IconButton` that
+opens `EditServerDialog` (an `AlertDialog` with an `OutlinedTextField` pre-filled with the current
+URL). Save calls the new `SettingsViewModel.updateBaseUrl(newBaseUrl)`, which saves eagerly (only
+way to actually test the new URL, since the dynamic interceptor reads `SettingsRepository`
+reactively), calls `DirectoryRepository.refresh()` to validate reachability, and on failure reverts
+to the previous `(baseUrl, token)` and surfaces the error via the screen's existing Snackbar - on
+success it wipes the cache (`AppDatabase.clearAllTables()`, injected directly since no existing
+repository wraps "clear everything") so no stale cross-server data lingers. The dialog itself
+dismisses immediately on Save rather than waiting for validation to finish, matching how every
+other async action on this screen already surfaces its result via Snackbar, not an inline spinner.
+
+Status: **done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13. Not
+verified on a physical device this session (no device available to actually switch servers and
+confirm the revert-on-failure/cache-wipe-on-success behavior end-to-end) - reasoned through by
+mirroring `OnboardingViewModel.connect()`'s already-verified save-then-validate shape instead.
