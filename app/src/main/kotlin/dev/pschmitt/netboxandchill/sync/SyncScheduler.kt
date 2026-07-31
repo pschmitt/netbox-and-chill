@@ -38,7 +38,10 @@ class SyncScheduler @Inject constructor(private val workManager: WorkManager) {
         workManager.enqueueUniqueWork(ONE_TIME_WORK_NAME, ExistingWorkPolicy.REPLACE, request)
     }
 
-    private companion object {
+    companion object {
+        // Not private: SyncStatusRepository observes WorkManager by these same unique work names
+        // to derive the app-wide "is background sync running" signal (NBC-23), so it needs to
+        // agree with whatever SyncScheduler actually enqueues under.
         const val PERIODIC_WORK_NAME = "netbox-periodic-sync"
         const val ONE_TIME_WORK_NAME = "netbox-manual-sync"
     }

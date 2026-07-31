@@ -715,16 +715,20 @@ scan all cached `NetBoxObjectEntity` rows when the new setting is on, downloadin
 attachment via a new durable - not cache-dir - `FileDownloadRepository` method, with
 `GenericDetailScreen` preferring an already-synced local copy over re-downloading); extending the
 existing `SyncWorker`/`SyncScheduler` to also sync the NBC-6 generic-object cache, not just the
-legacy device list; surfacing background (not just manual) sync failures to the user somehow
-(a background `WorkManager` failure has no `Activity` to show a `Snackbar` in - probably wants a
-`Notification`, unlike the manual-sync case slice 1 covers).
+legacy device list. The "surface background sync failures via a `Notification` (a background
+`WorkManager` failure has no `Activity` to show a `Snackbar` in, unlike the manual-sync case slice 1
+covers)" part of this slice has been split out and done as NBC-23, since it turned out to overlap
+with that task's app-wide sync indicator - see NBC-23 for the notification/permission/channel work;
+`SyncWorker` now posts via `SyncNotifier` on exhausted retries. The attachment sweep and
+generic-object-cache sync remain open here.
 
 Status: **in progress**, 2026-07-31 - slice 1 done (`just test`/`just lint` green on rofl-14).
 Live-verified on the Mi Pad 4 once netbox.brkn.lol's outage resolved: Settings shows the new "Sync
 attachments to disk" toggle (flips cleanly, off by default as intended), "Sync now" completed
 without error against the real instance (382 real cached devices), and editing an object (NBC-15's
-own detail screen) no longer needs a manual pull-to-refresh to reflect the change. Slice 2 (the
-actual attachment-download sweep) not started.
+own detail screen) no longer needs a manual pull-to-refresh to reflect the change. Slice 2's
+background-failure-notification piece done via NBC-23 (see above); the attachment-to-disk sweep
+and generic-object-cache sync are still not started.
 
 ## NBC-18: show cached data immediately when the server is unreachable at launch
 
@@ -951,7 +955,52 @@ Android `Notification`, not just a `Snackbar` - overlaps directly with NBC-17 sl
 "surfacing background sync failures" follow-up, should probably be designed together with it rather
 than as a fully separate feature.
 
-Status: not started, 2026-07-31.
+- [x] `sync/SyncStatusRepository.kt` - new `@Singleton` wrapping `WorkManager.getWorkInfosForUniqueWorkFlow`
+  for both of `SyncScheduler`'s unique work names (`PERIODIC_WORK_NAME`/`ONE_TIME_WORK_NAME`, made
+  non-private so this can reference them), combined into a single `isSyncing: Flow<Boolean>`
+  (`true` while either has a `WorkInfo.State.RUNNING` entry). Reads WorkManager's own
+  locally-persisted state, so it's correct offline too - only the sync work itself needs
+  connectivity, not observing whether it's running.
+- [x] `ui/common/SyncStatusViewModel.kt` + `ui/common/SyncStatusIndicator.kt` - a thin
+  `hiltViewModel()`-backed composable, a `LinearProgressIndicator` that `AnimatedVisibility`-shows
+  only while syncing. Hosted once in `MainActivity`, layered in a `Box` above `NetBoxNavHost` (not
+  inside any individual screen's own `Scaffold`), so it reflects sync state regardless of which
+  screen is on-screen - deliberately structured this way instead of touching each screen's own
+  top bar, since several of those screens (`DeviceListScreen`, `DeviceDetailScreen`,
+  `DashboardScreen`, `Sidebar`) had other in-flight changes elsewhere this session.
+- [x] `sync/SyncNotifier.kt` - new `@Singleton`, creates a `background_sync` `NotificationChannel`
+  (called once from `NetBoxAndChillApp.onCreate`, idempotent) and posts a `Notification` (tapping
+  it opens `MainActivity`) via `notifySyncFailed(message)`. Silently no-ops if `POST_NOTIFICATIONS`
+  isn't granted on API 33+ instead of crashing the worker - this is a nice-to-have surface, not a
+  hard requirement.
+- [x] `AndroidManifest.xml` - added the `POST_NOTIFICATIONS` permission; requested at runtime from
+  `MainActivity` on API 33+ (same `rememberLauncherForActivityResult`/`ActivityResultContracts.RequestPermission`
+  shape `ScannerScreen` already uses for `CAMERA`), fire-and-forget - denial just means the
+  notification silently doesn't show later.
+- [x] `sync/SyncWorker.kt` - only notifies on *exhausted* failure, not every transient retry: caps
+  retries at 3 attempts via `runAttemptCount` before switching from `Result.retry()` to
+  `syncNotifier.notifySyncFailed(...)` + `Result.failure()`. Note this cap is per-run - a
+  `PeriodicWorkRequest`'s attempt count resets at its next scheduled period regardless, so this
+  bounds retries *within* one run, not across the whole periodic schedule.
+- [x] Added a small `drawable/ic_stat_sync_problem.xml` vector (Material "sync_problem" glyph) as
+  the notification's small icon - status-bar/notification icons must be simple alpha-only
+  silhouettes, so a launcher-style icon wasn't reusable here.
+
+**Deliberately out of scope:** no unit tests were added for the WorkManager/`Notification`-touching
+pieces (`SyncWorker`, `SyncStatusRepository`, `SyncNotifier`) - they need `androidx.work:work-testing`
+(or Robolectric) for meaningful coverage, neither of which is wired into this project yet, and the
+existing test suite only covers plain-Kotlin logic (`NetBoxUrlParserTest`,
+`GenericFieldRendererTest`, `EditableFieldTest`). Left as a follow-up rather than bringing in new
+test infra as a side effect of this task.
+
+Status: **done**, 2026-07-31 - `just build`/`just lint`/`just test` all green on rofl-14. Not
+verified on a physical device this session (no device was reachable to confirm the indicator
+actually renders live or that a real background-sync-failure `Notification` fires and looks right
+in the tray) - reasoned through the WorkManager/Notification APIs and matched existing in-repo
+patterns (permission-request shape from `ScannerScreen`, `ViewModel`/`hiltViewModel()` shape from
+every other screen) instead. Should get a live check (deny/allow the permission prompt, force a
+sync failure, confirm the top progress bar shows during a real sync) next time a device is
+available.
 
 ## NBC-24: list-view scrolling performance (device list is the worst)
 
