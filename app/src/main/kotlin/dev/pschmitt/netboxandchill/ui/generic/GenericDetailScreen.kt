@@ -12,13 +12,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,6 +34,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -65,6 +72,7 @@ fun GenericDetailScreen(
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
+    val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -95,7 +103,8 @@ fun GenericDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = if (isEditing) viewModel::cancelEditing else onBack) {
                         Icon(
-                            if (isEditing) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                            if (isEditing) Icons.Default.Close
+                            else Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = if (isEditing) "Cancel" else "Back",
                         )
                     }
@@ -103,15 +112,19 @@ fun GenericDetailScreen(
                 actions = {
                     if (isEditing) {
                         if (isSaving) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                            )
                         } else {
                             IconButton(
                                 onClick = {
                                     val kindByKey = editableFields.associateBy { it.key }
-                                    val edits =
-                                        editValues.mapNotNull { (key, value) ->
-                                            kindByKey[key]?.let { field -> key to (field.kind to value) }
+                                    val edits = editValues.mapNotNull { (key, value) ->
+                                        kindByKey[key]?.let { field ->
+                                            key to (field.kind to value)
                                         }
+                                    }
                                     viewModel.save(edits.toMap())
                                 }
                             ) {
@@ -129,9 +142,16 @@ fun GenericDetailScreen(
                         }
                         webUrl?.let { url ->
                             IconButton(
-                                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    )
+                                }
                             ) {
-                                Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser")
+                                Icon(
+                                    Icons.Default.OpenInBrowser,
+                                    contentDescription = "Open in browser",
+                                )
                             }
                             IconButton(onClick = { context.startActivity(shareIntent(url)) }) {
                                 Icon(Icons.Default.Share, contentDescription = "Share")
@@ -157,21 +177,58 @@ fun GenericDetailScreen(
                     onValueChange = { key, value -> editValues = editValues + (key to value) },
                     modifier = Modifier.padding(padding).fillMaxSize(),
                 )
-            else ->
-                LazyColumn(
-                    modifier = Modifier.padding(padding).fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                ) {
-                    fields.forEach { row ->
-                        fieldRow(
-                            row,
-                            onNavigateToReference,
-                            onOpenUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
-                            onDownloadAttachment = viewModel::downloadAttachment,
-                            isDownloading = isDownloading,
-                        )
+            else -> {
+                var selectedTab by remember { mutableStateOf(0) }
+                Column(Modifier.padding(padding).fillMaxSize()) {
+                    if (journalEntries.isNotEmpty()) {
+                        TabRow(selectedTabIndex = selectedTab) {
+                            Tab(
+                                selected = selectedTab == 0,
+                                onClick = { selectedTab = 0 },
+                                text = { Text("Details") },
+                                icon = {
+                                    Icon(Icons.Default.Description, contentDescription = null)
+                                },
+                            )
+                            Tab(
+                                selected = selectedTab == 1,
+                                onClick = { selectedTab = 1 },
+                                text = { Text("Journal") },
+                                icon = { Icon(Icons.Default.History, contentDescription = null) },
+                            )
+                        }
+                    }
+                    if (selectedTab == 0 || journalEntries.isEmpty()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                        ) {
+                            fields.forEach { row ->
+                                fieldRow(
+                                    row,
+                                    onNavigateToReference,
+                                    onOpenUrl = { url ->
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                        )
+                                    },
+                                    onDownloadAttachment = viewModel::downloadAttachment,
+                                    isDownloading = isDownloading,
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                        ) {
+                            items(journalEntries, key = { it.id }) { entry ->
+                                JournalEntryItem(entry)
+                            }
+                        }
                     }
                 }
+            }
         }
     }
 }
@@ -271,7 +328,9 @@ private fun LazyListScope.fieldRow(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary,
                             modifier =
-                                Modifier.clickable { onNavigateToReference(target.endpointPath, target.id) }
+                                Modifier.clickable {
+                                        onNavigateToReference(target.endpointPath, target.id)
+                                    }
                                     .padding(vertical = 2.dp),
                         )
                     }
@@ -314,10 +373,9 @@ private fun LazyListScope.fieldRow(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier =
-                            Modifier.fillMaxWidth()
-                                .clickable(enabled = !isDownloading) {
-                                    onDownloadAttachment(row.url, row.filename)
-                                },
+                            Modifier.fillMaxWidth().clickable(enabled = !isDownloading) {
+                                onDownloadAttachment(row.url, row.filename)
+                            },
                     ) {
                         Icon(Icons.Default.Description, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -327,13 +385,45 @@ private fun LazyListScope.fieldRow(
                             modifier = Modifier.weight(1f),
                         )
                         if (isDownloading) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                            )
                         } else {
                             Icon(Icons.Default.Download, contentDescription = "Download and open")
                         }
                     }
                 }
             }
+    }
+}
+
+@Composable
+private fun JournalEntryItem(entry: JournalEntryUi) {
+    val (icon, tint) =
+        when (entry.kind) {
+            "success" -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.primary
+            "warning" -> Icons.Default.Warning to MaterialTheme.colorScheme.tertiary
+            "danger" -> Icons.Default.Error to MaterialTheme.colorScheme.error
+            else -> Icons.Default.Info to MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    Column(Modifier.padding(vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                icon,
+                contentDescription = entry.kindLabel,
+                tint = tint,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "${entry.kindLabel} · ${entry.created}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        CommentCard(content = entry.comments, modifier = Modifier.fillMaxWidth())
     }
 }
 
