@@ -352,7 +352,11 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                 onFailure = { Result.failure(it) },
                             )
                         isPrinting = false
-                        resultMessage = result.fold({ "Printed" }, { it.message ?: "Printing failed" })
+                        resultMessage =
+                            result.fold(
+                                { "Printed" },
+                                { error -> printerFailureMessage(printer.name, error) },
+                            )
                     }
                 },
                 enabled = selected != null && !isPrinting && hasPermission,
@@ -382,3 +386,14 @@ private fun hasBluetoothPermission(context: Context): Boolean =
 
 private fun bluetoothAdapter(context: Context): BluetoothAdapter? =
     context.getSystemService(BluetoothManager::class.java)?.adapter
+
+private fun printerFailureMessage(printerName: String, error: Throwable): String {
+    val details = error.message.orEmpty()
+    return when {
+        details.contains("timeout", ignoreCase = true) ||
+            details.contains("socket", ignoreCase = true) ||
+            details.contains("page_timeout", ignoreCase = true) ->
+            "Couldn't reach $printerName. Make sure it is powered on and nearby, then try again."
+        else -> details.ifBlank { "Printing failed - try again" }
+    }
+}
