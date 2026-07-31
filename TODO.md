@@ -1058,18 +1058,17 @@ Scrolling the device list is janky/slow - the worst offender among the app's lis
 
 **Why:** user request - "improve scrolling performance of the list view (device list is the worst
 atm)."
-**How to apply:** not yet profiled - needs an actual investigation (Android Studio profiler /
-`adb shell dumpsys gfxinfo`, or at minimum careful code reading) before assuming a fix, rather than
-guessing. Prime suspects given what's known about `DeviceListScreen`/`DeviceRow`: NBC-3's
-`deviceTypeImages` backfill and NBC-22's just-landed thumbnail-size bump interacting with
-`RemoteThumbnail`'s Coil `AsyncImage` - recomposition/measurement cost per row, whether `LazyColumn`
-`items(..., key = ...)` is used correctly (it already is, per current code, so that's likely not it),
-and whether Coil is re-decoding/re-requesting images on every recomposition rather than caching
-effectively. Compare against the generic list screen (`GenericListScreen`) - if that one *isn't*
-janky, the difference is almost certainly image-loading-related rather than something structural in
-`LazyColumn` itself.
+**How it landed:** profiled on the Mi Pad 4 with `dumpsys gfxinfo` while scrolling the real
+383-device cache. The list was launching device-type metadata backfills for every cached device/type,
+not just visible rows, while each row also repeated the durable-file lookup during recomposition.
+The list now uses stable row content types, memoizes the local-image lookup, and observes visible
+lazy-list indices so only on-screen device types are backfilled. A warm post-change scroll trace
+still showed device-specific jank (29% in the short sample), but the image rows render correctly and
+the unbounded prefetch/recomposition churn is removed; further profiling can tune Coil/device
+hardware behavior separately.
 
-Status: not started, 2026-07-31.
+Status: **done** (targeted performance pass), 2026-07-31 - remote `just lint`, `just test`, and
+debug build passed; installed and exercised on the Mi Pad 4 with real production data read-only.
 
 ## NBC-25: a way to view/copy the currently-configured API token
 

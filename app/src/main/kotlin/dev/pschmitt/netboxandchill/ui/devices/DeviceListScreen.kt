@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,7 @@ import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
+import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +53,18 @@ fun DeviceListScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState, devices) {
+        snapshotFlow {
+                listState.layoutInfo.visibleItemsInfo.mapNotNull { item ->
+                    devices.getOrNull(item.index)?.deviceTypeId
+                }.toSet()
+            }
+            .collect { visibleDeviceTypeIds ->
+                viewModel.ensureDeviceTypeImages(visibleDeviceTypeIds)
+            }
+    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -106,8 +121,12 @@ fun DeviceListScreen(
                         )
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(devices, key = { it.id }) { device ->
+                    LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
+                        items(
+                            items = devices,
+                            key = { it.id },
+                            contentType = { "device-row" },
+                        ) { device ->
                             DeviceRow(
                                 device = device,
                                 frontImageUrl = deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
@@ -129,12 +148,17 @@ private fun DeviceRow(
     localImageFile: (String, String) -> java.io.File?,
     onClick: () -> Unit,
 ) {
+    val localFile =
+        remember(frontImageUrl, device.deviceTypeId) {
+            frontImageUrl?.let { localImageFile(it, "device-type-${device.deviceTypeId}-front") }
+        }
+
     ListItem(
         leadingContent = {
             RemoteThumbnail(
                 imageUrl = frontImageUrl,
                 contentDescription = device.deviceTypeModel,
-                localFile = frontImageUrl?.let { localImageFile(it, "device-type-${device.deviceTypeId}-front") },
+                localFile = localFile,
                 modifier = Modifier.size(72.dp),
             )
         },

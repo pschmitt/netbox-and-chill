@@ -39,6 +39,8 @@ constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val requestedDeviceTypeIds = mutableSetOf<Int>()
+
     val devices: StateFlow<List<DeviceEntity>> =
         _query
             .flatMapLatest { deviceRepository.observeDevices(it) }
@@ -53,15 +55,14 @@ constructor(
 
     init {
         refresh()
-        // Lazily backfill device-type photos for whatever's currently in view - cheap no-op for
-        // types already cached (ensureCached checks Room first).
-        viewModelScope.launch {
-            devices.collect { list ->
-                list.mapNotNull { it.deviceTypeId }.distinct().forEach { id ->
-                    launch { deviceTypeRepository.ensureCached(id) }
-                }
-            }
+    }
+
+    /** Backfill stock photos only for rows currently visible in the lazy list. */
+    fun ensureDeviceTypeImages(ids: Set<Int>) {
+        val newIds = synchronized(requestedDeviceTypeIds) {
+            ids.filter { requestedDeviceTypeIds.add(it) }
         }
+        newIds.forEach { id -> viewModelScope.launch { deviceTypeRepository.ensureCached(id) } }
     }
 
     fun onQueryChange(newQuery: String) {
@@ -70,6 +71,7 @@ constructor(
 
     fun refresh() {
         viewModelScope.launch {
+            synchronized(requestedDeviceTypeIds) { requestedDeviceTypeIds.clear() }
             _isRefreshing.value = true
             deviceRepository
                 .syncAll()
