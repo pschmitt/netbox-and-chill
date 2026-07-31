@@ -760,7 +760,52 @@ findroidplus uses for any full-screen image viewing before picking). Applies to 
 detail screen's front/rear photos and image-attachment thumbnails should) - needs its own look at
 how NBC-3 wired those up before implementing.
 
-Status: not started, 2026-07-31.
+- [x] Full-screen viewer is a swipe-to-dismiss `Dialog` (`usePlatformDefaultWidth = false`), not a
+      navigation route - vertical drag-down closes it like a standard photo-viewer gesture.
+- [x] Pinch-to-zoom/pan on the image itself, hand-rolled (`AsyncImage` + a custom pointer-input
+      gesture + `graphicsLayer` scale/translate) - no new dependency added.
+- [x] Image attachment metadata (name, dimensions, description, created/last-updated) shown
+      alongside/below the image, sourced from the real `extras.ImageAttachment` fields (not
+      guessed) - `ImageAttachmentDto`/`ImageAttachmentEntity` extended to actually carry them.
+- [x] Horizontal swipe between image attachments via `HorizontalPager` over the same list already
+      shown in `imageAttachmentRow`'s `LazyRow`, opened to the tapped index.
+- [x] `imageAttachmentRow`'s thumbnails open this viewer instead of `clickableIfUrl`'s external
+      browser intent (`clickableIfUrl` removed, no longer used anywhere).
+- [x] Explicit decision (documented below) on whether `deviceTypePhotos` (front/rear) get the same
+      popup or stay as-is.
+- [x] Terminology: "image attachment(s)", never "photo(s)", in any new code/comments/UI strings
+      this task adds - also fixed the pre-existing user-visible `imageAttachmentRow` section label
+      from "Photos" to "Image attachments" since it's directly in this feature's path (left the
+      Kotlin identifiers `deviceTypePhotos`/`imageAttachmentRow` themselves alone, out of scope).
+
+**Real `extras.ImageAttachment` API shape** (confirmed live against netbox.brkn.lol, not guessed):
+`id`, `url`, `display` (server-derived filename when `name` is blank), `object_type`, `object_id`,
+`parent`, `name`, `image`, `description`, `image_height`, `image_width`, `created`, `last_updated`.
+No `size` (bytes) or `content_type` field exists on this serializer at all - the TODO's original
+"name, size, upload date, content type" wishlist doesn't fully match reality; the viewer shows
+what's actually there instead (name/display, description, `image_height`×`image_width`, created,
+last updated).
+
+**Device-type front/rear photos decision:** they get the *same* full-screen zoomable viewer, not
+external-link-only. Reasoning: today they have no click handler at all (not even
+"open in browser" - only `imageAttachmentRow` had that), and the user's underlying ask ("images
+need to be clickable") is about images in general, not specifically the image-attachments table;
+there's no reason to leave the front/rear stock photos inert once the zoom/pan viewer exists. They
+don't carry `ImageAttachment` metadata (no `created`/`description`/dimensions - `DeviceTypeEntity`
+only has the image URL and the type's model name), so their viewer instance shows only a
+title ("Front of `<model>`" / "Rear of `<model>`") and no metadata panel rows - a deliberately
+smaller reuse of the same `ImageViewerDialog`, not a separate feature.
+
+**How it landed:** new `ui/common/ImageViewerDialog.kt` - `ImageViewerDialog(items: List<ImageViewerItem>, initialIndex, onDismiss)`, deliberately decoupled from `ImageAttachmentEntity` (an `ImageViewerItem` is just a URL + title + optional metadata rows) so it covers both the image-attachment row and the device-type front/rear photos with one composable. A plain `Dialog` (`usePlatformDefaultWidth = false`) hosts a `Column` of `HorizontalPager` (image area) + a metadata panel below; the pager's `userScrollEnabled` and the outer vertical dismiss-drag detector are both gated off a shared `isZoomed` flag so pinch-zoom, page-swipe, and swipe-to-dismiss don't fight each other - custom pinch/pan gesture detector (`detectZoomPan`, built on `awaitEachGesture`/`calculateZoom`/`calculatePan` from `androidx.compose.foundation.gestures`) only consumes pointer events while actually zoomed or mid-pinch, leaving a plain single-finger drag at 1x scale unconsumed so it bubbles up to the pager/dismiss-drag instead. Swipe-to-dismiss uses `detectVerticalDragGestures` + an `Animatable` (snap while dragging, `animateTo(0f)` spring-back if released under the 120dp threshold) plus a background-scrim fade tied to drag distance; an explicit `Close` `IconButton` (Material icon, per AGENTS.md) is also always present. `DeviceDetailScreen.kt`'s `imageAttachmentRow`/`deviceTypePhotos` now build `ImageViewerItem` lists and open the dialog on tap (`clickableIfUrl` removed entirely, no longer used); `ImageAttachmentDto`/`ImageAttachmentEntity`/`ImageAttachmentRepository` extended with `display`, `description`, `imageHeight`, `imageWidth`, `created`, `lastUpdated` (Room DB version bumped 4 -> 5, fine under the existing `fallbackToDestructiveMigration`) to actually carry the metadata shown. Device list row thumbnails (`DeviceListScreen.DeviceRow`) intentionally untouched - still no click handler, per NBC-3's original call that the list row probably shouldn't open a viewer.
+
+Status: **done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13 (only
+pre-existing unrelated deprecation warnings, e.g. `hiltViewModel`/`EncryptedSharedPreferences`).
+**Not verified this session:** the actual pinch/pan/swipe-to-dismiss/horizontal-page-swipe gesture
+feel on a real device or emulator - no physical device was available in this session (this worktree
+had no adb-connected device), so this is compile-clean and logically reviewed but not interactively
+tested. The gesture-arbitration approach (consume only while zoomed, otherwise let the pager/dismiss
+detectors see the event) is a known, common hand-rolled pattern but should get a real finger-on-glass
+check on the Zenfone/Mi Pad/Pixel 5 before calling the interaction itself confirmed, not just "builds."
 
 ## NBC-21: scanner tap-to-focus + flashlight toggle
 
