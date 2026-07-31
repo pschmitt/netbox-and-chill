@@ -179,12 +179,11 @@ simulated/unit-tested.
 - [x] `custom_fields` editing - use cached definitions and choice sets for type-aware text,
   long-text, URL/date/datetime, number/integer, boolean, select/multi-select, and object/multi-object
   editors; unknown types remain read-only.
-- [ ] The *old* Device detail screen (`DeviceDetailScreen`/`DeviceEntity`) still isn't editable -
-  only objects routed through NBC-6's generic engine are. Same unification note as NBC-6's
-  "Linked items" follow-up: migrating Devices onto the generic engine would fix both at once.
+- [x] The legacy Device detail screen now exposes an Edit action that opens the generic,
+  conflict-aware device editor while retaining the typed screen's cached/photos presentation.
 
-Status: **done** (generic objects), 2026-07-31. Custom-field editor coverage is unit-tested; the
-generic edit flow remains live-verified end-to-end on the Mi Pad 4 against the real NetBox instance.
+Status: **done**, 2026-07-31. Custom-field editor coverage is unit-tested, and the legacy Device
+detail now routes editing through the same generic flow live-verified on the Mi Pad 4.
 
 ## NBC-6: Generic/generated object views (device types, regions, racks, sites, ...) + nav
 

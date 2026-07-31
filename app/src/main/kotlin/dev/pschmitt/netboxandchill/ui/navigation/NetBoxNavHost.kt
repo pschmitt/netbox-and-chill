@@ -85,6 +85,9 @@ fun NetBoxNavHost(
             DeviceDetailScreen(
                 deviceId = route.deviceId,
                 onBack = { navController.popBackStack() },
+                onEditClick = {
+                    navController.navigate(Route.Generic(DEVICES_ENDPOINT_PATH, route.deviceId))
+                },
                 onDeviceTypeClick = { id -> navController.navigate(Route.Generic(DEVICE_TYPES_ENDPOINT_PATH, id)) },
                 onReferenceClick = { endpointPath, id -> navController.navigate(Route.Generic(endpointPath, id)) },
             )

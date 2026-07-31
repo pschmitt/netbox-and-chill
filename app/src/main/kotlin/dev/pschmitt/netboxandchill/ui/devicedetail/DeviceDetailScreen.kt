@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
@@ -70,6 +71,7 @@ import java.util.Date
 fun DeviceDetailScreen(
     deviceId: Int,
     onBack: () -> Unit,
+    onEditClick: () -> Unit,
     onDeviceTypeClick: (Int) -> Unit,
     onReferenceClick: (endpointPath: String, id: Int) -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
@@ -126,6 +128,9 @@ fun DeviceDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onEditClick, enabled = device != null) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit device")
+                    }
                     IconButton(onClick = { viewModel.refresh(showConfirmation = true) }, enabled = !isRefreshing) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
