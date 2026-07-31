@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
@@ -53,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
+import dev.pschmitt.netboxandchill.ui.common.printLabelShareIntent
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +75,7 @@ fun GenericDetailScreen(
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -134,6 +137,21 @@ fun GenericDetailScreen(
                     } else {
                         IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
                             Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
+                        if (viewModel.isPrintableDevice) {
+                            IconButton(
+                                onClick = {
+                                    context.startActivity(
+                                        printLabelShareIntent(
+                                            viewModel.route.id,
+                                            netboxBaseUrl,
+                                            title,
+                                        )
+                                    )
+                                }
+                            ) {
+                                Icon(Icons.Default.Print, contentDescription = "Print label")
+                            }
                         }
                         if (editableFields.isNotEmpty()) {
                             IconButton(onClick = viewModel::startEditing) {

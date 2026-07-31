@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +48,7 @@ import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
+import dev.pschmitt.netboxandchill.ui.common.printLabelShareIntent
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import java.text.DateFormat
 import java.util.Date
@@ -60,6 +62,7 @@ fun DeviceDetailScreen(
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
+    val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -87,6 +90,15 @@ fun DeviceDetailScreen(
                 actions = {
                     IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    }
+                    IconButton(
+                        onClick = {
+                            context.startActivity(
+                                printLabelShareIntent(deviceId, netboxBaseUrl, device?.name)
+                            )
+                        }
+                    ) {
+                        Icon(Icons.Default.Print, contentDescription = "Print label")
                     }
                     webUrl?.let { url ->
                         IconButton(

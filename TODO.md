@@ -402,11 +402,45 @@ Print device labels directly from the app, reusing/integrating with the user's e
 **Why:** user already has label-printing logic built and wants it available from this app instead
 of a separate tool - presumably so the QR stickers this whole app is built around can be
 (re)printed directly after scanning/creating a device.
-**How to apply:** need to look at printlabel's actual interface (CLI? library? network service?)
-to figure out the integration shape - could be a shared Kotlin/native lib, a shelled-out call, or
-a network call to a printlabel server instance. Not yet investigated.
 
-Status: not started, 2026-07-31.
+**Investigated:** `printlabel` is a ~2000-line **local Bash/Python CLI**
+(`printlabel`/`labelmaker.py`/`ptcbp.py`/`ptstatus.py` in that repo), distributed via a Nix flake
+(`nix run github:pschmitt/printlabel -- ...`). It talks **directly over Bluetooth** to a
+paired Brother P-Touch Cube using its own reimplementation of Brother's PT-CBP protocol, and shells
+out to `jq` and to a separate `nbx` CLI (not a NetBox HTTP call of its own) for its `--netbox
+QUERY` mode. There is **no daemon, server, or HTTP surface anywhere in it** - confirmed by reading
+the full script source (`usage()`/`--help` text and the actual option parsing), not just the
+README. A real in-app integration (shared lib, shelled-out call, network call to a service) isn't
+feasible from Android: there's no process to call into, and reimplementing the Bluetooth PT-CBP
+protocol in Kotlin to talk to the printer directly is out of scope for this pass.
+
+**What shipped instead (scoped-down "share" fallback):** `printlabel`'s `--netbox QUERY` mode
+already does everything needed once it runs on the user's machine - given a NetBox device id (and
+optionally `--netbox-url`), it resolves the device via `nbx` and prints its QR/asset-tag label. So
+the app now offers a **"Print label" action** (printer icon, `ui/common/PrintLabelIntent.kt`) on
+both the dedicated Device detail screen (`ui/devicedetail/DeviceDetailScreen.kt`) and NBC-6's
+generic detail screen when browsing a device (`ui/generic/GenericDetailScreen.kt`, gated on
+`endpointPath == "api/dcim/devices/"`) that opens Android's share sheet (mirroring
+`ui/common/ShareIntent.kt`'s pattern) with a ready-to-run `printlabel --netbox <id> [--netbox-url
+<host>]` command, so the user can paste it into a terminal on their printlabel machine to
+(re)print that exact device's sticker - no extra typing/lookup needed on their end. This needs zero
+network access itself (pure string composition from data already cached in Room), so it stays
+usable fully offline per the app's offline-first rule.
+
+**Not covered / honest limitations:**
+- No actual printing happens from the phone - this is a "hand off a ready command" convenience,
+  not a print job sent over the wire. Feasible in-app printing would require either printlabel
+  growing a network/HTTP mode, or reimplementing Bluetooth PT-CBP printer control natively in the
+  app (both out of scope here).
+- `--netbox-url` is only included when the app has a NetBox base URL to offer (derived from the
+  device's own cached API URL, or the app's configured NetBox credentials on the generic screen);
+  if absent, the shared command relies on the user's own `NETBOX_URL`/`NETBOX_API_TOKEN`
+  environment already being set on their machine (which `printlabel --netbox` supports natively).
+- No new tests added - this is a pure string-building/Intent helper with no async/network/DB code
+  path, mirroring the untested `ShareIntent.kt` it's modeled on.
+
+Status: **done** (scoped down to a share/export fallback, not a live print job), 2026-07-31.
+Verified via `just build`, `just lint`, `just test` (remote, per AGENTS.md).
 
 ## NBC-12: Render markdown fields properly
 
