@@ -1733,5 +1733,5 @@ way to reveal them temporarily. Field keys use a stable `object/field` shape suc
 - [x] Add long-press field actions for edit/hide and move secondary item actions into overflow menus.
 - [x] Cover hidden-field key normalization and object/field mapping with unit tests.
 
-Status: in progress, 2026-07-31 - implementation and remote tests/build are passing; physical-device
-UI smoke verification remains for this pass.
+Status: **done**, 2026-07-31 - remote unit tests, lint, debug build, compile-time App Link host
+override, all-device deployment, and Mi Pad 4 launch/log smoke verification passed.
