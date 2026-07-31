@@ -1,14 +1,9 @@
 package dev.pschmitt.netboxandchill.ui.onboarding
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.Button
@@ -44,7 +39,15 @@ fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltVi
 
     Scaffold { padding ->
         Column(
-            modifier = Modifier.padding(padding).padding(24.dp).fillMaxSize(),
+            modifier =
+                Modifier.padding(padding)
+                    .padding(24.dp)
+                    .fillMaxSize()
+                    // Edge-to-edge (enableEdgeToEdge() in MainActivity) opts out of the legacy
+                    // windowSoftInputMode=adjustResize behavior, so without this the keyboard
+                    // overlaps the fields below the fold instead of the content shifting up.
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(
