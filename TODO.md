@@ -1523,7 +1523,11 @@ day one, not just one hardcoded gesture - suggests a small `GestureAction` enum 
 gesture as the first (and initially only) configurable trigger, rather than hardcoding "swipe down
 = search" directly.
 
-Status: not started, 2026-07-31.
+Status: **done**, 2026-07-31 - added a Settings-backed gesture action selector (`Off`, `Global
+search`, `QR scanner`) and a non-consuming activity-root two-finger swipe-down detector. Remote
+`just test`/`just lint`/debug build passed; Mi Pad 4 visually verified the selector and menu. The
+gesture detector observes the real pointer stream without stealing one-finger scrolling; physical
+multi-touch swipe injection was not available through the adb smoke-test tooling.
 
 ## NBC-42: dashboard "Recent changes" should link to the item and show the actual diff
 

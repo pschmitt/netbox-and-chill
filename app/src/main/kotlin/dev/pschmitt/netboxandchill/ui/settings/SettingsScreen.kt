@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,13 +22,19 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -58,6 +65,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
+import dev.pschmitt.netboxandchill.data.repository.GestureAction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +80,7 @@ fun SettingsScreen(
     val cachedDeviceCount by viewModel.cachedDeviceCount.collectAsStateWithLifecycle()
     val syncAttachmentsToDisk by
         viewModel.settingsRepository.syncAttachmentsToDisk.collectAsStateWithLifecycle()
+    val gestureAction by viewModel.settingsRepository.gestureAction.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditServerDialog by remember { mutableStateOf(false) }
@@ -81,6 +90,7 @@ fun SettingsScreen(
     var pendingTokenAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var tokenAuthError by remember { mutableStateOf<String?>(null) }
     var tokenCopied by remember { mutableStateOf(false) }
+    var gestureMenuExpanded by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
 
     val biometricPrompt =
@@ -247,6 +257,42 @@ fun SettingsScreen(
                 },
                 trailingContent = {
                     Switch(checked = syncAttachmentsToDisk, onCheckedChange = viewModel::setSyncAttachmentsToDisk)
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.TouchApp, contentDescription = null) },
+                headlineContent = { Text("Two-finger swipe down") },
+                supportingContent = { Text(gestureAction.label) },
+                trailingContent = {
+                    Box {
+                        IconButton(onClick = { gestureMenuExpanded = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Configure swipe action")
+                        }
+                        DropdownMenu(
+                            expanded = gestureMenuExpanded,
+                            onDismissRequest = { gestureMenuExpanded = false },
+                        ) {
+                            GestureAction.values().forEach { action ->
+                                DropdownMenuItem(
+                                    text = { Text(action.label) },
+                                    leadingIcon = {
+                                        Icon(
+                                            when (action) {
+                                                GestureAction.Off -> Icons.Default.Block
+                                                GestureAction.GlobalSearch -> Icons.Default.Search
+                                                GestureAction.Scanner -> Icons.Default.QrCodeScanner
+                                            },
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.setGestureAction(action)
+                                        gestureMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
                 },
             )
             HorizontalDivider()

@@ -15,6 +15,17 @@ data class NetBoxCredentials(val baseUrl: String, val token: String) {
         get() = baseUrl.isNotBlank() && token.isNotBlank()
 }
 
+enum class GestureAction(val storageKey: String, val label: String) {
+    Off("off", "Off"),
+    GlobalSearch("global_search", "Global search"),
+    Scanner("scanner", "QR scanner");
+
+    companion object {
+        fun fromStorage(value: String?): GestureAction =
+            values().firstOrNull { it.storageKey == value } ?: GlobalSearch
+    }
+}
+
 /**
  * Base URL and API token, backed by [EncryptedSharedPreferences] (Android Keystore-tied, hence
  * `allowBackup=false` in the manifest - a restored backup couldn't decrypt these anyway).
@@ -48,9 +59,17 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _syncAttachmentsToDisk = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ATTACHMENTS, false))
     val syncAttachmentsToDisk: StateFlow<Boolean> = _syncAttachmentsToDisk.asStateFlow()
 
+    private val _gestureAction = MutableStateFlow(loadGestureAction())
+    val gestureAction: StateFlow<GestureAction> = _gestureAction.asStateFlow()
+
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()
         _syncAttachmentsToDisk.value = enabled
+    }
+
+    fun setGestureAction(action: GestureAction) {
+        prefs.edit().putString(KEY_GESTURE_ACTION, action.storageKey).apply()
+        _gestureAction.value = action
     }
 
     fun togglePinned(endpointPath: String) {
@@ -85,11 +104,15 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             token = prefs.getString(KEY_TOKEN, "") ?: "",
         )
 
+    private fun loadGestureAction(): GestureAction =
+        GestureAction.fromStorage(prefs.getString(KEY_GESTURE_ACTION, GestureAction.GlobalSearch.storageKey))
+
     private companion object {
         const val KEY_BASE_URL = "base_url"
         const val KEY_TOKEN = "token"
         const val KEY_PINNED_MODELS = "pinned_model_paths"
         const val DEFAULT_PINNED_MODEL_PATH = "api/dcim/devices/"
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
+        const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
     }
 }

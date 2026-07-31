@@ -27,13 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
 import dev.pschmitt.netboxandchill.ui.common.SyncStatusIndicator
 import dev.pschmitt.netboxandchill.ui.directory.Sidebar
+import dev.pschmitt.netboxandchill.ui.gestures.twoFingerSwipeDown
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import dev.pschmitt.netboxandchill.ui.theme.NetBoxAndChillTheme
@@ -59,6 +62,7 @@ class MainActivity : FragmentActivity() {
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val coroutineScope = rememberCoroutineScope()
+                val gestureAction by settingsRepository.gestureAction.collectAsStateWithLifecycle()
                 val startDestination =
                     if (settingsRepository.isConfigured) Route.Dashboard else Route.Onboarding
 
@@ -126,7 +130,20 @@ class MainActivity : FragmentActivity() {
                     // SyncStatusIndicator is layered above the nav host (not inside any one
                     // screen's own Scaffold) so it reflects SyncWorker's WorkManager state
                     // regardless of which screen is currently showing - see NBC-23.
-                    Box(Modifier.fillMaxSize()) {
+                    val gestureModifier =
+                        if (!settingsRepository.isConfigured || gestureAction == GestureAction.Off) {
+                            Modifier
+                        } else {
+                            Modifier.twoFingerSwipeDown {
+                                when (gestureAction) {
+                                    GestureAction.GlobalSearch ->
+                                        navController.navigate(Route.GlobalSearch) { launchSingleTop = true }
+                                    GestureAction.Scanner -> navController.navigate(Route.Scanner)
+                                    GestureAction.Off -> Unit
+                                }
+                            }
+                        }
+                    Box(Modifier.fillMaxSize().then(gestureModifier)) {
                         NetBoxNavHost(
                             navController = navController,
                             startDestination = startDestination,

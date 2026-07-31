@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
+import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.OfflineSyncRepository
 import javax.inject.Inject
@@ -60,6 +61,10 @@ constructor(
 
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         settingsRepository.setSyncAttachmentsToDisk(enabled)
+    }
+
+    fun setGestureAction(action: GestureAction) {
+        settingsRepository.setGestureAction(action)
     }
 
     /** Switches the configured NetBox server. Saves eagerly (the dynamic base-URL interceptor
