@@ -70,6 +70,7 @@ fun DashboardScreen(
     onStatClick: (endpointPath: String, label: String) -> Unit,
     onChangeDiffClick: (changeId: Int) -> Unit,
     onConflictsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -105,8 +106,9 @@ fun DashboardScreen(
             NetBoxBottomBar(
                 selected = BottomTab.Dashboard,
                 onDashboardClick = {},
-                onScanClick = onScanClick,
                 onSearchClick = onSearchClick,
+                onScanClick = onScanClick,
+                onSettingsClick = onSettingsClick,
             )
         },
     ) { padding ->

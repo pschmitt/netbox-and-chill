@@ -75,6 +75,58 @@ class PendingEditRepositoryTest {
         assertTrue(api.server["last_updated"] == JsonPrimitive("v1"))
     }
 
+    @Test
+    fun `resolution patches only fields selected from the local edit`() = runTest {
+        val api = FakeApi(server("server", "v2"))
+        val pending = FakePendingEditDao()
+        val objectDao = FakeNetBoxObjectDao()
+        val repository = repository(api, pending, objectDao)
+        val conflict =
+            PendingEditEntity(
+                endpointPath = "api/dcim/devices/",
+                id = 1,
+                baseJson = server("old", "v1").toString(),
+                localJson = server("local", "v1").toString(),
+                patchJson = patch("local").toString(),
+                state = PendingEditEntity.CONFLICT,
+                serverJson = server("server", "v2").toString(),
+                createdAt = 1L,
+            )
+        pending.upsert(conflict)
+
+        val result = repository.resolveConflict(conflict, setOf("name"))
+
+        assertTrue(result.isSuccess)
+        assertEquals(patch("local"), api.lastPatch)
+        assertNull(pending.get("api/dcim/devices/", 1))
+    }
+
+    @Test
+    fun `resolution keeps the conflict when the server changes again`() = runTest {
+        val api = FakeApi(server("server-new", "v3"))
+        val pending = FakePendingEditDao()
+        val objectDao = FakeNetBoxObjectDao()
+        val repository = repository(api, pending, objectDao)
+        val conflict =
+            PendingEditEntity(
+                endpointPath = "api/dcim/devices/",
+                id = 1,
+                baseJson = server("old", "v1").toString(),
+                localJson = server("local", "v1").toString(),
+                patchJson = patch("local").toString(),
+                state = PendingEditEntity.CONFLICT,
+                serverJson = server("server", "v2").toString(),
+                createdAt = 1L,
+            )
+        pending.upsert(conflict)
+
+        val result = repository.resolveConflict(conflict, setOf("name"))
+
+        assertTrue(result.exceptionOrNull() is StaleConflictException)
+        assertNull(api.lastPatch)
+        assertEquals("v3", json.decodeFromString(JsonObject.serializer(), pending.get("api/dcim/devices/", 1)!!.serverJson!!)["last_updated"]?.toString()?.trim('"'))
+    }
+
     private fun repository(api: FakeApi, pending: FakePendingEditDao, objectDao: FakeNetBoxObjectDao) =
         PendingEditRepository(
             api,

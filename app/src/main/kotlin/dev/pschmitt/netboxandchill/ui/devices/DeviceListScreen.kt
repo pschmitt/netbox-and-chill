@@ -45,6 +45,7 @@ fun DeviceListScreen(
     onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
     onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: DeviceListViewModel = hiltViewModel(),
 ) {
     val devices by viewModel.devices.collectAsStateWithLifecycle()
@@ -94,8 +95,9 @@ fun DeviceListScreen(
             NetBoxBottomBar(
                 selected = null,
                 onDashboardClick = onDashboardClick,
-                onScanClick = onScanClick,
                 onSearchClick = onSearchClick,
+                onScanClick = onScanClick,
+                onSettingsClick = onSettingsClick,
             )
         },
     ) { padding ->

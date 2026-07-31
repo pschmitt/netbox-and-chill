@@ -42,6 +42,7 @@ fun GenericListScreen(
     onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
     onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: GenericListViewModel = hiltViewModel(),
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
@@ -80,8 +81,9 @@ fun GenericListScreen(
                 // that's what the sidebar/drawer is for.
                 selected = null,
                 onDashboardClick = onDashboardClick,
-                onScanClick = onScanClick,
                 onSearchClick = onSearchClick,
+                onScanClick = onScanClick,
+                onSettingsClick = onSettingsClick,
             )
         },
     ) { padding ->

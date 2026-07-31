@@ -59,6 +59,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -227,9 +228,6 @@ fun GenericDetailScreen(
                             }
                         }
                     } else {
-                        IconButton(onClick = { viewModel.refresh(showConfirmation = true) }, enabled = !isRefreshing) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                        }
                         Box {
                             IconButton(onClick = { actionMenuExpanded = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "More actions")
@@ -238,6 +236,15 @@ fun GenericDetailScreen(
                                 expanded = actionMenuExpanded,
                                 onDismissRequest = { actionMenuExpanded = false },
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Refresh") },
+                                    leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                    enabled = !isRefreshing,
+                                    onClick = {
+                                        viewModel.refresh(showConfirmation = true)
+                                        actionMenuExpanded = false
+                                    },
+                                )
                                 if (viewModel.isPrintableDevice) {
                                     DropdownMenuItem(
                                         text = { Text("Print label") },
@@ -300,15 +307,7 @@ fun GenericDetailScreen(
             )
         },
     ) { padding ->
-        when {
-            title == null ->
-                Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            isEditing ->
+        if (isEditing) {
                 EditForm(
                     fields = editableFields,
                     values = editValues,
@@ -318,9 +317,23 @@ fun GenericDetailScreen(
                     errorMessage = errorMessage,
                     modifier = Modifier.padding(padding).fillMaxSize(),
                 )
-            else -> {
+        } else {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(showConfirmation = true) },
+                modifier = Modifier.padding(padding).fillMaxSize(),
+            ) {
+                when {
+                    title == null ->
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    else -> {
                 var selectedTab by remember { mutableStateOf(0) }
-                Column(Modifier.padding(padding).fillMaxSize()) {
+                Column(Modifier.fillMaxSize()) {
                     Text(
                         title ?: "Object #${viewModel.route.id}",
                         style = MaterialTheme.typography.headlineSmall,
@@ -390,6 +403,8 @@ fun GenericDetailScreen(
                                 JournalEntryItem(entry)
                             }
                         }
+                    }
+                }
                     }
                 }
             }

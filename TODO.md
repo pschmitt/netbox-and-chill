@@ -1268,13 +1268,13 @@ properly resolve the merge conflict (with diffs and all)."
   values plus a keep-local/keep-server choice for each changed field.
 - [x] Re-check the server snapshot before applying a resolution and preserve the conflict if the
   server changes again.
-- [x] Add focused three-way-diff tests; remote unit-test/lint/build validation is still required
-  before this entry can be closed.
-- [ ] Do not induce a conflict against the production NetBox instance during validation; the live
+- [x] Add focused three-way-diff tests and complete remote unit-test/lint/build validation.
+- [x] Keep validation free of deliberate conflicts against the production NetBox instance; the live
   end-to-end conflict path remains unverified by design.
 
-Status: mostly done, 2026-07-31 - implementation and focused tests are in place; no production
-NetBox writes or deliberately induced live conflict were used for validation.
+Status: **done**, 2026-08-01 - implementation and focused tests are in place; remote tests, lint,
+and debug build passed. No production NetBox writes or deliberately induced live conflict were used
+for validation.
 
 ## NBC-33: confirm a manual refresh on the detail screen with a toast/snackbar
 
@@ -1789,10 +1789,12 @@ The Settings screen should be easier to scan, with titled groups and subtitles. 
 setting should also explain what “durable” files are, including whether that means NetBox media,
 documents, or other downloaded assets.
 
-- [ ] Group related settings under titled sections with concise subtitles.
-- [ ] Replace “durable” jargon with a plain-language explanation and accurate asset/document scope.
+- [x] Group related settings under titled sections with concise subtitles.
+- [x] Replace “durable” jargon with a plain-language explanation and accurate asset/document scope.
 
-Status: not started, 2026-07-31 - backlog item recorded from user feedback.
+Status: **done**, 2026-08-01 - Settings is grouped into connection, cache, display, scanner/
+gesture, actions, and about sections; cache storage now explains that downloaded NetBox images and
+documents are kept in app storage for offline use rather than temporary Android cache storage.
 
 ## NBC-65: make generic synchronization resilient and observable
 
@@ -1879,11 +1881,12 @@ physical verification of vertical and long-text labels remains.
 Device and other item detail/list views should support an explicit pull-to-refresh gesture, with
 the refresh action also available from the overflow menu.
 
-- [ ] Add pull-to-refresh to device and generic item views.
-- [ ] Add a refresh entry to the relevant overflow menus.
-- [ ] Keep refresh cache-first/offline-safe and show the existing refresh/sync feedback.
+- [x] Add pull-to-refresh to device and generic item views.
+- [x] Add a refresh entry to the relevant overflow menus.
+- [x] Keep refresh cache-first/offline-safe and show the existing refresh/sync feedback.
 
-Status: not started, 2026-08-01 - backlog item recorded from user feedback.
+Status: mostly done, 2026-08-01 - detail-page implementation passed remote lint/tests/build and was
+installed on Mi Pad 4 and Pixel 5; physical pull gesture verification remains.
 
 ## NBC-70: add digital zoom to the scanner
 
@@ -1895,3 +1898,16 @@ supports them.
 - [ ] Keep zoom controls usable on devices without multiple rear lenses.
 
 Status: not started, 2026-08-01 - backlog item recorded from user feedback.
+
+## NBC-73: reorder bottom navigation and add a Settings shortcut
+
+The fixed bottom navigation should prioritize the universal actions in this order: `Home | Search |
+Scan | Settings`.
+
+- [x] Swap Search and Scan in the bottom navigation.
+- [x] Add Settings as the final bottom-navigation destination.
+- [ ] Verify navigation on a physical device.
+
+Status: mostly done, 2026-08-01 - implemented across dashboard, list, search, and scanner screens;
+remote lint/tests/build passed and the debug build was installed on Mi Pad 4 and Pixel 5. Physical
+navigation tap verification remains.

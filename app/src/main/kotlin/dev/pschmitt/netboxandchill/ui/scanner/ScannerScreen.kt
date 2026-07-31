@@ -82,6 +82,7 @@ fun ScannerScreen(
     onBack: () -> Unit,
     onDashboardClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     showBottomBar: Boolean = true,
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
@@ -124,8 +125,9 @@ fun ScannerScreen(
                 NetBoxBottomBar(
                     selected = BottomTab.Scan,
                     onDashboardClick = onDashboardClick,
-                    onScanClick = {},
                     onSearchClick = onSearchClick,
+                    onScanClick = {},
+                    onSettingsClick = onSettingsClick,
                 )
             }
         },

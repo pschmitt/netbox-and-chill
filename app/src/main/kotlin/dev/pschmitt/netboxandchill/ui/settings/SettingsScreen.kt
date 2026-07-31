@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -242,7 +244,13 @@ fun SettingsScreen(
             )
         }
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxWidth()) {
+        Column(
+            Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())
+        ) {
+            SettingsSectionHeader(
+                title = "Connection",
+                subtitle = "The NetBox server and credentials used by this app",
+            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
                 headlineContent = { Text("NetBox instance") },
@@ -325,7 +333,9 @@ fun SettingsScreen(
                     Text(
                         "$cachedDeviceCount devices · $cachedObjectCount other objects · " +
                             "$cachedImageCount image records\n" +
-                            "${persistentCacheFiles} durable files · ${formatBytes(persistentCacheBytes)}"
+                            "$persistentCacheFiles downloaded files · ${formatBytes(persistentCacheBytes)}\n" +
+                            "Downloaded images and documents are kept in app storage for offline use " +
+                            "and are not temporary Android cache files."
                     )
                 },
             )
@@ -355,6 +365,10 @@ fun SettingsScreen(
                 trailingContent = {
                     Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
                 },
+            )
+            SettingsSectionHeader(
+                title = "Display",
+                subtitle = "Choose which fields are shown by default on item pages",
             )
             ListItem(
                 leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
@@ -407,6 +421,10 @@ fun SettingsScreen(
                     }
                 },
             )
+            SettingsSectionHeader(
+                title = "Scanner and gestures",
+                subtitle = "Set the camera and shortcut behavior for quick navigation",
+            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
                 headlineContent = { Text("Scanner default camera") },
@@ -436,7 +454,10 @@ fun SettingsScreen(
                     }
                 },
             )
-            HorizontalDivider()
+            SettingsSectionHeader(
+                title = "Actions",
+                subtitle = "Refresh the offline cache or disconnect this NetBox instance",
+            )
             Column(Modifier.padding(16.dp)) {
                 Button(
                     onClick = viewModel::syncNow,
@@ -464,7 +485,10 @@ fun SettingsScreen(
                     Text("Disconnect")
                 }
             }
-            HorizontalDivider()
+            SettingsSectionHeader(
+                title = "About",
+                subtitle = "Application and build information",
+            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
                 headlineContent = { Text("NetBox and Chill") },
@@ -481,6 +505,22 @@ fun SettingsScreen(
                 supportingContent = { Text(BuildConfig.GIT_REVISION) },
             )
         }
+    }
+}
+
+@Composable
+private fun SettingsSectionHeader(title: String, subtitle: String) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

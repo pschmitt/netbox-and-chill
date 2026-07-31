@@ -58,6 +58,7 @@ fun GlobalSearchScreen(
     onBack: () -> Unit,
     onDashboardClick: () -> Unit,
     onScanClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -84,8 +85,9 @@ fun GlobalSearchScreen(
             NetBoxBottomBar(
                 selected = BottomTab.Search,
                 onDashboardClick = onDashboardClick,
-                onScanClick = onScanClick,
                 onSearchClick = {},
+                onScanClick = onScanClick,
+                onSettingsClick = onSettingsClick,
             )
         },
         topBar = {

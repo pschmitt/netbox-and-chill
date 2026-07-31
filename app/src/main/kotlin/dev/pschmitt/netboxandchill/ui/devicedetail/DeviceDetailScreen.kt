@@ -44,6 +44,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -144,9 +145,6 @@ fun DeviceDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.refresh(showConfirmation = true) }, enabled = !isRefreshing) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                    }
                     Box {
                         IconButton(onClick = { actionMenuExpanded = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More actions")
@@ -155,6 +153,15 @@ fun DeviceDetailScreen(
                             expanded = actionMenuExpanded,
                             onDismissRequest = { actionMenuExpanded = false },
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                enabled = !isRefreshing,
+                                onClick = {
+                                    viewModel.refresh(showConfirmation = true)
+                                    actionMenuExpanded = false
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text("Edit") },
                                 leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
@@ -216,18 +223,23 @@ fun DeviceDetailScreen(
         },
     ) { padding ->
         val current = device
-        if (current == null) {
-            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.padding(padding).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-            ) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(showConfirmation = true) },
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) {
+            if (current == null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                ) {
                 item {
                     Text(current.name, style = MaterialTheme.typography.headlineSmall)
                     Spacer(Modifier.height(12.dp))
@@ -259,6 +271,7 @@ fun DeviceDetailScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
                 }
             }
         }

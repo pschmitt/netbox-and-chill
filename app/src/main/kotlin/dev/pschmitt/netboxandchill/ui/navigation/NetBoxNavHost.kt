@@ -52,6 +52,7 @@ fun NetBoxNavHost(
                 onOpenDrawer = onOpenDrawer,
                 onScanClick = { navController.navigate(Route.Scanner()) },
                 onSearchClick = { navController.navigate(Route.GlobalSearch) { launchSingleTop = true } },
+                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
                 onNavigateToReference = { endpointPath, id ->
                     navController.navigate(Route.Generic(endpointPath, id))
                 },
@@ -78,6 +79,7 @@ fun NetBoxNavHost(
                 onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
                 onSearchClick = { navController.navigate(Route.GlobalSearch) },
+                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
             )
         }
         composable<Route.DeviceDetail> { backStackEntry ->
@@ -100,6 +102,7 @@ fun NetBoxNavHost(
                 onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
                 onSearchClick = { navController.navigate(Route.GlobalSearch) },
+                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
             )
         }
         composable<Route.GlobalSearch> {
@@ -108,6 +111,7 @@ fun NetBoxNavHost(
                 onBack = { navController.popBackStack() },
                 onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
                 onScanClick = { navController.navigate(Route.Scanner()) },
+                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
             )
         }
         composable<Route.Generic> {
@@ -140,6 +144,7 @@ fun NetBoxNavHost(
                 onBack = { navController.popBackStack() },
                 onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
                 onSearchClick = { navController.navigate(Route.GlobalSearch) { launchSingleTop = true } },
+                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
                 showBottomBar = !route.fromOnboarding,
             )
         }
