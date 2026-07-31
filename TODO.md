@@ -1735,3 +1735,27 @@ way to reveal them temporarily. Field keys use a stable `object/field` shape suc
 
 Status: **done**, 2026-07-31 - remote unit tests, lint, debug build, compile-time App Link host
 override, all-device deployment, and Mi Pad 4 launch/log smoke verification passed.
+
+## NBC-59: show rack front/rear elevations
+
+Rack detail pages should mirror NetBox's front and rear elevation views, including clickable
+device entries for occupied rack units.
+
+- [x] Fetch and cache front/rear rack elevation slots without blocking cached rack details.
+- [x] Render front and rear unit overviews with occupied devices as navigable entries.
+- [x] Cover elevation payload parsing and keep the overview usable offline.
+
+Status: **done**, 2026-07-31 - elevation parser tests, remote unit tests/lint/debug build, and
+Mi Pad 4 launch/UI/log smoke verification passed; Zenfone install passed.
+
+## NBC-60: browse related items from count fields
+
+Related-item counts on generic detail pages should open a bottom sheet with the actual cached
+objects, optional preview images, and direct navigation to each item.
+
+- [x] Replace count-only navigation with a cache-first related-items bottom sheet.
+- [x] Reuse available object/device-type preview images and keep every item clickable.
+- [x] Add relation targets for racks and device types and cover them with tests.
+
+Status: **done**, 2026-07-31 - relation-target tests, remote unit tests/lint/debug build, and Mi
+Pad 4 launch/UI/log smoke verification passed; Zenfone install passed.

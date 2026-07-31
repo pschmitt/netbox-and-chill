@@ -145,6 +145,17 @@ private fun countTargetFor(key: String, obj: JsonObject, endpointPath: String?):
                     "prefix_count" -> CountTarget("api/ipam/prefixes/", "Prefixes", "scope", parentId)
                     else -> null
                 }
+            "api/dcim/racks/" ->
+                when (key) {
+                    "device_count" -> CountTarget("api/dcim/devices/", "Devices", "rack", parentId)
+                    else -> null
+                }
+            "api/dcim/device-types/" ->
+                when (key) {
+                    "device_count" ->
+                        CountTarget("api/dcim/devices/", "Devices", "device_type", parentId)
+                    else -> null
+                }
             else -> null
         }
     return definition

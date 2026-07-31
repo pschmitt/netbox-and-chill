@@ -5,14 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.EditSubmission
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
+import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
+import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
@@ -26,6 +30,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
@@ -35,12 +41,14 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 
 // Mirrors NetBoxNavHost's/GlobalSearchRepository's DEVICES_ENDPOINT_PATH constant - kept local
 // rather than shared to avoid a broader refactor while other agents are touching those files.
 private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
 
 @HiltViewModel
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class GenericDetailViewModel
 @Inject
 constructor(
@@ -50,8 +58,10 @@ constructor(
     private val fileDownloadRepository: FileDownloadRepository,
     private val journalEntryRepository: JournalEntryRepository,
     private val customFieldRepository: CustomFieldRepository,
+    private val deviceTypeRepository: DeviceTypeRepository,
     private val pendingEditRepository: PendingEditRepository,
     private val recentVisitRepository: RecentVisitRepository,
+    private val rackElevationRepository: RackElevationRepository,
     private val syncScheduler: SyncScheduler,
     private val json: Json,
     private val api: GenericNetBoxApi,
@@ -126,8 +136,69 @@ constructor(
 
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
 
+    private val _relatedTarget = MutableStateFlow<CountTarget?>(null)
+    val relatedTarget: StateFlow<CountTarget?> = _relatedTarget.asStateFlow()
+
+    private val _isRelatedRefreshing = MutableStateFlow(false)
+    val isRelatedRefreshing: StateFlow<Boolean> = _isRelatedRefreshing.asStateFlow()
+
+    val relatedObjects: StateFlow<List<NetBoxObjectEntity>> =
+        _relatedTarget
+            .flatMapLatest { target ->
+                target?.let {
+                    repository.observeObjects(it.endpointPath, "", it.relationKey, it.parentId)
+                } ?: flowOf(emptyList())
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val relatedPreviewUrls: StateFlow<Map<Int, String>> =
+        combine(relatedObjects, deviceTypeRepository.observeAll()) { objects, deviceTypes ->
+                val typeImages =
+                    deviceTypes.associate { it.id to (it.frontImageUrl ?: it.rearImageUrl) }
+                objects.mapNotNull { objectEntity ->
+                    previewImageUrl(objectEntity, typeImages)?.let { objectEntity.id to it }
+                }.toMap()
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val isRack: Boolean = route.endpointPath == "api/dcim/racks/"
+
+    val frontElevation =
+        rackElevationRepository.observe(route.id, RackFace.FRONT).stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList(),
+        )
+
+    val rearElevation =
+        rackElevationRepository.observe(route.id, RackFace.REAR).stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList(),
+        )
+
     fun hideField(label: String) {
         settingsRepository.addHiddenField(hiddenFieldPreferenceKey(route.endpointPath, label))
+    }
+
+    fun showRelatedItems(target: CountTarget) {
+        _relatedTarget.value = target
+        if (settingsRepository.offlineMode.value) return
+        viewModelScope.launch {
+            _isRelatedRefreshing.value = true
+            try {
+                repository.syncAll(
+                    target.endpointPath,
+                    filters = mapOf("${target.relationKey}_id" to target.parentId.toString()),
+                )
+            } finally {
+                _isRelatedRefreshing.value = false
+            }
+        }
+    }
+
+    fun dismissRelatedItems() {
+        _relatedTarget.value = null
     }
 
     // Web URL mirrors the API path structure with "api/" dropped, e.g. api/dcim/racks/5/ ->
@@ -153,6 +224,7 @@ constructor(
 
     init {
         refresh()
+        if (isRack) viewModelScope.launch { refreshElevations() }
         loadJournalEntries()
         viewModelScope.launch { customFieldRepository.refresh() }
         viewModelScope.launch {
@@ -167,8 +239,15 @@ constructor(
                 .refreshObject(route.endpointPath, route.id)
                 .onSuccess { if (showConfirmation) _refreshedMessage.value = "Refreshed" }
                 .onFailure { _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data" }
+            if (isRack && !settingsRepository.offlineMode.value) refreshElevations()
             _isRefreshing.value = false
         }
+    }
+
+    private suspend fun refreshElevations() {
+        if (settingsRepository.offlineMode.value) return
+        rackElevationRepository.refresh(route.id, RackFace.FRONT)
+        rackElevationRepository.refresh(route.id, RackFace.REAR)
     }
 
     private fun loadJournalEntries() {
@@ -310,6 +389,19 @@ constructor(
 
     fun localAttachmentFile(url: String, filename: String): File? =
         fileDownloadRepository.persistentFile(url, filename)
+
+    private fun previewImageUrl(
+        entity: NetBoxObjectEntity,
+        deviceTypeImages: Map<Int, String?>,
+    ): String? {
+        val obj = decode(entity.json) ?: return null
+        listOf("front_image", "image", "rear_image").forEach { key ->
+            (obj[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let { return it }
+        }
+        val deviceType = obj["device_type"] as? JsonObject
+        val deviceTypeId = (deviceType?.get("id") as? JsonPrimitive)?.intOrNull
+        return deviceTypeId?.let { deviceTypeImages[it] }
+    }
 
     private fun decode(rawJson: String): JsonObject? =
         runCatching { json.decodeFromString(JsonObject.serializer(), rawJson) }.getOrNull()

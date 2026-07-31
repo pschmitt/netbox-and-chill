@@ -259,6 +259,33 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `renders rack and device type counts as filtered device targets`() {
+        val rackRows =
+            buildFieldRows(
+                parse("""{"id":1,"device_count":6}"""),
+                endpointPath = "api/dcim/racks/",
+            )
+        val deviceTypeRows =
+            buildFieldRows(
+                parse("""{"id":244,"device_count":3}"""),
+                endpointPath = "api/dcim/device-types/",
+            )
+
+        assertEquals(
+            FieldRow.Count("Device Count", "6", CountTarget("api/dcim/devices/", "Devices", "rack", 1)),
+            rackRows.single(),
+        )
+        assertEquals(
+            FieldRow.Count(
+                "Device Count",
+                "3",
+                CountTarget("api/dcim/devices/", "Devices", "device_type", 244),
+            ),
+            deviceTypeRows.single(),
+        )
+    }
+
+    @Test
     fun `identifier fields are copyable`() {
         val rows = buildFieldRows(parse("""{"serial":"ABC123","asset_tag":"AT-001","primary_ip4":"10.0.0.5/24"}"""))
         assertEquals(

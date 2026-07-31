@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.Category
@@ -45,7 +46,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -81,6 +84,9 @@ import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.repository.RackFace
 import androidx.core.content.getSystemService
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -88,7 +94,6 @@ import androidx.core.content.getSystemService
 fun GenericDetailScreen(
     onBack: () -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int) -> Unit,
-    onNavigateToList: (endpointPath: String, label: String, filterKey: String, filterValue: Int) -> Unit,
     viewModel: GenericDetailViewModel = hiltViewModel(),
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
@@ -106,6 +111,12 @@ fun GenericDetailScreen(
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
+    val frontElevation by viewModel.frontElevation.collectAsStateWithLifecycle()
+    val rearElevation by viewModel.rearElevation.collectAsStateWithLifecycle()
+    val relatedTarget by viewModel.relatedTarget.collectAsStateWithLifecycle()
+    val relatedObjects by viewModel.relatedObjects.collectAsStateWithLifecycle()
+    val relatedPreviewUrls by viewModel.relatedPreviewUrls.collectAsStateWithLifecycle()
+    val isRelatedRefreshing by viewModel.isRelatedRefreshing.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -335,11 +346,22 @@ fun GenericDetailScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
                         ) {
+                            if (viewModel.isRack) {
+                                item {
+                                    RackElevationOverview(
+                                        front = frontElevation,
+                                        rear = rearElevation,
+                                        onDeviceClick = { id ->
+                                            onNavigateToReference("api/dcim/devices/", id)
+                                        },
+                                    )
+                                }
+                            }
                             visibleFields.forEach { row ->
                                 fieldRow(
                                     row,
                                     onNavigateToReference,
-                                    onNavigateToList,
+                                    viewModel::showRelatedItems,
                                     onOpenUrl = { url ->
                                         context.startActivity(
                                             Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -388,6 +410,173 @@ fun GenericDetailScreen(
             },
             onDismiss = { fieldActionLabel = null },
         )
+    }
+    relatedTarget?.let { target ->
+        RelatedItemsBottomSheet(
+            target = target,
+            objects = relatedObjects,
+            previewUrls = relatedPreviewUrls,
+            isRefreshing = isRelatedRefreshing,
+            onObjectClick = { id ->
+                viewModel.dismissRelatedItems()
+                onNavigateToReference(target.endpointPath, id)
+            },
+            onDismiss = viewModel::dismissRelatedItems,
+        )
+    }
+}
+
+@Composable
+private fun RackElevationOverview(
+    front: List<RackElevationEntity>,
+    rear: List<RackElevationEntity>,
+    onDeviceClick: (Int) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Storage,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Rack elevation", style = MaterialTheme.typography.titleLarge)
+        }
+        if (front.isEmpty() && rear.isEmpty()) {
+            Text(
+                "No elevation data cached yet - refresh while online",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            RackFaceOverview(RackFace.FRONT, front, onDeviceClick)
+            RackFaceOverview(RackFace.REAR, rear, onDeviceClick)
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun RackFaceOverview(
+    face: RackFace,
+    slots: List<RackElevationEntity>,
+    onDeviceClick: (Int) -> Unit,
+) {
+    Column {
+        Text(face.label, style = MaterialTheme.typography.titleMedium)
+        if (slots.isEmpty()) {
+            Text(
+                "No ${face.label.lowercase()} elevation cached",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+            return
+        }
+        val displayedDevices = mutableSetOf<Int>()
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            Column(Modifier.padding(vertical = 4.dp, horizontal = 6.dp)) {
+                slots.forEach { slot ->
+                    val deviceId = slot.deviceId
+                    val firstDeviceSlot = deviceId != null && displayedDevices.add(deviceId)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.height(28.dp).fillMaxWidth(),
+                    ) {
+                        Text(
+                            slot.slotName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(48.dp),
+                        )
+                        Surface(
+                            color =
+                                if (slot.occupied) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(4.dp),
+                            modifier =
+                                Modifier.weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable(enabled = deviceId != null) {
+                                        deviceId?.let(onDeviceClick)
+                                    },
+                        ) {
+                            if (firstDeviceSlot) {
+                                Text(
+                                    slot.deviceDisplay ?: "Device #$deviceId",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(2.dp))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RelatedItemsBottomSheet(
+    target: CountTarget,
+    objects: List<NetBoxObjectEntity>,
+    previewUrls: Map<Int, String>,
+    isRefreshing: Boolean,
+    onObjectClick: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+        ) {
+            Text(
+                target.listLabel,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+            when {
+                isRefreshing && objects.isEmpty() ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(180.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                objects.isEmpty() ->
+                    Text(
+                        "No related items cached yet",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(24.dp),
+                    )
+                else ->
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
+                    ) {
+                        items(objects, key = { it.id }) { objectEntity ->
+                            ListItem(
+                                leadingContent = {
+                                    RemoteThumbnail(
+                                        imageUrl = previewUrls[objectEntity.id],
+                                        contentDescription = objectEntity.display,
+                                        modifier = Modifier.size(56.dp),
+                                    )
+                                },
+                                headlineContent = { Text(objectEntity.display) },
+                                supportingContent =
+                                    objectEntity.secondaryLine?.let { line -> { Text(line) } },
+                                modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
+                            )
+                        }
+                    }
+            }
+        }
     }
 }
 
@@ -671,7 +860,7 @@ private fun visibleFieldRows(
 private fun LazyListScope.fieldRow(
     row: FieldRow,
     onNavigateToReference: (String, Int) -> Unit,
-    onNavigateToList: (String, String, String, Int) -> Unit,
+    onRelatedItems: (CountTarget) -> Unit,
     onOpenUrl: (String) -> Unit,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
     localAttachmentFile: (url: String, filename: String) -> java.io.File?,
@@ -723,12 +912,7 @@ private fun LazyListScope.fieldRow(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier =
                             Modifier.fillMaxWidth().clickable {
-                                onNavigateToList(
-                                    row.target.endpointPath,
-                                    row.target.listLabel,
-                                    row.target.relationKey,
-                                    row.target.parentId,
-                                )
+                                onRelatedItems(row.target)
                             },
                     ) {
                         Text(

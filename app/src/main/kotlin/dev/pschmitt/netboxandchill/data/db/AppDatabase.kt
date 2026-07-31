@@ -17,8 +17,9 @@ import androidx.room.RoomDatabase
             CustomFieldEntity::class,
             PendingEditEntity::class,
             RecentVisitEntity::class,
+            RackElevationEntity::class,
         ],
-    version = 11,
+    version = 12,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,4 +44,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pendingEditDao(): PendingEditDao
 
     abstract fun recentVisitDao(): RecentVisitDao
+
+    abstract fun rackElevationDao(): RackElevationDao
 }
