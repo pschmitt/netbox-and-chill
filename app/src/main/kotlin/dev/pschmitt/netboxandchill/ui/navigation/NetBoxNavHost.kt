@@ -22,6 +22,7 @@ import dev.pschmitt.netboxandchill.ui.settings.SettingsScreen
 // used to special-case the dashboard's "Devices" stat tile onto the existing typed screen instead
 // of the generic list route the other stat tiles use (see NBC-9's TODO.md entry).
 private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+private const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
 
 @Composable
 fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onOpenDrawer: () -> Unit) {
@@ -69,7 +70,11 @@ fun NetBoxNavHost(navController: NavHostController, startDestination: Route, onO
         }
         composable<Route.DeviceDetail> { backStackEntry ->
             val route: Route.DeviceDetail = backStackEntry.toRoute()
-            DeviceDetailScreen(deviceId = route.deviceId, onBack = { navController.popBackStack() })
+            DeviceDetailScreen(
+                deviceId = route.deviceId,
+                onBack = { navController.popBackStack() },
+                onDeviceTypeClick = { id -> navController.navigate(Route.Generic(DEVICE_TYPES_ENDPOINT_PATH, id)) },
+            )
         }
         composable<Route.GenericList> { backStackEntry ->
             val route: Route.GenericList = backStackEntry.toRoute()

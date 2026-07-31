@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
@@ -68,6 +69,7 @@ import java.util.Date
 fun DeviceDetailScreen(
     deviceId: Int,
     onBack: () -> Unit,
+    onDeviceTypeClick: (Int) -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
@@ -178,7 +180,11 @@ fun DeviceDetailScreen(
                 detailField("Position", current.position?.toString())
                 detailField("Role", current.roleName)
                 detailField("Manufacturer", current.manufacturerName)
-                detailField("Model", current.deviceTypeModel)
+                detailField(
+                    "Model",
+                    current.deviceTypeModel,
+                    onClick = deviceType?.id?.let { id -> { onDeviceTypeClick(id) } },
+                )
                 detailField("Serial", current.serial, copyable = true, onCopyValue = onCopyValue)
                 detailField("Asset tag", current.assetTag, copyable = true, onCopyValue = onCopyValue)
                 detailField("Primary IP", current.primaryIp, copyable = true, onCopyValue = onCopyValue)
@@ -336,10 +342,15 @@ private fun LazyListScope.detailField(
     value: String?,
     copyable: Boolean = false,
     onCopyValue: (label: String, value: String) -> Unit = { _, _ -> },
+    onClick: (() -> Unit)? = null,
 ) {
     if (value.isNullOrBlank()) return
     item {
-        Column(Modifier.padding(vertical = 6.dp)) {
+        Column(
+            Modifier
+                .padding(vertical = 6.dp)
+                .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier),
+        ) {
             Text(
                 label,
                 style = MaterialTheme.typography.labelMedium,
@@ -351,6 +362,9 @@ private fun LazyListScope.detailField(
                     IconButton(onClick = { onCopyValue(label, value) }) {
                         Icon(Icons.Default.ContentCopy, contentDescription = "Copy $label")
                     }
+                }
+                if (onClick != null) {
+                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open $label")
                 }
             }
         }

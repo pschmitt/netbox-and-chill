@@ -1390,7 +1390,9 @@ tappable `FieldRow.Reference`s automatically - needs checking whether it's actua
 too, or only on the legacy `DeviceDetailScreen` (which is the one NBC-29 diagnosed as lacking ids
 for its typed fields, `deviceTypeModel` being a display-string-only column).
 
-Status: not started, 2026-07-31 - likely resolved by NBC-29's fix, verify once that lands.
+Status: **done**, 2026-07-31 - the legacy device detail's Model field now opens the cached/network
+generic device-type detail; the action was verified through the shared navigation route and the
+remote lint/test/debug validation pass.
 
 ## NBC-38: device-type page should render front/rear images like the device page does
 
