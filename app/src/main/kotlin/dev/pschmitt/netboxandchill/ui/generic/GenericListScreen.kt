@@ -24,11 +24,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,9 +97,10 @@ fun GenericListScreen(
                         )
                     }
                 } else {
+                    val rowIcon = AppIcons.forAppKey(appKeyFromEndpointPath(viewModel.route.endpointPath))
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(objects, key = { it.id }) { obj ->
-                            ObjectRow(obj = obj, onClick = { onObjectClick(obj.id) })
+                            ObjectRow(obj = obj, icon = rowIcon, onClick = { onObjectClick(obj.id) })
                         }
                     }
                 }
@@ -107,10 +110,20 @@ fun GenericListScreen(
 }
 
 @Composable
-private fun ObjectRow(obj: NetBoxObjectEntity, onClick: () -> Unit) {
+private fun ObjectRow(obj: NetBoxObjectEntity, icon: ImageVector, onClick: () -> Unit) {
     ListItem(
+        leadingContent = { Icon(icon, contentDescription = null) },
         headlineContent = { Text(obj.display) },
         supportingContent = obj.secondaryLine?.let { line -> { Text(line) } },
         modifier = Modifier.clickable(onClick = onClick),
     )
+}
+
+/** Mirrors [dev.pschmitt.netboxandchill.data.repository.DirectoryRepository]'s `appKey` shape
+ * (`"plugins/<plugin>"` for plugin models, else the plain app segment) so [AppIcons] picks the
+ * same icon here as it does in the sidebar. */
+private fun appKeyFromEndpointPath(endpointPath: String): String {
+    val segments = endpointPath.trim('/').split('/')
+    return if (segments.size >= 4 && segments[1] == "plugins") "plugins/${segments[2]}"
+    else segments.getOrElse(1) { "" }
 }

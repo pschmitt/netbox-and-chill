@@ -81,3 +81,21 @@ Repository instructions for AI coding agents working on NetBox and Chill.
   like `https://<netbox-host>/dcim/devices/<id>/`) with the in-app CameraX/ZXing scanner, and via
   the `/dcim/devices/*` deep-link intent-filter when such a link is opened from another app. Both
   paths funnel through `scanner/DeviceUrlParser.kt`.
+
+## UI conventions
+
+- Use an icon wherever there's a labeled action or a labeled piece of information: every `Button`/
+  `OutlinedButton`/`IconButton`, every overflow/dropdown menu item, and every `ListItem` that names
+  a distinct thing (a setting, a section, a row in a list) should carry a leading icon, not just a
+  text label. `material-icons-extended` is already a project dependency specifically so this is
+  never a reason to settle for a plain-text-only control - reach for a fitting icon (extended set
+  first, then core) rather than skipping it.
+  - `material.icons.extended` is already wired into `app/build.gradle.kts` - use its full icon set
+    freely (`Icons.Default.*`/`Icons.AutoMirrored.Filled.*`), not just the small core subset.
+  - `ui/directory/AppIcons.kt` maps NetBox app namespaces (`dcim`, `ipam`, `plugins/<name>`, ...)
+    to an icon - reuse `AppIcons.forAppKey(...)` for anything rendering a row/section for a NetBox
+    object type, instead of picking an ad hoc icon per screen, so the same object type reads with
+    the same icon everywhere (sidebar, list rows, elsewhere).
+  - `contentDescription` should be a real accessibility label when the icon is the only affordance
+    (e.g. an `IconButton`); pass `null` when the icon is purely decorative next to a text label
+    that already says the same thing (e.g. a `ListItem` leading icon next to its own headline).

@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.OpenInNew
@@ -141,6 +142,8 @@ fun OnboardingScreen(onDone: () -> Unit, viewModel: OnboardingViewModel = hiltVi
                 if (uiState is OnboardingUiState.Validating) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
+                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text("Connect")
                 }
             }

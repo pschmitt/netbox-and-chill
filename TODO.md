@@ -551,3 +551,32 @@ best-effort background update, never a gate on what's rendered.
 Status: not started, 2026-07-31 - needs verification against a populated cache once
 netbox.brkn.lol is reachable again; unable to test today due to a live network outage encountered
 mid-session (see above).
+
+## NBC-19: icon audit - buttons, ListItems, and a new AGENTS.md convention
+
+Every labeled `Button`/`OutlinedButton` and every `ListItem` that names a distinct thing should
+carry a leading icon, not just text - and this should stay true going forward, not just as a
+one-time cleanup pass.
+
+**Why:** user request - "make sure we use icons pretty much everywhere it makes sense to do so. On
+buttons, on overflow menu items etc etc. Where there is text I expect a relevant icon as well!",
+plus a same-thread follow-up - "pls update the agents.md as well, so that we do not end up with new
+buttons/text widgets w/o icons in the future."
+**How to apply:** audited every screen (`grep` for `Button(`/`IconButton(`/`ListItem(` across
+`ui/`). Sidebar, `GenericDetailScreen`'s top bar, `DeviceDetailScreen`, `ScannerScreen`, and
+`DeviceListScreen`'s row (`RemoteThumbnail` leading image, from NBC-3) already had full icon
+coverage - no changes needed there. Gaps found and fixed: `OnboardingScreen`'s "Connect" button
+(added `Icons.AutoMirrored.Filled.Login`); `SettingsScreen`'s "Sync now"/"Disconnect" buttons
+(`Sync`/`Logout`) and its four `ListItem`s (NetBox instance/cached devices/app info/build - `Dns`/
+`Storage`/`Info`/`Tag`); `GenericListScreen`'s row (`ObjectRow` had no leading icon at all - now
+uses `AppIcons.forAppKey(...)` derived from the route's endpoint path, the same lookup the sidebar
+uses, so a given NetBox object type reads with the same icon in both places). Added a "UI
+conventions" section to `AGENTS.md` codifying the icon-everywhere rule for future work, including
+pointing at `AppIcons.forAppKey` as the thing to reuse rather than picking new icons ad hoc.
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green on rofl-14; installed on the Mi Pad 4
+and visually confirmed (Settings screen icons, Onboarding "Connect" button icon) - screenshots
+match the intended layout with no crash. Not yet installed on Pixel 5/Zenfone 10 this session.
+Side effect of testing: logged the Mi Pad 4 out to see the onboarding screen, and couldn't log it
+back in before netbox.brkn.lol's outage (see NBC-18) resolved - needs re-connecting once the
+instance is reachable again.

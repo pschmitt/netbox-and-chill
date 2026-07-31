@@ -5,8 +5,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -50,10 +58,12 @@ fun SettingsScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxWidth()) {
             ListItem(
+                leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
                 headlineContent = { Text("NetBox instance") },
                 supportingContent = { Text(credentials.baseUrl) },
             )
             ListItem(
+                leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
                 headlineContent = { Text("Cached devices") },
                 supportingContent = { Text("$cachedDeviceCount devices synced locally") },
             )
@@ -64,6 +74,8 @@ fun SettingsScreen(
                     enabled = !isSyncing,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(if (isSyncing) "Syncing…" else "Sync now")
                 }
                 Spacer(Modifier.height(8.dp))
@@ -74,15 +86,23 @@ fun SettingsScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text("Disconnect")
                 }
             }
             HorizontalDivider()
             ListItem(
+                leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
                 headlineContent = { Text("NetBox and Chill") },
                 supportingContent = { Text("Version " + BuildConfig.VERSION_NAME + " · GPLv3") },
             )
             ListItem(
+                leadingContent = { Icon(Icons.Default.Tag, contentDescription = null) },
                 headlineContent = { Text("Build") },
                 // Deliberately not concatenated with any other literal: Kotlin/R8 constant-folds
                 // string-template concatenations of compile-time constants into a single merged
