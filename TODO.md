@@ -628,10 +628,36 @@ torch on in a dark rack room - both standard expectations for a barcode-scanning
 **Why:** user request - "qr code reader view show allow us to tap-to-focus and a flashlight on/off
 button would be nice too."
 **How to apply:** CameraX's `CameraControl.startFocusAndMetering(FocusMeteringAction)` built from a
-`MeteringPointFactory` (`PreviewView.getMeteringPointFactory()`) for tap-to-focus - hook it onto the
-existing preview's pointer-input/tap gesture. `CameraControl.enableTorch(Boolean)` (gated on
+`MeteringPointFactory` (`PreviewView.getMeteringPointFactory()`) for tap-to-focus - hooked onto
+`PreviewView.setOnTouchListener` directly (a Compose `pointerInput` modifier on the `AndroidView`
+risks the embedded native view swallowing the gesture before Compose's gesture detector sees it -
+this is CameraX's own documented recipe). `CameraControl.enableTorch(Boolean)` (gated on
 `CameraInfo.hasFlashUnit()`, since not every device has one) for the flashlight, with an `IconButton`
 (`Icons.Default.FlashOn`/`FlashOff` per the AGENTS.md icon convention from NBC-19) in the scanner's
-top bar or overlay alongside the existing viewfinder square from NBC-14.
+top bar. The bound `Camera` object (from `ProcessCameraProvider.bindToLifecycle`, needed for both
+features) is threaded out of `CameraPreview`'s `AndroidView` factory via a new `onCameraReady`
+callback into `ScannerScreen`'s Compose state.
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green on rofl-14 (zero warnings beyond the
+two pre-existing unrelated deprecations); installed on Mi Pad 4 and Pixel 5, app launches
+crash-free. Not visually verified interacting with the actual camera view this session - the
+Scanner tab lives behind login, and the Mi Pad is logged out pending the netbox.brkn.lol outage
+(see NBC-18) resolving - needs a live tap-to-focus/flashlight check once reconnected.
+
+## NBC-22: bigger device-list thumbnails + un-crop the detail-screen photos
+
+Two related sizing complaints about the NBC-3 image work: the device list row's `RemoteThumbnail`
+is too small to be useful, and the detail screen's front/rear stock photos get hard-cropped past a
+fixed height instead of scaling to fit.
+
+**Why:** user request - "we should make the list items on like the dev list view bigger, so that
+the images are bigger. and the images displayed on the dev view page should be scaled, instead of
+hard-cropped off past a certain height."
+**How to apply:** `DeviceListScreen.DeviceRow`'s `RemoteThumbnail` is currently a fixed
+`Modifier.size(48.dp)` `ListItem` `leadingContent` - bump the size (and check `RemoteThumbnail`
+itself/`ListItem`'s own min-height don't silently reclip a larger size). The detail screen's
+front/rear photos need their `Image`/`AsyncImage` `contentScale` checked - `Crop` (or a fixed
+`.height(...)` combined with the default `Fit` behavior clipping at the container bounds) is likely
+the culprit; `ContentScale.Fit` (or `FillWidth` with no fixed height) shows the whole image instead.
 
 Status: not started, 2026-07-31.

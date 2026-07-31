@@ -2,9 +2,12 @@ package dev.pschmitt.netboxandchill.ui.scanner
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -15,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -48,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.scanner.BarcodeAnalyzer
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +65,8 @@ fun ScannerScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var camera by remember { mutableStateOf<Camera?>(null) }
+    var torchOn by remember { mutableStateOf(false) }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -87,12 +95,27 @@ fun ScannerScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (camera?.cameraInfo?.hasFlashUnit() == true) {
+                        IconButton(
+                            onClick = {
+                                torchOn = !torchOn
+                                camera?.cameraControl?.enableTorch(torchOn)
+                            }
+                        ) {
+                            Icon(
+                                if (torchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                                contentDescription = if (torchOn) "Turn flashlight off" else "Turn flashlight on",
+                            )
+                        }
+                    }
+                },
             )
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (hasCameraPermission) {
-                CameraPreview(onCodeScanned = viewModel::onCodeScanned)
+                CameraPreview(onCodeScanned = viewModel::onCodeScanned, onCameraReady = { camera = it })
                 ScannerViewfinder(modifier = Modifier.fillMaxSize())
             } else {
                 Text(
@@ -156,7 +179,7 @@ private fun ScanOverlay(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun CameraPreview(onCodeScanned: (String) -> Unit) {
+private fun CameraPreview(onCodeScanned: (String) -> Unit, onCameraReady: (Camera) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
@@ -167,6 +190,24 @@ private fun CameraPreview(onCodeScanned: (String) -> Unit) {
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
             val previewView = PreviewView(ctx)
+            var boundCamera: Camera? = null
+
+            // Tap-to-focus: set directly on the PreviewView rather than a Compose pointerInput
+            // modifier, since AndroidView touch dispatch to an embedded native View can otherwise
+            // swallow gestures before Compose sees them - this is the standard CameraX recipe.
+            previewView.setOnTouchListener { view, event ->
+                if (event.action == MotionEvent.ACTION_UP) {
+                    val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
+                    val action =
+                        FocusMeteringAction.Builder(point)
+                            .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                            .build()
+                    boundCamera?.cameraControl?.startFocusAndMetering(action)
+                    view.performClick()
+                }
+                true
+            }
+
             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
             cameraProviderFuture.addListener(
                 {
@@ -180,12 +221,15 @@ private fun CameraPreview(onCodeScanned: (String) -> Unit) {
                             .also { it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned)) }
 
                     cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview,
-                        analysis,
-                    )
+                    val camera =
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            CameraSelector.DEFAULT_BACK_CAMERA,
+                            preview,
+                            analysis,
+                        )
+                    boundCamera = camera
+                    onCameraReady(camera)
                 },
                 ContextCompat.getMainExecutor(ctx),
             )
