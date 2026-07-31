@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
@@ -432,7 +433,11 @@ private fun EditPickerField(
             onValueChange = {},
             readOnly = true,
             label = { Text(field.label) },
-            trailingIcon = { Text("▾") },
+            trailingIcon = {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
+                }
+            },
             modifier = Modifier.fillMaxWidth().clickable { expanded = true },
         )
         DropdownMenu(
