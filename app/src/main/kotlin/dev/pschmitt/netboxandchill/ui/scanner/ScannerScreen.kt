@@ -8,6 +8,7 @@ import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
@@ -360,11 +361,21 @@ private fun CameraPreview(
                     ?: available.firstOrNull { it.lens == desiredLens }
                     ?: available.firstOrNull()
             if (activeCamera != null) {
-                val preview =
-                    Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
-                val analysis =
+                val previewBuilder = Preview.Builder()
+                val analysisBuilder =
                     ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                activeCamera.physicalCameraId?.let { physicalCameraId ->
+                    // CameraSelector carries the physical ID through CameraX's lifecycle
+                    // binding. Set it on each use-case as well: this is the Camera2 interop
+                    // path that writes OutputConfiguration.setPhysicalCameraId(), which is
+                    // required by logical multi-camera implementations such as Pixel's.
+                    Camera2Interop.Extender(previewBuilder).setPhysicalCameraId(physicalCameraId)
+                    Camera2Interop.Extender(analysisBuilder).setPhysicalCameraId(physicalCameraId)
+                }
+                val preview = previewBuilder.build().also { it.surfaceProvider = view.surfaceProvider }
+                val analysis =
+                    analysisBuilder
                         .build()
                         .also { it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned)) }
                 runCatching {
@@ -374,7 +385,15 @@ private fun CameraPreview(
                     provider.unbindAll()
                     provider
                         .bindToLifecycle(lifecycleOwner, activeCamera.selector, preview, analysis)
-                        .also { it.cameraControl.setZoomRatio(activeCamera.zoomRatio) }
+                        .also {
+                            // Optical rear lenses are selected through the physical camera ID.
+                            // A logical Pixel camera commonly exposes a zoom range beginning at
+                            // 1.0, so requesting 0.6x on its CameraControl is clamped and leaves
+                            // the primary sensor active.
+                            if (activeCamera.physicalCameraId == null) {
+                                it.cameraControl.setZoomRatio(activeCamera.zoomRatio)
+                            }
+                        }
                 }.onSuccess {
                     boundCamera.value = it
                     onCameraReady(it)
@@ -430,6 +449,7 @@ private data class ScannerCameraOption(
     val lens: ScannerLens,
     val label: String,
     val selector: CameraSelector,
+    val physicalCameraId: String? = null,
     val focalLength: Float? = null,
     val zoomRatio: Float = 1f,
 )
@@ -462,10 +482,11 @@ private fun availableCameraOptions(provider: ProcessCameraProvider): List<Scanne
                         label = "Rear lens",
                         selector =
                             // Pixel devices expose the ultrawide and wide sensors as physical
-                            // cameras behind one logical camera. Binding the physical selector
-                            // alone is ignored by some CameraX/device combinations; keep the
-                            // logical selector and use its zoom ratio to request the sensor.
-                            info.selector(),
+                            // cameras behind one logical camera. CameraX applies this ID to the
+                            // Preview and ImageAnalysis output configurations, forcing the
+                            // requested physical sensor instead of clamping a logical zoom.
+                            info.selector(physicalCameraId = cameraId),
+                        physicalCameraId = cameraId,
                         focalLength = focalLength,
                     )
                 }
@@ -485,7 +506,7 @@ private fun availableCameraOptions(provider: ProcessCameraProvider): List<Scanne
     return labelRearCameraOptions(options)
 }
 
-private fun CameraInfo.selector(): CameraSelector {
+private fun CameraInfo.selector(physicalCameraId: String? = null): CameraSelector {
     val cameraId = Camera2CameraInfo.from(this).cameraId
     return CameraSelector.Builder()
         .addCameraFilter { infos ->
@@ -493,6 +514,7 @@ private fun CameraInfo.selector(): CameraSelector {
                 runCatching { Camera2CameraInfo.from(info).cameraId == cameraId }.getOrDefault(false)
             }
         }
+        .apply { physicalCameraId?.let(::setPhysicalCameraId) }
         .build()
 }
 

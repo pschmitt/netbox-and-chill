@@ -1818,8 +1818,21 @@ immediately, including on devices exposing physical rear cameras through a logic
 - [x] Keep tap-to-focus and torch state correct after a camera switch.
 - [x] Verify the switch on a multi-camera device and a device with fewer than two rear lenses.
 
-Status: **done**, 2026-08-01 - Pixel 5 rear 1×/0.6× and front/rear controls smoke-tested after
-the preview z-order fix; Mi Pad 4 fewer-than-two-rear-lenses behavior also verified.
+Status: **done**, 2026-08-01 - PX5 camera-service inspection confirmed 0.6× selects physical
+sensor 3 with a wider preview and 1× returns to sensor 2; the single-rear-lens fallback was
+deployed to and smoke-tested on Mi Pad 4.
+
+## NBC-71: force the selected physical rear camera
+
+On logical multi-camera devices, selecting a rear-lens chip must bind the selected physical camera
+stream rather than merely changing UI state or requesting an unsupported logical zoom ratio.
+
+- [x] Bind physical rear-camera options with CameraX's physical-camera selector support.
+- [ ] Verify the active physical camera ID and visible field of view on Pixel 5 and Zenfone 10.
+- [x] Keep the fallback safe on devices exposing only one rear lens.
+
+Status: in progress, 2026-08-01 - PX5 physical ID and field-of-view verification passed; Zenfone
+10 still needs the same physical-lens check.
 
 ## NBC-67: discover and pair nearby Brother label printers
 
