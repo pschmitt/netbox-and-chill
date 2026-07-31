@@ -24,4 +24,8 @@ sealed interface Route {
     @Serializable data class GenericList(val endpointPath: String, val label: String) : Route
 
     @Serializable data class Generic(val endpointPath: String, val id: Int) : Route
+
+    /** Field-by-field before/after view for one dashboard changelog entry (NBC-42) - distinct
+     * from [Generic], which only ever shows the object's *current* state. */
+    @Serializable data class ObjectChangeDiff(val changeId: Int) : Route
 }

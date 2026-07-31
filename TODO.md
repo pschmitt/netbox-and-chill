@@ -150,7 +150,8 @@ non-affiliated fan app needs the same care findroidplus took with the Jellyfin l
 theirs is "a combination of the Jellyfin logo and the Android robot"). Produce as a vector
 adaptive icon (foreground + background layers) like the current one, not a raster mashup image.
 
-Status: not started, 2026-07-31.
+Status: in progress, 2026-07-31 - detail titles are being moved into the scrollable page bodies
+for both typed devices and generic objects; verification remains.
 
 ## NBC-5: Editable objects (generic PATCH-based editing)
 
@@ -1536,7 +1537,7 @@ itself! (that's gotta be a separate view)."
   carries the object's `changed_object_type`/`changed_object_id` (or an embedded `url`), which is
   what `NetBoxRef.endpointFromDetailUrl()` elsewhere in the codebase already turns into a route.
 - A *separate* diff view is needed for the change itself: NetBox's changelog API
-  (`/api/extras/object-changes/{id}/`) returns `prechange_data`/`postchange_data` JSON snapshots -
+  (`/api/core/object-changes/{id}/`) returns `prechange_data`/`postchange_data` JSON snapshots -
   this needs a new screen that fetches that single change-log entry and renders a field-by-field
   before/after diff (this is exactly the kind of before/after comparison the user pasted earlier
   in the NBC-40 discussion when pointing out the edit form was resending unchanged fields - a
@@ -1544,4 +1545,16 @@ itself! (that's gotta be a separate view)."
   this view). Reachable from a distinct affordance on each recent-change row (e.g. a trailing "view
   diff" icon button) separate from the row tap itself, per "that's gotta be a separate view."
 
-Status: not started, 2026-07-31.
+Implemented: the row tap already navigated to `Route.Generic` from NBC-9 - only the diff view was
+actually missing. Added `Route.ObjectChangeDiff(changeId)`, `DashboardRepository.fetchObjectChange`
+(uncached, fetched on demand only when the diff view is opened - unlike the rest of this
+repository, the full pre/post snapshots aren't worth carrying in the offline cache for every
+changelog row), `ObjectChangeDiffViewModel`/`ObjectChangeDiffScreen` (union of `prechange_data`/
+`postchange_data` keys, one `DiffRow` per key whose value actually differs - nested objects/arrays
+fall back to raw JSON, no schema to render them more richly here), and a trailing "view diff"
+`IconButton` (`Icons.Default.Difference`) on each `ChangeRow`, distinct from the row's own tap
+target. Diff-building logic covered by `ObjectChangeDiffTest` (create/delete/update/nested-object/
+no-op cases).
+
+Status: **done**, 2026-07-31. `just test`/`just lint` green (including a rerun-tasks ktfmt check to
+rule out a stale cache hit).

@@ -40,6 +40,13 @@ constructor(
 
     fun observeStats(): Flow<List<DashboardStatEntity>> = statDao.observeAll()
 
+    /** Not cached (unlike the rest of this repository) - the changelog list only stores the
+     * summary fields [ObjectChangeEntity] needs; `prechange_data`/`postchange_data` are only
+     * fetched on demand when the user actually opens the diff view for one entry (NBC-42). */
+    suspend fun fetchObjectChange(id: Int): Result<JsonObject> = runCatching {
+        api.getObject("api/core/object-changes/$id/")
+    }
+
     /** Refreshes all three widgets independently - one being unreachable (e.g. bookmarks on a
      * pre-3.5 NetBox instance) shouldn't blank out the others; the first failure encountered (if
      * any) is surfaced so the UI can still show a "sync failed" message. */

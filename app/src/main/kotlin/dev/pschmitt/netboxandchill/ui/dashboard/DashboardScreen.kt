@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
@@ -62,6 +63,7 @@ fun DashboardScreen(
     onScanClick: () -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int) -> Unit,
     onStatClick: (endpointPath: String, label: String) -> Unit,
+    onChangeDiffClick: (changeId: Int) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -145,9 +147,13 @@ fun DashboardScreen(
                     item { EmptyHint(isRefreshing, "No changes cached yet - pull to sync") }
                 } else {
                     items(changelog, key = { "change-${it.id}" }) { change ->
-                        ChangeRow(change) {
-                            changeTargets[change.id]?.let { (path, id) -> onNavigateToReference(path, id) }
-                        }
+                        ChangeRow(
+                            change = change,
+                            onClick = {
+                                changeTargets[change.id]?.let { (path, id) -> onNavigateToReference(path, id) }
+                            },
+                            onDiffClick = { onChangeDiffClick(change.id) },
+                        )
                     }
                 }
             }
@@ -205,7 +211,7 @@ private fun BookmarkRow(bookmark: BookmarkEntity, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ChangeRow(change: ObjectChangeEntity, onClick: () -> Unit) {
+private fun ChangeRow(change: ObjectChangeEntity, onClick: () -> Unit, onDiffClick: () -> Unit) {
     val hasTarget = change.targetEndpointPath != null && change.targetId != null
     val (icon, tint) =
         when (change.actionValue) {
@@ -219,6 +225,14 @@ private fun ChangeRow(change: ObjectChangeEntity, onClick: () -> Unit) {
         headlineContent = { Text(change.objectRepr) },
         supportingContent = {
             Text("${change.actionLabel} by ${change.userDisplay} · ${formatTimestamp(change.time)}")
+        },
+        // A separate affordance from the row tap (which navigates to the object's *current*
+        // state) - the diff view shows what this specific change actually did, which the user
+        // explicitly asked for as its own destination rather than folded into the object page.
+        trailingContent = {
+            IconButton(onClick = onDiffClick) {
+                Icon(Icons.Default.Difference, contentDescription = "View change diff")
+            }
         },
         modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
     )
