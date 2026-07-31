@@ -9,6 +9,7 @@ import dev.pschmitt.netboxandchill.data.api.AuthInterceptor
 import dev.pschmitt.netboxandchill.data.api.DynamicBaseUrlInterceptor
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.NetBoxApi
+import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -16,6 +17,14 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.Retrofit
+
+/** OkHttpClient for requests against URLs NetBox itself already returned in full (media/document
+ * URLs) - skips [DynamicBaseUrlInterceptor], which would otherwise re-prepend the configured base
+ * URL's path onto an already-complete, already-correct URL (double-prefixing it if the instance
+ * is reverse-proxied under a subpath). Still carries [AuthInterceptor] - NetBox media commonly
+ * requires the API token too, confirmed against a real instance (unauthenticated media requests
+ * 302 to the login page). */
+@Qualifier @Retention(AnnotationRetention.BINARY) annotation class DownloadClient
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -48,6 +57,17 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .build()
+    }
+
+    @Provides
+    @Singleton
+    @DownloadClient
+    fun provideDownloadOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
+        val logging =
+            HttpLoggingInterceptor().apply {
+                level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+            }
+        return OkHttpClient.Builder().addInterceptor(authInterceptor).addInterceptor(logging).build()
     }
 
     @Provides

@@ -14,6 +14,14 @@ sealed interface FieldRow {
     data class ReferenceList(override val label: String, val targets: List<RefTarget>) : FieldRow
 
     data class ChipList(override val label: String, val values: List<String>) : FieldRow
+
+    /** A downloadable NetBox-served file (a netbox-documents document, an image, ...) - see
+     * GenericFieldRenderer's media-URL detection. */
+    data class FileAttachment(override val label: String, val url: String, val filename: String) : FieldRow
+
+    /** A plain string field whose value is itself a URL (e.g. a "vendor support URL" custom
+     * field) - opens in the browser, as opposed to [Reference] which navigates in-app. */
+    data class ExternalLink(override val label: String, val url: String) : FieldRow
 }
 
 /** A tappable link to another NetBox object's generic detail screen. */

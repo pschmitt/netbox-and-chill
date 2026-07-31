@@ -10,8 +10,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +63,8 @@ fun GenericDetailScreen(
     val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
+    val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
+    val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -72,6 +78,13 @@ fun GenericDetailScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
         }
+    }
+
+    LaunchedEffect(fileToOpen) {
+        val file = fileToOpen ?: return@LaunchedEffect
+        runCatching { context.startActivity(fileViewIntent(context, file)) }
+            .onFailure { snackbarHostState.showSnackbar("No app found to open ${file.name}") }
+        viewModel.fileOpened()
     }
 
     Scaffold(
@@ -149,7 +162,15 @@ fun GenericDetailScreen(
                     modifier = Modifier.padding(padding).fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                 ) {
-                    fields.forEach { row -> fieldRow(row, onNavigateToReference) }
+                    fields.forEach { row ->
+                        fieldRow(
+                            row,
+                            onNavigateToReference,
+                            onOpenUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+                            onDownloadAttachment = viewModel::downloadAttachment,
+                            isDownloading = isDownloading,
+                        )
+                    }
                 }
         }
     }
@@ -203,7 +224,13 @@ private fun EditForm(
     }
 }
 
-private fun LazyListScope.fieldRow(row: FieldRow, onNavigateToReference: (String, Int) -> Unit) {
+private fun LazyListScope.fieldRow(
+    row: FieldRow,
+    onNavigateToReference: (String, Int) -> Unit,
+    onOpenUrl: (String) -> Unit,
+    onDownloadAttachment: (url: String, filename: String) -> Unit,
+    isDownloading: Boolean,
+) {
     when (row) {
         is FieldRow.PlainText ->
             item {
@@ -255,6 +282,56 @@ private fun LazyListScope.fieldRow(row: FieldRow, onNavigateToReference: (String
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label)
                     Text(row.values.joinToString(", "), style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        is FieldRow.ExternalLink ->
+            item {
+                Column(Modifier.padding(vertical = 6.dp)) {
+                    FieldLabel(row.label)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onOpenUrl(row.url) },
+                    ) {
+                        Text(
+                            row.url,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
+        is FieldRow.FileAttachment ->
+            item {
+                Column(Modifier.padding(vertical = 6.dp)) {
+                    FieldLabel(row.label)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable(enabled = !isDownloading) {
+                                    onDownloadAttachment(row.url, row.filename)
+                                },
+                    ) {
+                        Icon(Icons.Default.Description, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            row.filename,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (isDownloading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Download, contentDescription = "Download and open")
+                        }
+                    }
                 }
             }
     }
