@@ -92,6 +92,15 @@ class EditableFieldTest {
     }
 
     @Test
+    fun `reads choice metadata from either PATCH or PUT OPTIONS actions`() {
+        val response =
+            parse(
+                """{"actions":{"PUT":{"status":{"choices":[{"value":"active","display_name":"Active"}]}}}}"""
+            )
+        assertEquals(mapOf("status" to listOf(EditOption("active", "Active"))), parseChoiceOptions(response))
+    }
+
+    @Test
     fun `buildPatchBody produces a flat JsonObject of the edited fields`() {
         val body =
             buildPatchBody(

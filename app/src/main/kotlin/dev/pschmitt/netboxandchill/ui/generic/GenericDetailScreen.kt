@@ -467,7 +467,7 @@ private fun EditPickerField(
             }
             if (options.isEmpty()) {
                 DropdownMenuItem(
-                    text = { Text("No choices available while offline") },
+                    text = { Text("No choices available") },
                     leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
                     enabled = false,
                     onClick = {},

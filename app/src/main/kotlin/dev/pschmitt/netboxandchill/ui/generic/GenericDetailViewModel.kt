@@ -256,31 +256,12 @@ constructor(
 
         if (fields.any { it.kind == EditFieldKind.CHOICE } && !settingsRepository.offlineMode.value) {
             val choices =
-                runCatching { api.getObjectOptions("${route.endpointPath}${route.id}/") }
+                    runCatching { api.getObjectOptions("${route.endpointPath}${route.id}/") }
                     .getOrNull()
-                    ?.let(::choiceOptionsFromResponse)
+                    ?.let(::parseChoiceOptions)
                     .orEmpty()
             _choiceOptions.value = choices
         }
-    }
-
-    private fun choiceOptionsFromResponse(response: JsonObject): Map<String, List<EditOption>> {
-        val patchFields =
-            ((response["actions"] as? JsonObject)?.get("PATCH") as? JsonObject).orEmpty()
-        return patchFields.mapNotNull { (key, definition) ->
-            val choices = (definition as? JsonObject)?.get("choices") as? JsonArray ?: return@mapNotNull null
-            val options =
-                choices.mapNotNull { choice ->
-                    val obj = choice as? JsonObject ?: return@mapNotNull null
-                    val value = (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-                    val label =
-                        (obj["display_name"] as? JsonPrimitive)?.contentOrNull
-                            ?: (obj["display"] as? JsonPrimitive)?.contentOrNull
-                            ?: value
-                    EditOption(value, label)
-                }
-            key to options
-        }.toMap()
     }
 
     fun downloadAttachment(url: String, filename: String) {
@@ -308,4 +289,24 @@ constructor(
 
     private fun decode(rawJson: String): JsonObject? =
         runCatching { json.decodeFromString(JsonObject.serializer(), rawJson) }.getOrNull()
+}
+
+internal fun parseChoiceOptions(response: JsonObject): Map<String, List<EditOption>> {
+    val actions = response["actions"] as? JsonObject
+    val editableFields =
+        ((actions?.get("PATCH") ?: actions?.get("PUT")) as? JsonObject).orEmpty()
+    return editableFields.mapNotNull { (key, definition) ->
+        val choices = (definition as? JsonObject)?.get("choices") as? JsonArray ?: return@mapNotNull null
+        val options =
+            choices.mapNotNull { choice ->
+                val obj = choice as? JsonObject ?: return@mapNotNull null
+                val value = (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                val label =
+                    (obj["display_name"] as? JsonPrimitive)?.contentOrNull
+                        ?: (obj["display"] as? JsonPrimitive)?.contentOrNull
+                        ?: value
+                EditOption(value, label)
+            }
+        key to options
+    }.toMap()
 }
