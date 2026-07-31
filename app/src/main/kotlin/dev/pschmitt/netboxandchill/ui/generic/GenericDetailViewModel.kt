@@ -24,6 +24,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
+// Mirrors NetBoxNavHost's/GlobalSearchRepository's DEVICES_ENDPOINT_PATH constant - kept local
+// rather than shared to avoid a broader refactor while other agents are touching those files.
+private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+
 @HiltViewModel
 class GenericDetailViewModel
 @Inject
@@ -38,6 +42,10 @@ constructor(
 ) : ViewModel() {
 
     val route: Route.Generic = savedStateHandle.toRoute()
+
+    // NBC-10: "Print label" only makes sense for devices (printlabel's --netbox mode prints a
+    // device's QR/asset-tag sticker) - other object types don't have a label to (re)print.
+    val isPrintableDevice: Boolean = route.endpointPath == DEVICES_ENDPOINT_PATH
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -94,6 +102,13 @@ constructor(
                 else
                     "${credentials.baseUrl}/${route.endpointPath.removePrefix("api/")}${entity.id}/"
             }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // Fed into the `printlabel --netbox-url` flag for the "Print label" share action - see
+    // PrintLabelIntent.kt.
+    val netboxBaseUrl: StateFlow<String?> =
+        settingsRepository.credentials
+            .map { it.baseUrl.ifBlank { null } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {

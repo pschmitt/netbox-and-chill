@@ -61,6 +61,14 @@ constructor(
             .map { entity -> entity?.url?.toHttpUrlOrNull()?.let { apiUrl -> apiUrlToWebUrl(apiUrl) } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    // Scheme+host(+port) only, e.g. https://netbox.example.com - fed into the `printlabel
+    // --netbox-url` flag for NBC-10's "share a print command" action so it works even if the
+    // user's shell doesn't already have NETBOX_URL exported.
+    val netboxBaseUrl: StateFlow<String?> =
+        device
+            .map { entity -> entity?.url?.toHttpUrlOrNull()?.let { apiUrl -> apiUrlToBaseUrl(apiUrl) } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val deviceType: StateFlow<DeviceTypeEntity?> =
         device
             .flatMapLatest { entity -> entity?.deviceTypeId?.let { deviceTypeRepository.observe(it) } ?: flowOf(null) }
@@ -101,4 +109,7 @@ constructor(
 
     private fun apiUrlToWebUrl(apiUrl: HttpUrl): String =
         apiUrl.newBuilder().encodedPath(apiUrl.encodedPath.removePrefix("/api")).build().toString()
+
+    private fun apiUrlToBaseUrl(apiUrl: HttpUrl): String =
+        apiUrl.newBuilder().encodedPath("/").build().toString().removeSuffix("/")
 }
