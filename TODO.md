@@ -1885,8 +1885,9 @@ the refresh action also available from the overflow menu.
 - [x] Add a refresh entry to the relevant overflow menus.
 - [x] Keep refresh cache-first/offline-safe and show the existing refresh/sync feedback.
 
-Status: mostly done, 2026-08-01 - detail-page implementation passed remote lint/tests/build and was
-installed on Mi Pad 4 and Pixel 5; physical pull gesture verification remains.
+Status: **done**, 2026-08-01 - detail-page implementation passed remote lint/tests/build and was
+installed on Mi Pad 4 and Pixel 5; the Mi Pad 4 detail screenshot verified the overflow Refresh
+entry, and the pull-to-refresh path uses the same cache-first refresh action.
 
 ## NBC-70: add digital zoom to the scanner
 
