@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storage
@@ -76,6 +77,14 @@ import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
 
+private fun formatBytes(bytes: Long): String =
+    when {
+        bytes < 1024L -> "$bytes B"
+        bytes < 1024L * 1024L -> "%.1f KiB".format(bytes / 1024.0)
+        bytes < 1024L * 1024L * 1024L -> "%.1f MiB".format(bytes / (1024.0 * 1024.0))
+        else -> "%.2f GiB".format(bytes / (1024.0 * 1024.0 * 1024.0))
+    }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -87,10 +96,15 @@ fun SettingsScreen(
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     val isUpdatingBaseUrl by viewModel.isUpdatingBaseUrl.collectAsStateWithLifecycle()
     val cachedDeviceCount by viewModel.cachedDeviceCount.collectAsStateWithLifecycle()
+    val cachedObjectCount by viewModel.cachedObjectCount.collectAsStateWithLifecycle()
+    val cachedImageCount by viewModel.cachedImageCount.collectAsStateWithLifecycle()
+    val persistentCacheBytes by viewModel.persistentCacheBytes.collectAsStateWithLifecycle()
+    val persistentCacheFiles by viewModel.persistentCacheFiles.collectAsStateWithLifecycle()
     val syncAttachmentsToDisk by
         viewModel.settingsRepository.syncAttachmentsToDisk.collectAsStateWithLifecycle()
     val gestureAction by viewModel.settingsRepository.gestureAction.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
+    val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditServerDialog by remember { mutableStateOf(false) }
@@ -290,8 +304,14 @@ fun SettingsScreen(
             )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
-                headlineContent = { Text("Cached devices") },
-                supportingContent = { Text("$cachedDeviceCount devices synced locally") },
+                headlineContent = { Text("Cached data") },
+                supportingContent = {
+                    Text(
+                        "$cachedDeviceCount devices · $cachedObjectCount other objects · " +
+                            "$cachedImageCount image records\n" +
+                            "${persistentCacheFiles} durable files · ${formatBytes(persistentCacheBytes)}"
+                    )
+                },
             )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Download, contentDescription = null) },
@@ -301,6 +321,16 @@ fun SettingsScreen(
                 },
                 trailingContent = {
                     Switch(checked = syncAttachmentsToDisk, onCheckedChange = viewModel::setSyncAttachmentsToDisk)
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
+                headlineContent = { Text("Offline mode") },
+                supportingContent = {
+                    Text("Use cached data only and pause network sync")
+                },
+                trailingContent = {
+                    Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
                 },
             )
             ListItem(

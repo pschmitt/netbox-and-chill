@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
@@ -27,6 +28,7 @@ constructor(
     private val offlineSyncRepository: OfflineSyncRepository,
     private val directoryRepository: DirectoryRepository,
     private val appDatabase: AppDatabase,
+    private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
 
     private val _isSyncing = MutableStateFlow(false)
@@ -38,20 +40,33 @@ constructor(
     private val _cachedDeviceCount = MutableStateFlow(0)
     val cachedDeviceCount: StateFlow<Int> = _cachedDeviceCount.asStateFlow()
 
+    private val _cachedObjectCount = MutableStateFlow(0)
+    val cachedObjectCount: StateFlow<Int> = _cachedObjectCount.asStateFlow()
+
+    private val _cachedImageCount = MutableStateFlow(0)
+    val cachedImageCount: StateFlow<Int> = _cachedImageCount.asStateFlow()
+
+    private val _persistentCacheBytes = MutableStateFlow(0L)
+    val persistentCacheBytes: StateFlow<Long> = _persistentCacheBytes.asStateFlow()
+
+    private val _persistentCacheFiles = MutableStateFlow(0)
+    val persistentCacheFiles: StateFlow<Int> = _persistentCacheFiles.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     init {
-        viewModelScope.launch { _cachedDeviceCount.value = deviceRepository.cachedDeviceCount() }
+        refreshCacheCounts()
     }
 
     fun syncNow() {
+        if (settingsRepository.offlineMode.value) return
         viewModelScope.launch {
             _isSyncing.value = true
             offlineSyncRepository
                 .syncAll()
                 .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached data" }
-            _cachedDeviceCount.value = deviceRepository.cachedDeviceCount()
+            refreshCacheCounts()
             _isSyncing.value = false
         }
     }
@@ -60,8 +75,23 @@ constructor(
         _errorMessage.value = null
     }
 
+    private fun refreshCacheCounts() {
+        viewModelScope.launch {
+            _cachedDeviceCount.value = deviceRepository.cachedDeviceCount()
+            _cachedObjectCount.value = appDatabase.netBoxObjectDao().countAll()
+            _cachedImageCount.value =
+                appDatabase.deviceTypeDao().getAll().count { it.frontImageUrl != null || it.rearImageUrl != null } +
+                    appDatabase.imageAttachmentDao().getAll().size
+            fileDownloadRepository.persistentStats().let { stats ->
+                _persistentCacheBytes.value = stats.bytes
+                _persistentCacheFiles.value = stats.fileCount
+            }
+        }
+    }
+
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         settingsRepository.setSyncAttachmentsToDisk(enabled)
+        if (enabled) syncNow()
     }
 
     fun setGestureAction(action: GestureAction) {
@@ -70,6 +100,10 @@ constructor(
 
     fun setScannerLens(lens: ScannerLens) {
         settingsRepository.setScannerLens(lens)
+    }
+
+    fun setOfflineMode(enabled: Boolean) {
+        settingsRepository.setOfflineMode(enabled)
     }
 
     /** Switches the configured NetBox server. Saves eagerly (the dynamic base-URL interceptor
@@ -91,7 +125,7 @@ constructor(
                 .refresh()
                 .onSuccess {
                     withContext(Dispatchers.IO) { appDatabase.clearAllTables() }
-                    _cachedDeviceCount.value = 0
+                    refreshCacheCounts()
                 }
                 .onFailure {
                     settingsRepository.save(previous.baseUrl, previous.token)

@@ -13,6 +13,7 @@ import dev.pschmitt.netboxandchill.data.api.AuthInterceptor
 import dev.pschmitt.netboxandchill.data.api.DynamicBaseUrlInterceptor
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.NetBoxApi
+import dev.pschmitt.netboxandchill.data.api.OfflineModeInterceptor
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -66,12 +67,19 @@ object NetworkModule {
     @Provides
     @Singleton
     @DownloadClient
-    fun provideDownloadOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
+    fun provideDownloadOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        offlineModeInterceptor: OfflineModeInterceptor,
+    ): OkHttpClient {
         val logging =
             HttpLoggingInterceptor().apply {
                 level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
             }
-        return OkHttpClient.Builder().addInterceptor(authInterceptor).addInterceptor(logging).build()
+        return OkHttpClient.Builder()
+            .addInterceptor(offlineModeInterceptor)
+            .addInterceptor(authInterceptor)
+            .addInterceptor(logging)
+            .build()
     }
 
     @Provides

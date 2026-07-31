@@ -160,5 +160,7 @@ private class FakeNetBoxObjectDao : NetBoxObjectDao {
 
     override suspend fun count(endpointPath: String): Int = if (last?.endpointPath == endpointPath) 1 else 0
 
+    override suspend fun countAll(): Int = if (last == null) 0 else 1
+
     override suspend fun getAll(): List<NetBoxObjectEntity> = listOfNotNull(last)
 }

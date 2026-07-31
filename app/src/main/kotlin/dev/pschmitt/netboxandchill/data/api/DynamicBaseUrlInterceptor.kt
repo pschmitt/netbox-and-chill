@@ -2,6 +2,7 @@ package dev.pschmitt.netboxandchill.data.api
 
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import javax.inject.Inject
+import java.io.IOException
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -15,6 +16,9 @@ class DynamicBaseUrlInterceptor @Inject constructor(private val settingsReposito
     Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
+        if (settingsRepository.offlineMode.value) {
+            throw IOException("Offline mode is enabled")
+        }
         val request = chain.request()
         val configured =
             settingsRepository.credentials.value.baseUrl.toHttpUrlOrNull()

@@ -7,6 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
@@ -16,10 +20,12 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +50,13 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 
 private const val DEVICES_PATH = "api/dcim/devices/"
 
+private fun <T> moveItem(items: List<T>, item: T, offset: Int): List<T>? {
+    val from = items.indexOf(item)
+    val to = from + offset
+    if (from < 0 || to !in items.indices) return null
+    return items.toMutableList().apply { add(to, removeAt(from)) }
+}
+
 @Composable
 fun Sidebar(
     onDeviceListClick: () -> Unit,
@@ -54,11 +67,15 @@ fun Sidebar(
     val modelsByApp by viewModel.modelsByApp.collectAsStateWithLifecycle()
     val pinnedModels by viewModel.pinnedModels.collectAsStateWithLifecycle()
     val pinnedPaths by viewModel.settingsRepository.pinnedModelPaths.collectAsStateWithLifecycle()
+    val sidebarAppOrder by viewModel.sidebarAppOrder.collectAsStateWithLifecycle()
+    val sidebarModelOrders by viewModel.sidebarModelOrders.collectAsStateWithLifecycle()
+    val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
     // Collapsed by default, like the NetBox web UI's sidebar - matches app keys ("dcim",
     // "plugins/netbox-documents", ...), not the humanized labels.
     var expandedApps by remember { mutableStateOf(emptySet<String>()) }
+    var reorderMode by remember { mutableStateOf(false) }
 
     val filteredModelsByApp =
         if (searchQuery.isBlank()) modelsByApp
@@ -88,6 +105,25 @@ fun Sidebar(
                     )
                     Spacer(Modifier.height(8.dp))
                 }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            if (reorderMode) "Reorder sidebar" else "Sidebar",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { reorderMode = !reorderMode }) {
+                            Icon(
+                                if (reorderMode) Icons.Default.ExpandLess else Icons.Default.Edit,
+                                contentDescription = if (reorderMode) "Finish reordering sidebar" else "Reorder sidebar",
+                            )
+                        }
+                    }
+                }
                 if (searchQuery.isBlank()) {
                     item {
                         NavigationDrawerItem(
@@ -112,8 +148,14 @@ fun Sidebar(
                     }
                     item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
                 }
-                filteredModelsByApp.forEach { (appLabel, models) ->
-                    val appKey = models.first().appKey
+                orderSidebarAppKeys(filteredModelsByApp.keys, sidebarAppOrder).forEach { appKey ->
+                    val models =
+                        orderSidebarModels(
+                            appKey,
+                            filteredModelsByApp[appKey].orEmpty(),
+                            sidebarModelOrders[appKey].orEmpty(),
+                        )
+                    val appLabel = models.firstOrNull()?.appLabel ?: appKey
                     // Searching implicitly expands every matching section - no point collapsing
                     // search results the user is actively looking for.
                     val isExpanded = searchQuery.isNotBlank() || appKey in expandedApps
@@ -143,6 +185,25 @@ fun Sidebar(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f),
                             )
+                            if (reorderMode) {
+                                val orderedApps = orderSidebarAppKeys(filteredModelsByApp.keys, sidebarAppOrder)
+                                IconButton(
+                                    onClick = {
+                                        moveItem(orderedApps, appKey, -1)?.let(viewModel::setSidebarAppOrder)
+                                    },
+                                    enabled = orderedApps.firstOrNull() != appKey,
+                                ) {
+                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Move $appLabel up")
+                                }
+                                IconButton(
+                                    onClick = {
+                                        moveItem(orderedApps, appKey, 1)?.let(viewModel::setSidebarAppOrder)
+                                    },
+                                    enabled = orderedApps.lastOrNull() != appKey,
+                                ) {
+                                    Icon(Icons.Default.ArrowDownward, contentDescription = "Move $appLabel down")
+                                }
+                            }
                             Icon(
                                 if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = if (isExpanded) "Collapse" else "Expand",
@@ -162,6 +223,29 @@ fun Sidebar(
                                     onClick = { onModelClick(model) },
                                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                                 )
+                                if (reorderMode) {
+                                    val orderedModels = models.map { it.modelKey }
+                                    IconButton(
+                                        onClick = {
+                                            moveItem(orderedModels, model.modelKey, -1)?.let {
+                                                viewModel.setSidebarModelOrder(appKey, it)
+                                            }
+                                        },
+                                        enabled = orderedModels.firstOrNull() != model.modelKey,
+                                    ) {
+                                        Icon(Icons.Default.ArrowUpward, contentDescription = "Move ${model.modelLabel} up")
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            moveItem(orderedModels, model.modelKey, 1)?.let {
+                                                viewModel.setSidebarModelOrder(appKey, it)
+                                            }
+                                        },
+                                        enabled = orderedModels.lastOrNull() != model.modelKey,
+                                    ) {
+                                        Icon(Icons.Default.ArrowDownward, contentDescription = "Move ${model.modelLabel} down")
+                                    }
+                                }
                                 val isPinned = model.endpointPath in pinnedPaths
                                 IconButton(onClick = { viewModel.togglePinned(model.endpointPath) }) {
                                     Icon(
@@ -175,6 +259,16 @@ fun Sidebar(
                             }
                         }
                     }
+                }
+                item {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
+                        headlineContent = { Text("Offline mode") },
+                        supportingContent = { Text(if (offlineMode) "Cached data only" else "Allow network sync") },
+                        trailingContent = {
+                            Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
+                        },
+                    )
                 }
             }
             HorizontalDivider()

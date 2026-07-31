@@ -6,5 +6,8 @@ import androidx.room.Entity
 data class CustomFieldEntity(
     val name: String,
     val type: String,
+    val label: String?,
+    val groupName: String?,
+    val weight: Int,
     val syncedAt: Long,
 )

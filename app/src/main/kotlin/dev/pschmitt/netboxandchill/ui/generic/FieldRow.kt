@@ -17,6 +17,8 @@ sealed interface FieldRow {
     /** NetBox's "comments" fields support Markdown - rendered, not shown as literal text. */
     data class Markdown(override val label: String, val content: String) : FieldRow
 
+    data class CustomGroup(override val label: String) : FieldRow
+
     /** A reference can remain navigable while also exposing its display value for copying. */
     data class Reference(
         override val label: String,

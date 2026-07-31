@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -60,6 +61,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
+import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
@@ -93,6 +96,7 @@ fun GenericDetailScreen(
     var editValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
+    var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
     LaunchedEffect(isEditing) {
         if (isEditing) editValues = editableFields.associate { it.key to it.value }
     }
@@ -286,6 +290,7 @@ fun GenericDetailScreen(
                                     },
                                     onDownloadAttachment = viewModel::downloadAttachment,
                                     localAttachmentFile = viewModel::localAttachmentFile,
+                                    onImageClick = { imageViewerItem = it },
                                     isDownloading = isDownloading,
                                     onCopyValue = onCopyValue,
                                 )
@@ -307,6 +312,9 @@ fun GenericDetailScreen(
     }
     printRequest?.let { request ->
         PrintLabelDialog(request = request, onDismiss = { printRequest = null })
+    }
+    imageViewerItem?.let { item ->
+        ImageViewerDialog(items = listOf(item), initialIndex = 0, onDismiss = { imageViewerItem = null })
     }
 }
 
@@ -385,10 +393,31 @@ private fun LazyListScope.fieldRow(
     onOpenUrl: (String) -> Unit,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
     localAttachmentFile: (url: String, filename: String) -> java.io.File?,
+    onImageClick: (ImageViewerItem) -> Unit,
     isDownloading: Boolean,
     onCopyValue: (label: String, value: String) -> Unit,
 ) {
     when (row) {
+        is FieldRow.CustomGroup ->
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 14.dp, bottom = 4.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Category,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        row.label,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         is FieldRow.PlainText ->
             item {
                 Column(Modifier.padding(vertical = 6.dp)) {
@@ -465,7 +494,16 @@ private fun LazyListScope.fieldRow(
                         imageUrl = row.url,
                         contentDescription = row.label,
                         localFile = localAttachmentFile(row.url, row.url.attachmentFilename()),
-                        modifier = Modifier.fillMaxWidth().height(160.dp).padding(top = 4.dp),
+                        modifier =
+                            Modifier.fillMaxWidth().height(160.dp).padding(top = 4.dp).clickable {
+                                onImageClick(
+                                    ImageViewerItem(
+                                        url = row.url,
+                                        title = row.label,
+                                        localFile = localAttachmentFile(row.url, row.url.attachmentFilename()),
+                                    )
+                                )
+                            },
                         contentScale = ContentScale.Fit,
                     )
                 }

@@ -1558,11 +1558,11 @@ the original URL remains the click target.
 
 ## NBC-44: replace the bottom Devices tab with Search
 
-The fixed bottom navigation should prioritize the app's most useful universal actions: `Home | QR
-CODE | SEARCH`. Device browsing remains available from the drawer and dashboard stat cards, while
+The fixed bottom navigation should prioritize the app's most useful universal actions: `Home | SCAN
+| SEARCH`. Device browsing remains available from the drawer and dashboard stat cards, while
 the bottom bar should no longer duplicate that entry point.
 
-- [x] Replace the Devices tab with Search and use the QR CODE label for the scanner destination.
+- [x] Replace the Devices tab with Search and use the SCAN label for the scanner destination.
 - [x] Keep the three destinations reachable from dashboard, list, search, and scanner screens.
 
 Status: **done**, 2026-07-31 - `just lint`, `just test`, and `just build debug` passed remotely;
@@ -1605,3 +1605,115 @@ be scannable directly from the login screen on another device.
 
 Status: **done**, 2026-07-31 - codec tests passed; a valid setup deep link on the Mi Pad 4 opened
 onboarding with both fields populated. Settings export remains device-auth protected.
+
+## NBC-48: select rear scanner lenses and move camera controls
+
+The scanner's front/rear toggle is useful, but phones with a logical rear multi-camera should also
+be able to select physical rear lenses such as ultrawide or macro. Put the flashlight and camera
+controls at the bottom of the preview, with a compact rear-lens selector above them.
+
+- [x] Discover and bind available physical rear cameras while retaining front/rear fallback.
+- [x] Show a compact rear-lens selector only when multiple rear lenses are available.
+- [x] Move flashlight and front/rear controls into a bottom scanner control strip.
+
+Status: **done**, 2026-07-31 - remote tests and lint passed; scanner smoke-tested on the Mi Pad 4
+with front/rear switching and the available rear-lens fallback.
+
+## NBC-49: mirror NetBox sidebar grouping and support custom ordering
+
+The directory currently follows API/alphabetical order, while NetBox's web UI presents familiar
+app groups and model types in a deliberate order. Match that order by default and let the user
+reorder groups and entries locally without changing the server.
+
+- [x] Apply NetBox-style default group and model ordering, including unknown plugin items.
+- [x] Add persisted sidebar group and item ordering controls.
+- [x] Keep search, pinning, and newly discovered models compatible with custom ordering.
+
+Status: **done**, 2026-07-31 - ordering tests passed and the sidebar changes remain local-only.
+
+## NBC-50: add a global search card to the Home page
+
+The Home page should offer global search directly below the statistics cards, in addition to the
+bottom navigation destination.
+
+- [x] Add an attractive search card below Stats that opens global search.
+
+Status: **done**, 2026-07-31 - remote compile and UI validation passed.
+
+## NBC-51: add an explicit offline mode
+
+Provide a persisted offline-mode switch in Settings and as a quick-access sidebar control. While
+enabled, the app must use cached data only and show a clear Dashboard banner.
+
+- [x] Persist the offline-mode preference and prevent API requests while it is enabled.
+- [x] Add Settings and sidebar controls plus a Dashboard status banner.
+- [x] Keep cached/offline flows usable while refreshes are skipped.
+
+Status: **done**, 2026-07-31 - remote tests passed; Settings, Sidebar, and Dashboard now expose the
+mode and both API clients honor it.
+
+## NBC-52: render creator names in generic detail fields
+
+Generic object details currently fall back to a numeric user ID for `Created by` when NetBox's
+nested user representation is not recognized. Prefer the user's display name, username, or name
+fields while retaining an ID fallback when no identity is available.
+
+- [x] Render creator identity fields instead of only the numeric ID.
+- [x] Add regression coverage for NetBox user object shapes and the ID fallback.
+
+Status: **done**, 2026-07-31 - creator-shape and fallback tests passed.
+
+## NBC-53: make complete offline caching visible and reliable
+
+Settings previously reported only typed devices, even though generic objects and media have separate
+cache paths. Asset persistence was also opt-in for the next sync, which made enabling it look like
+it did nothing. Report the complete cache and trigger durable asset sync when the option is enabled;
+keep device-type photos, image attachments, and documents available from local files.
+
+- [x] Report generic objects and cached media alongside typed devices.
+- [x] Start a full sync when durable asset caching is enabled.
+- [x] Keep documents, front/rear images, and image attachments as best-effort local copies.
+
+Status: **done**, 2026-07-31 - cache/sync code compiled and remote tests passed; no production data
+was modified.
+
+## NBC-54: show current cache size in Settings
+
+Settings should show how much local storage the offline cache and durable attachments consume, not
+just object counts.
+
+- [x] Calculate and display the current cache size.
+
+Status: **done**, 2026-07-31 - persistent file counts and byte totals are displayed in Settings and
+covered by the remote build.
+
+## NBC-55: open generic image fields in the image viewer
+
+The shared image viewer works for typed device photos and image attachments, but generic detail
+fields such as device-type front/rear images previously rendered as non-clickable thumbnails.
+
+- [x] Make generic image-field thumbnails open the existing full-screen image viewer.
+
+Status: **done**, 2026-07-31 - generic detail image rows now use the shared viewer path.
+
+## NBC-56: support Markdown custom fields and NetBox field grouping
+
+Custom fields such as purchase information should respect their NetBox-defined type, category, and
+weight instead of rendering as an ungrouped alphabetical blob.
+
+- [x] Cache custom-field labels, types, groups, and weights.
+- [x] Render Markdown custom fields with the Markdown card renderer.
+- [x] Group and order custom-field rows by category and weight.
+
+Status: **done**, 2026-07-31 - renderer and metadata ordering tests passed.
+
+## NBC-57: restore device-detail type photos
+
+Device detail pages should keep showing the associated device type's front and rear images even
+when the typed device cache already contains an older device-type record.
+
+- [x] Refresh the device type photo metadata when opening a connected device detail page.
+- [x] Preserve the cached/offline fallback and image viewer behavior.
+
+Status: **done**, 2026-07-31 - the detail flow refreshes connected metadata and retains cached image
+fallbacks for offline use.

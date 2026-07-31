@@ -1,5 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
@@ -171,6 +172,29 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `custom fields use definition labels markdown types groups and weights`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"custom_fields":{"purchase_store":"[Store](https://store.example)","purchase_date":"2026-01-01"}}"""
+                ),
+                listOf(
+                    CustomFieldDefinition("purchase_store", "markdown", "Store", "Purchase info", 20),
+                    CustomFieldDefinition("purchase_date", "text", "Purchase date", "Purchase info", 10),
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.CustomGroup("Purchase info"),
+                FieldRow.PlainText("Purchase date", "2026-01-01"),
+                FieldRow.Markdown("Store", "[Store](https://store.example)"),
+            ),
+            rows,
+        )
+    }
+
+    @Test
     fun `custom_fields reference values become tappable Reference rows`() {
         val rows =
             buildFieldRows(
@@ -191,6 +215,29 @@ class GenericFieldRendererTest {
     fun `renders a plain string field`() {
         val rows = buildFieldRows(parse("""{"model":"PowerEdge R730"}"""))
         assertEquals(listOf(FieldRow.PlainText("Model", "PowerEdge R730")), rows)
+    }
+
+    @Test
+    fun `renders created by using the nested user display name`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"created_by":{"id":7,"url":"https://x/api/users/users/7/","display":"Ada Lovelace","username":"ada"}}"""
+                )
+            )
+        assertEquals(listOf(FieldRow.PlainText("Created By", "Ada Lovelace")), rows)
+    }
+
+    @Test
+    fun `renders created by display companion when the API only returns a user id`() {
+        val rows = buildFieldRows(parse("""{"created_by":7,"created_by_display":"Ada Lovelace"}"""))
+        assertEquals(listOf(FieldRow.PlainText("Created By", "Ada Lovelace")), rows)
+    }
+
+    @Test
+    fun `keeps the created by id as a fallback`() {
+        val rows = buildFieldRows(parse("""{"created_by":7}"""))
+        assertEquals(listOf(FieldRow.PlainText("Created By", "7")), rows)
     }
 
     @Test

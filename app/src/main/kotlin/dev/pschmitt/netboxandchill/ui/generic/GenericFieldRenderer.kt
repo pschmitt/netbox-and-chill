@@ -1,5 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
 import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import kotlinx.serialization.json.JsonArray
@@ -26,6 +27,8 @@ private val IMAGE_KEYS = setOf("front_image", "rear_image")
 // to every free-text field.
 private val COPYABLE_KEYS = setOf("serial", "asset_tag", "primary_ip", "primary_ip4", "primary_ip6")
 
+private val USER_REFERENCE_KEYS = setOf("created_by", "last_updated_by")
+
 // Meta/system fields NetBox manages itself - not user-editable, or too complex to round-trip as
 // plain text yet (custom_fields needs its own per-field-type handling, not a blanket text field).
 private val EDIT_BLOCKLIST =
@@ -41,11 +44,23 @@ fun buildFieldRows(
     obj: JsonObject,
     markdownCustomFieldNames: Set<String> = emptySet(),
     endpointPath: String? = null,
+): List<FieldRow> =
+    buildFieldRows(
+        obj,
+        markdownCustomFieldNames.map { CustomFieldDefinition(it, "markdown", null, null, Int.MAX_VALUE) },
+        endpointPath,
+    )
+
+fun buildFieldRows(
+    obj: JsonObject,
+    customFieldDefinitions: List<CustomFieldDefinition>,
+    endpointPath: String? = null,
 ): List<FieldRow> = buildList {
     for ((key, value) in obj) {
         val text = (value as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
         when {
             key in SKIPPED_KEYS -> Unit
+            key.endsWith("_display") && key.removeSuffix("_display") in USER_REFERENCE_KEYS -> Unit
             key in MARKDOWN_KEYS ->
                 text?.takeIf { it.isNotBlank() }?.let { add(FieldRow.Markdown(Humanize.label(key), it)) }
             key in IMAGE_KEYS && text != null && isMediaUrl(text) ->
@@ -61,6 +76,12 @@ fun buildFieldRows(
                 val target = countTargetFor(key, obj, endpointPath)
                 if (count != null && target != null) {
                     add(FieldRow.Count(Humanize.label(key), count.toString(), target))
+                } else if (key in USER_REFERENCE_KEYS) {
+                    val display =
+                        (obj["${key}_display"] as? JsonPrimitive)?.contentOrNull
+                            ?: userReferenceDisplay(value)
+                            ?: value.toString().takeIf { it.isNotBlank() }
+                    display?.let { add(FieldRow.PlainText(Humanize.label(key), it)) }
                 } else {
                     renderField(key, Humanize.label(key), value)?.let(::add)
                 }
@@ -72,13 +93,41 @@ fun buildFieldRows(
     // into one flattened blob or dropped for non-primitive values (object/multi-select custom
     // fields).
     (obj["custom_fields"] as? JsonObject)?.let { customFields ->
-        for ((key, value) in customFields) {
-            if (key in markdownCustomFieldNames) {
+        val definitions = customFieldDefinitions.associateBy { it.name }
+        val sortedFields =
+            customFields.entries.withIndex().sortedWith { left, right ->
+                val leftDefinition = definitions[left.value.key]
+                val rightDefinition = definitions[right.value.key]
+                val leftGroup = leftDefinition?.group?.trim().orEmpty()
+                val rightGroup = rightDefinition?.group?.trim().orEmpty()
+                when {
+                    leftGroup.isNotBlank() && rightGroup.isBlank() -> -1
+                    leftGroup.isBlank() && rightGroup.isNotBlank() -> 1
+                    leftGroup.isBlank() -> left.index.compareTo(right.index)
+                    else ->
+                        String.CASE_INSENSITIVE_ORDER.compare(leftGroup, rightGroup).takeIf { it != 0 }
+                            ?: (leftDefinition?.weight ?: Int.MAX_VALUE).compareTo(
+                                rightDefinition?.weight ?: Int.MAX_VALUE
+                            ).takeIf { it != 0 }
+                            ?: String.CASE_INSENSITIVE_ORDER.compare(
+                                leftDefinition?.label ?: Humanize.label(left.value.key),
+                                rightDefinition?.label ?: Humanize.label(right.value.key),
+                            )
+                }
+            }.map { it.value }
+        var activeGroup: String? = null
+        for ((key, value) in sortedFields) {
+            val definition = definitions[key]
+            val group = definition?.group?.trim()?.takeIf { it.isNotBlank() }
+            if (group != null && group != activeGroup) add(FieldRow.CustomGroup(group))
+            activeGroup = group
+            val label = definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key)
+            if (definition?.type == "markdown") {
                 (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let {
-                    add(FieldRow.Markdown(Humanize.label(key), it))
+                    add(FieldRow.Markdown(label, it))
                 }
             } else {
-                renderField(key, Humanize.label(key), value)?.let(::add)
+                renderField(key, label, value)?.let(::add)
             }
         }
     }
@@ -135,6 +184,9 @@ private fun isMediaUrl(text: String): Boolean =
     isHttpUrl(text) && text.toHttpUrlOrNull()?.encodedPath?.contains("/media/") == true
 
 private fun renderObject(key: String, label: String, value: JsonObject): FieldRow? {
+    if (key in USER_REFERENCE_KEYS) {
+        userReferenceDisplay(value)?.let { return FieldRow.PlainText(label, it) }
+    }
     asRefTarget(value)?.let { return FieldRow.Reference(label, it, copyable = key in COPYABLE_KEYS) }
     // Choice-style field, e.g. status: {"value": "active", "label": "Active"}.
     val choiceLabel = (value["label"] as? JsonPrimitive)?.contentOrNull
@@ -143,6 +195,21 @@ private fun renderObject(key: String, label: String, value: JsonObject): FieldRo
     val flattened =
         value.entries.mapNotNull { (k, v) -> (v as? JsonPrimitive)?.contentOrNull?.let { "$k: $it" } }
     return flattened.takeIf { it.isNotEmpty() }?.let { FieldRow.PlainText(label, it.joinToString(", ")) }
+}
+
+private fun userReferenceDisplay(value: JsonElement): String? {
+    val user =
+        when (value) {
+            is JsonObject -> (value["user"] as? JsonObject) ?: value
+            else -> return (value as? JsonPrimitive)?.contentOrNull
+        }
+    listOf("display", "username", "name", "full_name", "email").forEach { key ->
+        (user[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let { return it }
+    }
+    val firstName = (user["first_name"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+    val lastName = (user["last_name"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+    return "$firstName $lastName".trim().takeIf { it.isNotBlank() }
+        ?: (user["id"] as? JsonPrimitive)?.contentOrNull
 }
 
 private fun renderArray(label: String, value: JsonArray): FieldRow? {

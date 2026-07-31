@@ -83,8 +83,10 @@ constructor(
         for (attachment in attachments) {
             fileDownloadRepository
                 .downloadToPersistent(attachment.url, attachment.filename)
-                .getOrThrow()
-            downloaded++
+                .onSuccess { downloaded++ }
+                .onFailure { error ->
+                    Timber.w(error, "Couldn't persist offline attachment %s", attachment.url)
+                }
         }
         Timber.i("Synced %d durable attachments", downloaded)
         return downloaded

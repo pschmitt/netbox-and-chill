@@ -42,5 +42,7 @@ interface NetBoxObjectDao {
     @Query("SELECT COUNT(*) FROM netbox_objects WHERE endpointPath = :endpointPath")
     suspend fun count(endpointPath: String): Int
 
+    @Query("SELECT COUNT(*) FROM netbox_objects") suspend fun countAll(): Int
+
     @Query("SELECT * FROM netbox_objects") suspend fun getAll(): List<NetBoxObjectEntity>
 }

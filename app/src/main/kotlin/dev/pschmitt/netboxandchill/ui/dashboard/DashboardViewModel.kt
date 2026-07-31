@@ -8,6 +8,7 @@ import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
+import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +23,10 @@ class DashboardViewModel
 constructor(
     private val repository: DashboardRepository,
     pendingEditRepository: PendingEditRepository,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
+
+    val offlineMode: StateFlow<Boolean> = settingsRepository.offlineMode
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -49,6 +53,7 @@ constructor(
     }
 
     fun refresh() {
+        if (offlineMode.value) return
         viewModelScope.launch {
             _isRefreshing.value = true
             repository.refresh().onFailure {

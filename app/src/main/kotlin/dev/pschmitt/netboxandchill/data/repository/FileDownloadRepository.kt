@@ -27,6 +27,13 @@ constructor(
     @ApplicationContext private val context: Context,
 ) {
 
+    data class PersistentStats(val fileCount: Int, val bytes: Long)
+
+    fun persistentStats(): PersistentStats {
+        val files = File(context.filesDir, "offline-attachments").listFiles().orEmpty().filter { it.isFile }
+        return PersistentStats(files.size, files.sumOf { it.length() })
+    }
+
     /** Returns a previously synced durable copy, if one exists for this exact media URL. */
     fun persistentFile(url: String, filename: String): File? =
         persistentPath(url, filename).takeIf { it.isFile }
@@ -36,7 +43,7 @@ constructor(
         withContext(Dispatchers.IO) {
             runCatching {
                 val target = persistentPath(url, filename)
-                if (target.isFile) return@runCatching target
+                if (target.isFile && target.length() > 0L) return@runCatching target
                 target.parentFile?.mkdirs()
                 val temp = File(target.parentFile, "${target.name}.part")
                 okHttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->

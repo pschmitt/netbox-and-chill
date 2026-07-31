@@ -75,6 +75,15 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _scannerLens = MutableStateFlow(loadScannerLens())
     val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
 
+    private val _offlineMode = MutableStateFlow(prefs.getBoolean(KEY_OFFLINE_MODE, false))
+    val offlineMode: StateFlow<Boolean> = _offlineMode.asStateFlow()
+
+    private val _sidebarAppOrder = MutableStateFlow(loadOrder(KEY_SIDEBAR_APP_ORDER))
+    val sidebarAppOrder: StateFlow<List<String>> = _sidebarAppOrder.asStateFlow()
+
+    private val _sidebarModelOrders = MutableStateFlow(loadModelOrders())
+    val sidebarModelOrders: StateFlow<Map<String, List<String>>> = _sidebarModelOrders.asStateFlow()
+
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()
         _syncAttachmentsToDisk.value = enabled
@@ -88,6 +97,25 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setScannerLens(lens: ScannerLens) {
         prefs.edit().putString(KEY_SCANNER_LENS, lens.storageKey).apply()
         _scannerLens.value = lens
+    }
+
+    fun setOfflineMode(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_OFFLINE_MODE, enabled).apply()
+        _offlineMode.value = enabled
+    }
+
+    fun setSidebarAppOrder(order: List<String>) {
+        val normalized = order.distinct().filter(String::isNotBlank)
+        prefs.edit().putString(KEY_SIDEBAR_APP_ORDER, normalized.joinToString(ORDER_SEPARATOR)).apply()
+        _sidebarAppOrder.value = normalized
+    }
+
+    fun setSidebarModelOrder(appKey: String, order: List<String>) {
+        val normalized = order.distinct().filter(String::isNotBlank)
+        val updated = _sidebarModelOrders.value.toMutableMap()
+        updated[appKey] = normalized
+        prefs.edit().putString(KEY_SIDEBAR_MODEL_ORDERS, encodeModelOrders(updated)).apply()
+        _sidebarModelOrders.value = updated
     }
 
     fun togglePinned(endpointPath: String) {
@@ -114,6 +142,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun clear() {
         prefs.edit().clear().apply()
         _credentials.value = NetBoxCredentials("", "")
+        _offlineMode.value = false
     }
 
     private fun loadCredentials() =
@@ -128,6 +157,26 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
 
+    private fun loadOrder(key: String): List<String> =
+        prefs.getString(key, null).orEmpty().split(ORDER_SEPARATOR).filter(String::isNotBlank)
+
+    private fun loadModelOrders(): Map<String, List<String>> =
+        prefs
+            .getString(KEY_SIDEBAR_MODEL_ORDERS, null)
+            .orEmpty()
+            .split(MODEL_ENTRY_SEPARATOR)
+            .mapNotNull { entry ->
+                val parts = entry.split(ORDER_SEPARATOR, limit = 2)
+                if (parts.size != 2 || parts[0].isBlank()) return@mapNotNull null
+                parts[0] to parts[1].split(ITEM_SEPARATOR).filter(String::isNotBlank)
+            }
+            .toMap()
+
+    private fun encodeModelOrders(orders: Map<String, List<String>>): String =
+        orders.entries.joinToString(MODEL_ENTRY_SEPARATOR) { (appKey, modelKeys) ->
+            appKey + ORDER_SEPARATOR + modelKeys.joinToString(ITEM_SEPARATOR)
+        }
+
     private companion object {
         const val KEY_BASE_URL = "base_url"
         const val KEY_TOKEN = "token"
@@ -136,5 +185,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
+        const val KEY_OFFLINE_MODE = "offline_mode"
+        const val KEY_SIDEBAR_APP_ORDER = "sidebar_app_order"
+        const val KEY_SIDEBAR_MODEL_ORDERS = "sidebar_model_orders"
+        const val ORDER_SEPARATOR = "\u001F"
+        const val ITEM_SEPARATOR = "\u001E"
+        const val MODEL_ENTRY_SEPARATOR = "\u001D"
     }
 }

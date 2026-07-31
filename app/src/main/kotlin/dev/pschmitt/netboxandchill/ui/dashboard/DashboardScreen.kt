@@ -19,11 +19,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,6 +75,7 @@ fun DashboardScreen(
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val conflictCount by viewModel.conflictCount.collectAsStateWithLifecycle()
+    val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -124,6 +127,28 @@ fun DashboardScreen(
                 }.toMap()
 
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
+                if (offlineMode) {
+                    item {
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Default.CloudOff, contentDescription = null)
+                                Spacer(Modifier.width(12.dp))
+                                Column {
+                                    Text("Offline mode", style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        "Showing cached data; network sync is paused",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
                 if (conflictCount > 0) {
                     item {
                         ElevatedCard(
@@ -160,6 +185,8 @@ fun DashboardScreen(
                         StatsRow(stats, onStatClick)
                     }
                 }
+                item { Spacer(Modifier.height(24.dp)) }
+                item { GlobalSearchCard(onSearchClick) }
                 item { Spacer(Modifier.height(24.dp)) }
 
                 item { SectionHeader(Icons.Default.Bookmark, "Bookmarks") }
@@ -225,6 +252,19 @@ private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+@Composable
+private fun GlobalSearchCard(onClick: () -> Unit) {
+    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        ListItem(
+            leadingContent = {
+                Icon(Icons.Default.Search, contentDescription = null)
+            },
+            headlineContent = { Text("Search NetBox") },
+            supportingContent = { Text("Find devices, IPs, sites, racks, and more") },
+        )
     }
 }
 

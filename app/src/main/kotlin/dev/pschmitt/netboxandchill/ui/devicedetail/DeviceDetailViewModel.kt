@@ -13,6 +13,7 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
+import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import java.io.File
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import javax.inject.Inject
@@ -45,6 +46,7 @@ constructor(
     private val imageAttachmentRepository: ImageAttachmentRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val recentVisitRepository: RecentVisitRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val deviceId: Int = savedStateHandle.toRoute<Route.DeviceDetail>().deviceId
@@ -99,8 +101,11 @@ constructor(
             device.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
         viewModelScope.launch {
-            device.filterNotNull().collect { entity ->
-                entity.deviceTypeId?.let { deviceTypeRepository.ensureCached(it) }
+            device.filterNotNull().take(1).collect { entity ->
+                entity.deviceTypeId?.let { id ->
+                    if (settingsRepository.offlineMode.value) deviceTypeRepository.ensureCached(id)
+                    else deviceTypeRepository.refresh(id)
+                }
             }
         }
     }

@@ -36,7 +36,7 @@ fun NetBoxBottomBar(
             selected = selected == BottomTab.Scan,
             onClick = onScanClick,
             icon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
-            label = { Text("QR CODE") },
+            label = { Text("SCAN") },
         )
         NavigationBarItem(
             selected = selected == BottomTab.Search,

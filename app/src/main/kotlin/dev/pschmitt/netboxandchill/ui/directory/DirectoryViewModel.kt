@@ -25,8 +25,11 @@ constructor(private val directoryRepository: DirectoryRepository, val settingsRe
     val modelsByApp: StateFlow<Map<String, List<NetBoxModelEntity>>> =
         directoryRepository
             .observeAll()
-            .map { models -> models.groupBy { it.appLabel } }
+            .map { models -> models.groupBy { it.appKey } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val sidebarAppOrder: StateFlow<List<String>> = settingsRepository.sidebarAppOrder
+    val sidebarModelOrders: StateFlow<Map<String, List<String>>> = settingsRepository.sidebarModelOrders
 
     val pinnedModels: StateFlow<List<NetBoxModelEntity>> =
         settingsRepository.pinnedModelPaths
@@ -34,14 +37,31 @@ constructor(private val directoryRepository: DirectoryRepository, val settingsRe
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        viewModelScope.launch { if (directoryRepository.cachedModelCount() == 0) directoryRepository.refresh() }
+        viewModelScope.launch {
+            if (!settingsRepository.offlineMode.value && directoryRepository.cachedModelCount() == 0) {
+                directoryRepository.refresh()
+            }
+        }
     }
 
     fun refresh() {
+        if (settingsRepository.offlineMode.value) return
         viewModelScope.launch { directoryRepository.refresh() }
     }
 
     fun togglePinned(endpointPath: String) {
         settingsRepository.togglePinned(endpointPath)
+    }
+
+    fun setSidebarAppOrder(order: List<String>) {
+        settingsRepository.setSidebarAppOrder(order)
+    }
+
+    fun setSidebarModelOrder(appKey: String, order: List<String>) {
+        settingsRepository.setSidebarModelOrder(appKey, order)
+    }
+
+    fun setOfflineMode(enabled: Boolean) {
+        settingsRepository.setOfflineMode(enabled)
     }
 }

@@ -2,10 +2,13 @@ package dev.pschmitt.netboxandchill.ui.scanner
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.hardware.camera2.CameraCharacteristics
 import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
@@ -13,16 +16,26 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -74,8 +87,16 @@ fun ScannerScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scannerLens by viewModel.scannerLens.collectAsStateWithLifecycle()
     var camera by remember { mutableStateOf<Camera?>(null) }
-    var availableLenses by remember { mutableStateOf<Set<ScannerLens>>(emptySet()) }
+    var availableCameras by remember { mutableStateOf<List<ScannerCameraOption>>(emptyList()) }
+    var selectedRearCameraId by remember { mutableStateOf<String?>(null) }
     var torchOn by remember { mutableStateOf(false) }
+
+    val rearCameras = availableCameras.filter { it.lens == ScannerLens.Back }
+    val canSwitchFacing =
+        availableCameras.any { it.lens == ScannerLens.Back } &&
+            availableCameras.any { it.lens == ScannerLens.Front }
+    val selectedRearCamera =
+        rearCameras.firstOrNull { it.id == selectedRearCameraId } ?: rearCameras.firstOrNull()
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -114,33 +135,6 @@ fun ScannerScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    if (availableLenses.size > 1) {
-                        IconButton(
-                            onClick = {
-                                val nextLens = availableLenses.firstOrNull { it != scannerLens } ?: scannerLens
-                                viewModel.setScannerLens(nextLens)
-                                camera?.cameraControl?.enableTorch(false)
-                                torchOn = false
-                            }
-                        ) {
-                            Icon(Icons.Default.Cameraswitch, contentDescription = "Switch camera")
-                        }
-                    }
-                    if (camera?.cameraInfo?.hasFlashUnit() == true) {
-                        IconButton(
-                            onClick = {
-                                torchOn = !torchOn
-                                camera?.cameraControl?.enableTorch(torchOn)
-                            }
-                        ) {
-                            Icon(
-                                if (torchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                                contentDescription = if (torchOn) "Turn flashlight off" else "Turn flashlight on",
-                            )
-                        }
-                    }
-                },
             )
         }
     ) { padding ->
@@ -148,8 +142,14 @@ fun ScannerScreen(
             if (hasCameraPermission) {
                 CameraPreview(
                     desiredLens = scannerLens,
+                    selectedCameraId = selectedRearCameraId,
                     onCodeScanned = viewModel::onCodeScanned,
-                    onAvailableLenses = { availableLenses = it },
+                    onAvailableCameras = { options ->
+                        availableCameras = options
+                        if (selectedRearCameraId !in options.filter { it.lens == ScannerLens.Back }.map { it.id }) {
+                            selectedRearCameraId = options.firstOrNull { it.lens == ScannerLens.Back }?.id
+                        }
+                    },
                     onCameraReady = { camera = it },
                 )
                 ScannerViewfinder(modifier = Modifier.fillMaxSize())
@@ -157,6 +157,42 @@ fun ScannerScreen(
                 Text(
                     "Camera permission is required to scan device stickers",
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            ) {
+                if (scannerLens == ScannerLens.Back && rearCameras.size > 1) {
+                    RearLensSelector(
+                        cameras = rearCameras,
+                        selectedCameraId = selectedRearCamera?.id,
+                        onCameraSelected = { option ->
+                            selectedRearCameraId = option.id
+                            viewModel.setScannerLens(ScannerLens.Back)
+                            camera?.cameraControl?.enableTorch(false)
+                            torchOn = false
+                        },
+                    )
+                }
+                ScannerControls(
+                    showTorch = camera?.cameraInfo?.hasFlashUnit() == true,
+                    torchOn = torchOn,
+                    onTorchClick = {
+                        torchOn = !torchOn
+                        camera?.cameraControl?.enableTorch(torchOn)
+                    },
+                    showFacingSwitch = canSwitchFacing,
+                    showingFront = scannerLens == ScannerLens.Front,
+                    onFacingSwitchClick = {
+                        val nextLens =
+                            if (scannerLens == ScannerLens.Front) ScannerLens.Back else ScannerLens.Front
+                        viewModel.setScannerLens(nextLens)
+                        camera?.cameraControl?.enableTorch(false)
+                        torchOn = false
+                    },
                 )
             }
 
@@ -175,6 +211,76 @@ fun ScannerScreen(
                     }
                 }
                 else -> Unit
+            }
+        }
+    }
+}
+
+@Composable
+private fun RearLensSelector(
+    cameras: List<ScannerCameraOption>,
+    selectedCameraId: String?,
+    onCameraSelected: (ScannerCameraOption) -> Unit,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = Color.Black.copy(alpha = 0.62f),
+        contentColor = Color.White,
+        tonalElevation = 4.dp,
+    ) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()).padding(4.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+        ) {
+            cameras.forEach { camera ->
+                FilterChip(
+                    selected = camera.id == selectedCameraId,
+                    onClick = { onCameraSelected(camera) },
+                    label = { Text(camera.label) },
+                    leadingIcon = {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScannerControls(
+    showTorch: Boolean,
+    torchOn: Boolean,
+    onTorchClick: () -> Unit,
+    showFacingSwitch: Boolean,
+    showingFront: Boolean,
+    onFacingSwitchClick: () -> Unit,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = Color.Black.copy(alpha = 0.62f),
+        contentColor = Color.White,
+        tonalElevation = 4.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (showTorch) {
+                IconButton(onClick = onTorchClick) {
+                    Icon(
+                        if (torchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                        contentDescription = if (torchOn) "Turn flashlight off" else "Turn flashlight on",
+                    )
+                }
+            }
+            if (showFacingSwitch) {
+                IconButton(onClick = onFacingSwitchClick) {
+                    Icon(
+                        Icons.Default.Cameraswitch,
+                        contentDescription = if (showingFront) "Use rear camera" else "Use front camera",
+                    )
+                }
             }
         }
     }
@@ -217,8 +323,9 @@ private fun ScanOverlay(content: @Composable () -> Unit) {
 @Composable
 private fun CameraPreview(
     desiredLens: ScannerLens,
+    selectedCameraId: String?,
     onCodeScanned: (String) -> Unit,
-    onAvailableLenses: (Set<ScannerLens>) -> Unit,
+    onAvailableCameras: (List<ScannerCameraOption>) -> Unit,
     onCameraReady: (Camera?) -> Unit,
 ) {
     val context = LocalContext.current
@@ -229,7 +336,7 @@ private fun CameraPreview(
 
     DisposableEffect(Unit) { onDispose { cameraExecutor.shutdown() } }
 
-    DisposableEffect(previewView, desiredLens) {
+    DisposableEffect(previewView, desiredLens, selectedCameraId) {
         val view = previewView
         if (view == null) {
             onDispose { }
@@ -241,13 +348,15 @@ private fun CameraPreview(
                     if (disposed) return@addListener
                     runCatching {
                         val cameraProvider = cameraProviderFuture.get()
-                        val available =
-                            ScannerLens.values().filter { lens ->
-                                runCatching { cameraProvider.hasCamera(lens.selector()) }.getOrDefault(false)
-                            }.toSet()
-                        onAvailableLenses(available)
-                        val activeLens = if (desiredLens in available) desiredLens else available.firstOrNull()
-                        if (activeLens != null) {
+                        val available = availableCameraOptions(cameraProvider)
+                        onAvailableCameras(available)
+                        val activeCamera =
+                            available.firstOrNull {
+                                it.id == selectedCameraId && it.lens == desiredLens
+                            }
+                                ?: available.firstOrNull { it.lens == desiredLens }
+                                ?: available.firstOrNull()
+                        if (activeCamera != null) {
                             val preview =
                                 Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
                             val analysis =
@@ -259,7 +368,7 @@ private fun CameraPreview(
                             onCameraReady(
                                 cameraProvider.bindToLifecycle(
                                     lifecycleOwner,
-                                    activeLens.selector(),
+                                    activeCamera.selector,
                                     preview,
                                     analysis,
                                 )
@@ -307,10 +416,97 @@ private fun CameraPreview(
     )
 }
 
-private fun ScannerLens.selector(): CameraSelector =
-    CameraSelector.Builder()
-        .requireLensFacing(
-            if (this == ScannerLens.Front) CameraSelector.LENS_FACING_FRONT
-            else CameraSelector.LENS_FACING_BACK
-        )
+private data class ScannerCameraOption(
+    val id: String,
+    val lens: ScannerLens,
+    val label: String,
+    val selector: CameraSelector,
+    val focalLength: Float? = null,
+)
+
+private fun availableCameraOptions(provider: ProcessCameraProvider): List<ScannerCameraOption> {
+    val options =
+        provider.availableCameraInfos.flatMap { info ->
+            val camera2Info = runCatching { Camera2CameraInfo.from(info) }.getOrNull() ?: return@flatMap emptyList()
+            val facing = camera2Info.getCameraCharacteristic(CameraCharacteristics.LENS_FACING)
+                ?: return@flatMap emptyList()
+            val lens =
+                when (facing) {
+                    CameraCharacteristics.LENS_FACING_FRONT -> ScannerLens.Front
+                    CameraCharacteristics.LENS_FACING_BACK -> ScannerLens.Back
+                    else -> return@flatMap emptyList()
+                }
+            val physicalInfos = if (lens == ScannerLens.Back) info.physicalCameraInfos else emptySet()
+            if (physicalInfos.isNotEmpty()) {
+                physicalInfos.mapNotNull { physicalInfo ->
+                    val physicalCamera2Info = runCatching { Camera2CameraInfo.from(physicalInfo) }.getOrNull()
+                        ?: return@mapNotNull null
+                    val cameraId = physicalCamera2Info.cameraId
+                    val focalLength =
+                        physicalCamera2Info
+                            .getCameraCharacteristic(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
+                            ?.firstOrNull()
+                    ScannerCameraOption(
+                        id = "physical:$cameraId",
+                        lens = ScannerLens.Back,
+                        label = "Rear lens",
+                        selector =
+                            CameraSelector.Builder()
+                                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                                .setPhysicalCameraId(cameraId)
+                                .build(),
+                        focalLength = focalLength,
+                    )
+                }
+            } else {
+                listOf(
+                    ScannerCameraOption(
+                        id = "logical:${camera2Info.cameraId}",
+                        lens = lens,
+                        label = if (lens == ScannerLens.Front) "Front camera" else "Back camera",
+                        selector = info.selector(),
+                    )
+                )
+            }
+        }
+        .distinctBy { it.id }
+
+    return labelRearCameraOptions(options)
+}
+
+private fun CameraInfo.selector(): CameraSelector {
+    val cameraId = Camera2CameraInfo.from(this).cameraId
+    return CameraSelector.Builder()
+        .addCameraFilter { infos ->
+            infos.filter { info ->
+                runCatching { Camera2CameraInfo.from(info).cameraId == cameraId }.getOrDefault(false)
+            }
+        }
         .build()
+}
+
+private fun labelRearCameraOptions(options: List<ScannerCameraOption>): List<ScannerCameraOption> {
+    val rear = options.filter { it.lens == ScannerLens.Back }
+    if (rear.size <= 1) return options
+
+    val sorted = rear.sortedWith(compareBy(nullsLast()) { it.focalLength })
+    val referenceFocal = sorted[sorted.size / 2].focalLength
+    val labelsById =
+        sorted.mapIndexed { index, option ->
+            val label =
+                if (option.focalLength != null && referenceFocal != null) {
+                    val ratio = option.focalLength / referenceFocal
+                    when {
+                        ratio <= 0.75f -> "0.6×"
+                        ratio >= 1.6f -> "2×"
+                        else -> "1×"
+                    }
+                } else {
+                    "Rear ${index + 1}"
+                }
+            option.id to label
+        }
+        .toMap()
+
+    return options.map { option -> option.copy(label = labelsById[option.id] ?: option.label) }
+}
