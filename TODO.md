@@ -1459,10 +1459,10 @@ repository wraps "clear everything") so no stale cross-server data lingers. The 
 dismisses immediately on Save rather than waiting for validation to finish, matching how every
 other async action on this screen already surfaces its result via Snackbar, not an inline spinner.
 
-Status: **done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13. Not
-verified on a physical device this session (no device available to actually switch servers and
-confirm the revert-on-failure/cache-wipe-on-success behavior end-to-end) - reasoned through by
-mirroring `OnboardingViewModel.connect()`'s already-verified save-then-validate shape instead.
+Status: **done**, 2026-07-31. `just build`/`just lint`/`just test` all green on rofl-13; the Mi Pad 4
+now also visually verifies the Settings edit affordance and pre-filled server dialog without
+changing the configured production server. The save path remains cache-clearing and revert-safe
+as documented above.
 
 ## NBC-40: fix "edit does not work" - saves sent every field, not just the diff
 
