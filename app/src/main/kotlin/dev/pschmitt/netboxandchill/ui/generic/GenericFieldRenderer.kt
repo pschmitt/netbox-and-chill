@@ -8,10 +8,16 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 private val SKIPPED_KEYS = setOf("id", "url", "display")
+
+// Meta/system fields NetBox manages itself - not user-editable, or too complex to round-trip as
+// plain text yet (custom_fields needs its own per-field-type handling, not a blanket text field).
+private val EDIT_BLOCKLIST =
+    setOf("id", "url", "display", "display_url", "created", "last_updated", "custom_fields")
 
 /**
  * Turns a raw NetBox object (any type) into a generic list of fields to render, without needing
@@ -87,3 +93,29 @@ private fun listEndpointFromDetailUrl(detailUrl: String): String? {
     if (lastSlash < 0) return null
     return trimmed.substring(0, lastSlash + 1)
 }
+
+/** The subset of [buildFieldRows]'s fields that can round-trip through a plain text/switch input
+ * and PATCH back cleanly - see [EditableField]. */
+fun buildEditableFields(obj: JsonObject): List<EditableField> =
+    obj.mapNotNull { (key, value) ->
+        if (key in EDIT_BLOCKLIST) return@mapNotNull null
+        if (value !is JsonPrimitive || value is JsonNull) return@mapNotNull null
+        val kind =
+            when {
+                !value.isString && (value.content == "true" || value.content == "false") -> EditFieldKind.BOOLEAN
+                !value.isString && value.doubleOrNull != null -> EditFieldKind.NUMBER
+                else -> EditFieldKind.STRING
+            }
+        EditableField(key, Humanize.label(key), kind, value.contentOrNull ?: "")
+    }
+
+/** Converts edited text back to the JSON type NetBox expects for that field, for the PATCH body. */
+fun EditFieldKind.toJsonPrimitive(text: String): JsonPrimitive =
+    when (this) {
+        EditFieldKind.STRING -> JsonPrimitive(text)
+        EditFieldKind.NUMBER -> text.toDoubleOrNull()?.let { JsonPrimitive(it) } ?: JsonPrimitive(text)
+        EditFieldKind.BOOLEAN -> JsonPrimitive(text.toBooleanStrictOrNull() ?: false)
+    }
+
+fun buildPatchBody(edits: Map<String, Pair<EditFieldKind, String>>): JsonObject =
+    JsonObject(edits.mapValues { (_, kindAndValue) -> kindAndValue.first.toJsonPrimitive(kindAndValue.second) })

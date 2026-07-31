@@ -35,10 +35,21 @@ constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+    private val _isEditing = MutableStateFlow(false)
+    val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private val objectFlow = repository.observeObject(route.endpointPath, route.id)
+
+    private val decodedObject: StateFlow<JsonObject?> =
+        objectFlow
+            .map { entity -> entity?.let { decode(it.json) } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val title: StateFlow<String?> =
         objectFlow
@@ -46,8 +57,13 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val fields: StateFlow<List<FieldRow>> =
-        objectFlow
-            .map { entity -> entity?.let { decode(it.json) }?.let(::buildFieldRows) ?: emptyList() }
+        decodedObject
+            .map { it?.let(::buildFieldRows) ?: emptyList() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val editableFields: StateFlow<List<EditableField>> =
+        decodedObject
+            .map { it?.let(::buildEditableFields) ?: emptyList() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Web URL mirrors the API path structure with "api/" dropped, e.g. api/dcim/racks/5/ ->
@@ -77,6 +93,30 @@ constructor(
 
     fun errorShown() {
         _errorMessage.value = null
+    }
+
+    fun startEditing() {
+        _isEditing.value = true
+    }
+
+    fun cancelEditing() {
+        _isEditing.value = false
+    }
+
+    /** [edits] maps field key -> (kind, edited text), one entry per changed field. */
+    fun save(edits: Map<String, Pair<EditFieldKind, String>>) {
+        if (edits.isEmpty()) {
+            _isEditing.value = false
+            return
+        }
+        viewModelScope.launch {
+            _isSaving.value = true
+            repository
+                .updateObject(route.endpointPath, route.id, buildPatchBody(edits))
+                .onSuccess { _isEditing.value = false }
+                .onFailure { _errorMessage.value = it.message ?: "Couldn't save changes" }
+            _isSaving.value = false
+        }
     }
 
     private fun decode(rawJson: String): JsonObject? =

@@ -7,26 +7,36 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,11 +50,19 @@ fun GenericDetailScreen(
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
     val fields by viewModel.fields.collectAsStateWithLifecycle()
+    val editableFields by viewModel.editableFields.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var editValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    LaunchedEffect(isEditing) {
+        if (isEditing) editValues = editableFields.associate { it.key to it.value }
+    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -59,38 +77,121 @@ fun GenericDetailScreen(
             TopAppBar(
                 title = { Text(title ?: "Object #${viewModel.route.id}") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = if (isEditing) viewModel::cancelEditing else onBack) {
+                        Icon(
+                            if (isEditing) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = if (isEditing) "Cancel" else "Back",
+                        )
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                    }
-                    webUrl?.let { url ->
-                        IconButton(
-                            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                        ) {
-                            Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser")
+                    if (isEditing) {
+                        if (isSaving) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    val kindByKey = editableFields.associateBy { it.key }
+                                    val edits =
+                                        editValues.mapNotNull { (key, value) ->
+                                            kindByKey[key]?.let { field -> key to (field.kind to value) }
+                                        }
+                                    viewModel.save(edits.toMap())
+                                }
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = "Save")
+                            }
+                        }
+                    } else {
+                        IconButton(onClick = viewModel::refresh, enabled = !isRefreshing) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
+                        if (editableFields.isNotEmpty()) {
+                            IconButton(onClick = viewModel::startEditing) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit")
+                            }
+                        }
+                        webUrl?.let { url ->
+                            IconButton(
+                                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                            ) {
+                                Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in browser")
+                            }
                         }
                     }
                 },
             )
         },
     ) { padding ->
-        if (title == null) {
-            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        when {
+            title == null ->
+                Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            isEditing ->
+                EditForm(
+                    fields = editableFields,
+                    values = editValues,
+                    onValueChange = { key, value -> editValues = editValues + (key to value) },
+                    modifier = Modifier.padding(padding).fillMaxSize(),
                 )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.padding(padding).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-            ) {
-                fields.forEach { row -> fieldRow(row, onNavigateToReference) }
+            else ->
+                LazyColumn(
+                    modifier = Modifier.padding(padding).fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                ) {
+                    fields.forEach { row -> fieldRow(row, onNavigateToReference) }
+                }
+        }
+    }
+}
+
+@Composable
+private fun EditForm(
+    fields: List<EditableField>,
+    values: Map<String, String>,
+    onValueChange: (key: String, value: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(fields, key = { it.key }) { field ->
+            val value = values[field.key] ?: field.value
+            when (field.kind) {
+                EditFieldKind.BOOLEAN ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(field.label, style = MaterialTheme.typography.bodyLarge)
+                        Switch(
+                            checked = value.toBooleanStrictOrNull() ?: false,
+                            onCheckedChange = { onValueChange(field.key, it.toString()) },
+                        )
+                    }
+                EditFieldKind.NUMBER ->
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { onValueChange(field.key, it) },
+                        label = { Text(field.label) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                EditFieldKind.STRING ->
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { onValueChange(field.key, it) },
+                        label = { Text(field.label) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
             }
         }
     }

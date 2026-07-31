@@ -103,17 +103,33 @@ adaptive icon (foreground + background layers) like the current one, not a raste
 
 Status: not started, 2026-07-31.
 
-## NBC-5: Editable devices
+## NBC-5: Editable objects (generic PATCH-based editing)
 
-Allow editing device fields from the app (not just read-only browsing), presumably via
-`PATCH /api/dcim/devices/{id}/`.
+Allow editing object fields from the app (not just read-only browsing), via NetBox's REST PATCH.
 
 **Why:** user request - the app should be a two-way tool, not just a lookup/scan viewer.
-**How to apply:** depends on NBC-6's direction (generic vs. hand-written screens) - a hand-rolled
-edit form per field type is a lot of duplicate work if NBC-6's generated-views approach lands
-first. Probably sequence this after NBC-6.
+**How it landed:** built on top of NBC-6's generic engine rather than as a Device-specific
+feature - `buildEditableFields` (`GenericFieldRenderer.kt`) picks out primitive (string/number/
+boolean) top-level fields from the raw JSON, skipping a blocklist of server-managed/computed ones
+(`id`, `url`, `display`, `display_url`, `created`, `last_updated`, `custom_fields`). Edit mode on
+`GenericDetailScreen` swaps the read-only field list for text inputs (a `Switch` for booleans),
+Save PATCHes only via `GenericNetBoxApi.patchObject`/`GenericObjectRepository.updateObject`, which
+re-caches the server's response. **Verified against the user's real NetBox instance** (via the
+Mi Pad 4, which is already logged in): edited and saved a live Provider Account, confirmed the
+`last_updated` timestamp actually changed server-side - full round trip works, not just
+simulated/unit-tested.
 
-Status: not started, 2026-07-31.
+Explicitly out of scope for this pass (noted, not forgotten):
+- [ ] Editing reference fields (site, rack, tenant, ...) or choice fields (status, ...) - both
+  need a picker UI, not a text field. Only plain primitives are editable right now.
+- [ ] `custom_fields` editing - each custom field has its own type (text/select/object/multi-object/
+  boolean/...) that would need its own per-type handling, not a blanket text field.
+- [ ] The *old* Device detail screen (`DeviceDetailScreen`/`DeviceEntity`) still isn't editable -
+  only objects routed through NBC-6's generic engine are. Same unification note as NBC-6's
+  "Linked items" follow-up: migrating Devices onto the generic engine would fix both at once.
+
+Status: **done** (generic objects), 2026-07-31. `just test`/`just lint` green; live-verified
+end-to-end on the Mi Pad 4 against the real NetBox instance, not just simulated.
 
 ## NBC-6: Generic/generated object views (device types, regions, racks, sites, ...) + nav
 
@@ -161,15 +177,18 @@ Follow-ups noted during/after this landed (not done yet):
   `DeviceEntity` - would also finally unify the two parallel list/detail code paths this section
   above deliberately left split. Not done - flagging as the natural next step for whoever picks
   device-detail work back up.
-- [ ] No automated test exercises real NetBox API responses end-to-end (no live instance
-  available in this environment) - `GenericFieldRendererTest.kt` covers the JSON→FieldRow mapping
-  with hand-written fixtures, but the discovery walk (`DirectoryRepository`) and generic
-  list/detail screens themselves are only manually verified via compile+install+launch, not
-  against a real NetBox instance's actual response shapes.
+- [x] Live verification - the Mi Pad 4 is logged into the user's real NetBox instance
+  (netbox.brkn.lol). Confirmed against real data: directory discovery correctly builds the full
+  sidebar tree (Circuits/Core/... groups, each with all their models, pin stars working), the
+  generic list screen shows real synced objects (e.g. Provider Accounts), the generic detail
+  screen renders real fields including a tappable Provider reference that navigates correctly,
+  and Comments fields showing raw Markdown (`` `code` `` spans etc. as literal text) - confirms
+  NBC-12 is a real, visible gap, not a hypothetical one.
 
-Status: **done**, 2026-07-31. `just build`/`just test`/`just lint` green on rofl-14; installed and
-launched without crashing on Zenfone 10, Mi Pad 4, and Pixel 5 (px5.lan) - full sidebar/generic
-screen flow not visually verified end-to-end against a live NetBox instance (none available here).
+Status: **done**, 2026-07-31. `just build`/`just test`/`just lint` green on rofl-14; installed,
+launched without crashing, and live-verified against the real NetBox instance on the Mi Pad 4
+(directory discovery, generic list, generic detail with reference-following all confirmed working
+against real data) - also installed cleanly on the Zenfone 10 and Pixel 5.
 
 ## NBC-7: netbox-documents plugin support
 

@@ -31,6 +31,13 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
         entity
     }
 
+    suspend fun updateObject(endpointPath: String, id: Int, patch: JsonObject): Result<NetBoxObjectEntity> =
+        runCatching {
+            val entity = api.patchObject("$endpointPath$id/", patch).toEntity(endpointPath)
+            dao.upsert(entity)
+            entity
+        }
+
     suspend fun syncAll(endpointPath: String, pageSize: Int = 200): Result<Int> = runCatching {
         var offset = 0
         var total = 0
