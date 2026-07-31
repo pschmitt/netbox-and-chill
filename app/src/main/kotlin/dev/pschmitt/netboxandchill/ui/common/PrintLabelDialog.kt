@@ -1,10 +1,14 @@
 package dev.pschmitt.netboxandchill.ui.common
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,9 +49,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import dev.pschmitt.netboxandchill.printing.BrotherLabelRenderer
 import dev.pschmitt.netboxandchill.printing.BrotherPrinter
+import dev.pschmitt.netboxandchill.printing.NearbyPrinter
 import dev.pschmitt.netboxandchill.printing.PairedPrinter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class PrintLabelRequest(val objectUrl: String, val labelText: String)
@@ -55,10 +64,15 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var hasPermission by remember { mutableStateOf(hasBluetoothPermission(context)) }
+    var bluetoothEnabled by remember { mutableStateOf(bluetoothAdapter(context)?.isEnabled == true) }
     var printers by remember { mutableStateOf<List<PairedPrinter>>(emptyList()) }
+    var nearbyPrinters by remember { mutableStateOf<List<NearbyPrinter>>(emptyList()) }
     var selected by remember { mutableStateOf<PairedPrinter?>(null) }
+    var isDiscovering by remember { mutableStateOf(false) }
+    var pairingAddress by remember { mutableStateOf<String?>(null) }
     var isPrinting by remember { mutableStateOf(false) }
     var invertColors by remember { mutableStateOf(true) }
+    var verticalText by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -68,11 +82,100 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
     fun reloadPrinters() {
         if (!hasPermission) return
         val adapter = bluetoothAdapter(context)
+        bluetoothEnabled = adapter?.isEnabled == true
+        if (!bluetoothEnabled) {
+            printers = emptyList()
+            nearbyPrinters = emptyList()
+            isDiscovering = false
+            return
+        }
         printers = adapter?.let { BrotherPrinter.pairedPrinters(it.bondedDevices) }.orEmpty()
         selected = selected?.takeIf { current -> printers.any { it.address == current.address } } ?: printers.firstOrNull()
+        nearbyPrinters = emptyList()
+        isDiscovering = adapter?.let {
+            runCatching {
+                if (it.isDiscovering) it.cancelDiscovery()
+                it.startDiscovery()
+            }.getOrDefault(false)
+        } ?: false
+    }
+
+    DisposableEffect(context, hasPermission) {
+        if (!hasPermission) {
+            onDispose { }
+        } else {
+            val receiver =
+                object : BroadcastReceiver() {
+                    @SuppressLint("MissingPermission")
+                    override fun onReceive(receiverContext: Context, intent: Intent) {
+                        when (intent.action) {
+                            BluetoothDevice.ACTION_FOUND -> {
+                                val device =
+                                    IntentCompat.getParcelableExtra(
+                                        intent,
+                                        BluetoothDevice.EXTRA_DEVICE,
+                                        BluetoothDevice::class.java,
+                                    )
+                                val printer = device?.let(BrotherPrinter::nearbyPrinter) ?: return
+                                nearbyPrinters =
+                                    (nearbyPrinters.filterNot { it.address == printer.address } + printer)
+                                        .sortedBy { it.name.lowercase() }
+                            }
+                            BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> isDiscovering = false
+                            BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                                bluetoothEnabled = bluetoothAdapter(context)?.isEnabled == true
+                                if (bluetoothEnabled) reloadPrinters()
+                            }
+                            BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
+                                val device =
+                                    IntentCompat.getParcelableExtra(
+                                        intent,
+                                        BluetoothDevice.EXTRA_DEVICE,
+                                        BluetoothDevice::class.java,
+                                    )
+                                when (device?.bondState) {
+                                    BluetoothDevice.BOND_BONDED -> {
+                                        pairingAddress = null
+                                        val paired = BrotherPrinter.pairedPrinters(setOf(device)).firstOrNull()
+                                        if (paired != null) {
+                                            printers = (printers.filterNot { it.address == paired.address } + paired)
+                                                .sortedBy { it.name.lowercase() }
+                                            selected = paired
+                                        }
+                                    }
+                                    BluetoothDevice.BOND_NONE ->
+                                        if (device.address == pairingAddress) pairingAddress = null
+                                }
+                            }
+                        }
+                    }
+                }
+            val filter =
+                IntentFilter().apply {
+                    addAction(BluetoothDevice.ACTION_FOUND)
+                    addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+                    addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+                    addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+                }
+            // Bluetooth discovery broadcasts originate from the system Bluetooth service, so a
+            // NOT_EXPORTED receiver would not receive them on some Android releases.
+            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_EXPORTED)
+            onDispose {
+                runCatching { context.unregisterReceiver(receiver) }
+                runCatching { bluetoothAdapter(context)?.cancelDiscovery() }
+            }
+        }
     }
 
     LaunchedEffect(hasPermission) { reloadPrinters() }
+    LaunchedEffect(isDiscovering) {
+        if (isDiscovering) {
+            // A few vendor Bluetooth stacks omit ACTION_DISCOVERY_FINISHED. Do not leave the
+            // dialog showing an endless search in that case.
+            delay(20_000)
+            isDiscovering = false
+        }
+    }
 
     AlertDialog(
         onDismissRequest = { if (!isPrinting) onDismiss() },
@@ -93,7 +196,7 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                         Spacer(Modifier.width(8.dp))
                         Text("Allow Bluetooth")
                     }
-                } else if (bluetoothAdapter(context)?.isEnabled != true) {
+                } else if (!bluetoothEnabled) {
                     Icon(Icons.Default.Bluetooth, contentDescription = null)
                     Text("Bluetooth is turned off.")
                     OutlinedButton(
@@ -106,32 +209,76 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                         Spacer(Modifier.width(8.dp))
                         Text("Turn on Bluetooth")
                     }
-                } else if (printers.isEmpty()) {
-                    Icon(Icons.Default.Bluetooth, contentDescription = null)
-                    Text("No paired Brother P-touch printer was found. Pair it in Android settings first.")
-                    TextButton(onClick = ::reloadPrinters) {
-                        Icon(Icons.Default.Bluetooth, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Refresh paired devices")
-                    }
                 } else {
-                    Text("Choose a paired printer", style = MaterialTheme.typography.titleSmall)
-                    LazyColumn(modifier = Modifier.height(140.dp)) {
-                        items(printers, key = { it.address }) { printer ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                RadioButton(
-                                    selected = selected?.address == printer.address,
-                                    onClick = { selected = printer },
-                                )
-                                Column {
-                                    Text(printer.name)
-                                    Text(printer.address, style = MaterialTheme.typography.bodySmall)
+                    if (printers.isEmpty()) {
+                        Icon(Icons.Default.Bluetooth, contentDescription = null)
+                        Text("No paired Brother P-touch printer was found yet.")
+                    } else {
+                        Text("Choose a paired printer", style = MaterialTheme.typography.titleSmall)
+                        LazyColumn(modifier = Modifier.height(140.dp)) {
+                            items(printers, key = { it.address }) { printer ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    RadioButton(
+                                        selected = selected?.address == printer.address,
+                                        onClick = { selected = printer },
+                                    )
+                                    Column {
+                                        Text(printer.name)
+                                        Text(printer.address, style = MaterialTheme.typography.bodySmall)
+                                    }
                                 }
                             }
                         }
+                    }
+
+                    if (isDiscovering) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Searching for nearby Brother printers…")
+                        }
+                    }
+                    if (nearbyPrinters.isNotEmpty()) {
+                        Text("Nearby printers", style = MaterialTheme.typography.titleSmall)
+                        LazyColumn(modifier = Modifier.height(120.dp)) {
+                            items(nearbyPrinters, key = { it.address }) { printer ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(Icons.Default.Bluetooth, contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(printer.name)
+                                        Text(printer.address, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    if (printers.any { it.address == printer.address }) {
+                                        Text("Paired", style = MaterialTheme.typography.labelMedium)
+                                    } else {
+                                        OutlinedButton(
+                                            onClick = {
+                                                pairingAddress = printer.address
+                                                val started = runCatching { printer.device.createBond() }.getOrDefault(false)
+                                                if (!started) pairingAddress = null
+                                            },
+                                            enabled = pairingAddress == null,
+                                        ) {
+                                            Icon(Icons.Default.Bluetooth, contentDescription = null)
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(if (pairingAddress == printer.address) "Pairing…" else "Pair")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = ::reloadPrinters) {
+                        Icon(Icons.Default.Bluetooth, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Scan again")
                     }
                     Text(
                         "The label contains the cached device URL as a QR code and its asset tag.",
@@ -145,12 +292,26 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                         Column(Modifier.weight(1f)) {
                             Text("Invert print colors")
                             Text(
-                                "Disable for printlabel --black-style output",
+                                "Disable if printing on black tape",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Switch(checked = invertColors, onCheckedChange = { invertColors = it })
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Vertical label text")
+                            Text(
+                                "Rotate the text for narrow labels",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(checked = verticalText, onCheckedChange = { verticalText = it })
                     }
                 }
                 if (isPrinting) {
@@ -184,6 +345,7 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                     request.objectUrl,
                                     request.labelText,
                                     invert = invertColors,
+                                    vertical = verticalText,
                                 )
                             }.fold(
                                 onSuccess = { label -> BrotherPrinter.print(printer, label) },
@@ -207,13 +369,16 @@ private fun bluetoothPermissions(): Array<String> =
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
         arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
     } else {
-        emptyArray()
+        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
 private fun hasBluetoothPermission(context: Context): Boolean =
-    android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S ||
-        ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
-            PackageManager.PERMISSION_GRANTED
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+    } else {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
 
 private fun bluetoothAdapter(context: Context): BluetoothAdapter? =
     context.getSystemService(BluetoothManager::class.java)?.adapter

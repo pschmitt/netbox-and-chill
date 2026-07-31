@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.data.repository
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.sync.SyncIssueReporter
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +22,12 @@ import timber.log.Timber
 @Singleton
 class GenericObjectRepository
 @Inject
-constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao, private val json: Json) {
+constructor(
+    private val api: GenericNetBoxApi,
+    private val dao: NetBoxObjectDao,
+    private val json: Json,
+    private val syncIssueReporter: SyncIssueReporter,
+) {
 
     fun observeObjects(
         endpointPath: String,
@@ -61,8 +67,26 @@ constructor(private val api: GenericNetBoxApi, private val dao: NetBoxObjectDao,
                     },
                 )
             if (page.results.isEmpty()) break
-            dao.upsertAll(page.results.map { it.toEntity(endpointPath) })
-            total += page.results.size
+            var skippedCount = 0
+            val entities =
+                page.results.mapNotNull { objectJson ->
+                    runCatching { objectJson.toEntity(endpointPath) }
+                        .onFailure { error ->
+                            skippedCount++
+                            Timber.w(error, "Skipping non-object response from %s during sync", endpointPath)
+                        }
+                        .getOrNull()
+                }
+            // A collection made entirely of non-ID summaries (for example NetBox's
+            // core/background-queues endpoint) is not an inventory object type and is safely
+            // ignored. A partial mix is suspicious and remains visible as a sync warning.
+            if (skippedCount > 0 && entities.isNotEmpty()) {
+                syncIssueReporter.report(
+                    "Skipped $skippedCount record(s) from $endpointPath because they have no numeric id"
+                )
+            }
+            dao.upsertAll(entities)
+            total += entities.size
             offset += pageSize
             if (page.next == null) break
         }

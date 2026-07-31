@@ -86,6 +86,43 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
     }
 
+    /** Shows an ongoing system-level progress notification while any sync attempt is running. */
+    fun notifySyncStarted() {
+        notifySyncProgress("Refreshing cached data…")
+    }
+
+    fun notifySyncProgress(message: String) {
+        if (!notificationsAllowed()) return
+        val notification =
+            NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_sync_problem)
+                .setContentTitle("Syncing NetBox")
+                .setContentText(message)
+                .setProgress(0, 0, true)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+    }
+
+    /** Keeps the ongoing notification visible while WorkManager waits before retrying. */
+    fun notifySyncRetry(attempt: Int) {
+        notifySyncProgress("Retrying sync (attempt $attempt)…")
+    }
+
+    /** Removes the progress notification after a successful sync. */
+    fun notifySyncSucceeded() {
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+    }
+
+    private fun notificationsAllowed(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+
     companion object {
         const val CHANNEL_ID = "background_sync"
         private const val NOTIFICATION_ID = 1001

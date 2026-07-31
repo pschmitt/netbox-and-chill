@@ -20,10 +20,14 @@ constructor(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (!settingsRepository.isConfigured) return Result.success()
+        syncNotifier.notifySyncStarted()
         return offlineSyncRepository
-            .syncAll()
+            .syncAll(onProgress = syncNotifier::notifySyncProgress)
             .fold(
-                onSuccess = { Result.success() },
+                onSuccess = {
+                    syncNotifier.notifySyncSucceeded()
+                    Result.success()
+                },
                 onFailure = { error ->
                     // WorkManager's own exponential backoff handles the retry delay - this just
                     // caps how many times a single scheduled run retries before giving up and
@@ -31,6 +35,7 @@ constructor(
                     // A PeriodicWorkRequest's attempt count resets on its next period regardless,
                     // so this only bounds retries *within* one run, not across runs.
                     if (runAttemptCount < MAX_RETRY_ATTEMPTS) {
+                        syncNotifier.notifySyncRetry(runAttemptCount + 1)
                         Result.retry()
                     } else {
                         syncNotifier.notifySyncFailed(error.message)

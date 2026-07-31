@@ -57,6 +57,7 @@ import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,6 +79,7 @@ fun DashboardScreen(
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(errorMessage) {
@@ -127,6 +129,12 @@ fun DashboardScreen(
                 }.toMap()
 
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
+                syncIssue?.let { issue ->
+                    item {
+                        SyncIssueCard(issue, onRetry = viewModel::retrySync)
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
                 if (offlineMode) {
                     item {
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {

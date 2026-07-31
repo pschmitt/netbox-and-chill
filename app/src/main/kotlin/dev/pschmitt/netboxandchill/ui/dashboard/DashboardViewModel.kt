@@ -9,6 +9,7 @@ import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,9 +25,11 @@ constructor(
     private val repository: DashboardRepository,
     pendingEditRepository: PendingEditRepository,
     settingsRepository: SettingsRepository,
+    private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
 
     val offlineMode: StateFlow<Boolean> = settingsRepository.offlineMode
+    val syncIssue = settingsRepository.syncIssue
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -65,5 +68,9 @@ constructor(
 
     fun errorShown() {
         _errorMessage.value = null
+    }
+
+    fun retrySync() {
+        if (!offlineMode.value) syncScheduler.syncNow()
     }
 }

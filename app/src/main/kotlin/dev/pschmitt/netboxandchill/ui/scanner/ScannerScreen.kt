@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.ui.scanner
 import android.Manifest
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
+import android.util.Log
 import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,7 +30,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Cameraswitch
@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -178,6 +179,7 @@ fun ScannerScreen(
                     )
                 }
                 ScannerControls(
+                    modifier = Modifier.zIndex(1f),
                     showTorch = camera?.cameraInfo?.hasFlashUnit() == true,
                     torchOn = torchOn,
                     onTorchClick = {
@@ -223,6 +225,7 @@ private fun RearLensSelector(
     onCameraSelected: (ScannerCameraOption) -> Unit,
 ) {
     Surface(
+        modifier = Modifier.zIndex(1f),
         shape = MaterialTheme.shapes.extraLarge,
         color = Color.Black.copy(alpha = 0.62f),
         contentColor = Color.White,
@@ -233,13 +236,11 @@ private fun RearLensSelector(
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
         ) {
             cameras.forEach { camera ->
+                val selected = camera.id == selectedCameraId
                 FilterChip(
-                    selected = camera.id == selectedCameraId,
+                    selected = selected,
                     onClick = { onCameraSelected(camera) },
-                    label = { Text(camera.label) },
-                    leadingIcon = {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null)
-                    },
+                    label = { Text(if (selected) camera.label else camera.label.removeSuffix("×")) },
                 )
             }
         }
@@ -248,6 +249,7 @@ private fun RearLensSelector(
 
 @Composable
 private fun ScannerControls(
+    modifier: Modifier = Modifier,
     showTorch: Boolean,
     torchOn: Boolean,
     onTorchClick: () -> Unit,
@@ -256,6 +258,7 @@ private fun ScannerControls(
     onFacingSwitchClick: () -> Unit,
 ) {
     Surface(
+        modifier = modifier.zIndex(1f),
         shape = MaterialTheme.shapes.extraLarge,
         color = Color.Black.copy(alpha = 0.62f),
         contentColor = Color.White,
@@ -333,64 +336,70 @@ private fun CameraPreview(
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val cameraProviderFuture = remember(context) { ProcessCameraProvider.getInstance(context) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
+    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    val boundCamera = remember { mutableStateOf<Camera?>(null) }
 
     DisposableEffect(Unit) { onDispose { cameraExecutor.shutdown() } }
 
-    DisposableEffect(previewView, desiredLens, selectedCameraId) {
+    LaunchedEffect(cameraProviderFuture) {
+        cameraProvider = cameraProviderFuture.get()
+    }
+
+    DisposableEffect(cameraProvider, previewView, desiredLens, selectedCameraId) {
+        val provider = cameraProvider
         val view = previewView
-        if (view == null) {
+        if (provider == null || view == null) {
             onDispose { }
         } else {
-            var disposed = false
             onCameraReady(null)
-            cameraProviderFuture.addListener(
-                {
-                    if (disposed) return@addListener
-                    runCatching {
-                        val cameraProvider = cameraProviderFuture.get()
-                        val available = availableCameraOptions(cameraProvider)
-                        onAvailableCameras(available)
-                        val activeCamera =
-                            available.firstOrNull {
-                                it.id == selectedCameraId && it.lens == desiredLens
-                            }
-                                ?: available.firstOrNull { it.lens == desiredLens }
-                                ?: available.firstOrNull()
-                        if (activeCamera != null) {
-                            val preview =
-                                Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
-                            val analysis =
-                                ImageAnalysis.Builder()
-                                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                    .build()
-                                    .also { it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned)) }
-                            cameraProvider.unbindAll()
-                            onCameraReady(
-                                cameraProvider.bindToLifecycle(
-                                    lifecycleOwner,
-                                    activeCamera.selector,
-                                    preview,
-                                    analysis,
-                                )
-                            )
-                        }
-                    }
-                },
-                ContextCompat.getMainExecutor(context),
-            )
+            boundCamera.value = null
+            val available = availableCameraOptions(provider)
+            onAvailableCameras(available)
+            val activeCamera =
+                available.firstOrNull { it.id == selectedCameraId && it.lens == desiredLens }
+                    ?: available.firstOrNull { it.lens == desiredLens }
+                    ?: available.firstOrNull()
+            if (activeCamera != null) {
+                val preview =
+                    Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
+                val analysis =
+                    ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned)) }
+                runCatching {
+                    // CameraX must be fully unbound before a different physical or facing
+                    // camera can be selected. Keeping this in one synchronous effect avoids
+                    // an old async listener rebinding the previous lens after a user switch.
+                    provider.unbindAll()
+                    provider
+                        .bindToLifecycle(lifecycleOwner, activeCamera.selector, preview, analysis)
+                        .also { it.cameraControl.setZoomRatio(activeCamera.zoomRatio) }
+                }.onSuccess {
+                    boundCamera.value = it
+                    onCameraReady(it)
+                }.onFailure {
+                    Log.e("ScannerCamera", "Unable to bind ${activeCamera.id}", it)
+                }
+            } else {
+                Log.w("ScannerCamera", "No camera available for lens $desiredLens")
+            }
             onDispose {
-                disposed = true
+                boundCamera.value = null
                 onCameraReady(null)
-                runCatching { cameraProviderFuture.get().unbindAll() }
+                runCatching { provider.unbindAll() }
             }
         }
     }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().zIndex(-1f),
         factory = { ctx ->
             val previewView = PreviewView(ctx)
-            var boundCamera: Camera? = null
+            // SurfaceView (the default PERFORMANCE mode) can sit above Compose's controls and
+            // consume their touch events on some devices, notably Pixel and Zenfone. TextureView
+            // keeps the preview below the lens/facing controls while retaining tap-to-focus.
+            previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
 
             // Tap-to-focus: set directly on the PreviewView rather than a Compose pointerInput
             // modifier, since AndroidView touch dispatch to an embedded native View can otherwise
@@ -402,7 +411,7 @@ private fun CameraPreview(
                         FocusMeteringAction.Builder(point)
                             .setAutoCancelDuration(3, TimeUnit.SECONDS)
                             .build()
-                    boundCamera?.cameraControl?.startFocusAndMetering(action)
+                    boundCamera.value?.cameraControl?.startFocusAndMetering(action)
                     view.performClick()
                 }
                 true
@@ -422,6 +431,7 @@ private data class ScannerCameraOption(
     val label: String,
     val selector: CameraSelector,
     val focalLength: Float? = null,
+    val zoomRatio: Float = 1f,
 )
 
 private fun availableCameraOptions(provider: ProcessCameraProvider): List<ScannerCameraOption> {
@@ -451,10 +461,11 @@ private fun availableCameraOptions(provider: ProcessCameraProvider): List<Scanne
                         lens = ScannerLens.Back,
                         label = "Rear lens",
                         selector =
-                            CameraSelector.Builder()
-                                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                                .setPhysicalCameraId(cameraId)
-                                .build(),
+                            // Pixel devices expose the ultrawide and wide sensors as physical
+                            // cameras behind one logical camera. Binding the physical selector
+                            // alone is ignored by some CameraX/device combinations; keep the
+                            // logical selector and use its zoom ratio to request the sensor.
+                            info.selector(),
                         focalLength = focalLength,
                     )
                 }
@@ -504,9 +515,18 @@ private fun labelRearCameraOptions(options: List<ScannerCameraOption>): List<Sca
                 } else {
                     "Rear ${index + 1}"
                 }
-            option.id to label
+            val zoomRatio =
+                if (option.focalLength != null && referenceFocal != null) {
+                    (option.focalLength / referenceFocal).coerceIn(0.5f, 8f)
+                } else {
+                    1f
+                }
+            option.id to (label to zoomRatio)
         }
         .toMap()
 
-    return options.map { option -> option.copy(label = labelsById[option.id] ?: option.label) }
+    return options.map { option ->
+        val (label, zoomRatio) = labelsById[option.id] ?: (option.label to option.zoomRatio)
+        option.copy(label = label, zoomRatio = zoomRatio)
+    }
 }

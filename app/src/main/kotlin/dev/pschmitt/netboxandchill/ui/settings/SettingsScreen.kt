@@ -79,6 +79,7 @@ import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
+import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 
 private fun formatBytes(bytes: Long): String =
     when {
@@ -110,6 +111,7 @@ fun SettingsScreen(
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.settingsRepository.hiddenFieldKeys.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val syncIssue by viewModel.settingsRepository.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditServerDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -327,6 +329,13 @@ fun SettingsScreen(
                     )
                 },
             )
+            syncIssue?.let { issue ->
+                SyncIssueCard(
+                    issue,
+                    onRetry = viewModel::syncNow,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
             ListItem(
                 leadingContent = { Icon(Icons.Default.Download, contentDescription = null) },
                 headlineContent = { Text("Sync attachments to disk") },

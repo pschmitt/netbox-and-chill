@@ -11,20 +11,36 @@ import kotlinx.coroutines.withContext
 
 data class PairedPrinter(val name: String, val address: String, val device: BluetoothDevice)
 
+data class NearbyPrinter(val name: String, val address: String, val device: BluetoothDevice)
+
 object BrotherPrinter {
     private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
     @SuppressLint("MissingPermission")
     fun pairedPrinters(adapterDevices: Set<BluetoothDevice>): List<PairedPrinter> =
         adapterDevices
-            .filter { device ->
-                val name = device.name.orEmpty()
-                name.contains("brother", ignoreCase = true) ||
-                    name.contains("p-touch", ignoreCase = true) ||
-                    name.startsWith("PT-", ignoreCase = true)
-            }
-            .map { PairedPrinter(it.name ?: "Brother printer", it.address, it) }
+            .mapNotNull(::pairedPrinter)
             .sortedBy { it.name.lowercase() }
+
+    @SuppressLint("MissingPermission")
+    fun nearbyPrinter(device: BluetoothDevice): NearbyPrinter? =
+        device.takeIf(::isBrotherPrinter)?.let {
+            NearbyPrinter(it.name ?: "Brother printer", it.address, it)
+        }
+
+    @SuppressLint("MissingPermission")
+    private fun pairedPrinter(device: BluetoothDevice): PairedPrinter? =
+        device.takeIf(::isBrotherPrinter)?.let {
+            PairedPrinter(it.name ?: "Brother printer", it.address, it)
+        }
+
+    @SuppressLint("MissingPermission")
+    private fun isBrotherPrinter(device: BluetoothDevice): Boolean {
+        val name = device.name.orEmpty()
+        return name.contains("brother", ignoreCase = true) ||
+            name.contains("p-touch", ignoreCase = true) ||
+            name.startsWith("PT-", ignoreCase = true)
+    }
 
     @SuppressLint("MissingPermission")
     suspend fun print(printer: PairedPrinter, label: BrotherLabelRaster): Result<Unit> =

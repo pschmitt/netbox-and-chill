@@ -6,6 +6,7 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.PendingEditDao
 import dev.pschmitt.netboxandchill.data.db.PendingEditEntity
+import dev.pschmitt.netboxandchill.sync.SyncIssueReporter
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -75,7 +76,12 @@ class PendingEditRepositoryTest {
     }
 
     private fun repository(api: FakeApi, pending: FakePendingEditDao, objectDao: FakeNetBoxObjectDao) =
-        PendingEditRepository(api, pending, GenericObjectRepository(api, objectDao, json), json)
+        PendingEditRepository(
+            api,
+            pending,
+            GenericObjectRepository(api, objectDao, json, SyncIssueReporter()),
+            json,
+        )
 
     private fun server(name: String, version: String): JsonObject =
         JsonObject(

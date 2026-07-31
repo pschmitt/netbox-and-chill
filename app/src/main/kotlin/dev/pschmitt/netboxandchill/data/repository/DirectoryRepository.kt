@@ -4,6 +4,7 @@ import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.schema.Humanize
+import dev.pschmitt.netboxandchill.sync.SyncIssueReporter
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +18,13 @@ import timber.log.Timber
  * and the generic list/detail screens.
  */
 @Singleton
-class DirectoryRepository @Inject constructor(private val api: GenericNetBoxApi, private val dao: NetBoxModelDao) {
+class DirectoryRepository
+@Inject
+constructor(
+    private val api: GenericNetBoxApi,
+    private val dao: NetBoxModelDao,
+    private val syncIssueReporter: SyncIssueReporter,
+) {
 
     fun observeAll(): Flow<List<NetBoxModelEntity>> = dao.observeAll()
 
@@ -34,7 +41,10 @@ class DirectoryRepository @Inject constructor(private val api: GenericNetBoxApi,
         for ((appKey, appUrl) in root) {
             if (appKey in SKIPPED_ROOT_KEYS) continue
             runCatching { discoverApp(appKey, appUrl, models) }
-                .onFailure { Timber.w(it, "Failed to discover NetBox app '%s'", appKey) }
+                .onFailure {
+                    Timber.w(it, "Failed to discover NetBox app '%s'", appKey)
+                    syncIssueReporter.report("Directory discovery failed for $appKey: ${it.message}")
+                }
         }
         dao.clear()
         dao.upsertAll(models)

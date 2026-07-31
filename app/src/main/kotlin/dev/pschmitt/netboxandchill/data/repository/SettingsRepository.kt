@@ -15,6 +15,8 @@ data class NetBoxCredentials(val baseUrl: String, val token: String) {
         get() = baseUrl.isNotBlank() && token.isNotBlank()
 }
 
+data class SyncIssue(val message: String, val occurredAt: Long)
+
 /** Stable object key used by field preferences, e.g. `device`. */
 fun hiddenFieldObjectKey(endpointPath: String): String =
     endpointPath.trim('/').substringAfterLast('/').lowercase().let(::singularizeModel)
@@ -110,6 +112,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _offlineMode = MutableStateFlow(prefs.getBoolean(KEY_OFFLINE_MODE, false))
     val offlineMode: StateFlow<Boolean> = _offlineMode.asStateFlow()
 
+    private val _syncIssue = MutableStateFlow(loadSyncIssue())
+    val syncIssue: StateFlow<SyncIssue?> = _syncIssue.asStateFlow()
+
     private val _hiddenFieldKeys = MutableStateFlow(loadHiddenFieldKeys())
     val hiddenFieldKeys: StateFlow<Set<String>> = _hiddenFieldKeys.asStateFlow()
 
@@ -137,6 +142,30 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setOfflineMode(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_OFFLINE_MODE, enabled).apply()
         _offlineMode.value = enabled
+    }
+
+    fun recordSyncIssue(error: Throwable) {
+        recordSyncIssue(
+            error.message?.takeIf { it.isNotBlank() }
+                ?: error::class.simpleName?.takeIf { it.isNotBlank() }
+                ?: "Sync failed"
+        )
+    }
+
+    fun recordSyncIssue(message: String) {
+        val issueMessage = message.takeIf { it.isNotBlank() } ?: "Sync failed"
+        val issue = SyncIssue(issueMessage.take(MAX_SYNC_MESSAGE_LENGTH), System.currentTimeMillis())
+        prefs
+            .edit()
+            .putString(KEY_SYNC_ISSUE_MESSAGE, issue.message)
+            .putLong(KEY_SYNC_ISSUE_TIME, issue.occurredAt)
+            .apply()
+        _syncIssue.value = issue
+    }
+
+    fun clearSyncIssue() {
+        prefs.edit().remove(KEY_SYNC_ISSUE_MESSAGE).remove(KEY_SYNC_ISSUE_TIME).apply()
+        _syncIssue.value = null
     }
 
     fun addHiddenField(key: String) {
@@ -192,6 +221,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _credentials.value = NetBoxCredentials("", "")
         _offlineMode.value = false
         _hiddenFieldKeys.value = emptySet()
+        clearSyncIssue()
     }
 
     private fun loadCredentials() =
@@ -199,6 +229,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             baseUrl = prefs.getString(KEY_BASE_URL, "") ?: "",
             token = prefs.getString(KEY_TOKEN, "") ?: "",
         )
+
+    private fun loadSyncIssue(): SyncIssue? {
+        val message = prefs.getString(KEY_SYNC_ISSUE_MESSAGE, null)?.takeIf { it.isNotBlank() }
+        val occurredAt = prefs.getLong(KEY_SYNC_ISSUE_TIME, 0L)
+        return if (message != null && occurredAt > 0L) SyncIssue(message, occurredAt) else null
+    }
 
     private fun loadGestureAction(): GestureAction =
         GestureAction.fromStorage(prefs.getString(KEY_GESTURE_ACTION, GestureAction.GlobalSearch.storageKey))
@@ -238,6 +274,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
         const val KEY_OFFLINE_MODE = "offline_mode"
+        const val KEY_SYNC_ISSUE_MESSAGE = "sync_issue_message"
+        const val KEY_SYNC_ISSUE_TIME = "sync_issue_time"
+        const val MAX_SYNC_MESSAGE_LENGTH = 1000
         const val KEY_HIDDEN_FIELDS = "hidden_field_keys"
         const val KEY_SIDEBAR_APP_ORDER = "sidebar_app_order"
         const val KEY_SIDEBAR_MODEL_ORDERS = "sidebar_model_orders"

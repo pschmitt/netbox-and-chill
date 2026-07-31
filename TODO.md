@@ -1782,3 +1782,88 @@ better bounds handling so long labels or edge pixels are not clipped.
 
 Status: mostly done, 2026-07-31 - remote tests/lint/debug build passed and the feature was deployed;
 the inverted default still needs a physical follow-up print.
+
+## NBC-64: reorganize Settings and explain cached file types
+
+The Settings screen should be easier to scan, with titled groups and subtitles. The storage
+setting should also explain what “durable” files are, including whether that means NetBox media,
+documents, or other downloaded assets.
+
+- [ ] Group related settings under titled sections with concise subtitles.
+- [ ] Replace “durable” jargon with a plain-language explanation and accurate asset/document scope.
+
+Status: not started, 2026-07-31 - backlog item recorded from user feedback.
+
+## NBC-65: make generic synchronization resilient and observable
+
+Some NetBox API collections are operational summaries rather than inventory objects and do not
+have numeric IDs (for example `core/background-queues`). Generic synchronization must not abort
+the complete offline cache for those responses, and real failures/warnings must remain visible.
+
+- [x] Skip malformed/non-object collection rows without aborting unrelated cache sync.
+- [x] Persist the latest sync failure or partial-sync warning across app restarts.
+- [x] Show sync issues with a retry action on Dashboard and Settings.
+- [x] Show an ongoing system notification while background/manual sync is running.
+- [ ] Verify a real sync against the configured NetBox instance and physical test devices.
+
+Status: in progress, 2026-07-31 - generic handling, UI surface, notification progress, remote
+checks, and all-device deployment completed; a post-fix full sync verification remains.
+
+## NBC-66: make QR scanner lens switching reliable
+
+The scanner's front/rear and rear-lens controls must rebind CameraX to the selected camera
+immediately, including on devices exposing physical rear cameras through a logical camera.
+
+- [x] Rebind the preview and analyzer when the selected facing or rear lens changes.
+- [x] Keep tap-to-focus and torch state correct after a camera switch.
+- [x] Verify the switch on a multi-camera device and a device with fewer than two rear lenses.
+
+Status: **done**, 2026-08-01 - Pixel 5 rear 1×/0.6× and front/rear controls smoke-tested after
+the preview z-order fix; Mi Pad 4 fewer-than-two-rear-lenses behavior also verified.
+
+## NBC-67: discover and pair nearby Brother label printers
+
+The print-label dialog should show nearby Brother/P-touch devices, not only already-bonded devices,
+and provide the Android pairing flow for a discovered printer such as `PT-P300BT4590`.
+
+- [x] Discover nearby Brother/P-touch Bluetooth devices from the print dialog.
+- [x] Offer Android's pairing flow and refresh the selectable printer after bonding.
+- [ ] Keep printing restricted to bonded devices and verify with the PT-P300BT4590.
+
+Status: mostly done, 2026-08-01 - Mi Pad 4 discovered the live `PT-P300BT4590`; Android pairing
+flow and post-bond selection refresh are implemented, while physical print verification remains.
+
+## NBC-68: improve label layout and print-dialog feedback
+
+The print dialog and Brother label raster need a steadier discovery experience and better label
+layout controls.
+
+- [x] Stabilize the nearby-printer progress indicator and refresh after Bluetooth is enabled.
+- [x] Clarify the black-tape inversion text.
+- [x] Add vertical label-text mode.
+- [x] Fix right-side label text raster legibility.
+
+Status: mostly done, 2026-08-01 - remote lint/tests/debug build and all-device deployment passed;
+physical verification of vertical and long-text labels remains.
+
+## NBC-69: add pull-to-refresh to item views
+
+Device and other item detail/list views should support an explicit pull-to-refresh gesture, with
+the refresh action also available from the overflow menu.
+
+- [ ] Add pull-to-refresh to device and generic item views.
+- [ ] Add a refresh entry to the relevant overflow menus.
+- [ ] Keep refresh cache-first/offline-safe and show the existing refresh/sync feedback.
+
+Status: not started, 2026-08-01 - backlog item recorded from user feedback.
+
+## NBC-70: add digital zoom to the scanner
+
+The QR scanner should support digital zoom, including pinch-to-zoom gestures where the device
+supports them.
+
+- [ ] Add pinch-to-zoom to the camera preview.
+- [ ] Preserve the selected rear lens and zoom when switching front/rear cameras.
+- [ ] Keep zoom controls usable on devices without multiple rear lenses.
+
+Status: not started, 2026-08-01 - backlog item recorded from user feedback.
