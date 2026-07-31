@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val coroutineScope = rememberCoroutineScope()
                 val startDestination =
-                    if (settingsRepository.isConfigured) Route.DeviceList else Route.Onboarding
+                    if (settingsRepository.isConfigured) Route.Dashboard else Route.Onboarding
 
                 // Handles both cold start (pendingTarget set above, before setContent) and a warm
                 // relaunch of this singleTask activity via onNewIntent below.

@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
 import dev.pschmitt.netboxandchill.data.schema.Humanize
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -115,17 +116,8 @@ private fun asRefTarget(value: JsonObject): RefTarget? {
         (value["display"] as? JsonPrimitive)?.contentOrNull
             ?: (value["name"] as? JsonPrimitive)?.contentOrNull
             ?: "#$id"
-    val endpointPath = listEndpointFromDetailUrl(url) ?: return null
+    val endpointPath = NetBoxRef.endpointFromDetailUrl(url) ?: return null
     return RefTarget(display, endpointPath, id)
-}
-
-/** "https://host/api/dcim/sites/3/" -> "api/dcim/sites/" (strips the trailing id segment). */
-private fun listEndpointFromDetailUrl(detailUrl: String): String? {
-    val path = detailUrl.toHttpUrlOrNull()?.encodedPath ?: return null
-    val trimmed = path.trim('/')
-    val lastSlash = trimmed.lastIndexOf('/')
-    if (lastSlash < 0) return null
-    return trimmed.substring(0, lastSlash + 1)
 }
 
 /** The subset of [buildFieldRows]'s fields that can round-trip through a plain text/switch input

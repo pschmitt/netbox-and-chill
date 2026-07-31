@@ -37,6 +37,7 @@ import dev.pschmitt.netboxandchill.ui.common.StatusChip
 @Composable
 fun DeviceListScreen(
     onDeviceClick: (Int) -> Unit,
+    onDashboardClick: () -> Unit,
     onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
     viewModel: DeviceListViewModel = hiltViewModel(),
@@ -68,7 +69,12 @@ fun DeviceListScreen(
             )
         },
         bottomBar = {
-            NetBoxBottomBar(selected = BottomTab.Devices, onDevicesClick = {}, onScanClick = onScanClick)
+            NetBoxBottomBar(
+                selected = BottomTab.Devices,
+                onDashboardClick = onDashboardClick,
+                onDevicesClick = {},
+                onScanClick = onScanClick,
+            )
         },
     ) { padding ->
         PullToRefreshBox(

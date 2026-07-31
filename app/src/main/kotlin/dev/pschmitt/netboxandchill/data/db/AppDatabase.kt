@@ -11,8 +11,11 @@ import androidx.room.RoomDatabase
             NetBoxObjectEntity::class,
             DeviceTypeEntity::class,
             ImageAttachmentEntity::class,
+            BookmarkEntity::class,
+            ObjectChangeEntity::class,
+            DashboardStatEntity::class,
         ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,4 +28,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun deviceTypeDao(): DeviceTypeDao
 
     abstract fun imageAttachmentDao(): ImageAttachmentDao
+
+    abstract fun bookmarkDao(): BookmarkDao
+
+    abstract fun objectChangeDao(): ObjectChangeDao
+
+    abstract fun dashboardStatDao(): DashboardStatDao
 }

@@ -5,6 +5,10 @@ import kotlinx.serialization.Serializable
 sealed interface Route {
     @Serializable data object Onboarding : Route
 
+    /** Home/dashboard screen (NBC-9) - the default post-login landing destination and a bottom-nav
+     * tab, see NetBoxNavHost/MainActivity. */
+    @Serializable data object Dashboard : Route
+
     @Serializable data object DeviceList : Route
 
     @Serializable data class DeviceDetail(val deviceId: Int) : Route
