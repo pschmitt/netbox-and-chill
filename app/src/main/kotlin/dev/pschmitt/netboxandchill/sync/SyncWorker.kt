@@ -17,11 +17,31 @@ constructor(
     @Assisted params: WorkerParameters,
     private val deviceRepository: DeviceRepository,
     private val settingsRepository: SettingsRepository,
+    private val syncNotifier: SyncNotifier,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (!settingsRepository.isConfigured) return Result.success()
         return deviceRepository
             .syncAll()
-            .fold(onSuccess = { Result.success() }, onFailure = { Result.retry() })
+            .fold(
+                onSuccess = { Result.success() },
+                onFailure = { error ->
+                    // WorkManager's own exponential backoff handles the retry delay - this just
+                    // caps how many times a single scheduled run retries before giving up and
+                    // surfacing a Notification (NBC-23), rather than retrying silently forever.
+                    // A PeriodicWorkRequest's attempt count resets on its next period regardless,
+                    // so this only bounds retries *within* one run, not across runs.
+                    if (runAttemptCount < MAX_RETRY_ATTEMPTS) {
+                        Result.retry()
+                    } else {
+                        syncNotifier.notifySyncFailed(error.message)
+                        Result.failure()
+                    }
+                },
+            )
+    }
+
+    private companion object {
+        const val MAX_RETRY_ATTEMPTS = 3
     }
 }

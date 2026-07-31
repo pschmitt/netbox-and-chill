@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- API 33+ runtime permission, required to post the background-sync-failure Notification
+         (NBC-23) - requested at runtime from MainActivity. Notifications are silently skipped if
+         this is denied (see SyncNotifier.notifySyncFailed), never a hard requirement. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature
         android:name="android.hardware.camera"

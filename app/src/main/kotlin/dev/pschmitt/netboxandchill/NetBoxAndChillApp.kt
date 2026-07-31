@@ -7,6 +7,7 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import dagger.hilt.android.HiltAndroidApp
+import dev.pschmitt.netboxandchill.sync.SyncNotifier
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import javax.inject.Inject
 import timber.log.Timber
@@ -16,6 +17,7 @@ class NetBoxAndChillApp : Application(), Configuration.Provider, SingletonImageL
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var syncScheduler: SyncScheduler
+    @Inject lateinit var syncNotifier: SyncNotifier
     @Inject lateinit var imageLoader: ImageLoader
 
     override val workManagerConfiguration: Configuration
@@ -26,6 +28,9 @@ class NetBoxAndChillApp : Application(), Configuration.Provider, SingletonImageL
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        // Channel creation is idempotent/cheap - safe to call unconditionally on every launch
+        // rather than tracking whether it's already been done.
+        syncNotifier.createChannel()
         syncScheduler.schedulePeriodic()
     }
 
