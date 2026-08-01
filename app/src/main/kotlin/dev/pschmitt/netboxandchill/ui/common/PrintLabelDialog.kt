@@ -543,6 +543,10 @@ fun PrintLabelDialog(
                 onClick = {
                     val printer = selected ?: return@Button
                     val count = copyCount ?: return@Button
+                    // Android advises canceling discovery before opening an RFCOMM socket; an
+                    // active inquiry can otherwise starve the connection and make a reachable
+                    // bonded P-touch look offline.
+                    bluetoothAdapter(context)?.cancelDiscovery()
                     isPrinting = true
                     resultMessage = null
                     scope.launch {

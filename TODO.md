@@ -1860,12 +1860,13 @@ and provide the Android pairing flow for a discovered printer such as `PT-P300BT
 
 - [x] Discover nearby Brother/P-touch Bluetooth devices from the print dialog.
 - [x] Offer Android's pairing flow and refresh the selectable printer after bonding.
+- [x] Enforce bonded-state filtering in the print transport and stop discovery before RFCOMM.
 - [ ] Keep printing restricted to bonded devices and verify with the PT-P300BT4590.
 
 Status: mostly done, 2026-08-01 - Mi Pad 4 discovered the live `PT-P300BT4590`; Android pairing
-flow and post-bond selection refresh are implemented. A controlled print attempt found the
-device bonded but not discoverable and the RFCOMM connection failed, so physical output remains
-open.
+flow and post-bond selection refresh are implemented. Printing now enforces a bonded device and
+cancels discovery before opening RFCOMM. A controlled print attempt found the device bonded but
+not discoverable and the RFCOMM connection failed, so physical output remains open.
 
 ## NBC-68: improve label layout and print-dialog feedback
 
@@ -2423,6 +2424,7 @@ reach while the remaining object types remain searchable.
 
 - [x] Add a search box matching item and app labels.
 - [x] Pin Devices and Device types ahead of the other item types.
+- [ ] Use the Dashboard-style section heading consistently for pinned and unpinned types.
 - [x] Verify the filtered/pinned picker on the Mi Pad 4.
 
 Status: **done**, 2026-08-01 - the Mi Pad 4 Add picker showed pinned workflows and filtered the
