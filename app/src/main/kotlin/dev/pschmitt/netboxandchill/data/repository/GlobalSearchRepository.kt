@@ -17,6 +17,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
 /**
@@ -65,6 +70,7 @@ constructor(
     private val netBoxObjectDao: NetBoxObjectDao,
     private val deviceDao: DeviceDao,
     private val genericObjectRepository: GenericObjectRepository,
+    private val json: Json,
 ) {
 
     /**
@@ -81,6 +87,7 @@ constructor(
             } ?: netBoxObjectDao.searchAll(queryText, limitPerSource))
             .let { genericRows ->
                 val genericHits = genericRows.map { rows -> rows.map { it.toSearchHit() } }
+                val cachedInterfaces = netBoxObjectDao.observeAll(INTERFACES_ENDPOINT_PATH)
                 val directDeviceHits =
                     if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
                         deviceDao.search(queryText).map { rows ->
@@ -115,11 +122,55 @@ constructor(
                     } else {
                         flowOf(emptyList())
                     }
-                combine(genericHits, directDeviceHits, devicesOfMatchingTypes) {
+                val devicesMatchingNetworkDetails =
+                    if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
+                        combine(genericRows, cachedInterfaces, deviceDao.observeAll()) {
+                            matchingObjects,
+                            interfaces,
+                            devices ->
+                            val interfaceDeviceIds =
+                                interfaces.mapNotNull { entity ->
+                                    val objectJson = decodeObject(entity.json)
+                                    objectJson?.let {
+                                        networkDeviceMatch(
+                                            INTERFACES_ENDPOINT_PATH,
+                                            it,
+                                            emptyMap(),
+                                        )
+                                    }?.let { entity.id to it.deviceId }
+                                }.toMap()
+                            val matchingDevices =
+                                matchingObjects
+                                    .mapNotNull { entity ->
+                                        decodeObject(entity.json)?.let {
+                                            networkDeviceMatch(
+                                                entity.endpointPath,
+                                                it,
+                                                interfaceDeviceIds,
+                                            )
+                                        }
+                                    }
+                                    .associateBy { it.deviceId }
+                            devices
+                                .filter { it.id in matchingDevices.keys }
+                                .map { device ->
+                                    device.toSearchHit(matchingDevices[device.id]?.source)
+                                }
+                        }
+                    } else {
+                        flowOf(emptyList())
+                    }
+                combine(
+                    genericHits,
+                    directDeviceHits,
+                    devicesOfMatchingTypes,
+                    devicesMatchingNetworkDetails,
+                ) {
                     generic,
                     direct,
-                    recursive ->
-                    generic + direct + recursive
+                    recursive,
+                    network ->
+                    generic + direct + recursive + network
                 }
             }
 
@@ -171,9 +222,14 @@ constructor(
             secondaryLine = secondaryLine,
         )
 
+    private fun decodeObject(raw: String): JsonObject? =
+        runCatching { json.decodeFromString(JsonObject.serializer(), raw) }.getOrNull()
+
     companion object {
         const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
         const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
+        const val INTERFACES_ENDPOINT_PATH = "api/dcim/interfaces/"
+        const val IP_ADDRESSES_ENDPOINT_PATH = "api/ipam/ip-addresses/"
 
         // Baseline model set for the network refresh + result labeling - GlobalSearchViewModel
         // unions this with the user's pinned model paths so anything explicitly starred in the
@@ -192,6 +248,44 @@ constructor(
                 "api/tenancy/tenants/",
             )
     }
+}
+
+data class NetworkDeviceMatch(val deviceId: Int, val source: String)
+
+internal fun networkDeviceMatch(
+    endpointPath: String,
+    objectJson: JsonObject,
+    interfaceDeviceIds: Map<Int, Int>,
+): NetworkDeviceMatch? {
+    if (endpointPath == GlobalSearchRepository.INTERFACES_ENDPOINT_PATH) {
+        val deviceId = (objectJson["device"] as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
+        if (deviceId != null) {
+            val display =
+                objectJson["display"]?.jsonPrimitive?.contentOrNull
+                    ?: objectJson["name"]?.jsonPrimitive?.contentOrNull
+                    ?: "interface"
+            return NetworkDeviceMatch(deviceId, "Interface $display")
+        }
+    }
+    if (endpointPath == GlobalSearchRepository.IP_ADDRESSES_ENDPOINT_PATH) {
+        val assigned = objectJson["assigned_object"] as? JsonObject
+        val directDeviceId = (assigned?.get("device") as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
+        val assignedType = objectJson["assigned_object_type"]?.jsonPrimitive?.contentOrNull
+        val assignedId = objectJson["assigned_object_id"]?.jsonPrimitive?.intOrNull
+        val deviceId =
+            directDeviceId
+                ?: assignedId
+                    ?.takeIf { assignedType == "dcim.interface" }
+                    ?.let(interfaceDeviceIds::get)
+        if (deviceId != null) {
+            val display =
+                objectJson["address"]?.jsonPrimitive?.contentOrNull
+                    ?: objectJson["display"]?.jsonPrimitive?.contentOrNull
+                    ?: "IP address"
+            return NetworkDeviceMatch(deviceId, "IP $display")
+        }
+    }
+    return null
 }
 
 /** Ranks cached hits so exact and prefix matches are useful before alphabetical tie-breaking. */

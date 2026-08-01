@@ -2910,11 +2910,13 @@ on all three devices.
 Global search should surface the owning device when the query matches an interface IP address or
 MAC address, not only the device name or other primary text.
 
-- [ ] Match cached interface IP and MAC address data.
-- [ ] Surface the owning device in global-search results.
-- [ ] Verify IP and MAC searches remain cache-first.
+- [x] Match cached interface IP and MAC address data.
+- [x] Surface the owning device in global-search results.
+- [x] Verify IP and MAC searches remain cache-first.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote lint, unit tests, and debug build passed; the Mi Pad 4
+returned Aranet4 Home for cached MAC `F5:97:0D:6C:3C:BA` and turris for cached IP
+`10.5.0.1/22`. APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-149: show object-type badges in global search
 
