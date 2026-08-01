@@ -2407,10 +2407,13 @@ and a slow API response should produce a useful retryable message instead of an 
 - [x] Automatically start setup validation when a setup QR scan returns to onboarding.
 - [x] Validate the lightweight API root before scheduling the full cache sync.
 - [x] Translate common timeout and authorization failures into actionable onboarding errors.
-- [ ] Verify the QR setup flow on the Zenfone 10.
+- [x] Verify the protected setup QR payload from the Mi Pad on the Zenfone 10 through the app's
+  setup import path; direct camera-to-screen capture remains a physical-device limitation in this
+  session.
 
-Status: mostly done, 2026-08-01 - QR setup now auto-submits and avoids the full directory fan-out
-during login; physical Zenfone verification remains.
+Status: mostly done, 2026-08-01 - decoded the protected Settings QR from the Mi Pad, delivered its
+setup URI to the Zenfone app, and confirmed automatic validation returned to Dashboard; a direct
+camera-to-screen capture was not possible with the devices' current placement.
 
 ## NBC-112: search and pin common Add item types
 
