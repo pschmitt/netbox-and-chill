@@ -27,12 +27,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
+import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
 import dev.pschmitt.netboxandchill.sync.SyncNotifier
 import dev.pschmitt.netboxandchill.ui.directory.Sidebar
-import dev.pschmitt.netboxandchill.ui.gestures.twoFingerSwipeDown
+import dev.pschmitt.netboxandchill.ui.gestures.SwipeDirection
+import dev.pschmitt.netboxandchill.ui.gestures.multiFingerSwipe
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import dev.pschmitt.netboxandchill.ui.theme.NetBoxAndChillTheme
@@ -63,7 +65,8 @@ class MainActivity : FragmentActivity() {
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val coroutineScope = rememberCoroutineScope()
-                val gestureAction by settingsRepository.gestureAction.collectAsStateWithLifecycle()
+                val gestureActions by
+                    settingsRepository.gestureActions.collectAsStateWithLifecycle()
                 val startDestination =
                     if (settingsRepository.isConfigured) Route.Dashboard else Route.Onboarding
 
@@ -148,22 +151,63 @@ class MainActivity : FragmentActivity() {
                         )
                     },
                 ) {
+                    val performGestureAction: (GestureAction) -> Unit = { action ->
+                        when (action) {
+                            GestureAction.GlobalSearch ->
+                                navController.navigate(Route.GlobalSearch) {
+                                    launchSingleTop = true
+                                }
+                            GestureAction.Scanner -> navController.navigate(Route.Scanner())
+                            GestureAction.Off -> Unit
+                        }
+                    }
                     val gestureModifier =
-                        if (
-                            !settingsRepository.isConfigured || gestureAction == GestureAction.Off
-                        ) {
+                        if (!settingsRepository.isConfigured) {
                             Modifier
                         } else {
-                            Modifier.twoFingerSwipeDown {
-                                when (gestureAction) {
-                                    GestureAction.GlobalSearch ->
-                                        navController.navigate(Route.GlobalSearch) {
-                                            launchSingleTop = true
-                                        }
-                                    GestureAction.Scanner -> navController.navigate(Route.Scanner())
-                                    GestureAction.Off -> Unit
+                            Modifier
+                                .multiFingerSwipe(2, SwipeDirection.Down) {
+                                    performGestureAction(
+                                        gestureActions[GestureShortcut.TwoFingerDown]
+                                            ?: GestureAction.Off
+                                    )
                                 }
-                            }
+                                .multiFingerSwipe(2, SwipeDirection.Left) {
+                                    performGestureAction(
+                                        gestureActions[GestureShortcut.TwoFingerLeft]
+                                            ?: GestureAction.Off
+                                    )
+                                }
+                                .multiFingerSwipe(2, SwipeDirection.Right) {
+                                    performGestureAction(
+                                        gestureActions[GestureShortcut.TwoFingerRight]
+                                            ?: GestureAction.Off
+                                    )
+                                }
+                                .multiFingerSwipe(3, SwipeDirection.Up) {
+                                    performGestureAction(
+                                        gestureActions[GestureShortcut.ThreeFingerUp]
+                                            ?: GestureAction.Off
+                                    )
+                                }
+                                .multiFingerSwipe(3, SwipeDirection.Down) {
+                                    performGestureAction(
+                                        gestureActions[GestureShortcut.ThreeFingerDown]
+                                            ?: GestureAction.Off
+                                    )
+                                }
+                                .multiFingerSwipe(3, SwipeDirection.Left) {
+                                    performGestureAction(
+                                        gestureActions[GestureShortcut.ThreeFingerLeft]
+                                            ?: GestureAction.Off
+                                    )
+                                }
+                                .multiFingerSwipe(3, SwipeDirection.Right) {
+                                    performGestureAction(
+                                        gestureActions[GestureShortcut.ThreeFingerRight]
+                                            ?: GestureAction.Off
+                                    )
+                                }
                         }
                     Box(Modifier.fillMaxSize().then(gestureModifier)) {
                         NetBoxNavHost(

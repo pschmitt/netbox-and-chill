@@ -17,6 +17,13 @@ class SettingsPreferenceTest {
     }
 
     @Test
+    fun `gesture defaults preserve the original shortcut and disable new directions`() {
+        assertEquals(GestureAction.GlobalSearch, GestureAction.fromStorage(null))
+        assertEquals(GestureAction.Off, GestureAction.fromStorage(null, GestureAction.Off))
+        assertEquals(7, GestureShortcut.entries.size)
+    }
+
+    @Test
     fun `hidden field keys use a stable singular object name`() {
         assertEquals("device/model", hiddenFieldPreferenceKey("api/dcim/devices/", "Model"))
         assertEquals(

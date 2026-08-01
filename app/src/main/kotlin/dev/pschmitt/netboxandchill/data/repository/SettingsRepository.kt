@@ -69,9 +69,19 @@ enum class GestureAction(val storageKey: String, val label: String) {
     Scanner("scanner", "QR scanner");
 
     companion object {
-        fun fromStorage(value: String?): GestureAction =
-            values().firstOrNull { it.storageKey == value } ?: GlobalSearch
+        fun fromStorage(value: String?, fallback: GestureAction = GlobalSearch): GestureAction =
+            entries.firstOrNull { it.storageKey == value } ?: fallback
     }
+}
+
+enum class GestureShortcut(val storageKey: String, val label: String) {
+    TwoFingerDown("two_finger_down", "Two-finger swipe down"),
+    TwoFingerLeft("two_finger_left", "Two-finger swipe left"),
+    TwoFingerRight("two_finger_right", "Two-finger swipe right"),
+    ThreeFingerUp("three_finger_up", "Three-finger swipe up"),
+    ThreeFingerDown("three_finger_down", "Three-finger swipe down"),
+    ThreeFingerLeft("three_finger_left", "Three-finger swipe left"),
+    ThreeFingerRight("three_finger_right", "Three-finger swipe right");
 }
 
 enum class ScannerLens(val storageKey: String, val label: String) {
@@ -142,8 +152,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             prefs.edit().putInt(KEY_CHANGE_NOTIFICATION_CURSOR, value).apply()
         }
 
-    private val _gestureAction = MutableStateFlow(loadGestureAction())
-    val gestureAction: StateFlow<GestureAction> = _gestureAction.asStateFlow()
+    private val _gestureActions = MutableStateFlow(loadGestureActions())
+    val gestureActions: StateFlow<Map<GestureShortcut, GestureAction>> = _gestureActions.asStateFlow()
 
     private val _scannerLens = MutableStateFlow(loadScannerLens())
     val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
@@ -212,8 +222,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     }
 
     fun setGestureAction(action: GestureAction) {
-        prefs.edit().putString(KEY_GESTURE_ACTION, action.storageKey).apply()
-        _gestureAction.value = action
+        setGestureAction(GestureShortcut.TwoFingerDown, action)
+    }
+
+    fun setGestureAction(shortcut: GestureShortcut, action: GestureAction) {
+        prefs.edit().putString(gesturePreferenceKey(shortcut), action.storageKey).apply()
+        _gestureActions.value = _gestureActions.value + (shortcut to action)
     }
 
     fun setScannerLens(lens: ScannerLens) {
@@ -328,6 +342,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _credentials.value = NetBoxCredentials("", "")
         _offlineMode.value = false
         _printSettings.value = PrintSettings()
+        _gestureActions.value = defaultGestureActions()
         _hiddenFieldKeys.value = emptySet()
         _changeNotificationsEnabled.value = false
         _changeNotificationFilters.value = setOf(ChangeNotificationFilter.All.storageKey)
@@ -349,10 +364,32 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private fun loadLastSuccessfulSyncAt(): Long? =
         prefs.getLong(KEY_LAST_SUCCESSFUL_SYNC, 0L).takeIf { it > 0L }
 
-    private fun loadGestureAction(): GestureAction =
-        GestureAction.fromStorage(
-            prefs.getString(KEY_GESTURE_ACTION, GestureAction.GlobalSearch.storageKey)
-        )
+    private fun loadGestureActions(): Map<GestureShortcut, GestureAction> =
+        GestureShortcut.entries.associateWith { shortcut ->
+            val default =
+                if (shortcut == GestureShortcut.TwoFingerDown) {
+                    GestureAction.GlobalSearch
+                } else {
+                    GestureAction.Off
+                }
+            GestureAction.fromStorage(
+                prefs.getString(gesturePreferenceKey(shortcut), default.storageKey),
+                default,
+            )
+        }
+
+    private fun defaultGestureActions(): Map<GestureShortcut, GestureAction> =
+        GestureShortcut.entries.associateWith { shortcut ->
+            if (shortcut == GestureShortcut.TwoFingerDown) GestureAction.GlobalSearch
+            else GestureAction.Off
+        }
+
+    private fun gesturePreferenceKey(shortcut: GestureShortcut): String =
+        if (shortcut == GestureShortcut.TwoFingerDown) {
+            KEY_GESTURE_ACTION
+        } else {
+            "gesture_action_${shortcut.storageKey}"
+        }
 
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))

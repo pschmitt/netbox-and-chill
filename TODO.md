@@ -2955,21 +2955,25 @@ Status: not started.
 
 Move the Settings “Cached data” summary down so it sits directly above the Sync now button.
 
-- [ ] Move the Cached data row below the sync policy controls.
-- [ ] Keep cache counts and storage size unchanged.
-- [ ] Verify the Settings layout on the Mi Pad 4.
+- [x] Move the Cached data row below the sync policy controls.
+- [x] Keep cache counts and storage size unchanged.
+- [x] Verify the Settings layout on the Mi Pad 4.
 
-Status: not started.
+Status: **done**, 2026-08-01 - Mi Pad 4 showed Cached data directly above Sync now in the Sync
+category; remote lint/unit tests/debug build passed and the APK was installed update-in-place on
+all three devices.
 
 ## NBC-153: give change notifications their own Settings section
 
 Move “NetBox change notifications” out of the Sync section into a dedicated notification section.
 
-- [ ] Add a clearly titled notification section.
-- [ ] Move the notification switch and filter chooser into it.
-- [ ] Keep the setting behavior unchanged.
+- [x] Add a clearly titled notification section.
+- [x] Move the notification switch and filter chooser into it.
+- [x] Keep the setting behavior unchanged.
 
-Status: not started.
+Status: **done**, 2026-08-01 - moved into the dedicated Notifications settings category while
+preserving the existing switch and filter dialog behavior; remote checks and Mi Pad 4 verification
+are included with NBC-154.
 
 ## NBC-154: reorganize Settings into sections and gesture preferences
 
@@ -2977,9 +2981,12 @@ Make Settings a main category screen with sub-screens such as Connection, Sync, 
 Display. Move the two-finger swipe setting into Gestures, rename the section to “Gestures,” and
 add configurable three-finger up/down/left/right plus two-finger left/right actions.
 
-- [ ] Make the main Settings screen navigate to category sub-screens.
-- [ ] Move existing settings into the appropriate category screens.
-- [ ] Add the requested gesture action preferences.
-- [ ] Verify gesture navigation and persistence.
+- [x] Make the main Settings screen navigate to category sub-screens.
+- [x] Move existing settings into the appropriate category screens.
+- [x] Add the requested gesture action preferences.
+- [x] Verify gesture navigation and persistence.
 
-Status: not started.
+Status: **done**, 2026-08-01 - Mi Pad 4 showed the category index, opened Gestures, displayed all
+seven gesture preferences, preserved the existing two-finger-down Global search default, and
+persisted a temporary QR scanner selection before restoring the new two-finger-left preference to
+Off. Remote lint/unit tests/debug build passed; APK installed update-in-place on all three devices.

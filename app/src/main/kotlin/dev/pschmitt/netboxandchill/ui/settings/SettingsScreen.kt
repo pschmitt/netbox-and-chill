@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BatteryAlert
@@ -85,6 +86,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
+import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
@@ -103,6 +105,48 @@ private fun formatBytes(bytes: Long): String =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onBack: () -> Unit,
+    onCategoryClick: (SettingsCategory) -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
+            SettingsSectionHeader(
+                title = "Settings",
+                subtitle = "Choose a category to configure NetBox and Chill",
+            )
+            SettingsCategory.entries.forEach { category ->
+                ListItem(
+                    modifier = Modifier.clickable { onCategoryClick(category) },
+                    leadingContent = { Icon(category.icon, contentDescription = null) },
+                    headlineContent = { Text(category.title) },
+                    supportingContent = { Text(category.subtitle) },
+                    trailingContent = {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Open ${category.title} settings",
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsCategoryScreen(
+    category: SettingsCategory,
     onBack: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -124,7 +168,8 @@ fun SettingsScreen(
         viewModel.settingsRepository.changeNotificationsEnabled.collectAsStateWithLifecycle()
     val changeNotificationFilters by
         viewModel.settingsRepository.changeNotificationFilters.collectAsStateWithLifecycle()
-    val gestureAction by viewModel.settingsRepository.gestureAction.collectAsStateWithLifecycle()
+    val gestureActions by
+        viewModel.settingsRepository.gestureActions.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val hiddenFieldKeys by
@@ -142,7 +187,6 @@ fun SettingsScreen(
     var tokenAuthError by remember { mutableStateOf<String?>(null) }
     var tokenCopied by remember { mutableStateOf(false) }
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var gestureMenuExpanded by remember { mutableStateOf(false) }
     var scannerLensMenuExpanded by remember { mutableStateOf(false) }
     var hiddenFieldsDialogVisible by remember { mutableStateOf(false) }
     var changeNotificationsDialogVisible by remember { mutableStateOf(false) }
@@ -266,7 +310,7 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(category.title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -276,6 +320,8 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
+            when (category) {
+                SettingsCategory.Connection -> {
             SettingsSectionHeader(
                 title = "Connection",
                 subtitle = "The NetBox server and credentials used by this app",
@@ -363,22 +409,11 @@ fun SettingsScreen(
                     }
                 },
             )
+                }
+                SettingsCategory.Sync -> {
             SettingsSectionHeader(
                 title = "Sync",
                 subtitle = "Refresh cached NetBox data and control offline storage",
-            )
-            ListItem(
-                leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
-                headlineContent = { Text("Cached data") },
-                supportingContent = {
-                    Text(
-                        "$cachedDeviceCount devices · $cachedObjectCount other objects · " +
-                            "$cachedImageCount image records\n" +
-                            "$persistentCacheFiles downloaded files · ${formatBytes(persistentCacheBytes)}\n" +
-                            "Downloaded images and documents are kept in app storage for offline use " +
-                            "and are not temporary Android cache files."
-                    )
-                },
             )
             syncIssue?.let { issue ->
                 SyncIssueCard(
@@ -433,35 +468,6 @@ fun SettingsScreen(
                 },
             )
             ListItem(
-                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
-                headlineContent = { Text("NetBox change notifications") },
-                supportingContent = {
-                    Text(
-                        if (changeNotificationsEnabled) {
-                            selectedChangeNotificationSummary(changeNotificationFilters)
-                        } else {
-                            "Disabled by default; notify only about changes you choose"
-                        }
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = changeNotificationsEnabled,
-                        onCheckedChange = viewModel::setChangeNotificationsEnabled,
-                    )
-                },
-            )
-            if (changeNotificationsEnabled) {
-                OutlinedButton(
-                    onClick = { changeNotificationsDialogVisible = true },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                ) {
-                    Icon(Icons.Default.FilterList, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Choose change types")
-                }
-            }
-            ListItem(
                 leadingContent = { Icon(Icons.Default.BatteryAlert, contentDescription = null) },
                 headlineContent = { Text("Battery Saver") },
                 supportingContent = {
@@ -476,6 +482,19 @@ fun SettingsScreen(
                 },
                 trailingContent = {
                     Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
+                headlineContent = { Text("Cached data") },
+                supportingContent = {
+                    Text(
+                        "$cachedDeviceCount devices · $cachedObjectCount other objects · " +
+                            "$cachedImageCount image records\n" +
+                            "$persistentCacheFiles downloaded files · ${formatBytes(persistentCacheBytes)}\n" +
+                            "Downloaded images and documents are kept in app storage for offline use " +
+                            "and are not temporary Android cache files."
+                    )
                 },
             )
             Column(Modifier.padding(16.dp)) {
@@ -493,6 +512,8 @@ fun SettingsScreen(
                     Text(if (isSyncing) "Syncing…" else "Sync now")
                 }
             }
+                }
+                SettingsCategory.Display -> {
             SettingsSectionHeader(
                 title = "Display",
                 subtitle = "Choose which fields are shown by default on item pages",
@@ -536,46 +557,21 @@ fun SettingsScreen(
                     )
                 },
             )
-            ListItem(
-                leadingContent = { Icon(Icons.Default.TouchApp, contentDescription = null) },
-                headlineContent = { Text("Two-finger swipe down") },
-                supportingContent = { Text(gestureAction.label) },
-                trailingContent = {
-                    Box {
-                        IconButton(onClick = { gestureMenuExpanded = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Configure swipe action")
-                        }
-                        DropdownMenu(
-                            expanded = gestureMenuExpanded,
-                            onDismissRequest = { gestureMenuExpanded = false },
-                        ) {
-                            GestureAction.values().forEach { action ->
-                                DropdownMenuItem(
-                                    text = { Text(action.label) },
-                                    leadingIcon = {
-                                        Icon(
-                                            when (action) {
-                                                GestureAction.Off -> Icons.Default.Block
-                                                GestureAction.GlobalSearch -> Icons.Default.Search
-                                                GestureAction.Scanner -> Icons.Default.QrCodeScanner
-                                            },
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.setGestureAction(action)
-                                        gestureMenuExpanded = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-            )
+                }
+                SettingsCategory.Gestures -> {
             SettingsSectionHeader(
-                title = "Scanner and gestures",
+                title = "Gestures",
                 subtitle = "Set the camera and shortcut behavior for quick navigation",
             )
+            GestureShortcut.entries.forEach { shortcut ->
+                GestureShortcutRow(
+                    shortcut = shortcut,
+                    action = gestureActions[shortcut] ?: GestureAction.Off,
+                    onActionSelected = { action ->
+                        viewModel.setGestureAction(shortcut, action)
+                    },
+                )
+            }
             ListItem(
                 leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
                 headlineContent = { Text("Scanner default camera") },
@@ -610,6 +606,43 @@ fun SettingsScreen(
                     }
                 },
             )
+                }
+                SettingsCategory.Notifications -> {
+            SettingsSectionHeader(
+                title = "Notifications",
+                subtitle = "Choose which NetBox changes appear as alerts",
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
+                headlineContent = { Text("NetBox change notifications") },
+                supportingContent = {
+                    Text(
+                        if (changeNotificationsEnabled) {
+                            selectedChangeNotificationSummary(changeNotificationFilters)
+                        } else {
+                            "Disabled by default; notify only about changes you choose"
+                        }
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = changeNotificationsEnabled,
+                        onCheckedChange = viewModel::setChangeNotificationsEnabled,
+                    )
+                },
+            )
+            if (changeNotificationsEnabled) {
+                OutlinedButton(
+                    onClick = { changeNotificationsDialogVisible = true },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                ) {
+                    Icon(Icons.Default.FilterList, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Choose change types")
+                }
+            }
+                }
+                SettingsCategory.Actions -> {
             SettingsSectionHeader(
                 title = "Actions",
                 subtitle = "Disconnect this NetBox instance",
@@ -631,6 +664,8 @@ fun SettingsScreen(
                     Text("Disconnect")
                 }
             }
+                }
+                SettingsCategory.About -> {
             SettingsSectionHeader(
                 title = "About",
                 subtitle = "Application and build information",
@@ -650,6 +685,8 @@ fun SettingsScreen(
                 // find it. Kept as a lone reference so it stays its own dex string constant.
                 supportingContent = { Text(BuildConfig.GIT_REVISION) },
             )
+                }
+            }
         }
     }
 }
@@ -668,6 +705,51 @@ private fun SettingsSectionHeader(title: String, subtitle: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+@Composable
+private fun GestureShortcutRow(
+    shortcut: GestureShortcut,
+    action: GestureAction,
+    onActionSelected: (GestureAction) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ListItem(
+        leadingContent = { Icon(Icons.Default.TouchApp, contentDescription = null) },
+        headlineContent = { Text(shortcut.label) },
+        supportingContent = { Text(action.label) },
+        trailingContent = {
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Configure ${shortcut.label}")
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    GestureAction.entries.forEach { candidate ->
+                        DropdownMenuItem(
+                            text = { Text(candidate.label) },
+                            leadingIcon = {
+                                Icon(
+                                    when (candidate) {
+                                        GestureAction.Off -> Icons.Default.Block
+                                        GestureAction.GlobalSearch -> Icons.Default.Search
+                                        GestureAction.Scanner -> Icons.Default.QrCodeScanner
+                                    },
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                onActionSelected(candidate)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
 }
 
 private fun selectedChangeNotificationSummary(filters: Set<String>): String {

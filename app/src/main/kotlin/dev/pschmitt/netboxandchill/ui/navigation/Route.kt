@@ -19,6 +19,11 @@ sealed interface Route {
 
     @Serializable data object Settings : Route
 
+    @Serializable
+    data class SettingsCategory(
+        val category: dev.pschmitt.netboxandchill.ui.settings.SettingsCategory
+    ) : Route
+
     /** Model picker for the metadata-driven create form, reachable from the global bottom bar. */
     @Serializable data object Add : Route
 

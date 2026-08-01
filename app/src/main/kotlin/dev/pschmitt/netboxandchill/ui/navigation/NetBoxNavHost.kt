@@ -22,6 +22,7 @@ import dev.pschmitt.netboxandchill.ui.onboarding.OnboardingScreen
 import dev.pschmitt.netboxandchill.ui.pending.PendingChangesScreen
 import dev.pschmitt.netboxandchill.ui.scanner.ScannerScreen
 import dev.pschmitt.netboxandchill.ui.search.GlobalSearchScreen
+import dev.pschmitt.netboxandchill.ui.settings.SettingsCategoryScreen
 import dev.pschmitt.netboxandchill.ui.settings.SettingsScreen
 import dev.pschmitt.netboxandchill.ui.sync.SyncSummaryScreen
 
@@ -292,6 +293,16 @@ fun NetBoxNavHost(
         }
         composable<Route.Settings> {
             SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onCategoryClick = { category ->
+                    navController.navigate(Route.SettingsCategory(category))
+                },
+            )
+        }
+        composable<Route.SettingsCategory> { backStackEntry ->
+            val route: Route.SettingsCategory = backStackEntry.toRoute()
+            SettingsCategoryScreen(
+                category = route.category,
                 onBack = { navController.popBackStack() },
                 onLoggedOut = {
                     navController.navigate(Route.Onboarding) { popUpTo(0) { inclusive = true } }

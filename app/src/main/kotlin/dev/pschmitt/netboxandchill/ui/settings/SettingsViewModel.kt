@@ -9,6 +9,7 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
+import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
@@ -124,6 +125,10 @@ constructor(
 
     fun setGestureAction(action: GestureAction) {
         settingsRepository.setGestureAction(action)
+    }
+
+    fun setGestureAction(shortcut: GestureShortcut, action: GestureAction) {
+        settingsRepository.setGestureAction(shortcut, action)
     }
 
     fun setScannerLens(lens: ScannerLens) {
