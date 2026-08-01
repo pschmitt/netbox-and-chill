@@ -2818,3 +2818,17 @@ focused field-edit workflow as the other device fields.
 
 Status: **done**, 2026-08-01 - long-pressing the cached Inventory chip on Mi Pad 4 opened the
 existing Status action dialog and then the focused Edit Status editor with Inventory populated.
+
+## NBC-142: make the print dialog scrollable
+
+The label-print dialog must keep all controls reachable on short phone/tablet windows, including
+the vertical-label toggle near the bottom of the form.
+
+- [x] Make the dialog content vertically scrollable while keeping its action buttons available.
+- [x] Merge paired and nearby printers into one deduplicated picker, retaining inline pairing for
+  unbonded discoveries.
+- [x] Verify that the vertical-label control is reachable on PX5.
+
+Status: **done**, 2026-08-01 - remote lint/tests/build passed; the new APK was installed on all
+three devices, and PX5's print dialog exposed a scrollable content area with the Vertical label
+text control reachable after an upward swipe. PX5 also showed one deduplicated printer picker.

@@ -14,6 +14,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Print
@@ -77,6 +80,13 @@ data class PrintLabelRequest(
     val longLabelText: String? = null,
 )
 
+private data class PrinterOption(
+    val name: String,
+    val address: String,
+    val device: BluetoothDevice,
+    val pairedPrinter: PairedPrinter?,
+)
+
 @Composable
 fun PrintLabelDialog(
     request: PrintLabelRequest,
@@ -113,6 +123,32 @@ fun PrintLabelDialog(
     }
     var qrSizeMenuExpanded by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
+    val pairedAddresses = printers.mapTo(mutableSetOf()) { it.address }
+    val printerOptions =
+        buildList {
+            printers.forEach { printer ->
+                add(
+                    PrinterOption(
+                        name = printer.name,
+                        address = printer.address,
+                        device = printer.device,
+                        pairedPrinter = printer,
+                    )
+                )
+            }
+            nearbyPrinters
+                .filterNot { it.address in pairedAddresses }
+                .forEach { printer ->
+                    add(
+                        PrinterOption(
+                            name = printer.name,
+                            address = printer.address,
+                            device = printer.device,
+                            pairedPrinter = null,
+                        )
+                    )
+                }
+        }
     val copyCount = copiesText.toIntOrNull()?.takeIf { it in 1..9 }
     val previewText =
         if (longLabel) request.longLabelText ?: request.labelText else request.labelText
@@ -263,7 +299,10 @@ fun PrintLabelDialog(
         icon = { Icon(Icons.Default.Print, contentDescription = null) },
         title = { Text("Print device label") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 LabelPreview(previewBitmap)
                 if (!hasPermission) {
                     Icon(Icons.Default.Security, contentDescription = null)
@@ -299,27 +338,68 @@ fun PrintLabelDialog(
                         Text("Turn on Bluetooth")
                     }
                 } else {
-                    if (printers.isEmpty()) {
+                    if (printerOptions.isEmpty()) {
                         Icon(Icons.Default.Bluetooth, contentDescription = null)
-                        Text("No paired Brother P-touch printer was found yet.")
+                        Text("No Brother P-touch printer was found yet.")
                     } else {
-                        Text("Choose a paired printer", style = MaterialTheme.typography.titleSmall)
-                        LazyColumn(modifier = Modifier.height(140.dp)) {
-                            items(printers, key = { it.address }) { printer ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    RadioButton(
-                                        selected = selected?.address == printer.address,
-                                        onClick = { selected = printer },
-                                    )
-                                    Column {
-                                        Text(printer.name)
-                                        Text(
-                                            printer.address,
-                                            style = MaterialTheme.typography.bodySmall,
+                        Text(
+                            "Available Brother printers",
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        LazyColumn(modifier = Modifier.height(180.dp)) {
+                            items(printerOptions, key = { it.address }) { option ->
+                                val pairedPrinter = option.pairedPrinter
+                                if (pairedPrinter != null) {
+                                    Row(
+                                        modifier =
+                                            Modifier.fillMaxWidth().clickable {
+                                                selected = pairedPrinter
+                                            },
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(
+                                            selected = selected?.address == option.address,
+                                            onClick = { selected = pairedPrinter },
                                         )
+                                        Column {
+                                            Text(option.name)
+                                            Text(
+                                                option.address,
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(Icons.Default.Bluetooth, contentDescription = null)
+                                        Spacer(Modifier.width(8.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(option.name)
+                                            Text(
+                                                option.address,
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
+                                        OutlinedButton(
+                                            onClick = {
+                                                pairingAddress = option.address
+                                                val started =
+                                                    runCatching { option.device.createBond() }
+                                                        .getOrDefault(false)
+                                                if (!started) pairingAddress = null
+                                            },
+                                            enabled = pairingAddress == null,
+                                        ) {
+                                            Icon(Icons.Default.Bluetooth, contentDescription = null)
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                if (pairingAddress == option.address) "Pairing…"
+                                                else "Pair"
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -339,48 +419,6 @@ fun PrintLabelDialog(
                             }
                             Spacer(Modifier.width(8.dp))
                             Text("Searching for nearby Brother printers…")
-                        }
-                    }
-                    if (nearbyPrinters.isNotEmpty()) {
-                        Text("Nearby printers", style = MaterialTheme.typography.titleSmall)
-                        LazyColumn(modifier = Modifier.height(120.dp)) {
-                            items(nearbyPrinters, key = { it.address }) { printer ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(Icons.Default.Bluetooth, contentDescription = null)
-                                    Spacer(Modifier.width(8.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(printer.name)
-                                        Text(
-                                            printer.address,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                    }
-                                    if (printers.any { it.address == printer.address }) {
-                                        Text("Paired", style = MaterialTheme.typography.labelMedium)
-                                    } else {
-                                        OutlinedButton(
-                                            onClick = {
-                                                pairingAddress = printer.address
-                                                val started =
-                                                    runCatching { printer.device.createBond() }
-                                                        .getOrDefault(false)
-                                                if (!started) pairingAddress = null
-                                            },
-                                            enabled = pairingAddress == null,
-                                        ) {
-                                            Icon(Icons.Default.Bluetooth, contentDescription = null)
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                if (pairingAddress == printer.address) "Pairing…"
-                                                else "Pair"
-                                            )
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                     TextButton(onClick = ::reloadPrinters) {
