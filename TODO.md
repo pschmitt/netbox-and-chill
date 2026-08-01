@@ -1903,8 +1903,9 @@ supports them.
 - [x] Keep zoom controls usable on devices without multiple rear lenses.
 
 Status: mostly done, 2026-08-01 - pinch zoom and cross-camera clamping are implemented; remote
-lint/tests/debug build passed and the build was installed on Mi Pad 4. Physical pinch/lens testing
-and a PX5 retry remain (PX5 went offline during installation).
+lint/tests/debug build passed and the build is installed on Mi Pad 4 and PX5. PX5 exposes `0.6×`
+and `1×` rear choices and the selected lens control switches correctly; physical pinch-gesture
+verification remains open.
 
 ## NBC-73: reorder bottom navigation and add a Settings shortcut
 
