@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storage
@@ -326,6 +327,10 @@ fun SettingsScreen(
                     }
                 },
             )
+            SettingsSectionHeader(
+                title = "Sync",
+                subtitle = "Refresh cached NetBox data and control offline storage",
+            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
                 headlineContent = { Text("Cached data") },
@@ -366,6 +371,17 @@ fun SettingsScreen(
                     Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
                 },
             )
+            Column(Modifier.padding(16.dp)) {
+                Button(
+                    onClick = viewModel::syncNow,
+                    enabled = !isSyncing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (isSyncing) "Syncing…" else "Sync now")
+                }
+            }
             SettingsSectionHeader(
                 title = "Display",
                 subtitle = "Choose which fields are shown by default on item pages",
@@ -375,13 +391,26 @@ fun SettingsScreen(
                 headlineContent = { Text("Hidden fields") },
                 supportingContent = {
                     Text(
-                        if (hiddenFieldKeys.isEmpty()) "None configured"
-                        else hiddenFieldKeys.sorted().joinToString(", ")
+                        if (hiddenFieldKeys.isEmpty()) {
+                            "No fields hidden by default"
+                        } else {
+                            val countLabel = if (hiddenFieldKeys.size == 1) "field" else "fields"
+                            "$countLabel hidden by default · ${hiddenFieldKeys.sorted().joinToString(", ")}"
+                        }
                     )
                 },
                 trailingContent = {
-                    IconButton(onClick = { hiddenFieldsDialogVisible = true }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Configure hidden fields")
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        if (hiddenFieldKeys.isNotEmpty()) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Hidden fields configured",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        IconButton(onClick = { hiddenFieldsDialogVisible = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Configure hidden fields")
+                        }
                     }
                 },
             )
@@ -456,19 +485,9 @@ fun SettingsScreen(
             )
             SettingsSectionHeader(
                 title = "Actions",
-                subtitle = "Refresh the offline cache or disconnect this NetBox instance",
+                subtitle = "Disconnect this NetBox instance",
             )
             Column(Modifier.padding(16.dp)) {
-                Button(
-                    onClick = viewModel::syncNow,
-                    enabled = !isSyncing,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(if (isSyncing) "Syncing…" else "Sync now")
-                }
-                Spacer(Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = {
                         viewModel.logOut()

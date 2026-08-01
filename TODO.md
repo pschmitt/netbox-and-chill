@@ -1959,6 +1959,17 @@ type screens and extending the generic model screens to every endpoint that expo
 
 Status: not started, 2026-08-01 - backlog item captured.
 
+## NBC-77: hide empty related-item count rows
+
+Item detail pages should show related-object count rows only when the count is greater than zero,
+so empty relationships such as front-port templates do not add visual noise.
+
+- [ ] Filter zero-count related rows from item views.
+- [ ] Keep the bottom-sheet/detail navigation for positive counts unchanged.
+- [ ] Verify across device, rack, and generic item pages.
+
+Status: not started, 2026-08-01 - backlog item captured.
+
 ## NBC-78: consolidate offline-mode sync status
 
 When offline mode is enabled, replace repeated per-item sync status messages with one compact
@@ -1970,13 +1981,50 @@ dashboard status showing that offline mode is enabled and when the last successf
 
 Status: not started, 2026-08-01 - backlog item captured.
 
-## NBC-77: hide empty related-item count rows
+## NBC-79: group sync controls in Settings
 
-Item detail pages should show related-object count rows only when the count is greater than zero,
-so empty relationships such as front-port templates do not add visual noise.
+Settings should have one dedicated Sync section containing the cache summary, sync issue/retry
+surface, attachment and offline switches, and the Sync now action.
 
-- [ ] Filter zero-count related rows from item views.
-- [ ] Keep the bottom-sheet/detail navigation for positive counts unchanged.
-- [ ] Verify across device, rack, and generic item pages.
+- [x] Move all sync-related controls under a dedicated Sync section.
+- [x] Keep Disconnect separate under Actions.
+- [x] Verify the grouped layout on a physical device.
+
+Status: **done**, 2026-08-01 - remote ktfmt/tests passed; deployed with the next debug build to all
+three devices, and the Mi Pad 4 Settings screen was inspected after installation.
+
+## NBC-80: show Hidden fields completion state
+
+The Hidden fields setting should make it immediately clear whether any fields are configured,
+instead of showing only an opaque list of preference keys.
+
+- [x] Show a clear configured/empty completion state.
+- [x] Keep the configured field summary understandable.
+- [x] Verify the Settings row on a physical device.
+
+Status: **done**, 2026-08-01 - remote ktfmt/tests passed; the row now shows an explicit empty or
+configured count state with a completion icon, and it was inspected on the Mi Pad 4.
+
+## NBC-81: edit links between NetBox items
+
+Item pages should allow changing writable relationships, such as moving a device to another rack or
+changing its device type, while preserving the cache-first and offline-safe behavior.
+
+- [ ] Add edit actions for device relationships such as rack and device type.
+- [ ] Extend relationship editing to other supported writable item types.
+- [ ] Validate choices and refresh the updated item and related caches after saving.
+- [ ] Verify edits, errors, and offline behavior on a physical device.
+
+Status: not started, 2026-08-01 - backlog item captured.
+
+## NBC-82: tab device detail sections
+
+The device view should organize secondary sections into tabs, including interfaces, power ports,
+rear ports, and other related device components.
+
+- [ ] Add tabs for the device's secondary sections and related objects.
+- [ ] Keep counts, previews, and existing navigation available within the relevant tab.
+- [ ] Preserve hidden-field handling and cache-first refresh behavior across tabs.
+- [ ] Verify the tab layout and navigation on a physical device.
 
 Status: not started, 2026-08-01 - backlog item captured.
