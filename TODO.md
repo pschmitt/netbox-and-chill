@@ -3090,11 +3090,11 @@ Zenfone, and the APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4
 The Sync settings screen should no longer display the Battery Saver row because battery-saver
 handling is automatic and the row provides no useful control.
 
-- [ ] Remove the Battery Saver row from Sync settings.
-- [ ] Preserve automatic battery-saver sync handling.
-- [ ] Verify the Sync screen no longer shows the row.
+- [x] Remove the Battery Saver row from Sync settings.
+- [x] Preserve automatic battery-saver sync handling.
+- [x] Verify the Sync screen no longer shows the row.
 
-Status: not started.
+Status: in progress.
 
 ## NBC-163: add project links to About settings
 

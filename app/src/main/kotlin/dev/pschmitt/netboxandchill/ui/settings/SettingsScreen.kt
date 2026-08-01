@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.CheckCircle
@@ -501,13 +500,6 @@ fun SettingsCategoryScreen(
                         onCheckedChange = viewModel::setSyncWhileRoaming,
                         enabled = !syncOnlyOnWifi,
                     )
-                },
-            )
-            ListItem(
-                leadingContent = { Icon(Icons.Default.BatteryAlert, contentDescription = null) },
-                headlineContent = { Text("Battery Saver") },
-                supportingContent = {
-                    Text("Sync pauses automatically while Android Battery Saver is enabled")
                 },
             )
             ListItem(
