@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import timber.log.Timber
 
 /**
  * Cache-first data for the dashboard/home screen (NBC-9): NetBox's changelog, the signed-in user's
@@ -33,6 +34,7 @@ constructor(
     private val bookmarkDao: BookmarkDao,
     private val objectChangeDao: ObjectChangeDao,
     private val statDao: DashboardStatDao,
+    private val changeNotificationRepository: ChangeNotificationRepository,
 ) {
     fun observeBookmarks(): Flow<List<BookmarkEntity>> = bookmarkDao.observeAll()
 
@@ -81,6 +83,8 @@ constructor(
                 "api/core/object-changes/",
                 mapOf("limit" to "25", "ordering" to "-time"),
             )
+        runCatching { changeNotificationRepository.process(page.results) }
+            .onFailure { Timber.w(it, "Couldn't process NetBox change notifications") }
         val entities = page.results.mapNotNull { it.toObjectChangeEntity() }
         objectChangeDao.replaceAll(entities)
         entities.size

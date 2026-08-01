@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,8 +32,10 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
@@ -46,6 +49,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,6 +83,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
+import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
@@ -115,6 +120,10 @@ fun SettingsScreen(
     val syncOnlyOnWifi by viewModel.settingsRepository.syncOnlyOnWifi.collectAsStateWithLifecycle()
     val syncWhileRoaming by
         viewModel.settingsRepository.syncWhileRoaming.collectAsStateWithLifecycle()
+    val changeNotificationsEnabled by
+        viewModel.settingsRepository.changeNotificationsEnabled.collectAsStateWithLifecycle()
+    val changeNotificationFilters by
+        viewModel.settingsRepository.changeNotificationFilters.collectAsStateWithLifecycle()
     val gestureAction by viewModel.settingsRepository.gestureAction.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
@@ -136,6 +145,7 @@ fun SettingsScreen(
     var gestureMenuExpanded by remember { mutableStateOf(false) }
     var scannerLensMenuExpanded by remember { mutableStateOf(false) }
     var hiddenFieldsDialogVisible by remember { mutableStateOf(false) }
+    var changeNotificationsDialogVisible by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
 
     val biometricPrompt =
@@ -241,6 +251,14 @@ fun SettingsScreen(
             onAdd = viewModel::addHiddenField,
             onRemove = viewModel::removeHiddenField,
             onDismiss = { hiddenFieldsDialogVisible = false },
+        )
+    }
+
+    if (changeNotificationsDialogVisible) {
+        ChangeNotificationsDialog(
+            filters = changeNotificationFilters,
+            onFilterChanged = viewModel::setChangeNotificationFilter,
+            onDismiss = { changeNotificationsDialogVisible = false },
         )
     }
 
@@ -414,6 +432,35 @@ fun SettingsScreen(
                     )
                 },
             )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
+                headlineContent = { Text("NetBox change notifications") },
+                supportingContent = {
+                    Text(
+                        if (changeNotificationsEnabled) {
+                            selectedChangeNotificationSummary(changeNotificationFilters)
+                        } else {
+                            "Disabled by default; notify only about changes you choose"
+                        }
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = changeNotificationsEnabled,
+                        onCheckedChange = viewModel::setChangeNotificationsEnabled,
+                    )
+                },
+            )
+            if (changeNotificationsEnabled) {
+                OutlinedButton(
+                    onClick = { changeNotificationsDialogVisible = true },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                ) {
+                    Icon(Icons.Default.FilterList, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Choose change types")
+                }
+            }
             ListItem(
                 leadingContent = { Icon(Icons.Default.BatteryAlert, contentDescription = null) },
                 headlineContent = { Text("Battery Saver") },
@@ -621,6 +668,66 @@ private fun SettingsSectionHeader(title: String, subtitle: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+private fun selectedChangeNotificationSummary(filters: Set<String>): String {
+    val selected =
+        if (ChangeNotificationFilter.All.storageKey in filters) {
+            listOf(ChangeNotificationFilter.All.label)
+        } else {
+            ChangeNotificationFilter.entries
+                .filter { it.storageKey in filters }
+                .map { it.label }
+        }
+    return if (selected.isEmpty()) {
+        "No change types selected"
+    } else {
+        "Notify about " + selected.joinToString(", ")
+    }
+}
+
+@Composable
+private fun ChangeNotificationsDialog(
+    filters: Set<String>,
+    onFilterChanged: (ChangeNotificationFilter, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("NetBox change notifications") },
+        text = {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                Text(
+                    "Choose which new changes should appear as a silent notification when the app is in the background.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(8.dp))
+                ChangeNotificationFilter.entries.forEach { filter ->
+                    val checked =
+                        if (ChangeNotificationFilter.All.storageKey in filters) {
+                            filter == ChangeNotificationFilter.All
+                        } else {
+                            filter.storageKey in filters
+                        }
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth().clickable {
+                                onFilterChanged(filter, !checked)
+                            },
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = checked,
+                            onCheckedChange = { onFilterChanged(filter, it) },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(filter.label)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+    )
 }
 
 @Composable

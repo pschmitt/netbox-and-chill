@@ -2851,12 +2851,15 @@ Users should be able to opt into notifications about changes in NetBox. Notifica
 disabled by default and configurable by change type, from specific events such as a new device or
 deleted cable through an all-changes option.
 
-- [ ] Add a disabled-by-default notification preference.
-- [ ] Let users select individual NetBox change types or all changes.
-- [ ] Detect and notify about matching changes without blocking normal sync.
-- [ ] Verify notification filtering and the default-off behavior.
+- [x] Add a disabled-by-default notification preference.
+- [x] Let users select individual NetBox change types or all changes.
+- [x] Detect and notify about matching changes without blocking normal sync.
+- [x] Verify notification filtering and the default-off behavior.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote lint, unit tests, and debug build passed; Mi Pad 4 showed the
+default-off setting, the full filter chooser, and was returned to the disabled state. Change
+notifications use newer cached object-change records, post silently only in the background, and
+never block the normal sync path.
 
 ## NBC-145: reconcile offline-created items
 
@@ -2873,3 +2876,58 @@ uploaded and reconciled.
 - [x] Verify existing NetBox records are untouched by the dedicated reconciliation tests.
 
 Status: **done**, 2026-08-01 - remote ktfmt, unit tests, and debug build passed; disposable API create/edit/delete verification used a dedicated NBC-145 fixture, and APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
+
+## NBC-146: filter global search by object type
+
+Global search should recognize an object-type prefix while the user is typing, offer a completion
+such as `tena` → Tenant, and constrain results to the selected NetBox object type.
+
+- [ ] Recognize known object-type prefixes and show completion suggestions.
+- [ ] Apply a selected type filter while preserving the normal free-text query.
+- [ ] Keep type-filtered search cache-first and usable offline.
+- [ ] Verify suggestions, filtering, and clearing the filter on the Mi Pad 4.
+
+Status: not started.
+
+## NBC-147: hide Settings from the phone navbar
+
+Keep the Settings destination in the tablet navigation rail, but remove it from the bottom
+navigation bar on phones.
+
+- [ ] Hide the Settings item from phone bottom navigation.
+- [ ] Keep Settings available in tablet navigation.
+- [ ] Verify both navigation layouts on the Mi Pad 4.
+
+Status: not started.
+
+## NBC-148: find devices by IP and MAC address
+
+Global search should surface the owning device when the query matches an interface IP address or
+MAC address, not only the device name or other primary text.
+
+- [ ] Match cached interface IP and MAC address data.
+- [ ] Surface the owning device in global-search results.
+- [ ] Verify IP and MAC searches remain cache-first.
+
+Status: not started.
+
+## NBC-149: show object-type badges in global search
+
+Global-search results should visibly identify the matched NetBox object type with a compact badge.
+
+- [ ] Add an object-type badge to each global-search result.
+- [ ] Keep badges consistent with the directory/sidebar object-type icons and labels.
+- [ ] Verify badges do not disrupt result navigation or cached search behavior.
+
+Status: not started.
+
+## NBC-150: show asset-tag badges in search and device lists
+
+Global search, and device list rows where appropriate, should visibly surface an item's asset tag
+as a compact badge.
+
+- [ ] Add asset-tag badges to global-search results when present.
+- [ ] Add asset-tag badges to device list rows when present.
+- [ ] Verify badge layout and cached rendering.
+
+Status: not started.

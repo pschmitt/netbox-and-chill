@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
+import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
@@ -111,6 +112,14 @@ constructor(
     fun setSyncWhileRoaming(enabled: Boolean) {
         settingsRepository.setSyncWhileRoaming(enabled)
         syncScheduler.schedulePeriodic()
+    }
+
+    fun setChangeNotificationsEnabled(enabled: Boolean) {
+        settingsRepository.setChangeNotificationsEnabled(enabled)
+    }
+
+    fun setChangeNotificationFilter(filter: ChangeNotificationFilter, enabled: Boolean) {
+        settingsRepository.setChangeNotificationFilter(filter, enabled)
     }
 
     fun setGestureAction(action: GestureAction) {

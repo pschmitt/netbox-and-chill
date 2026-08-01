@@ -16,6 +16,7 @@ import androidx.work.ForegroundInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.pschmitt.netboxandchill.MainActivity
 import dev.pschmitt.netboxandchill.R
+import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationEvent
 import dev.pschmitt.netboxandchill.data.repository.ReconciliationSummary
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -199,6 +200,45 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
         NotificationManagerCompat.from(context).notify(RECONCILIATION_NOTIFICATION_ID, notification)
     }
 
+    /** Posts optional change alerts only while the app is backgrounded, using the silent channel. */
+    fun notifyNetBoxChanges(events: List<ChangeNotificationEvent>) {
+        if (events.isEmpty() || appInForeground || !notificationsAllowed()) return
+        val details =
+            events.take(MAX_CHANGE_DETAILS).joinToString("\n") {
+                "\${it.actionLabel}: \${it.objectRepr}"
+            } +
+                if (events.size > MAX_CHANGE_DETAILS) {
+                    "\n…and \${events.size - MAX_CHANGE_DETAILS} more"
+                } else {
+                    ""
+                }
+        val countLabel =
+            if (events.size == 1) "1 matching change" else "\${events.size} matching changes"
+        val openAppIntent =
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        val contentIntent =
+            PendingIntent.getActivity(
+                context,
+                CHANGE_NOTIFICATION_ID,
+                openAppIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        val notification =
+            NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_sync_problem)
+                .setContentTitle("NetBox changes detected")
+                .setContentText(countLabel)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(details))
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(true)
+                .setContentIntent(contentIntent)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
+        NotificationManagerCompat.from(context).notify(CHANGE_NOTIFICATION_ID, notification)
+    }
+
     private fun notificationsAllowed(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(
@@ -237,6 +277,8 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
         private const val LEGACY_CHANNEL_ID = "background_sync"
         private const val NOTIFICATION_ID = 1001
         private const val RECONCILIATION_NOTIFICATION_ID = 1002
+        private const val CHANGE_NOTIFICATION_ID = 1003
+        private const val MAX_CHANGE_DETAILS = 8
     }
 }
 

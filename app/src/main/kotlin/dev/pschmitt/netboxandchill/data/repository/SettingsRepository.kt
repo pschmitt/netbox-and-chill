@@ -126,6 +126,22 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _syncWhileRoaming = MutableStateFlow(prefs.getBoolean(KEY_SYNC_WHILE_ROAMING, true))
     val syncWhileRoaming: StateFlow<Boolean> = _syncWhileRoaming.asStateFlow()
 
+    private val _changeNotificationsEnabled =
+        MutableStateFlow(prefs.getBoolean(KEY_CHANGE_NOTIFICATIONS_ENABLED, false))
+    val changeNotificationsEnabled: StateFlow<Boolean> = _changeNotificationsEnabled.asStateFlow()
+
+    private val _changeNotificationFilters =
+        MutableStateFlow(loadChangeNotificationFilters())
+    val changeNotificationFilters: StateFlow<Set<String>> =
+        _changeNotificationFilters.asStateFlow()
+
+    /** Highest object-change id seen during a changelog refresh, used to avoid historical spam. */
+    var changeNotificationCursor: Int
+        get() = prefs.getInt(KEY_CHANGE_NOTIFICATION_CURSOR, 0)
+        private set(value) {
+            prefs.edit().putInt(KEY_CHANGE_NOTIFICATION_CURSOR, value).apply()
+        }
+
     private val _gestureAction = MutableStateFlow(loadGestureAction())
     val gestureAction: StateFlow<GestureAction> = _gestureAction.asStateFlow()
 
@@ -166,6 +182,33 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setSyncWhileRoaming(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_WHILE_ROAMING, enabled).apply()
         _syncWhileRoaming.value = enabled
+    }
+
+    fun setChangeNotificationsEnabled(enabled: Boolean) {
+        var filters = _changeNotificationFilters.value
+        if (enabled && filters.isEmpty()) {
+            filters = setOf(ChangeNotificationFilter.All.storageKey)
+            persistChangeNotificationFilters(filters)
+        }
+        prefs.edit().putBoolean(KEY_CHANGE_NOTIFICATIONS_ENABLED, enabled).apply()
+        _changeNotificationsEnabled.value = enabled
+    }
+
+    fun setChangeNotificationFilter(filter: ChangeNotificationFilter, enabled: Boolean) {
+        val current = _changeNotificationFilters.value
+        val updated =
+            when {
+                filter == ChangeNotificationFilter.All && enabled ->
+                    setOf(ChangeNotificationFilter.All.storageKey)
+                filter == ChangeNotificationFilter.All -> current - filter.storageKey
+                enabled -> (current - ChangeNotificationFilter.All.storageKey) + filter.storageKey
+                else -> current - filter.storageKey
+            }
+        persistChangeNotificationFilters(updated)
+    }
+
+    fun recordChangeNotificationCursor(id: Int) {
+        if (id > changeNotificationCursor) changeNotificationCursor = id
     }
 
     fun setGestureAction(action: GestureAction) {
@@ -286,6 +329,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _offlineMode.value = false
         _printSettings.value = PrintSettings()
         _hiddenFieldKeys.value = emptySet()
+        _changeNotificationsEnabled.value = false
+        _changeNotificationFilters.value = setOf(ChangeNotificationFilter.All.storageKey)
         clearSyncIssue()
     }
 
@@ -322,6 +367,17 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             )
             .normalized()
 
+    private fun loadChangeNotificationFilters(): Set<String> {
+        val stored = prefs.getStringSet(KEY_CHANGE_NOTIFICATION_FILTERS, null)
+        if (stored == null) return setOf(ChangeNotificationFilter.All.storageKey)
+        return stored.mapNotNull { ChangeNotificationFilter.fromStorage(it)?.storageKey }.toSet()
+    }
+
+    private fun persistChangeNotificationFilters(filters: Set<String>) {
+        prefs.edit().putStringSet(KEY_CHANGE_NOTIFICATION_FILTERS, filters).apply()
+        _changeNotificationFilters.value = filters
+    }
+
     private fun loadHiddenFieldKeys(): Set<String> =
         prefs
             .getStringSet(KEY_HIDDEN_FIELDS, null)
@@ -357,6 +413,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"
         const val KEY_SYNC_WHILE_ROAMING = "sync_while_roaming"
+        const val KEY_CHANGE_NOTIFICATIONS_ENABLED = "change_notifications_enabled"
+        const val KEY_CHANGE_NOTIFICATION_FILTERS = "change_notification_filters"
+        const val KEY_CHANGE_NOTIFICATION_CURSOR = "change_notification_cursor"
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
         const val KEY_PRINT_INVERT_COLORS = "print_invert_colors"
