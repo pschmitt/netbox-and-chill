@@ -3166,11 +3166,14 @@ Mi Pad 4, and PX5.
 Pinned item types on the Add screen should remain visible at the top while the rest of the list
 scrolls, with at most five pinned types.
 
-- [ ] Keep the pinned section sticky while scrolling item types.
-- [ ] Limit pinned item types to five.
-- [ ] Preserve pin/unpin behavior and verify the Add screen layout.
+- [x] Keep the pinned section sticky while scrolling item types.
+- [x] Limit pinned item types to five.
+- [x] Preserve pin/unpin behavior and verify the Add screen layout.
 
-Status: not started.
+Status: **done**, 2026-08-01 - pinned types are rendered in a fixed panel above the scrolling
+item-type list, preference updates are capped at five, remote ktfmt/unit tests/debug build passed,
+and Mi Pad 4 showed the pinned section remaining visible after scrolling. APK installed
+update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-168: use a floating Add action on list screens
 

@@ -104,7 +104,7 @@ fun AddItemScreen(
                 )
                 .map { it.endpointPath }
         )
-    }
+    }.distinct().take(MAX_PINNED_ITEM_TYPES)
     val pinnedModels = pinnedEndpoints.mapNotNull { endpoint ->
         filteredModels.firstOrNull { it.endpointPath == endpoint }
     }
@@ -167,16 +167,14 @@ fun AddItemScreen(
                     modifier = Modifier.fillMaxSize().padding(24.dp),
                 )
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
-                    if (pinnedModels.isNotEmpty()) {
-                        item {
-                            NetBoxSectionHeader(
-                                icon = AppIcons.forAppKey("core"),
-                                title = "Pinned",
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            )
-                        }
-                        items(pinnedModels, key = { "pinned:${it.endpointPath}" }) { model ->
+                if (pinnedModels.isNotEmpty()) {
+                    Column {
+                        NetBoxSectionHeader(
+                            icon = AppIcons.forAppKey("core"),
+                            title = "Pinned",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                        pinnedModels.forEach { model ->
                             AddModelRow(
                                 model = model,
                                 onModelClick = onModelClick,
@@ -184,12 +182,22 @@ fun AddItemScreen(
                             )
                         }
                     }
+                }
+                LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
+                    if (pinnedModels.isEmpty()) {
+                        item {
+                            NetBoxSectionHeader(
+                                icon = AppIcons.forAppKey("core"),
+                                title = "Item types",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
                     if (otherModels.isNotEmpty()) {
                         item {
                             NetBoxSectionHeader(
                                 icon = AppIcons.forAppKey("core"),
-                                title =
-                                    if (pinnedModels.isEmpty()) "Item types" else "All item types",
+                                title = "All item types",
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
@@ -228,3 +236,5 @@ private fun AddModelRow(
             ),
     )
 }
+
+private const val MAX_PINNED_ITEM_TYPES = 5

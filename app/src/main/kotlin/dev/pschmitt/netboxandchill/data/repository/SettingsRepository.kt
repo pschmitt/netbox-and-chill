@@ -371,13 +371,20 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun togglePinned(endpointPath: String) {
         val current = _pinnedModelPaths.value
         val updated =
-            if (endpointPath in current) current - endpointPath else current + endpointPath
+            when {
+                endpointPath in current -> current - endpointPath
+                current.size >= MAX_PINNED_MODEL_PATHS -> current
+                else -> current + endpointPath
+            }
+        if (updated == current) return
         prefs.edit().putStringSet(KEY_PINNED_MODELS, updated).apply()
         _pinnedModelPaths.value = updated
     }
 
     private fun loadPinnedModelPaths(): Set<String> =
-        prefs.getStringSet(KEY_PINNED_MODELS, null) ?: setOf(DEFAULT_PINNED_MODEL_PATH)
+        (prefs.getStringSet(KEY_PINNED_MODELS, null) ?: setOf(DEFAULT_PINNED_MODEL_PATH))
+            .take(MAX_PINNED_MODEL_PATHS)
+            .toSet()
 
     fun save(baseUrl: String, token: String) {
         val normalizedBaseUrl = baseUrl.trim().trimEnd('/')
@@ -535,6 +542,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_TOKEN = "token"
         const val KEY_PINNED_MODELS = "pinned_model_paths"
         const val DEFAULT_PINNED_MODEL_PATH = "api/dcim/devices/"
+        const val MAX_PINNED_MODEL_PATHS = 5
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"
         const val KEY_SYNC_WHILE_ROAMING = "sync_while_roaming"
