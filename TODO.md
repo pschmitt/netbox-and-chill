@@ -3094,7 +3094,9 @@ handling is automatic and the row provides no useful control.
 - [x] Preserve automatic battery-saver sync handling.
 - [x] Verify the Sync screen no longer shows the row.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and clean debug build passed; the Sync
+screen on the wired Zenfone no longer showed Battery Saver or the duplicate Offline mode row, and
+the APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 
 ## NBC-163: add project links to About settings
 
@@ -3184,5 +3186,16 @@ the row content.
 - [ ] Use a shared trailing-action layout for copy and linked-field actions.
 - [ ] Right-align actions consistently across model, asset-tag, serial, and primary-IP rows.
 - [ ] Verify multi-line values and rows with one versus two actions.
+
+Status: not started.
+
+## NBC-171: copy values from long-pressed item rows
+
+Long-pressing an item-view row should reveal the row value and offer a Copy action in the existing
+field-action menu.
+
+- [ ] Show the complete row value in the long-press menu or dialog.
+- [ ] Add a Copy-to-clipboard action for the selected row value.
+- [ ] Preserve existing Edit and Hide actions and verify long-pressing any part of the row.
 
 Status: not started.
