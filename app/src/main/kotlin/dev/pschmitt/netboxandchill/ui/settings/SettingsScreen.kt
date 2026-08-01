@@ -125,7 +125,9 @@ private val THREE_FINGER_SHORTCUTS =
 fun SettingsScreen(
     onBack: () -> Unit,
     onCategoryClick: (SettingsCategory) -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -139,6 +141,14 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
+            ListItem(
+                leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
+                headlineContent = { Text("Offline mode") },
+                supportingContent = { Text("Use cached data only and pause network sync") },
+                trailingContent = {
+                    Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
+                },
+            )
             SettingsCategory.entries.forEach { category ->
                 ListItem(
                     modifier = Modifier.clickable { onCategoryClick(category) },
@@ -498,16 +508,6 @@ fun SettingsCategoryScreen(
                 headlineContent = { Text("Battery Saver") },
                 supportingContent = {
                     Text("Sync pauses automatically while Android Battery Saver is enabled")
-                },
-            )
-            ListItem(
-                leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
-                headlineContent = { Text("Offline mode") },
-                supportingContent = {
-                    Text("Use cached data only and pause network sync")
-                },
-                trailingContent = {
-                    Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
                 },
             )
             ListItem(

@@ -3077,11 +3077,11 @@ and the clean APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 Offline mode should be directly accessible from the main Settings screen instead of being buried
 inside the Sync sub-screen.
 
-- [ ] Add Offline mode to the main Settings screen.
-- [ ] Remove the duplicate control from the Sync sub-screen.
-- [ ] Preserve the existing offline-mode behavior and preference.
+- [x] Add Offline mode to the main Settings screen.
+- [x] Remove the duplicate control from the Sync sub-screen.
+- [x] Preserve the existing offline-mode behavior and preference.
 
-Status: not started.
+Status: in progress.
 
 ## NBC-162: remove the Battery Saver settings row
 

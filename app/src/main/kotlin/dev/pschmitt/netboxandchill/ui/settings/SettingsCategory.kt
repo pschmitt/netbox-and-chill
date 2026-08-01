@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class SettingsCategory(val title: String, val subtitle: String) {
     Connection("Connection", "NetBox server and credentials"),
-    Sync("Sync", "Cached data, offline mode, and refresh policy"),
+    Sync("Sync", "Cached data and refresh policy"),
     Camera("Camera", "Scanner camera and lens preferences"),
     Gestures("Gestures", "Gesture shortcuts"),
     Display("Display", "Fields and item types shown by default"),
