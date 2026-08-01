@@ -67,7 +67,7 @@ class DeviceRepository @Inject constructor(private val api: NetBoxApi, private v
     suspend fun cachedDevices(): List<DeviceEntity> = dao.getAll()
 }
 
-private fun DeviceDto.toEntity(): DeviceEntity =
+internal fun DeviceDto.toEntity(): DeviceEntity =
     DeviceEntity(
         id = id,
         name = name ?: display ?: "Device $id",

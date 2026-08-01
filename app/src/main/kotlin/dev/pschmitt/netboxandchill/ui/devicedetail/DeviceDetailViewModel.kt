@@ -59,6 +59,31 @@ data class DeviceRelatedTab(val label: String, val endpointPath: String)
 
 data class InterfaceIpAddress(val id: Int, val address: String)
 
+internal data class ParsedInterfaceIpAddress(
+    val interfaceId: Int,
+    val ipAddress: InterfaceIpAddress,
+)
+
+internal fun parseInterfaceIpAddress(
+    objectId: Int,
+    rawJson: String,
+): ParsedInterfaceIpAddress? {
+    val objectJson =
+        runCatching {
+                ipAddressJson.decodeFromString(JsonObject.serializer(), rawJson)
+            }
+            .getOrNull() ?: return null
+    if (objectJson["assigned_object_type"]?.jsonPrimitive?.contentOrNull != "dcim.interface") {
+        return null
+    }
+    val interfaceId = objectJson["assigned_object_id"]?.jsonPrimitive?.intOrNull ?: return null
+    val address =
+        objectJson["address"]?.jsonPrimitive?.contentOrNull
+            ?: objectJson["display"]?.jsonPrimitive?.contentOrNull
+    if (address.isNullOrBlank()) return null
+    return ParsedInterfaceIpAddress(interfaceId, InterfaceIpAddress(objectId, address))
+}
+
 val DEVICE_RELATED_TABS =
     listOf(
         DeviceRelatedTab("Journal", JOURNAL_TAB_ENDPOINT_PATH),
@@ -187,28 +212,10 @@ constructor(
             .map { objects ->
                 buildMap {
                         objects.forEach { objectEntity ->
-                            val objectJson =
-                                runCatching {
-                                        ipAddressJson.decodeFromString(
-                                            JsonObject.serializer(),
-                                            objectEntity.json,
-                                        )
-                                    }
-                                    .getOrNull() ?: return@forEach
-                            if (
-                                objectJson["assigned_object_type"]?.jsonPrimitive?.contentOrNull !=
-                                    "dcim.interface"
-                            ) {
-                                return@forEach
-                            }
-                            val interfaceId =
-                                objectJson["assigned_object_id"]?.jsonPrimitive?.intOrNull
-                            val address =
-                                objectJson["address"]?.jsonPrimitive?.contentOrNull
-                                    ?: objectJson["display"]?.jsonPrimitive?.contentOrNull
-                            if (interfaceId != null && !address.isNullOrBlank()) {
-                                getOrPut(interfaceId) { mutableListOf() }
-                                    .add(InterfaceIpAddress(objectEntity.id, address))
+                            parseInterfaceIpAddress(objectEntity.id, objectEntity.json)?.let {
+                                assignment ->
+                                getOrPut(assignment.interfaceId) { mutableListOf() }
+                                    .add(assignment.ipAddress)
                             }
                         }
                     }

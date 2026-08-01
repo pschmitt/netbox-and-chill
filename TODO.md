@@ -2681,11 +2681,14 @@ navigation/copy behavior instead of being treated as an undifferentiated text va
 - [x] Render primary and related interface IP addresses consistently.
 - [x] Make IP values navigable to their cached IP address item and copyable.
 - [x] Verify IPv4 and prefix-length display on the Mi Pad 4.
+- [x] Add cache-path fixtures covering IPv6 addresses and prefix lengths for primary and interface
+  IP values.
 - [ ] Verify IPv6 and prefix-length display on a device with a cached IPv6 assignment.
 
 Status: mostly done, 2026-08-01 - remote lint/tests/debug build passed; the Mi Pad 4 displayed
 cached IPv4 prefixes as clickable/copyable interface entries and opened the cached IP detail page.
-No IPv6 records are present in the current cache, so physical IPv6 verification remains open.
+The cache-path tests now preserve IPv6 prefixes for primary and interface IPs, but no IPv6 records
+are present in the current cache, so physical IPv6 verification remains open.
 
 ## NBC-132: use distinct accents on object detail pages
 
@@ -2828,3 +2831,43 @@ the vertical-label toggle near the bottom of the form.
 Status: **done**, 2026-08-01 - remote lint/tests/build passed; the new APK was installed on all
 three devices, and PX5's print dialog exposed a scrollable content area with the Vertical label
 text control reachable after an upward swipe. PX5 also showed one deduplicated printer picker.
+
+## NBC-143: create linked items from focused editors
+
+When editing a linked attribute such as Tenant, the focused editor should offer a way to create a
+new item of the linked type and use it for the field once created.
+
+- [ ] Add a clearly labeled create action to linked-object editors.
+- [ ] Open the normal create flow for the selected linked item type.
+- [ ] Return the newly created item to the original editor and select it.
+- [ ] Verify creating and assigning a linked item without losing other pending edits.
+
+Status: not started.
+
+## NBC-144: opt-in NetBox change notifications
+
+Users should be able to opt into notifications about changes in NetBox. Notifications should be
+disabled by default and configurable by change type, from specific events such as a new device or
+deleted cable through an all-changes option.
+
+- [ ] Add a disabled-by-default notification preference.
+- [ ] Let users select individual NetBox change types or all changes.
+- [ ] Detect and notify about matching changes without blocking normal sync.
+- [ ] Verify notification filtering and the default-off behavior.
+
+Status: not started.
+
+## NBC-145: reconcile offline-created items
+
+Items created while offline must be uploaded and reconciled reliably when connectivity returns,
+including their edits. Verification should use dedicated disposable test items and must not alter
+the user's existing NetBox records. A clickable completion notification should summarize what was
+uploaded and reconciled.
+
+- [ ] Queue offline-created items and their subsequent edits for durable upload.
+- [ ] Reconcile queued creates and edits automatically after connectivity returns.
+- [ ] Add dedicated disposable test fixtures for offline create/edit reconciliation.
+- [ ] Show a clickable completion notification with a summary of reconciled changes.
+- [ ] Verify existing NetBox records are untouched by the dedicated reconciliation tests.
+
+Status: not started.
