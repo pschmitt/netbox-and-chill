@@ -2665,12 +2665,14 @@ IP address values should retain their NetBox identity and be rendered as address
 navigation/copy behavior instead of being treated as an undifferentiated text value.
 
 - [x] Preserve primary-IP IDs and address metadata in the typed cache.
-- [ ] Render primary and related interface IP addresses consistently.
+- [x] Render primary and related interface IP addresses consistently.
 - [x] Make IP values navigable to their cached IP address item and copyable.
-- [ ] Verify IPv4/IPv6 and prefix-length display on the Mi Pad 4.
+- [x] Verify IPv4 and prefix-length display on the Mi Pad 4.
+- [ ] Verify IPv6 and prefix-length display on a device with a cached IPv6 assignment.
 
-Status: in progress, 2026-08-01 - primary-IP IDs are now retained and the typed row is navigable;
-related-interface IP presentation and physical IPv4/IPv6 verification remain.
+Status: mostly done, 2026-08-01 - remote lint/tests/debug build passed; the Mi Pad 4 displayed
+cached IPv4 prefixes as clickable/copyable interface entries and opened the cached IP detail page.
+No IPv6 records are present in the current cache, so physical IPv6 verification remains open.
 
 ## NBC-132: use distinct accents on object detail pages
 

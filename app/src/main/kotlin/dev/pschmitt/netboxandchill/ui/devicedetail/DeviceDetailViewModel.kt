@@ -57,6 +57,8 @@ private val ipAddressJson = Json { ignoreUnknownKeys = true }
 
 data class DeviceRelatedTab(val label: String, val endpointPath: String)
 
+data class InterfaceIpAddress(val id: Int, val address: String)
+
 val DEVICE_RELATED_TABS =
     listOf(
         DeviceRelatedTab("Journal", JOURNAL_TAB_ENDPOINT_PATH),
@@ -179,7 +181,7 @@ constructor(
                     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         }
 
-    val interfaceIpAddresses: StateFlow<Map<Int, List<String>>> =
+    val interfaceIpAddresses: StateFlow<Map<Int, List<InterfaceIpAddress>>> =
         genericObjectRepository
             .observeObjects(IP_ADDRESSES_ENDPOINT_PATH, "")
             .map { objects ->
@@ -201,13 +203,16 @@ constructor(
                             }
                             val interfaceId =
                                 objectJson["assigned_object_id"]?.jsonPrimitive?.intOrNull
-                            val address = objectJson["address"]?.jsonPrimitive?.contentOrNull
+                            val address =
+                                objectJson["address"]?.jsonPrimitive?.contentOrNull
+                                    ?: objectJson["display"]?.jsonPrimitive?.contentOrNull
                             if (interfaceId != null && !address.isNullOrBlank()) {
-                                getOrPut(interfaceId) { mutableListOf() }.add(address)
+                                getOrPut(interfaceId) { mutableListOf() }
+                                    .add(InterfaceIpAddress(objectEntity.id, address))
                             }
                         }
                     }
-                    .mapValues { (_, addresses) -> addresses.distinct() }
+                    .mapValues { (_, addresses) -> addresses.distinctBy { it.id } }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 

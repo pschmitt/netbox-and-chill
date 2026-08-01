@@ -546,6 +546,14 @@ fun DeviceDetailScreen(
                                     onObjectClick = { objectId ->
                                         onReferenceClick(tab.endpointPath, objectId, current.name)
                                     },
+                                    onIpClick = { ipAddress ->
+                                        onReferenceClick(
+                                            "api/ipam/ip-addresses/",
+                                            ipAddress.id,
+                                            current.name,
+                                        )
+                                    },
+                                    onCopyValue = onCopyValue,
                                 )
                             }
                         }
@@ -620,8 +628,10 @@ private fun tabIcon(tab: DeviceRelatedTab) =
 private fun DeviceRelatedObjects(
     tab: DeviceRelatedTab,
     objects: List<dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity>,
-    interfaceIpAddresses: Map<Int, List<String>> = emptyMap(),
+    interfaceIpAddresses: Map<Int, List<InterfaceIpAddress>> = emptyMap(),
     onObjectClick: (Int) -> Unit,
+    onIpClick: (InterfaceIpAddress) -> Unit,
+    onCopyValue: (String, String) -> Unit,
 ) {
     if (objects.isEmpty()) {
         Text(
@@ -632,18 +642,59 @@ private fun DeviceRelatedObjects(
         return
     }
     objects.forEach { objectEntity ->
+        val ipAddresses =
+            if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
+                interfaceIpAddresses[objectEntity.id].orEmpty()
+            } else {
+                emptyList()
+            }
+        val macAddresses =
+            if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
+                objectEntity.interfaceMacAddresses()
+            } else {
+                emptyList()
+            }
         ListItem(
             leadingContent = { Icon(Icons.Default.Cable, contentDescription = null) },
             headlineContent = { Text(objectEntity.display) },
             supportingContent = {
-                (if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
-                        objectEntity.interfaceSubtitle(
-                            interfaceIpAddresses[objectEntity.id].orEmpty()
-                        )
-                    } else {
-                        objectEntity.secondaryLine
-                    })
-                    ?.let { Text(it) }
+                if (ipAddresses.isNotEmpty() || macAddresses.isNotEmpty()) {
+                    Column {
+                        ipAddresses.forEach { ipAddress ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    "IP: ${ipAddress.address}",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier =
+                                        Modifier.weight(1f).clickable {
+                                            onIpClick(ipAddress)
+                                        },
+                                )
+                                DetailTrailingActions(
+                                    copyLabel = "IP address",
+                                    onCopy = {
+                                        onCopyValue("IP address", ipAddress.address)
+                                    },
+                                    openLabel = "IP address",
+                                    onOpen = { onIpClick(ipAddress) },
+                                )
+                            }
+                        }
+                        macAddresses.forEach { macAddress ->
+                            Text("MAC: $macAddress")
+                        }
+                    }
+                } else {
+                    (if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
+                            objectEntity.interfaceSubtitle(emptyList())
+                        } else {
+                            objectEntity.secondaryLine
+                        })
+                        ?.let { Text(it) }
+                }
             },
             modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
         )
@@ -850,6 +901,21 @@ private fun ImageAttachmentEntity.fileName(): String =
         ?: "image-attachment-$id"
 
 /** Pull the useful network identity into interface list subtitles when NetBox includes it. */
+private fun dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity.interfaceMacAddresses(): List<String> {
+    val objectJson =
+        runCatching { interfaceJson.parseToJsonElement(json).jsonObject }.getOrNull()
+            ?: return emptyList()
+    return buildList {
+            listOf("mac_address", "primary_mac_address").forEach { key ->
+                objectJson[key]?.displayValue()?.let(::add)
+            }
+            (objectJson["mac_addresses"] as? JsonArray).orEmpty().forEach { element ->
+                element.displayValue()?.let(::add)
+            }
+        }
+        .distinct()
+}
+
 private fun dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity.interfaceSubtitle(
     cachedIpAddresses: List<String>
 ): String? {
@@ -866,16 +932,7 @@ private fun dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity.interfaceSubt
                 addAll(cachedIpAddresses)
             }
             .distinct()
-    val macAddresses =
-        buildList {
-                listOf("mac_address", "primary_mac_address").forEach { key ->
-                    objectJson[key]?.displayValue()?.let(::add)
-                }
-                (objectJson["mac_addresses"] as? JsonArray).orEmpty().forEach { element ->
-                    element.displayValue()?.let(::add)
-                }
-            }
-            .distinct()
+    val macAddresses = interfaceMacAddresses()
     val networkParts = buildList {
         if (addresses.isNotEmpty()) add("IP: ${addresses.joinToString(", ")}")
         if (macAddresses.isNotEmpty()) add("MAC: ${macAddresses.joinToString(", ")}")

@@ -26,7 +26,8 @@ private val IMAGE_KEYS = setOf("front_image", "rear_image")
 
 // Keep copy actions focused on values users commonly transfer elsewhere, rather than adding one
 // to every free-text field.
-private val COPYABLE_KEYS = setOf("serial", "asset_tag", "primary_ip", "primary_ip4", "primary_ip6")
+private val COPYABLE_KEYS =
+    setOf("serial", "asset_tag", "address", "primary_ip", "primary_ip4", "primary_ip6")
 
 private val USER_REFERENCE_KEYS = setOf("created_by", "last_updated_by")
 
