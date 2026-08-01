@@ -34,20 +34,7 @@ object BrotherLabelRenderer {
         vertical: Boolean = false,
         qrSize: Int = QR_SIZE,
     ): BrotherLabelRaster {
-        require(objectUrl.isNotBlank()) { "A device URL is required for the label QR code" }
-        require(qrSize in 16..LABEL_HEIGHT) {
-            "QR size must be between 16 and $LABEL_HEIGHT pixels"
-        }
-        val textPaint = labelTextPaint(labelText, fitWidth = vertical)
-        val textLayout = measureText(textPaint, labelText)
-        val qr = QrBitmap.encode(objectUrl, qrSize)
-        val source =
-            if (vertical) {
-                renderVerticalSource(qr, textPaint, textLayout)
-            } else {
-                renderHorizontalSource(qr, textPaint, textLayout)
-            }
-        qr.recycle()
+        val source = renderSource(objectUrl, labelText, vertical, qrSize)
 
         // Match printlabel's rotate(-90) + mirror operation without bitmap filtering. The
         // printer's 1-bit head cannot represent anti-aliased interpolation; filtering makes
@@ -80,6 +67,41 @@ object BrotherLabelRenderer {
         }
         padded.recycle()
         return BrotherLabelRaster(raster, raster.size / bytesPerLine)
+    }
+
+    /**
+     * Creates the human-readable label image before the printer protocol's head rotation. This
+     * deliberately shares the QR/text sizing and layout path with [render], so the preview never
+     * drifts from the label that will be sent to the printer.
+     */
+    fun preview(
+        objectUrl: String,
+        labelText: String,
+        vertical: Boolean = false,
+        qrSize: Int = QR_SIZE,
+    ): Bitmap = renderSource(objectUrl, labelText, vertical, qrSize)
+
+    private fun renderSource(
+        objectUrl: String,
+        labelText: String,
+        vertical: Boolean,
+        qrSize: Int,
+    ): Bitmap {
+        require(objectUrl.isNotBlank()) { "A device URL is required for the label QR code" }
+        require(qrSize in 16..LABEL_HEIGHT) {
+            "QR size must be between 16 and $LABEL_HEIGHT pixels"
+        }
+        val textPaint = labelTextPaint(labelText, fitWidth = vertical)
+        val textLayout = measureText(textPaint, labelText)
+        val qr = QrBitmap.encode(objectUrl, qrSize)
+        val source =
+            if (vertical) {
+                renderVerticalSource(qr, textPaint, textLayout)
+            } else {
+                renderHorizontalSource(qr, textPaint, textLayout)
+            }
+        qr.recycle()
+        return source
     }
 
     private fun labelTextPaint(text: String, fitWidth: Boolean): Paint {

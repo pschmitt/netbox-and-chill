@@ -13,6 +13,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,8 +31,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -52,6 +56,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -108,6 +114,32 @@ fun PrintLabelDialog(
     var qrSizeMenuExpanded by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     val copyCount = copiesText.toIntOrNull()?.takeIf { it in 1..9 }
+    val previewText =
+        if (longLabel) request.longLabelText ?: request.labelText else request.labelText
+    val previewBitmap =
+        remember(request.objectUrl, previewText, verticalText, qrSize) {
+            runCatching {
+                    BrotherLabelRenderer.preview(
+                        request.objectUrl,
+                        previewText,
+                        vertical = verticalText,
+                        qrSize = qrSize,
+                    )
+                }
+                .getOrNull()
+        }
+    DisposableEffect(previewBitmap) {
+        onDispose { previewBitmap?.recycle() }
+    }
+    val selectedPrinterIsVisible =
+        selected?.let { current -> nearbyPrinters.any { it.address == current.address } } == true
+    val selectedPrinterNotVisible =
+        hasPermission &&
+            bluetoothEnabled &&
+            selected != null &&
+            printers.isNotEmpty() &&
+            !isDiscovering &&
+            !selectedPrinterIsVisible
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             hasPermission = hasBluetoothPermission(context)
@@ -232,6 +264,7 @@ fun PrintLabelDialog(
         title = { Text("Print device label") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LabelPreview(previewBitmap)
                 if (!hasPermission) {
                     Icon(Icons.Default.Security, contentDescription = null)
                     Text("Bluetooth permission is needed to find paired Brother printers.")
@@ -354,6 +387,17 @@ fun PrintLabelDialog(
                         Icon(Icons.Default.Bluetooth, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("Scan again")
+                    }
+                    if (selectedPrinterNotVisible) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Warning, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "${selected?.name} is paired but is not currently visible. " +
+                                    "You can still try printing.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                     Text(
                         "The label contains the cached device URL as a QR code and its asset tag.",
@@ -535,6 +579,29 @@ fun PrintLabelDialog(
             }
         },
     )
+}
+
+@Composable
+private fun LabelPreview(bitmap: android.graphics.Bitmap?) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Preview", style = MaterialTheme.typography.titleSmall)
+        if (bitmap == null) {
+            Text(
+                "The label preview is unavailable for this device URL.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Label preview",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxWidth().height(96.dp).padding(8.dp),
+                )
+            }
+        }
+    }
 }
 
 private fun bluetoothPermissions(): Array<String> =

@@ -369,7 +369,20 @@ fun DeviceDetailScreen(
                                         )
                                     }
                                 }
-                                StatusChip(label = current.statusLabel, value = current.statusValue)
+                                if (isFieldVisible("Status")) {
+                                    Box(
+                                        modifier =
+                                            Modifier.combinedClickable(
+                                                onClick = {},
+                                                onLongClick = { fieldActionLabel = "Status" },
+                                            )
+                                    ) {
+                                        StatusChip(
+                                            label = current.statusLabel,
+                                            value = current.statusValue,
+                                        )
+                                    }
+                                }
                             }
                         }
                         Spacer(Modifier.height(12.dp))

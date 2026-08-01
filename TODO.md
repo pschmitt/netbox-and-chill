@@ -2763,3 +2763,41 @@ keeping those preferences local to the app and preserving safe defaults on a fre
 
 Status: **done**, 2026-08-01 - remote lint, unit tests, and debug build passed; the Mi Pad 4
 reopened the dialog with persisted Copies 2, QR 48px, and the selected toggle states.
+
+## NBC-139: preview labels before printing
+
+The print dialog should show the actual QR/text label layout that will be sent to the Brother
+printer, including the selected QR size, long-label content, and vertical text setting.
+
+- [x] Render a label preview from the same renderer used for the print job.
+- [x] Update the preview when the label options or selected label text change.
+- [x] Keep the preview visible before printer discovery or Bluetooth permission is available.
+- [x] Verify the preview on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - the shared renderer now supplies a QR/text preview; remote lint,
+unit tests, and debug build passed, and the Mi Pad 4 showed the Label preview image in the dialog.
+
+## NBC-140: warn when a paired printer is not visible
+
+The print dialog should warn when the selected paired printer was not found during the current
+Bluetooth discovery pass, while still allowing the user to try printing.
+
+- [x] Show a non-blocking warning after discovery finishes when the selected printer is absent.
+- [x] Do not disable the Print action because of the warning.
+- [x] Verify the warning and recovery after a scan on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - after discovery timed out on the Mi Pad 4, the dialog warned that
+PT-P300BT4590 was paired but not visible while keeping the Print action available.
+
+## NBC-141: long-press the device status to edit it
+
+The typed device overview status chip (for example Active or Inventory) should use the same
+focused field-edit workflow as the other device fields.
+
+- [x] Make the status chip respond to a long press.
+- [x] Open the existing field action dialog and focused status editor.
+- [x] Keep the existing status display and editing flow unchanged for normal taps.
+- [x] Verify the status editor opens from the typed device page on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - long-pressing the cached Inventory chip on Mi Pad 4 opened the
+existing Status action dialog and then the focused Edit Status editor with Inventory populated.
