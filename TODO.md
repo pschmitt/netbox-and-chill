@@ -3103,11 +3103,11 @@ the APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 The About screen should link to the project GitHub repository and the maintainer’s GitHub Sponsors
 page.
 
-- [ ] Add a link to the project GitHub repository.
-- [ ] Add a link to `https://github.com/sponsors/pschmitt`.
-- [ ] Verify both links open externally from About.
+- [x] Add a link to the project GitHub repository.
+- [x] Add a link to `https://github.com/sponsors/pschmitt`.
+- [x] Verify both links open externally from About.
 
-Status: not started.
+Status: in progress.
 
 ## NBC-164: add printer settings
 
@@ -3197,5 +3197,16 @@ field-action menu.
 - [ ] Show the complete row value in the long-press menu or dialog.
 - [ ] Add a Copy-to-clipboard action for the selected row value.
 - [ ] Preserve existing Edit and Hide actions and verify long-pressing any part of the row.
+
+Status: not started.
+
+## NBC-172: swipe between item-view tabs
+
+Item view pages should support horizontal left/right gestures to switch to the adjacent tab, while
+preserving the existing tab-row controls.
+
+- [ ] Add left/right swipe handling to item-view tab content.
+- [ ] Clamp swipes at the first and last tab and preserve tab selection state.
+- [ ] Verify swipes do not interfere with vertical scrolling or horizontal child content.
 
 Status: not started.

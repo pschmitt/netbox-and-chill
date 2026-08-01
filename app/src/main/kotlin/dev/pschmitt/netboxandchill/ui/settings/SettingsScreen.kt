@@ -2,7 +2,9 @@ package dev.pschmitt.netboxandchill.ui.settings
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.widget.Toast
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -23,12 +25,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Dns
@@ -37,6 +41,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -103,6 +108,10 @@ private fun formatBytes(bytes: Long): String =
         bytes < 1024L * 1024L * 1024L -> "%.1f MiB".format(bytes / (1024.0 * 1024.0))
         else -> "%.2f GiB".format(bytes / (1024.0 * 1024.0 * 1024.0))
     }
+
+private fun openExternalLink(context: android.content.Context, url: String) {
+    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+}
 
 private val TWO_FINGER_SHORTCUTS =
     setOf(
@@ -731,6 +740,36 @@ fun SettingsCategoryScreen(
                 leadingContent = { Icon(Icons.Default.DateRange, contentDescription = null) },
                 headlineContent = { Text("Build date") },
                 supportingContent = { Text(BuildConfig.BUILD_DATE) },
+            )
+            ListItem(
+                modifier =
+                    Modifier.clickable {
+                        openExternalLink(context, "https://github.com/pschmitt/netbox-and-chill")
+                    },
+                leadingContent = { Icon(Icons.Default.Code, contentDescription = null) },
+                headlineContent = { Text("GitHub repository") },
+                supportingContent = { Text("View the source code and report issues") },
+                trailingContent = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "Open GitHub repository",
+                    )
+                },
+            )
+            ListItem(
+                modifier =
+                    Modifier.clickable {
+                        openExternalLink(context, "https://github.com/sponsors/pschmitt")
+                    },
+                leadingContent = { Icon(Icons.Default.Favorite, contentDescription = null) },
+                headlineContent = { Text("Sponsor the project") },
+                supportingContent = { Text("Support development on GitHub Sponsors") },
+                trailingContent = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "Open GitHub Sponsors",
+                    )
+                },
             )
                 }
             }
