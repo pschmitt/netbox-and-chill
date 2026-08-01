@@ -3335,9 +3335,11 @@ surface the same hint when a cached related field is the reason for a result.
 - [x] Recursively index nested relation, array, and custom-field values for linked choices.
 - [x] Apply the generic recursive index to create and edit reference pickers.
 - [x] Show a matched-field hint in linked pickers and global search results.
-- [x] Add focused tests; device verification remains pending.
+- [x] Add focused tests and verify recursive picker/search hints on a physical device.
 
-Status: in progress, 2026-08-01.
+Status: **done**, 2026-08-02 - Mi Pad 4 offline filtered the cached device-type picker with
+`manufacturer d-link`, rendered `DGS-1100-24PV2`, and showed `Matched Manufacturer: D-Link d-link`;
+global search also displayed a recursive `Matched Assigned object` hint for cached IP results.
 
 ## NBC-180: make all related count rows browseable
 
