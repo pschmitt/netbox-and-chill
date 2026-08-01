@@ -22,6 +22,7 @@ data class EditOption(
     val label: String,
     val frontImageUrl: String? = null,
     val rearImageUrl: String? = null,
+    val searchFields: Map<String, String> = emptyMap(),
 )
 
 /**
@@ -39,6 +40,46 @@ data class EditableField(
     val customFieldName: String? = null,
     val markdown: Boolean = false,
 )
+
+/**
+ * Converts an edit draft value into the label a user should see in the review dialog. NetBox
+ * represents references as numeric IDs and choices as wire values, but the cache/OPTIONS response
+ * already contains the human-readable labels needed for a useful before/after diff.
+ */
+fun displayEditValue(
+    field: EditableField?,
+    rawValue: String?,
+    referenceOptions: Map<String, List<EditOption>> = emptyMap(),
+    choiceOptions: Map<String, List<EditOption>> = emptyMap(),
+): String {
+    val raw = rawValue?.takeIf { it.isNotBlank() } ?: return "(empty)"
+    if (field == null) return raw
+
+    val options =
+        when (field.kind) {
+            EditFieldKind.REFERENCE,
+            EditFieldKind.MULTI_REFERENCE -> referenceOptions[field.key].orEmpty()
+            EditFieldKind.CHOICE,
+            EditFieldKind.MULTI_CHOICE -> choiceOptions[field.key].orEmpty()
+            else -> emptyList()
+        }
+    if (field.currentDisplay != null && raw == field.value) return field.currentDisplay
+
+    return when (field.kind) {
+        EditFieldKind.MULTI_REFERENCE,
+        EditFieldKind.MULTI_CHOICE -> {
+            val values = selectedValuesFromJson(raw)
+            if (values.isEmpty()) "(empty)"
+            else
+                values.joinToString(", ") { value ->
+                    options.firstOrNull { it.value == value }?.label ?: value
+                }
+        }
+        EditFieldKind.REFERENCE,
+        EditFieldKind.CHOICE -> options.firstOrNull { it.value == raw }?.label ?: raw
+        else -> raw
+    }
+}
 
 fun selectedValuesFromJson(text: String): List<String> =
     runCatching {

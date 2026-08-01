@@ -6,6 +6,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 /**
  * App-wide "is background sync currently running" signal (NBC-23) - backs a persistent indicator
@@ -28,4 +29,10 @@ class SyncStatusRepository @Inject constructor(private val workManager: WorkMana
         ) { periodic, oneTime ->
             (periodic + oneTime).any { it.state == WorkInfo.State.RUNNING }
         }
+
+    /** The latest manual sync state, including terminal success/failure for refresh feedback. */
+    val manualSyncState: Flow<WorkInfo.State?> =
+        workManager
+            .getWorkInfosForUniqueWorkFlow(SyncScheduler.ONE_TIME_WORK_NAME)
+            .map { infos -> infos.firstOrNull()?.state }
 }

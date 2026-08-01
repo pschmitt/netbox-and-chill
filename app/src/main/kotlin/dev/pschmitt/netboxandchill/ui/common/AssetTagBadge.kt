@@ -17,10 +17,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun AssetTagBadge(assetTag: String, modifier: Modifier = Modifier) {
+fun AssetTagBadge(
+    assetTag: String,
+    modifier: Modifier = Modifier,
+    missing: Boolean = false,
+) {
     Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        color =
+            if (missing) MaterialTheme.colorScheme.errorContainer
+            else MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor =
+            if (missing) MaterialTheme.colorScheme.onErrorContainer
+            else MaterialTheme.colorScheme.onTertiaryContainer,
         shape = MaterialTheme.shapes.small,
         modifier = modifier,
     ) {
@@ -38,4 +46,9 @@ fun AssetTagBadge(assetTag: String, modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+@Composable
+fun MissingAssetTagBadge(modifier: Modifier = Modifier) {
+    AssetTagBadge("No asset tag", modifier = modifier, missing = true)
 }

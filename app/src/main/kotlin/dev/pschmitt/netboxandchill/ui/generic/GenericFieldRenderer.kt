@@ -86,8 +86,7 @@ fun buildFieldRows(
                 val count = (value as? JsonPrimitive)?.intOrNull
                 val target = countTargetFor(key, obj, endpointPath)
                 if (count != null && target != null) {
-                    if (count > 0)
-                        add(FieldRow.Count(Humanize.label(key), count.toString(), target))
+                    if (count > 0) add(FieldRow.Count(target.listLabel, count.toString(), target))
                 } else if (key in USER_REFERENCE_KEYS) {
                     val display =
                         (obj["${key}_display"] as? JsonPrimitive)?.contentOrNull
@@ -160,33 +159,134 @@ fun buildFieldRows(
 
 private fun countTargetFor(key: String, obj: JsonObject, endpointPath: String?): CountTarget? {
     val parentId = (obj["id"] as? JsonPrimitive)?.intOrNull ?: return null
-    val definition =
-        when (endpointPath) {
-            "api/dcim/locations/",
-            "api/dcim/sites/" ->
-                when (key) {
-                    "rack_count" -> CountTarget("api/dcim/racks/", "Racks", "location", parentId)
-                    "device_count" ->
-                        CountTarget("api/dcim/devices/", "Devices", "location", parentId)
-                    "prefix_count" ->
-                        CountTarget("api/ipam/prefixes/", "Prefixes", "scope", parentId)
-                    else -> null
-                }
-            "api/dcim/racks/" ->
-                when (key) {
-                    "device_count" -> CountTarget("api/dcim/devices/", "Devices", "rack", parentId)
-                    else -> null
-                }
-            "api/dcim/device-types/" ->
-                when (key) {
-                    "device_count" ->
-                        CountTarget("api/dcim/devices/", "Devices", "device_type", parentId)
-                    else -> null
-                }
-            else -> null
-        }
-    return definition
+    val parentEndpoint = endpointPath ?: return null
+    val countModel = key.removeSuffix("_count").takeIf { it != key } ?: return null
+    val modelKey = canonicalCountModelKey(countModel)
+    val endpoint =
+        COUNT_MODEL_ENDPOINTS[modelKey]
+            ?: inferredCountEndpoint(parentEndpoint, modelKey)
+            ?: return null
+    val relationKey = countRelationKey(parentEndpoint, key, modelKey)
+    return CountTarget(endpoint, countListLabel(endpoint), relationKey, parentId)
 }
+
+/**
+ * Resolves reverse-relation counts for every ordinary NetBox collection, not just a fixed list of
+ * screens. Most serializers follow the `{model}_count`/`{parent_model}` convention, so the model
+ * endpoint and parent relation can be inferred. This registry supplies cross-app and irregular
+ * model names where that convention alone is insufficient.
+ */
+private val COUNT_MODEL_ENDPOINTS =
+    mapOf(
+        "aggregate" to "api/ipam/aggregates/",
+        "asn" to "api/ipam/asns/",
+        "asn_range" to "api/ipam/asn-ranges/",
+        "circuit" to "api/circuits/circuits/",
+        "cluster" to "api/virtualization/clusters/",
+        "cluster_group" to "api/virtualization/cluster-groups/",
+        "cluster_type" to "api/virtualization/cluster-types/",
+        "contact" to "api/tenancy/contacts/",
+        "device" to "api/dcim/devices/",
+        "device_bay" to "api/dcim/device-bays/",
+        "device_role" to "api/dcim/device-roles/",
+        "device_type" to "api/dcim/device-types/",
+        "front_port" to "api/dcim/front-ports/",
+        "interface" to "api/dcim/interfaces/",
+        "ip_address" to "api/ipam/ip-addresses/",
+        "ip_range" to "api/ipam/ip-ranges/",
+        "inventory_item" to "api/dcim/inventory-items/",
+        "location" to "api/dcim/locations/",
+        "module" to "api/dcim/modules/",
+        "module_bay" to "api/dcim/module-bays/",
+        "power_feed" to "api/dcim/power-feeds/",
+        "power_outlet" to "api/dcim/power-outlets/",
+        "power_port" to "api/dcim/power-ports/",
+        "prefix" to "api/ipam/prefixes/",
+        "provider" to "api/circuits/providers/",
+        "provider_network" to "api/circuits/provider-networks/",
+        "rack" to "api/dcim/racks/",
+        "rack_group" to "api/dcim/rack-groups/",
+        "rack_role" to "api/dcim/rack-roles/",
+        "rear_port" to "api/dcim/rear-ports/",
+        "region" to "api/dcim/regions/",
+        "site" to "api/dcim/sites/",
+        "tenant" to "api/tenancy/tenants/",
+        "tunnel" to "api/vpn/tunnels/",
+        "tunnel_group" to "api/vpn/tunnel-groups/",
+        "virtual_disk" to "api/virtualization/virtual-disks/",
+        "virtual_machine" to "api/virtualization/virtual-machines/",
+        "vlan" to "api/ipam/vlans/",
+        "vlan_group" to "api/ipam/vlan-groups/",
+        "vrf" to "api/ipam/vrfs/",
+        "wireless_lan" to "api/wireless/wireless-lans/",
+        "wireless_link" to "api/wireless/wireless-links/",
+    )
+
+private fun canonicalCountModelKey(modelKey: String): String =
+    when (modelKey.removePrefix("child_")) {
+        "ipaddress",
+        "ipaddresses" -> "ip_address"
+        "iprange",
+        "ipranges" -> "ip_range"
+        "virtualmachine",
+        "virtualmachines" -> "virtual_machine"
+        "virtualdisk",
+        "virtualdisks" -> "virtual_disk"
+        "devicetype",
+        "devicetypes" -> "device_type"
+        "frontport",
+        "frontports" -> "front_port"
+        "rearport",
+        "rearports" -> "rear_port"
+        "powerport",
+        "powerports" -> "power_port"
+        "poweroutlet",
+        "poweroutlets" -> "power_outlet"
+        "inventoryitem",
+        "inventoryitems" -> "inventory_item"
+        else -> modelKey
+    }
+
+private fun inferredCountEndpoint(parentEndpoint: String, modelKey: String): String? {
+    val prefix = parentEndpoint.trimEnd('/').substringBeforeLast('/')
+    val collection = pluralCollectionSegment(modelKey)
+    return "$prefix/$collection/"
+}
+
+private fun countRelationKey(parentEndpoint: String, countKey: String, modelKey: String): String {
+    if (countKey == "prefix_count" && parentEndpoint in setOf("api/dcim/sites/", "api/dcim/locations/")) {
+        return "scope"
+    }
+    if (countKey == "child_prefix_count") return "parent"
+    return parentModelKey(parentEndpoint)
+        .takeIf { it.isNotBlank() }
+        ?: modelKey
+}
+
+private fun parentModelKey(endpointPath: String): String {
+    val collection = endpointPath.trimEnd('/').substringAfterLast('/')
+    val model = collection.replace('-', '_')
+    val singular =
+        when {
+            model.endsWith("_types") || model.endsWith("_groups") -> model.dropLast(1)
+            model.endsWith("ies") -> model.dropLast(3) + "y"
+            model.endsWith('s') -> model.dropLast(1)
+            else -> model
+        }
+    return canonicalCountModelKey(singular)
+}
+
+private fun pluralCollectionSegment(modelKey: String): String {
+    val kebab = modelKey.replace('_', '-')
+    return when {
+        kebab.endsWith("y") -> kebab.dropLast(1) + "ies"
+        kebab.endsWith("s") -> kebab
+        else -> "$kebab-s".removeSuffix("-")
+    }
+}
+
+private fun countListLabel(endpointPath: String): String =
+    Humanize.label(endpointPath.trimEnd('/').substringAfterLast('/'))
 
 private fun renderField(key: String, label: String, value: JsonElement): FieldRow? =
     when (value) {

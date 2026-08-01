@@ -32,6 +32,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.data.schema.assetTagStateFromRawJson
+import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
+import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -153,6 +156,7 @@ private fun ObjectRow(
     localImageFile: (String, String) -> java.io.File?,
     onClick: () -> Unit,
 ) {
+    val assetTag = remember(obj.json) { assetTagStateFromRawJson(obj.json) }
     val localFile =
         remember(frontImageUrl, obj.id) {
             frontImageUrl?.let { localImageFile(it, "device-type-${obj.id}-front") }
@@ -174,7 +178,16 @@ private fun ObjectRow(
             }
         },
         headlineContent = { Text(obj.display) },
-        supportingContent = obj.secondaryLine?.let { line -> { Text(line) } },
+        supportingContent = {
+            val subtitle = obj.secondaryLine?.takeIf(String::isNotBlank)
+            if (subtitle != null || assetTag.hasField) {
+                Column {
+                    subtitle?.let { Text(it) }
+                    if (assetTag.value != null) AssetTagBadge(assetTag.value)
+                    else if (assetTag.hasField) MissingAssetTagBadge()
+                }
+            }
+        },
         modifier = Modifier.clickable(onClick = onClick),
     )
 }

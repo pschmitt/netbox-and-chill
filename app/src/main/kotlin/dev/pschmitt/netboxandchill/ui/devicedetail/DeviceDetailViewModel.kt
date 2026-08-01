@@ -139,6 +139,9 @@ constructor(
     private val _refreshedMessage = MutableStateFlow<String?>(null)
     val refreshedMessage: StateFlow<String?> = _refreshedMessage.asStateFlow()
 
+    private val _refreshToastMessage = MutableStateFlow<String?>(null)
+    val refreshToastMessage: StateFlow<String?> = _refreshToastMessage.asStateFlow()
+
     private val _isDownloading = MutableStateFlow(false)
     val isDownloading: StateFlow<Boolean> = _isDownloading.asStateFlow()
 
@@ -240,11 +243,13 @@ constructor(
 
     fun refresh(showConfirmation: Boolean = false) {
         viewModelScope.launch {
+            if (showConfirmation) _refreshToastMessage.value = "Refresh queued"
             _isRefreshing.value = true
             deviceRepository
                 .refreshDevice(deviceId)
-                .onSuccess { if (showConfirmation) _refreshedMessage.value = "Refreshed" }
+                .onSuccess { if (showConfirmation) _refreshToastMessage.value = "Refresh complete" }
                 .onFailure {
+                    if (showConfirmation) _refreshToastMessage.value = "Refresh failed"
                     _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data"
                 }
             refreshJournal()
@@ -270,6 +275,10 @@ constructor(
 
     fun refreshedMessageShown() {
         _refreshedMessage.value = null
+    }
+
+    fun refreshToastShown() {
+        _refreshToastMessage.value = null
     }
 
     fun delete() {

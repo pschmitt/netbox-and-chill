@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
 import dev.pschmitt.netboxandchill.data.repository.CreateChoice
+import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
 import dev.pschmitt.netboxandchill.data.repository.createChoiceSearchFields
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -56,9 +57,34 @@ class GenericCreatePickerTest {
                 """{"display":"Turris Omnia","manufacturer":{"display":"CZ.NIC"}}"""
             ).jsonObject
 
+        val fields = objectJson.createChoiceSearchFields()
+        assertEquals("Turris Omnia", fields["display"])
+        assertEquals("CZ.NIC", fields["manufacturer"])
+        assertEquals("CZ.NIC", fields["manufacturer.display"])
+    }
+
+    @Test
+    fun `matches recursively nested relation values and explains the match`() {
+        val deviceTypes =
+            listOf(
+                CreateChoice(
+                    "1",
+                    "1PM Mini Gen4",
+                    searchFields =
+                        mapOf("manufacturer" to "Shelly", "manufacturer.name" to "Shelly"),
+                ),
+                CreateChoice("2", "Other type"),
+            )
+
+        assertEquals(listOf(deviceTypes[0]), filterCreateChoices(deviceTypes, "shelly"))
         assertEquals(
-            mapOf("display" to "Turris Omnia", "manufacturer" to "CZ.NIC"),
-            objectJson.createChoiceSearchFields(),
+            "Manufacturer: Shelly",
+            choiceSearchHint(
+                deviceTypes[0].label,
+                deviceTypes[0].value,
+                deviceTypes[0].searchFields,
+                "shelly",
+            ),
         )
     }
 }

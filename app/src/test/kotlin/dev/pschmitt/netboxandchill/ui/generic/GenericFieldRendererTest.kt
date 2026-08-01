@@ -347,12 +347,12 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.Count(
-                    "Rack Count",
+                    "Racks",
                     "1",
                     CountTarget("api/dcim/racks/", "Racks", "location", 17),
                 ),
                 FieldRow.Count(
-                    "Device Count",
+                    "Devices",
                     "136",
                     CountTarget("api/dcim/devices/", "Devices", "location", 17),
                 ),
@@ -376,7 +376,7 @@ class GenericFieldRendererTest {
 
         assertEquals(
             FieldRow.Count(
-                "Device Count",
+                "Devices",
                 "6",
                 CountTarget("api/dcim/devices/", "Devices", "rack", 1),
             ),
@@ -384,11 +384,53 @@ class GenericFieldRendererTest {
         )
         assertEquals(
             FieldRow.Count(
-                "Device Count",
+                "Devices",
                 "3",
                 CountTarget("api/dcim/devices/", "Devices", "device_type", 244),
             ),
             deviceTypeRows.single(),
+        )
+    }
+
+    @Test
+    fun `infers virtual machine counts from any virtualization parent`() {
+        val rows =
+            buildFieldRows(
+                parse("""{"id":9,"virtual_machine_count":5}"""),
+                endpointPath = "api/virtualization/clusters/",
+            )
+
+        assertEquals(
+            FieldRow.Count(
+                "Virtual Machines",
+                "5",
+                CountTarget(
+                    "api/virtualization/virtual-machines/",
+                    "Virtual Machines",
+                    "cluster",
+                    9,
+                ),
+            ),
+            rows.single(),
+        )
+    }
+
+    @Test
+    fun `infers cross-app counts from tenancy parents`() {
+        val rows =
+            buildFieldRows(
+                parse("""{"id":12,"virtual_machine_count":2}"""),
+                endpointPath = "api/tenancy/tenants/",
+            )
+
+        assertEquals(
+            CountTarget(
+                "api/virtualization/virtual-machines/",
+                "Virtual Machines",
+                "tenant",
+                12,
+            ),
+            (rows.single() as FieldRow.Count).target,
         )
     }
 

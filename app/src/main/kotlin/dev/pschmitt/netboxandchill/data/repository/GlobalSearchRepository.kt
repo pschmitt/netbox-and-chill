@@ -7,6 +7,7 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
+import dev.pschmitt.netboxandchill.data.schema.assetTagState
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -34,6 +35,9 @@ data class SearchHit(
     val display: String,
     val secondaryLine: String?,
     val assetTag: String? = null,
+    val hasAssetTagField: Boolean = false,
+    /** Human-readable field/value that caused a recursive related-field match. */
+    val matchHint: String? = null,
 )
 
 fun recentVisitsToSearchHits(visits: List<RecentVisitEntity>): List<SearchHit> =
@@ -87,12 +91,13 @@ constructor(
                 netBoxObjectDao.searchAllInEndpoint(it, queryText, limitPerSource)
             } ?: netBoxObjectDao.searchAll(queryText, limitPerSource))
             .let { genericRows ->
-                val genericHits = genericRows.map { rows -> rows.map { it.toSearchHit() } }
+                val genericHits =
+                    genericRows.map { rows -> rows.map { it.toSearchHit(queryText) } }
                 val cachedInterfaces = netBoxObjectDao.observeAll(INTERFACES_ENDPOINT_PATH)
                 val directDeviceHits =
                     if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
                         deviceDao.search(queryText).map { rows ->
-                            rows.take(limitPerSource).map { it.toSearchHit() }
+                            rows.take(limitPerSource).map { it.toSearchHit(queryText) }
                         }
                     } else {
                         flowOf(emptyList())
@@ -116,7 +121,11 @@ constructor(
                                         secondaryLine =
                                             "Device type: " +
                                                 (typeLabels[device.deviceTypeId]
-                                                    ?: "matching type")
+                                                    ?: "matching type"),
+                                        matchHint =
+                                            "Device type: " +
+                                                (typeLabels[device.deviceTypeId]
+                                                    ?: "matching type"),
                                     )
                                 }
                         }
@@ -154,9 +163,13 @@ constructor(
                                     .associateBy { it.deviceId }
                             devices
                                 .filter { it.id in matchingDevices.keys }
-                                .map { device ->
-                                    device.toSearchHit(matchingDevices[device.id]?.source)
-                                }
+                                    .map { device ->
+                                        val source = matchingDevices[device.id]?.source
+                                        device.toSearchHit(
+                                            secondaryLine = source,
+                                            matchHint = source,
+                                        )
+                                    }
                         }
                     } else {
                         flowOf(emptyList())
@@ -212,22 +225,59 @@ constructor(
         }
     }
 
-private fun NetBoxObjectEntity.toSearchHit() =
-        SearchHit(
+private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit {
+    val objectJson = decodeObject(json)
+    val assetTag = objectJson?.assetTagState()
+    return SearchHit(
             endpointPath = endpointPath,
             id = id,
             display = display,
             secondaryLine = secondaryLine,
-            assetTag = decodeObject(json)?.assetTag(),
+            assetTag = assetTag?.value,
+            hasAssetTagField = assetTag?.hasField == true,
+            matchHint =
+                queryText
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { query ->
+                        objectJson?.createChoiceSearchFields()?.let { fields ->
+                            choiceSearchHint(display, id.toString(), fields, query)
+                        }
+                    },
         )
+}
 
-    private fun DeviceEntity.toSearchHit(secondaryLine: String? = statusLabel ?: siteName) =
+    private fun DeviceEntity.toSearchHit(
+        secondaryLine: String? = statusLabel ?: siteName,
+        matchHint: String? = null,
+        queryText: String? = null,
+    ) =
         SearchHit(
             endpointPath = DEVICES_ENDPOINT_PATH,
             id = id,
             display = name,
             secondaryLine = secondaryLine,
             assetTag = assetTag,
+            hasAssetTagField = true,
+            matchHint =
+                matchHint
+                    ?: queryText?.let { query ->
+                        choiceSearchHint(
+                            name,
+                            id.toString(),
+                            mapOf(
+                                "status" to statusLabel,
+                                "site" to siteName,
+                                "rack" to rackName,
+                                "role" to roleName,
+                                "manufacturer" to manufacturerName,
+                                "device_type" to deviceTypeModel,
+                                "serial" to serial,
+                                "asset_tag" to assetTag,
+                                "primary_ip" to primaryIp,
+                            ).filterValues { !it.isNullOrBlank() }.mapValues { it.value!! },
+                            query,
+                        )
+                    },
         )
 
     private fun decodeObject(raw: String): JsonObject? =
@@ -258,8 +308,7 @@ private fun NetBoxObjectEntity.toSearchHit() =
     }
 }
 
-internal fun JsonObject.assetTag(): String? =
-    get("asset_tag")?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
+internal fun JsonObject.assetTag(): String? = assetTagState().value
 
 data class NetworkDeviceMatch(val deviceId: Int, val source: String)
 
@@ -323,6 +372,7 @@ private fun searchRelevance(query: String, hit: SearchHit): Int {
         secondary == query -> 150
         secondary.startsWith(query) -> 125
         secondary.contains(query) -> 100
+        hit.matchHint?.lowercase()?.contains(query) == true -> 90
         else -> 0
     }
 }

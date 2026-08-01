@@ -48,6 +48,46 @@ class EditableFieldTest {
     }
 
     @Test
+    fun `resolves linked IDs to labels in an edit review`() {
+        val field =
+            EditableField(
+                key = "role",
+                label = "Role",
+                kind = EditFieldKind.REFERENCE,
+                value = "7",
+                referenceEndpointPath = "api/dcim/device-roles/",
+                currentDisplay = "Access point",
+            )
+        val options =
+            mapOf(
+                "role" to
+                    listOf(
+                        EditOption("7", "Access point"),
+                        EditOption("9", "Router"),
+                    )
+            )
+
+        assertEquals("Access point", displayEditValue(field, field.value, options))
+        assertEquals("Router", displayEditValue(field, "9", options))
+    }
+
+    @Test
+    fun `resolves multi-linked IDs to labels in an edit review`() {
+        val field =
+            EditableField(
+                key = "sites",
+                label = "Sites",
+                kind = EditFieldKind.MULTI_REFERENCE,
+                value = "[7]",
+                currentDisplay = "Berlin",
+            )
+        val options = mapOf("sites" to listOf(EditOption("7", "Berlin"), EditOption("9", "Paris")))
+
+        assertEquals("Berlin", displayEditValue(field, "[7]", options))
+        assertEquals("Berlin, Paris", displayEditValue(field, "[7,9]", options))
+    }
+
+    @Test
     fun `detects a choice field and keeps its wire value`() {
         val field =
             buildEditableFields(parse("""{"status":{"value":"active","label":"Active"}}"""))

@@ -413,35 +413,6 @@ private fun NetBoxObjectEntity.matchesRelation(
     }
 }
 
-/** Extracts human-searchable relation values from a cached object for linked-field pickers. */
-internal fun JsonObject.createChoiceSearchFields(): Map<String, String> =
-    entries
-        .asSequence()
-        .filterNot { (key, _) ->
-            key in setOf("id", "url", "display_url", "created", "last_updated")
-        }
-        .mapNotNull { (key, element) ->
-            element.createChoiceSearchText()?.let { key to it }
-        }
-        .toMap()
-
-private fun JsonElement.createChoiceSearchText(): String? =
-    when (this) {
-        is JsonPrimitive -> contentOrNull?.takeIf(String::isNotBlank)
-        is JsonObject ->
-            sequenceOf("display", "name", "label", "model", "slug", "description")
-                .mapNotNull { key ->
-                    (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank)
-                }
-                .distinct()
-                .joinToString(" ")
-                .takeIf(String::isNotBlank)
-        is JsonArray ->
-            mapNotNull { it.createChoiceSearchText() }
-                .joinToString(" ")
-                .takeIf(String::isNotBlank)
-    }
-
 data class OfflineAttachment(val url: String, val filename: String)
 
 internal fun JsonObject.mediaAttachments(): List<OfflineAttachment> {

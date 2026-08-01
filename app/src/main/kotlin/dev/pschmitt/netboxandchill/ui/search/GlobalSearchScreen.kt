@@ -48,6 +48,7 @@ import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
+import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -163,6 +164,11 @@ fun GlobalSearchScreen(
                                         } else {
                                             null
                                         },
+                                hasAssetTagField =
+                                    hit.hasAssetTagField ||
+                                        (hit.endpointPath ==
+                                            GlobalSearchRepository.DEVICES_ENDPOINT_PATH &&
+                                            devicesById[hit.id] != null),
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
@@ -225,6 +231,11 @@ fun GlobalSearchScreen(
                                         } else {
                                             null
                                         },
+                                hasAssetTagField =
+                                    hit.hasAssetTagField ||
+                                        (hit.endpointPath ==
+                                            GlobalSearchRepository.DEVICES_ENDPOINT_PATH &&
+                                            devicesById[hit.id] != null),
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
@@ -312,6 +323,7 @@ private fun SearchResultRow(
     icon: ImageVector,
     thumbnail: SearchThumbnail?,
     assetTag: String?,
+    hasAssetTagField: Boolean,
     localImageFile: (SearchThumbnail) -> java.io.File?,
     onClick: () -> Unit,
 ) {
@@ -353,13 +365,21 @@ private fun SearchResultRow(
         supportingContent = {
             val secondaryLine = hit.secondaryLine?.takeIf(String::isNotBlank)
             val visibleAssetTag = assetTag?.takeIf(String::isNotBlank)
-            if (secondaryLine != null || visibleAssetTag != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-                ) {
-                    visibleAssetTag?.let { AssetTagBadge(it) }
+            val matchHint = hit.matchHint?.takeIf { it != secondaryLine }
+            if (secondaryLine != null || visibleAssetTag != null || hasAssetTagField || matchHint != null) {
+                Column {
                     secondaryLine?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    if (visibleAssetTag != null) AssetTagBadge(visibleAssetTag)
+                    else if (hasAssetTagField) MissingAssetTagBadge()
+                    matchHint?.let {
+                        Text(
+                            "Matched $it",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         },

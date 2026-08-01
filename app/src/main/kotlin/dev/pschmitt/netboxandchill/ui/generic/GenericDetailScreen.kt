@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -92,6 +93,8 @@ import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
 import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
+import dev.pschmitt.netboxandchill.data.repository.choiceSearchMatches
 import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
@@ -133,6 +136,7 @@ fun GenericDetailScreen(
     val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
+    val refreshToastMessage by viewModel.refreshToastMessage.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
@@ -162,6 +166,7 @@ fun GenericDetailScreen(
     var pendingEditFieldKey by remember { mutableStateOf<String?>(null) }
     var focusedEditFieldKey by remember { mutableStateOf<String?>(null) }
     var focusedEditValue by remember { mutableStateOf("") }
+    var routeFocusHandled by remember { mutableStateOf(false) }
     var automaticEditStarted by remember { mutableStateOf(false) }
     val hiddenObjectKey = hiddenFieldObjectKey(viewModel.route.endpointPath)
     val hiddenFieldsForObject = hiddenFieldKeys.filter { it.startsWith("$hiddenObjectKey/") }
@@ -210,10 +215,11 @@ fun GenericDetailScreen(
     }
     LaunchedEffect(viewModel.route.focusFieldKey, editableFields) {
         val fieldKey = viewModel.route.focusFieldKey ?: return@LaunchedEffect
-        if (focusedEditFieldKey == null) {
+        if (!routeFocusHandled && focusedEditFieldKey == null) {
             editableFields
                 .firstOrNull { it.key == fieldKey }
                 ?.let { field ->
+                    routeFocusHandled = true
                     focusedEditFieldKey = field.key
                     focusedEditValue = field.value
                     viewModel.startFieldEditing(field.key)
@@ -249,6 +255,13 @@ fun GenericDetailScreen(
         refreshedMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.refreshedMessageShown()
+        }
+    }
+
+    LaunchedEffect(refreshToastMessage) {
+        refreshToastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.refreshToastShown()
         }
     }
 
@@ -815,6 +828,8 @@ fun GenericDetailScreen(
         EditDiffDialog(
             fields = editableFields,
             edits = edits,
+            referenceOptions = referenceOptions,
+            choiceOptions = choiceOptions,
             onDismiss = {
                 pendingEdits = null
                 if (pendingEditFieldKey != null) viewModel.cancelFieldEditing()
@@ -846,6 +861,8 @@ fun GenericDetailScreen(
 private fun EditDiffDialog(
     fields: List<EditableField>,
     edits: Map<String, Pair<EditFieldKind, String>>,
+    referenceOptions: Map<String, List<EditOption>>,
+    choiceOptions: Map<String, List<EditOption>>,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -861,20 +878,46 @@ private fun EditDiffDialog(
             ) {
                 edits.forEach { (key, valueWithKind) ->
                     val field = fieldsByKey[key]
-                    Column {
+                    val before =
+                        displayEditValue(
+                            field,
+                            field?.value,
+                            referenceOptions,
+                            choiceOptions,
+                        )
+                    val after =
+                        displayEditValue(
+                            field,
+                            valueWithKind.second,
+                            referenceOptions,
+                            choiceOptions,
+                        )
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp),
+                        tonalElevation = 1.dp,
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                         Text(
                             field?.label ?: key,
                             style = MaterialTheme.typography.titleSmall,
                         )
-                        Text(
-                            "Before: ${displayDiffValue(field?.value)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        DiffValueRow(
+                            prefix = "− Before",
+                            value = before,
+                            background = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         )
-                        Text(
-                            "After: ${displayDiffValue(valueWithKind.second)}",
-                            style = MaterialTheme.typography.bodyMedium,
+                        DiffValueRow(
+                            prefix = "+ After",
+                            value = after,
+                            background = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
+                        }
                     }
                 }
             }
@@ -896,8 +939,32 @@ private fun EditDiffDialog(
     )
 }
 
-private fun displayDiffValue(value: String?): String =
-    value?.takeIf { it.isNotBlank() } ?: "(empty)"
+@Composable
+private fun DiffValueRow(
+    prefix: String,
+    value: String,
+    background: Color,
+    contentColor: Color,
+) {
+    Surface(
+        color = background,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text(
+                prefix,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.width(72.dp),
+            )
+            Text(value, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
 
 @Composable
 private fun RackElevationOverview(
@@ -1303,7 +1370,7 @@ private fun FocusedEditFieldDialog(
             TextButton(onClick = onDismiss) {
                 Icon(Icons.Default.Close, contentDescription = null)
                 Spacer(Modifier.width(6.dp))
-                Text("Revert")
+                Text("Cancel")
             }
         },
         confirmButton = {
@@ -1396,8 +1463,19 @@ private fun EditMultiPickerField(
                     )
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                         items(filteredOptions, key = { it.value }) { option ->
+                            val matchHint =
+                                choiceSearchHint(
+                                    label = option.label,
+                                    value = option.value,
+                                    searchFields = option.searchFields,
+                                    query = query,
+                                )
                             ListItem(
                                 headlineContent = { Text(option.label) },
+                                supportingContent =
+                                    matchHint?.let { hint ->
+                                        { Text("Matched $hint", color = MaterialTheme.colorScheme.primary) }
+                                    },
                                 leadingContent = { EditOptionPreview(option) },
                                 trailingContent = {
                                     Checkbox(
@@ -1513,8 +1591,19 @@ private fun EditPickerField(
                     }
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                         items(filteredOptions, key = { it.value }) { option ->
+                            val matchHint =
+                                choiceSearchHint(
+                                    label = option.label,
+                                    value = option.value,
+                                    searchFields = option.searchFields,
+                                    query = query,
+                                )
                             ListItem(
                                 headlineContent = { Text(option.label) },
+                                supportingContent =
+                                    matchHint?.let { hint ->
+                                        { Text("Matched $hint", color = MaterialTheme.colorScheme.primary) }
+                                    },
                                 leadingContent = { EditOptionPreview(option) },
                                 modifier =
                                     Modifier.clickable {
@@ -1563,10 +1652,9 @@ private fun EditOptionSearchField(
 }
 
 private fun filterEditOptions(options: List<EditOption>, query: String): List<EditOption> {
-    val normalized = query.trim().lowercase()
-    if (normalized.isEmpty()) return options
+    if (query.isBlank()) return options
     return options.filter {
-        it.label.lowercase().contains(normalized) || it.value.contains(normalized)
+        choiceSearchMatches(it.label, it.value, it.searchFields, query).isNotEmpty()
     }
 }
 
@@ -1791,23 +1879,23 @@ internal fun LazyListScope.fieldRow(
             }
         is FieldRow.Count ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier =
-                            Modifier.fillMaxWidth().clickable {
-                                onRelatedItems(row.target)
-                            },
-                    ) {
-                        Text(
-                            row.value,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(Icons.Default.FilterList, contentDescription = "Filter ${row.label}")
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                            .clickable { onRelatedItems(row.target) },
+                ) {
+                    Text(
+                        "${row.label} (${row.value})",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = "Show ${row.label.lowercase()}",
+                    )
                 }
             }
         is FieldRow.Markdown ->

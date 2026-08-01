@@ -1,9 +1,12 @@
 package dev.pschmitt.netboxandchill.data.repository
 
+import dev.pschmitt.netboxandchill.data.schema.assetTagState
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GlobalSearchAssetTagTest {
@@ -16,7 +19,15 @@ class GlobalSearchAssetTagTest {
 
     @Test
     fun `ignores missing and blank asset tags`() {
-        assertNull(Json.parseToJsonElement("{}" ).jsonObject.assetTag())
+        val missing = Json.parseToJsonElement("{}").jsonObject.assetTagState()
+        assertFalse(missing.hasField)
+        assertNull(missing.value)
+
+        val blank = Json.parseToJsonElement("""{"asset_tag":"  "}""").jsonObject.assetTagState()
+        assertTrue(blank.hasField)
+        assertNull(blank.value)
+
+        assertNull(Json.parseToJsonElement("{}").jsonObject.assetTag())
         assertNull(
             Json.parseToJsonElement("""{"asset_tag":"  "}""").jsonObject.assetTag()
         )

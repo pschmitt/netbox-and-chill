@@ -57,6 +57,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.repository.CreateChoice
 import dev.pschmitt.netboxandchill.data.repository.CreateFieldDefinition
+import dev.pschmitt.netboxandchill.data.repository.choiceSearchFieldLabel
+import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
+import dev.pschmitt.netboxandchill.data.repository.choiceSearchMatches
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -371,8 +374,19 @@ private fun CreateChoiceInput(
                     }
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                         items(filteredOptions, key = { it.value }) { option ->
+                            val matchHint =
+                                choiceSearchHint(
+                                    label = option.label,
+                                    value = option.value,
+                                    searchFields = option.searchFields,
+                                    query = query,
+                                )
                             ListItem(
                                 headlineContent = { Text(option.label) },
+                                supportingContent =
+                                    matchHint?.let { hint ->
+                                        { Text("Matched $hint", color = MaterialTheme.colorScheme.primary) }
+                                    },
                                 leadingContent = {
                                     CreateChoicePreview(option, localImageFile)
                                 },
@@ -440,10 +454,11 @@ internal fun createChoiceFieldSuggestions(
         .flatMap { it.searchFields.keys.asSequence() }
         .distinct()
         .filter { key ->
-            key.lowercase().startsWith(prefix) || createChoiceFieldLabel(key).lowercase().startsWith(prefix)
+            key.lowercase().startsWith(prefix) ||
+                choiceSearchFieldLabel(key).lowercase().startsWith(prefix)
         }
         .sorted()
-        .map { key -> CreateChoiceFieldSuggestion(key, createChoiceFieldLabel(key)) }
+        .map { key -> CreateChoiceFieldSuggestion(key, choiceSearchFieldLabel(key)) }
         .take(limit)
         .toList()
 }
@@ -452,38 +467,11 @@ internal fun filterCreateChoices(
     options: List<CreateChoice>,
     query: String,
 ): List<CreateChoice> {
-    val rawQuery = query.lowercase()
-    val separator = rawQuery.indexOfFirst { it.isWhitespace() || it == ':' }
-    if (separator > 0) {
-        val requestedField = rawQuery.substring(0, separator)
-        val fieldKey =
-            options
-                .asSequence()
-                .flatMap { it.searchFields.keys.asSequence() }
-                .distinct()
-                .firstOrNull { key ->
-                    key.lowercase() == requestedField ||
-                        createChoiceFieldLabel(key).lowercase() == requestedField
-                }
-        if (fieldKey != null) {
-            val fieldQuery = rawQuery.substring(separator + 1).trim()
-            return options.filter { option ->
-                val fieldValue = option.searchFields[fieldKey] ?: return@filter false
-                fieldQuery.isBlank() || fieldValue.lowercase().contains(fieldQuery)
-            }
-        }
-    }
-    val normalized = rawQuery.trim()
-    if (normalized.isEmpty()) return options
-    return options.filter {
-        it.label.lowercase().contains(normalized) ||
-            it.value.contains(normalized) ||
-            it.searchFields.values.any { fieldValue -> fieldValue.lowercase().contains(normalized) }
+    if (query.isBlank()) return options
+    return options.filter { option ->
+        choiceSearchMatches(option.label, option.value, option.searchFields, query).isNotEmpty()
     }
 }
-
-private fun createChoiceFieldLabel(key: String): String =
-    key.replace('_', ' ').replaceFirstChar { it.titlecase() }
 
 @Composable
 private fun CreateChoicePreview(

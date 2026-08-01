@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -151,6 +152,7 @@ fun DeviceDetailScreen(
     val deleteResult by viewModel.deleteResult.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
+    val refreshToastMessage by viewModel.refreshToastMessage.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -183,6 +185,13 @@ fun DeviceDetailScreen(
         refreshedMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.refreshedMessageShown()
+        }
+    }
+
+    LaunchedEffect(refreshToastMessage) {
+        refreshToastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.refreshToastShown()
         }
     }
 

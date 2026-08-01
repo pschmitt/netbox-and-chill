@@ -32,11 +32,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
+import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
+import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
-import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,15 +172,12 @@ private fun DeviceRow(
             val subtitle =
                 listOfNotNull(device.siteName, device.deviceTypeModel).joinToString(" · ")
             val assetTag = device.assetTag?.takeIf(String::isNotBlank)
-            if (subtitle.isNotBlank() || assetTag != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+            if (subtitle.isNotBlank() || assetTag != null || device.assetTag.isNullOrBlank()) {
+                Column {
                     if (subtitle.isNotBlank()) {
                         Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    assetTag?.let { AssetTagBadge(it) }
+                    if (assetTag != null) AssetTagBadge(assetTag) else MissingAssetTagBadge()
                 }
             }
         },

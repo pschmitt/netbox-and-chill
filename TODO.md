@@ -3331,3 +3331,78 @@ Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build p
 completed the offline `manu` → `Manufacturer` suggestion, accepted `manufacturer d-link`, and
 rendered the filtered `DGS-1100-24PV2` device type without submitting a new object. APK installed
 update-in-place on Zenfone 10, Mi Pad 4, and PX5.
+
+## NBC-179: recursively match linked-field choices and explain matches
+
+Linked-item pickers should search recursively through cached relation objects, so a device-type
+picker can find types by manufacturer or other nested values even when the type name itself does
+not contain the query. The picker should show which field/value matched, and global search should
+surface the same hint when a cached related field is the reason for a result.
+
+- [x] Recursively index nested relation, array, and custom-field values for linked choices.
+- [x] Apply the generic recursive index to create and edit reference pickers.
+- [x] Show a matched-field hint in linked pickers and global search results.
+- [x] Add focused tests; device verification remains pending.
+
+Status: in progress, 2026-08-01.
+
+## NBC-180: make all related count rows browseable
+
+Every positive NetBox `*_count` field should be presented as a clickable plural label with its
+count, such as `Virtual Machines (5)`, and open the existing cached related-item bottom sheet.
+This must be generic across object types, including clusters, rather than a one-off cluster fix.
+
+- [x] Infer related collections and parent relations for generic count fields.
+- [x] Render positive counts as clickable `Type (N)` rows.
+- [x] Reuse cached related-item previews and navigation for all resolved count targets.
+- [x] Add focused tests; device verification remains pending.
+
+Status: in progress, 2026-08-01.
+
+## NBC-181: put asset-tag badges on their own list row
+
+All object list rows should read as name, subtitle, then a separate asset-tag badge row whenever
+the object type has an `asset_tag` field. Empty tags use a red `No asset tag` badge; object types
+without that field do not show a badge.
+
+- [x] Render the asset-tag badge below the subtitle in typed and generic lists.
+- [x] Show a red `No asset tag` badge only for objects with an empty asset-tag field.
+- [x] Apply the same layout to global-search result rows.
+- [ ] Verify the layout on the Mi Pad 4.
+
+Status: in progress, 2026-08-01.
+
+## NBC-182: make edit review diffs readable and resolve linked IDs
+
+The edit review dialog should show human-readable values for linked objects instead of raw IDs,
+and present changes as a clear colored before/after diff.
+
+- [ ] Resolve linked-object IDs from the cached object directory before rendering the diff.
+- [ ] Render added, removed, and changed values with clear semantic colors and labels.
+- [ ] Preserve the existing cancel/revert and confirm actions.
+- [ ] Add focused tests and verify the review dialog on the Mi Pad 4.
+
+Status: in progress, 2026-08-01.
+
+## NBC-183: show refresh progress as item-page toasts
+
+Pull-to-refresh on item pages should immediately show a toast that the refresh was queued, then a
+second toast when the refresh finishes, clearly distinguishing success from failure.
+
+- [x] Replace the queued/complete refresh snackbar with toasts on generic and device item pages.
+- [x] Report the terminal sync result as complete or failed.
+- [x] Keep cached content visible while the background refresh runs.
+- [ ] Add focused tests and verify the behavior on the Mi Pad 4.
+
+Status: in progress, 2026-08-01.
+
+## NBC-184: close focused edit after confirmation
+
+When a field editor was opened from a long-press/navigation focus and its change is confirmed, the
+focused edit dialog must stay closed instead of being relaunched by the route effect.
+
+- [x] Make route-driven focused editing a one-shot launch.
+- [x] Keep the focused editor closed after review confirmation and save.
+- [ ] Add a regression test and verify the flow on the Mi Pad 4.
+
+Status: in progress, 2026-08-01.

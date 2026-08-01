@@ -20,6 +20,7 @@ import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
 import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.data.repository.createChoiceSearchFields
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
@@ -31,6 +32,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -115,6 +118,10 @@ constructor(
     // successful save ("<item> updated!"), both simple "your action worked" acknowledgements.
     private val _refreshedMessage = MutableStateFlow<String?>(null)
     val refreshedMessage: StateFlow<String?> = _refreshedMessage.asStateFlow()
+
+    private val _refreshToastMessage = MutableStateFlow<String?>(null)
+    val refreshToastMessage: StateFlow<String?> = _refreshToastMessage.asStateFlow()
+    private var awaitingRefreshCompletion = false
 
     private val _isDownloading = MutableStateFlow(false)
     val isDownloading: StateFlow<Boolean> = _isDownloading.asStateFlow()
@@ -279,12 +286,28 @@ constructor(
         viewModelScope.launch {
             objectFlow.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
+        viewModelScope.launch {
+            syncStatusRepository.manualSyncState.drop(1).distinctUntilChanged().collect { state ->
+                if (awaitingRefreshCompletion && state?.isFinished == true) {
+                    awaitingRefreshCompletion = false
+                    _refreshToastMessage.value =
+                        if (state == androidx.work.WorkInfo.State.SUCCEEDED) {
+                            "Refresh complete"
+                        } else {
+                            "Refresh failed"
+                        }
+                }
+            }
+        }
     }
 
     fun refresh(showConfirmation: Boolean = false) {
         if (!settingsRepository.offlineMode.value) {
+            if (showConfirmation) {
+                awaitingRefreshCompletion = true
+                _refreshToastMessage.value = "Refresh queued"
+            }
             syncScheduler.syncNow()
-            if (showConfirmation) _refreshedMessage.value = "Refresh queued"
             loadJournalEntries()
         }
     }
@@ -306,6 +329,10 @@ constructor(
 
     fun refreshedMessageShown() {
         _refreshedMessage.value = null
+    }
+
+    fun refreshToastShown() {
+        _refreshToastMessage.value = null
     }
 
     fun delete() {
@@ -453,6 +480,7 @@ constructor(
                                         rearImageUrl =
                                             (objectJson?.get("rear_image") as? JsonPrimitive)
                                                 ?.contentOrNull,
+                                        searchFields = objectJson?.createChoiceSearchFields().orEmpty(),
                                     )
                                 }
                             )
