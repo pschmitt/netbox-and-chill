@@ -19,5 +19,7 @@ data class PendingEditEntity(
         const val CONFLICT = "conflict"
         /** A queued POST; [id] is a negative local-only cache ID until reconciliation. */
         const val CREATE_QUEUED = "create_queued"
+        /** A queued DELETE; the object is hidden from the local cache until reconciliation. */
+        const val DELETE_QUEUED = "delete_queued"
     }
 }

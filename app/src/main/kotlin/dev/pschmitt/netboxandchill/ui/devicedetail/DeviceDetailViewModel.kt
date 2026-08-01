@@ -10,12 +10,14 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
+import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
@@ -109,6 +111,7 @@ constructor(
     private val journalEntryRepository: JournalEntryRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val genericObjectRepository: GenericObjectRepository,
+    private val pendingEditRepository: PendingEditRepository,
     private val recentVisitRepository: RecentVisitRepository,
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
@@ -117,6 +120,12 @@ constructor(
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+
+    private val _deleteResult = MutableStateFlow<DeleteSubmission?>(null)
+    val deleteResult: StateFlow<DeleteSubmission?> = _deleteResult.asStateFlow()
 
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
 
@@ -261,6 +270,29 @@ constructor(
 
     fun refreshedMessageShown() {
         _refreshedMessage.value = null
+    }
+
+    fun delete() {
+        if (_isDeleting.value) return
+        viewModelScope.launch {
+            _isDeleting.value = true
+            pendingEditRepository
+                .deleteObject(
+                    endpointPath = "api/dcim/devices/",
+                    id = deviceId,
+                    offline = settingsRepository.offlineMode.value,
+                )
+                .onSuccess { result ->
+                    deviceRepository.removeCachedDevice(deviceId)
+                    _deleteResult.value = result
+                }
+                .onFailure { _errorMessage.value = it.message ?: "Couldn't delete device" }
+            _isDeleting.value = false
+        }
+    }
+
+    fun deleteResultShown() {
+        _deleteResult.value = null
     }
 
     fun downloadAttachment(url: String, filename: String) {

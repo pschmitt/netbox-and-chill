@@ -124,6 +124,37 @@ class PendingEditRepositoryTest {
     }
 
     @Test
+    fun `offline deletion hides the cached object and reconciles later`() = runTest {
+        val api = FakeApi(server("to-delete", "v1"))
+        val pending = FakePendingEditDao()
+        val objectDao = FakeNetBoxObjectDao()
+        val repository = repository(api, pending, objectDao)
+        val endpoint = "api/dcim/racks/"
+        objectDao.upsert(
+            NetBoxObjectEntity(
+                endpointPath = endpoint,
+                id = 1,
+                display = "to-delete",
+                secondaryLine = null,
+                json = server("to-delete", "v1").toString(),
+                syncedAt = 1L,
+            )
+        )
+
+        val queued = repository.deleteObject(endpoint, 1, offline = true).getOrThrow()
+
+        assertEquals(DeleteSubmission.Queued, queued)
+        assertEquals(PendingEditEntity.DELETE_QUEUED, pending.get(endpoint, 1)!!.state)
+        assertNull(objectDao.last)
+
+        val sync = repository.syncPending()
+
+        assertEquals("${endpoint}1/", api.lastDelete)
+        assertEquals(1, sync.reconciliation.deleted.size)
+        assertNull(pending.get(endpoint, 1))
+    }
+
+    @Test
     fun `disposable offline create and later edit reconcile without touching existing item`() =
         runTest {
             val api = FakeApi(server("untouched-existing-fixture", "v1"))
@@ -273,6 +304,7 @@ private class FakeApi(
 ) : GenericNetBoxApi {
     var lastPatch: JsonObject? = null
     var lastCreate: JsonObject? = null
+    var lastDelete: String? = null
     private var nextCreatedId = 101
 
     override suspend fun getApiRoot(): Map<String, String> = error("unused")
@@ -315,6 +347,10 @@ private class FakeApi(
         )
     }
 
+    override suspend fun deleteObject(url: String) {
+        lastDelete = url
+    }
+
     override suspend fun getJournalEntryOptions(): JsonObject = error("unused")
 }
 
@@ -328,19 +364,47 @@ private class FakePendingEditDao : PendingEditDao {
         flowOf(edits.values.count { it.state == PendingEditEntity.CONFLICT })
 
     override fun observeQueuedMutations(): Flow<List<PendingEditEntity>> =
-        flowOf(edits.values.filter { it.state in setOf(PendingEditEntity.QUEUED, PendingEditEntity.CREATE_QUEUED) })
+        flowOf(
+            edits.values.filter {
+                it.state in
+                    setOf(
+                        PendingEditEntity.QUEUED,
+                        PendingEditEntity.CREATE_QUEUED,
+                        PendingEditEntity.DELETE_QUEUED,
+                    )
+            }
+        )
 
     override fun observeQueuedMutationCount(): Flow<Int> =
-        flowOf(edits.values.count { it.state in setOf(PendingEditEntity.QUEUED, PendingEditEntity.CREATE_QUEUED) })
+        flowOf(
+            edits.values.count {
+                it.state in
+                    setOf(
+                        PendingEditEntity.QUEUED,
+                        PendingEditEntity.CREATE_QUEUED,
+                        PendingEditEntity.DELETE_QUEUED,
+                    )
+            }
+        )
 
     override suspend fun getQueuedMutations(): List<PendingEditEntity> =
-        edits.values.filter { it.state in setOf(PendingEditEntity.QUEUED, PendingEditEntity.CREATE_QUEUED) }
+        edits.values.filter {
+            it.state in
+                setOf(
+                    PendingEditEntity.QUEUED,
+                    PendingEditEntity.CREATE_QUEUED,
+                    PendingEditEntity.DELETE_QUEUED,
+                )
+        }
 
-    override suspend fun getQueued(): List<PendingEditEntity> =
+    override suspend fun getQueuedEdits(): List<PendingEditEntity> =
         edits.values.filter { it.state == PendingEditEntity.QUEUED }
 
     override suspend fun getQueuedCreates(): List<PendingEditEntity> =
         edits.values.filter { it.state == PendingEditEntity.CREATE_QUEUED }
+
+    override suspend fun getQueuedDeletes(): List<PendingEditEntity> =
+        edits.values.filter { it.state == PendingEditEntity.DELETE_QUEUED }
 
     override suspend fun get(endpointPath: String, id: Int): PendingEditEntity? =
         edits[endpointPath to id]

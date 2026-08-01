@@ -8,6 +8,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
+import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.EditSubmission
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
@@ -61,6 +63,7 @@ class GenericDetailViewModel
 constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: GenericObjectRepository,
+    private val deviceRepository: DeviceRepository,
     private val settingsRepository: SettingsRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val journalEntryRepository: JournalEntryRepository,
@@ -90,6 +93,12 @@ constructor(
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+
+    private val _deleteResult = MutableStateFlow<DeleteSubmission?>(null)
+    val deleteResult: StateFlow<DeleteSubmission?> = _deleteResult.asStateFlow()
 
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
@@ -297,6 +306,31 @@ constructor(
 
     fun refreshedMessageShown() {
         _refreshedMessage.value = null
+    }
+
+    fun delete() {
+        if (_isDeleting.value) return
+        viewModelScope.launch {
+            _isDeleting.value = true
+            pendingEditRepository
+                .deleteObject(
+                    endpointPath = route.endpointPath,
+                    id = route.id,
+                    offline = settingsRepository.offlineMode.value,
+                )
+                .onSuccess { result ->
+                    if (route.endpointPath == DEVICES_ENDPOINT_PATH) {
+                        deviceRepository.removeCachedDevice(route.id)
+                    }
+                    _deleteResult.value = result
+                }
+                .onFailure { _errorMessage.value = it.message ?: "Couldn't delete item" }
+            _isDeleting.value = false
+        }
+    }
+
+    fun deleteResultShown() {
+        _deleteResult.value = null
     }
 
     fun startEditing() {

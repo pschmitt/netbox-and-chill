@@ -23,6 +23,12 @@ sealed interface EditSubmission {
     data object ConflictDetected : EditSubmission
 }
 
+sealed interface DeleteSubmission {
+    data object Deleted : DeleteSubmission
+
+    data object Queued : DeleteSubmission
+}
+
 sealed interface CreateSubmission {
     val objectJson: JsonObject
 
@@ -40,9 +46,10 @@ data class ReconciledItem(
 data class ReconciliationSummary(
     val created: List<ReconciledItem> = emptyList(),
     val edited: List<ReconciledItem> = emptyList(),
+    val deleted: List<ReconciledItem> = emptyList(),
 ) {
     val total: Int
-        get() = created.size + edited.size
+        get() = created.size + edited.size + deleted.size
 }
 
 data class PendingSyncResult(
@@ -75,7 +82,9 @@ constructor(
     suspend fun revertPending(edit: PendingEditEntity) {
         if (edit.state == PendingEditEntity.CREATE_QUEUED) {
             genericObjectRepository.removeCachedObject(edit.endpointPath, edit.id)
-        } else if (edit.state == PendingEditEntity.QUEUED) {
+        } else if (
+            edit.state == PendingEditEntity.QUEUED || edit.state == PendingEditEntity.DELETE_QUEUED
+        ) {
             genericObjectRepository.cacheLocalObject(edit.endpointPath, decode(edit.baseJson))
         }
         pendingEditDao.delete(edit.endpointPath, edit.id)
@@ -173,6 +182,49 @@ constructor(
         }
     }
 
+    /** Deletes an object immediately when possible, or hides it and queues the DELETE offline. */
+    suspend fun deleteObject(
+        endpointPath: String,
+        id: Int,
+        offline: Boolean,
+    ): Result<DeleteSubmission> {
+        val existing = pendingEditDao.get(endpointPath, id)
+        if (existing?.state == PendingEditEntity.CREATE_QUEUED) {
+            genericObjectRepository.removeCachedObject(endpointPath, id)
+            pendingEditDao.delete(endpointPath, id)
+            return Result.success(DeleteSubmission.Deleted)
+        }
+
+        val cached = genericObjectRepository.cachedObjects(endpointPath).firstOrNull { it.id == id }
+        val baseJson = existing?.baseJson ?: cached?.json ?: "{}"
+        if (offline) {
+            queueDelete(endpointPath, id, baseJson, existing)
+            return Result.success(DeleteSubmission.Queued)
+        }
+
+        return try {
+            api.deleteObject("$endpointPath$id/")
+            genericObjectRepository.removeCachedObject(endpointPath, id)
+            pendingEditDao.delete(endpointPath, id)
+            Result.success(DeleteSubmission.Deleted)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: IOException) {
+            queueDelete(endpointPath, id, baseJson, existing)
+            Result.success(DeleteSubmission.Queued)
+        } catch (error: HttpException) {
+            if (error.code() == 404) {
+                genericObjectRepository.removeCachedObject(endpointPath, id)
+                pendingEditDao.delete(endpointPath, id)
+                Result.success(DeleteSubmission.Deleted)
+            } else {
+                Result.failure(error)
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
     /** Retries queued creates and edits before the normal cache sync can overwrite local views. */
     suspend fun syncPending(): PendingSyncResult {
         val created = mutableListOf<ReconciledItem>()
@@ -215,8 +267,63 @@ constructor(
             }
         }
 
+        val deleted = mutableListOf<ReconciledItem>()
+        for (edit in pendingEditDao.getQueuedDeletes()) {
+            try {
+                api.deleteObject("${edit.endpointPath}${edit.id}/")
+                genericObjectRepository.removeCachedObject(edit.endpointPath, edit.id)
+                pendingEditDao.delete(edit.endpointPath, edit.id)
+                deleted +=
+                    reconciledItem(
+                        edit.endpointPath,
+                        JsonObject(mapOf("id" to JsonPrimitive(edit.id))),
+                        edit.localJson,
+                    )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: IOException) {
+                return PendingSyncResult(
+                    reconciliation =
+                        ReconciliationSummary(
+                            created = created.toList(),
+                            deleted = deleted.toList(),
+                        ),
+                    retryableFailure = IOException("Queued delete upload failed"),
+                )
+            } catch (error: HttpException) {
+                if (error.code() == 404) {
+                    genericObjectRepository.removeCachedObject(edit.endpointPath, edit.id)
+                    pendingEditDao.delete(edit.endpointPath, edit.id)
+                    deleted +=
+                        reconciledItem(
+                            edit.endpointPath,
+                            JsonObject(mapOf("id" to JsonPrimitive(edit.id))),
+                            edit.localJson,
+                        )
+                } else if (error.code() >= 500) {
+                    return PendingSyncResult(
+                        reconciliation =
+                            ReconciliationSummary(
+                                created = created.toList(),
+                                deleted = deleted.toList(),
+                            ),
+                        retryableFailure = error,
+                    )
+                } else {
+                    Timber.w(
+                        error,
+                        "Pending delete sync rejected by server for %s/%d",
+                        edit.endpointPath,
+                        edit.id,
+                    )
+                }
+            } catch (error: Exception) {
+                Timber.w(error, "Pending delete sync failed for %s/%d", edit.endpointPath, edit.id)
+            }
+        }
+
         val edited = mutableListOf<ReconciledItem>()
-        for (edit in pendingEditDao.getQueued()) {
+        for (edit in pendingEditDao.getQueuedEdits()) {
             try {
                 val server = api.getObject("${edit.endpointPath}${edit.id}/")
                 if (hasChanged(decode(edit.baseJson), server)) {
@@ -236,7 +343,11 @@ constructor(
                 // Leave the edit queued for the next scheduled/manual sync.
                 return PendingSyncResult(
                     reconciliation =
-                        ReconciliationSummary(created = created.toList(), edited = edited.toList()),
+                        ReconciliationSummary(
+                            created = created.toList(),
+                            edited = edited.toList(),
+                            deleted = deleted.toList(),
+                        ),
                     retryableFailure = IOException("Queued edit upload failed"),
                 )
             } catch (error: HttpException) {
@@ -246,6 +357,7 @@ constructor(
                             ReconciliationSummary(
                                 created = created.toList(),
                                 edited = edited.toList(),
+                                deleted = deleted.toList(),
                             ),
                         retryableFailure = error,
                     )
@@ -262,8 +374,33 @@ constructor(
         }
         return PendingSyncResult(
             reconciliation =
-                ReconciliationSummary(created = created.toList(), edited = edited.toList())
+                ReconciliationSummary(
+                    created = created.toList(),
+                    edited = edited.toList(),
+                    deleted = deleted.toList(),
+                )
         )
+    }
+
+    private suspend fun queueDelete(
+        endpointPath: String,
+        id: Int,
+        baseJson: String,
+        existing: PendingEditEntity?,
+    ) {
+        pendingEditDao.upsert(
+            PendingEditEntity(
+                endpointPath = endpointPath,
+                id = id,
+                baseJson = baseJson,
+                localJson = baseJson,
+                patchJson = "{}",
+                state = PendingEditEntity.DELETE_QUEUED,
+                serverJson = null,
+                createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+            )
+        )
+        genericObjectRepository.removeCachedObject(endpointPath, id)
     }
 
     /**

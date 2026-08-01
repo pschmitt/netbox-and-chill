@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -123,6 +125,8 @@ fun GenericDetailScreen(
     val choiceOptions by viewModel.choiceOptions.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val isDeleting by viewModel.isDeleting.collectAsStateWithLifecycle()
+    val deleteResult by viewModel.deleteResult.collectAsStateWithLifecycle()
     val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
@@ -147,6 +151,7 @@ fun GenericDetailScreen(
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showHiddenFields by remember { mutableStateOf(false) }
     var fieldActionLabel by remember { mutableStateOf<String?>(null) }
     var pendingEdits by remember { mutableStateOf<Map<String, Pair<EditFieldKind, String>>?>(null) }
@@ -240,6 +245,14 @@ fun GenericDetailScreen(
         refreshedMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.refreshedMessageShown()
+        }
+    }
+
+    LaunchedEffect(deleteResult) {
+        if (deleteResult != null) {
+            showDeleteConfirmation = false
+            viewModel.deleteResultShown()
+            onBack()
         }
     }
 
@@ -421,6 +434,17 @@ fun GenericDetailScreen(
                                         },
                                     )
                                 }
+                                DropdownMenuItem(
+                                    text = { Text("Delete") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null)
+                                    },
+                                    enabled = title != null && !isDeleting,
+                                    onClick = {
+                                        showDeleteConfirmation = true
+                                        actionMenuExpanded = false
+                                    },
+                                )
                                 webUrl?.let { url ->
                                     DropdownMenuItem(
                                         text = { Text("Open in browser") },
@@ -659,6 +683,49 @@ fun GenericDetailScreen(
                 }
             }
         }
+    }
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) showDeleteConfirmation = false },
+            icon = {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            title = { Text("Delete ${title ?: "item"}?") },
+            text = {
+                Text(
+                    "This removes the item from NetBox. The cached copy will be removed now; " +
+                        "if you are offline, the deletion will be uploaded when sync resumes."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::delete,
+                    enabled = !isDeleting,
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Delete")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmation = false },
+                    enabled = !isDeleting,
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
     printRequest?.let { request ->
         PrintLabelDialog(request = request, onDismiss = { printRequest = null })

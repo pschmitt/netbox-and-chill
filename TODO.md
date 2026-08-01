@@ -3215,3 +3215,15 @@ preserving the existing tab-row controls.
 - [ ] Verify swipes do not interfere with vertical scrolling or horizontal child content.
 
 Status: not started.
+
+## NBC-173: add delete to item-view overflow menus
+
+Item view overflow menus should offer a guarded delete action for cached items.
+
+- [ ] Add a Delete action to generic and device item-view overflow menus.
+- [ ] Require an explicit confirmation dialog before deleting.
+- [ ] Remove deleted items from the offline cache and queue offline deletions for sync.
+- [ ] Verify successful online deletion and queued offline deletion without touching unrelated
+  items.
+
+Status: in progress.

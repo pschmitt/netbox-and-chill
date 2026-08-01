@@ -155,6 +155,7 @@ fun NetBoxNavHost(
                 onReferenceClick = { endpointPath, id, breadcrumb ->
                     navController.navigate(Route.Generic(endpointPath, id, breadcrumb))
                 },
+                onDeleted = { navController.popBackStack() },
             )
         }
         composable<Route.GenericList> { backStackEntry ->

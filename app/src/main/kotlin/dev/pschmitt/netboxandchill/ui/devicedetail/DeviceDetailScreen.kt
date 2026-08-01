@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.History
@@ -46,6 +47,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
@@ -111,6 +115,7 @@ fun DeviceDetailScreen(
     onEditFieldClick: (fieldKey: String) -> Unit,
     onDeviceTypeClick: (id: Int, breadcrumb: String) -> Unit,
     onReferenceClick: (endpointPath: String, id: Int, breadcrumb: String) -> Unit,
+    onDeleted: () -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
@@ -139,6 +144,8 @@ fun DeviceDetailScreen(
         }
     }
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isDeleting by viewModel.isDeleting.collectAsStateWithLifecycle()
+    val deleteResult by viewModel.deleteResult.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
@@ -150,6 +157,7 @@ fun DeviceDetailScreen(
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showHiddenFields by remember { mutableStateOf(false) }
     var fieldActionLabel by remember { mutableStateOf<String?>(null) }
     val hiddenFieldsForDevice = hiddenFieldKeys.filter { it.startsWith("device/") }
@@ -171,6 +179,14 @@ fun DeviceDetailScreen(
         refreshedMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.refreshedMessageShown()
+        }
+    }
+
+    LaunchedEffect(deleteResult) {
+        if (deleteResult != null) {
+            showDeleteConfirmation = false
+            viewModel.deleteResultShown()
+            onDeleted()
         }
     }
 
@@ -241,6 +257,17 @@ fun DeviceDetailScreen(
                                 enabled = device != null,
                                 onClick = {
                                     onEditClick()
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Delete, contentDescription = null)
+                                },
+                                enabled = device != null && !isDeleting,
+                                onClick = {
+                                    showDeleteConfirmation = true
                                     actionMenuExpanded = false
                                 },
                             )
@@ -578,6 +605,49 @@ fun DeviceDetailScreen(
 
     imageViewer?.let { (items, index) ->
         ImageViewerDialog(items = items, initialIndex = index, onDismiss = { imageViewer = null })
+    }
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) showDeleteConfirmation = false },
+            icon = {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            title = { Text("Delete ${device?.name ?: "device"}?") },
+            text = {
+                Text(
+                    "This removes the device from NetBox. The cached copy will be removed now; " +
+                        "if you are offline, the deletion will be uploaded when sync resumes."
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = viewModel::delete,
+                    enabled = !isDeleting,
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Delete")
+                    }
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { showDeleteConfirmation = false },
+                    enabled = !isDeleting,
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
     printRequest?.let { request ->
         PrintLabelDialog(request = request, onDismiss = { printRequest = null })

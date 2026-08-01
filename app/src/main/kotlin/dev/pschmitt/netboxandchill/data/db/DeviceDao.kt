@@ -39,6 +39,8 @@ interface DeviceDao {
 
     @Query("SELECT * FROM devices") suspend fun getAll(): List<DeviceEntity>
 
+    @Query("DELETE FROM devices WHERE id = :id") suspend fun deleteById(id: Int)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(devices: List<DeviceEntity>)
 

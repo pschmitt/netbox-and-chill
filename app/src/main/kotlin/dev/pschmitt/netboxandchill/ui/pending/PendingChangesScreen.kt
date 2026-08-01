@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Undo
@@ -110,6 +111,8 @@ fun PendingChangesScreen(
                             Icon(
                                 if (change.state == PendingEditEntity.CREATE_QUEUED) {
                                     Icons.Default.AddCircle
+                                } else if (change.state == PendingEditEntity.DELETE_QUEUED) {
+                                    Icons.Default.Delete
                                 } else Icons.Default.Edit,
                                 contentDescription = null,
                             )
@@ -154,7 +157,9 @@ fun PendingChangesScreen(
             onDismissRequest = { confirmAll = false },
             icon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) },
             title = { Text("Revert all changes?") },
-            text = { Text("This removes all pending offline creates and edits from this device.") },
+            text = {
+                Text("This removes all pending offline creates, edits, and deletions from this device.")
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

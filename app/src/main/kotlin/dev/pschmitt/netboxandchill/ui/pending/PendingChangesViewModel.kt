@@ -46,8 +46,11 @@ constructor(
     }
 
     fun kind(edit: PendingEditEntity): String =
-        if (edit.state == PendingEditEntity.CREATE_QUEUED) "Created offline"
-        else "Edited offline"
+        when (edit.state) {
+            PendingEditEntity.CREATE_QUEUED -> "Created offline"
+            PendingEditEntity.DELETE_QUEUED -> "Deleted offline"
+            else -> "Edited offline"
+        }
 
     fun revert(edit: PendingEditEntity) {
         viewModelScope.launch {

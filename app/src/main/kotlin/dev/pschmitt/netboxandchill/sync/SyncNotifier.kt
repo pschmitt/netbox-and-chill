@@ -286,6 +286,7 @@ private fun ReconciliationSummary.shortText(): String =
     buildList {
             if (created.isNotEmpty()) add("${created.size} item(s) created")
             if (edited.isNotEmpty()) add("${edited.size} item(s) updated")
+            if (deleted.isNotEmpty()) add("${deleted.size} item(s) deleted")
         }
         .joinToString(", ")
 
@@ -293,5 +294,6 @@ private fun ReconciliationSummary.details(): String =
     buildList {
             created.forEach { add("Created: ${it.display} (#${it.id})") }
             edited.forEach { add("Updated: ${it.display} (#${it.id})") }
+            deleted.forEach { add("Deleted: ${it.display} (#${it.id})") }
         }
         .joinToString("\n")

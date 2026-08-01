@@ -41,6 +41,9 @@ interface GenericNetBoxApi {
 
     @POST suspend fun createObject(@Url url: String, @Body body: JsonObject): JsonObject
 
+    @HTTP(method = "DELETE", hasBody = false)
+    suspend fun deleteObject(@Url url: String)
+
     /**
      * DRF's `OPTIONS` response for a ChoiceField enumerates its valid values - used to resolve the
      * `assigned_object_type` (`app_label.model`) NetBox expects when filtering journal entries,
