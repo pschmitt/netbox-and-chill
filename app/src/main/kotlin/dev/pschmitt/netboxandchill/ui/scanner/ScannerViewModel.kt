@@ -69,13 +69,27 @@ constructor(
         viewModelScope.launch {
             // Best-effort refresh so a freshly scanned object is up to date - the detail screen
             // still works from the Room cache either way if this fails offline.
-            when (target) {
-                is NetBoxTarget.Device -> deviceRepository.refreshDevice(target.id)
-                is NetBoxTarget.Object ->
-                    genericObjectRepository.refreshObject(target.endpointPath, target.id)
-                is NetBoxTarget.Setup -> Unit
+            val resolvedTarget =
+                when (target) {
+                    is NetBoxTarget.Device -> {
+                        deviceRepository.refreshDevice(target.id)
+                        target
+                    }
+                    is NetBoxTarget.DeviceAssetTag ->
+                        deviceRepository.findByAssetTag(target.assetTag)?.let {
+                            NetBoxTarget.Device(it.id)
+                        }
+                    is NetBoxTarget.Object -> {
+                        genericObjectRepository.refreshObject(target.endpointPath, target.id)
+                        target
+                    }
+                    is NetBoxTarget.Setup -> target
+                }
+            if (resolvedTarget == null && target is NetBoxTarget.DeviceAssetTag) {
+                _state.value = ScanResultState.NotFound(target.assetTag)
+            } else {
+                _state.value = ScanResultState.Found(resolvedTarget ?: target)
             }
-            _state.value = ScanResultState.Found(target)
         }
     }
 

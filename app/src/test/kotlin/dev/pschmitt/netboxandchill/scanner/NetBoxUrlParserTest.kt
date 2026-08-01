@@ -47,6 +47,39 @@ class NetBoxUrlParserTest {
     }
 
     @Test
+    fun `parses an nbxc device deep link`() {
+        assertEquals(NetBoxTarget.Device(393), NetBoxUrlParser.parse("nbxc://device/393"))
+    }
+
+    @Test
+    fun `parses an encoded nbxc device asset tag deep link`() {
+        assertEquals(
+            NetBoxTarget.DeviceAssetTag("#CZN-0001"),
+            NetBoxUrlParser.parse("nbxc://device/asset_tag/%23CZN-0001"),
+        )
+    }
+
+    @Test
+    fun `parses an unencoded fragment asset tag for convenient hand-authored links`() {
+        assertEquals(
+            NetBoxTarget.DeviceAssetTag("#CZN-0001"),
+            NetBoxUrlParser.parse("nbxc://device/asset_tag/#CZN-0001"),
+        )
+    }
+
+    @Test
+    fun `parses simple and api-style nbxc object links`() {
+        assertEquals(
+            NetBoxTarget.Object("api/dcim/racks/", 12),
+            NetBoxUrlParser.parse("nbxc://rack/12"),
+        )
+        assertEquals(
+            NetBoxTarget.Object("api/plugins/netbox_documents/documents/", 7),
+            NetBoxUrlParser.parse("nbxc://object/plugins/netbox_documents/documents/7"),
+        )
+    }
+
+    @Test
     fun `trims surrounding whitespace`() {
         assertEquals(NetBoxTarget.Device(393), NetBoxUrlParser.parse("  393  \n"))
     }

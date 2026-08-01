@@ -163,6 +163,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="netboxandchill" android:host="setup" />
             </intent-filter>
+
+            <!-- App-owned shortcuts such as nbxc://device/393 and
+                 nbxc://device/asset_tag/%23CZN-0001. The parser also accepts generic built-in
+                 and API-style object routes; keeping the filter scheme-only lets it evolve without
+                 having to enumerate every NetBox model in the manifest. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="nbxc" />
+            </intent-filter>
         </activity>
 
         <!-- WorkManager is initialized manually in NetBoxAndChillApp (Configuration.Provider) so

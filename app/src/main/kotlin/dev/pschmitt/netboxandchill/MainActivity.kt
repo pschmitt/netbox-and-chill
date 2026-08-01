@@ -26,6 +26,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
@@ -46,6 +47,7 @@ import kotlinx.coroutines.launch
 class MainActivity : FragmentActivity() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var deviceRepository: DeviceRepository
     @Inject lateinit var syncNotifier: SyncNotifier
     @Inject lateinit var syncScheduler: SyncScheduler
 
@@ -118,6 +120,13 @@ class MainActivity : FragmentActivity() {
                                         is NetBoxTarget.Setup -> error("unreachable")
                                     }
                                 navController.navigate(destination)
+                            }
+                        }
+                        is NetBoxTarget.DeviceAssetTag -> {
+                            if (settingsRepository.isConfigured) {
+                                deviceRepository.findByAssetTag(target.assetTag)?.let { device ->
+                                    navController.navigate(Route.DeviceDetail(device.id))
+                                }
                             }
                         }
                     }

@@ -268,6 +268,7 @@ fun NetBoxNavHost(
                     val destination =
                         when (target) {
                             is NetBoxTarget.Device -> Route.DeviceDetail(target.id)
+                            is NetBoxTarget.DeviceAssetTag -> return@ScannerScreen
                             is NetBoxTarget.Object -> Route.Generic(target.endpointPath, target.id)
                             is NetBoxTarget.Setup -> {
                                 onSetupImport(target)

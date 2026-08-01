@@ -3411,3 +3411,19 @@ focused edit dialog must stay closed instead of being relaunched by the route ef
 
 Status: **done**, 2026-08-02 - the Mi Pad 4 long-press → Edit → Review → Confirm flow closes the
 focused editor; confirmation now explicitly clears the focused state, with remote tests passing.
+
+## NBC-185: add nbxc deep links for cached NetBox objects
+
+The app should accept its own `nbxc://` links so shortcuts, QR codes, and other apps can open a
+specific NetBox page directly. Device IDs and asset tags should be supported, along with a generic
+form for other built-in and plugin object types.
+
+- [x] Parse `nbxc://device/<id>` and `nbxc://device/asset_tag/<tag>` targets.
+- [x] Parse generic built-in and API-style object targets for other item types.
+- [x] Resolve asset-tag links through the cache-first device repository.
+- [x] Register the custom scheme in the Android manifest and route cold/warm intents.
+- [x] Add parser tests and verify a device deep link on a physical device.
+
+Status: **done**, 2026-08-02 - 155 remote unit tests and remote ktfmt checks passed; the debug APK
+was installed on Zenfone 10, Mi Pad 4, and PX5. On the Mi Pad, both `nbxc://device/246` and
+`nbxc://device/asset_tag/%23SLY-3006` opened the cached Shelly 1 device while offline.
