@@ -3233,3 +3233,15 @@ Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build p
 repository test covered offline queue/reconciliation, and the wired Zenfone showed the Delete
 overflow action and confirmation dialog without confirming a production deletion. APK installed
 update-in-place on Zenfone 10, Mi Pad 4, and PX5.
+
+## NBC-174: add offline netbox-topology support
+
+If the `netbox-topology-views` plugin is installed, expose a native topology view and cache its
+read-only draw.io XML export so the graph remains available without connectivity.
+
+- [ ] Discover the plugin and expose a dedicated Topology entry in the sidebar.
+- [ ] Sync and durably cache a useful topology export through the normal background sync.
+- [ ] Parse and render the cached graph natively with zoom and pan support.
+- [ ] Keep absent-plugin, empty-result, and refresh failures non-blocking for the rest of the app.
+
+Status: in progress.

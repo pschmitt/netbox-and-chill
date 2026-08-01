@@ -25,6 +25,7 @@ import dev.pschmitt.netboxandchill.ui.search.GlobalSearchScreen
 import dev.pschmitt.netboxandchill.ui.settings.SettingsCategoryScreen
 import dev.pschmitt.netboxandchill.ui.settings.SettingsScreen
 import dev.pschmitt.netboxandchill.ui.sync.SyncSummaryScreen
+import dev.pschmitt.netboxandchill.ui.topology.TopologyScreen
 
 // The typed Device list/cache (NBC-1) is richer (thumbnails, status chips, already-synced) than
 // the generic object cache for the same endpoint, which may be empty until separately visited -
@@ -123,6 +124,9 @@ fun NetBoxNavHost(
                 },
                 onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
             )
+        }
+        composable<Route.Topology> {
+            TopologyScreen(onBack = { navController.popBackStack() })
         }
         composable<Route.DeviceDetail> { backStackEntry ->
             val route: Route.DeviceDetail = backStackEntry.toRoute()

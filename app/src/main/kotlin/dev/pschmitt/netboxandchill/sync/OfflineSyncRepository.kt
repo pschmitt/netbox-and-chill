@@ -14,6 +14,7 @@ import dev.pschmitt.netboxandchill.data.repository.ReconciliationSummary
 import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
 import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.data.repository.TopologyRepository
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +46,7 @@ constructor(
     private val fileDownloadRepository: FileDownloadRepository,
     private val settingsRepository: SettingsRepository,
     private val pendingEditRepository: PendingEditRepository,
+    private val topologyRepository: TopologyRepository,
     private val syncIssueReporter: SyncIssueReporter,
 ) {
 
@@ -101,8 +103,13 @@ constructor(
 
             var genericObjects = 0
             val models = directoryRepository.cachedModels()
+            val topologyAvailable =
+                models.any { it.appKey == TopologyRepository.PLUGIN_APP_KEY }
             totalSteps =
-                7 + models.size + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0
+                7 +
+                    models.size +
+                    (if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0) +
+                    (if (topologyAvailable) 1 else 0)
             for (model in models) {
                 reportProgress("Syncing ${model.modelLabel}…")
                 genericObjectRepository
@@ -120,6 +127,13 @@ constructor(
                 }
                 rackElevationRepository.refresh(rack.id, RackFace.REAR).onFailure {
                     recordFailure("Rack ${rack.id} rear elevation", it)
+                }
+            }
+
+            if (topologyAvailable) {
+                reportProgress("Syncing topology map…")
+                topologyRepository.refresh().onFailure {
+                    syncIssueReporter.report("Topology sync: ${it.message ?: "failed"}")
                 }
             }
 

@@ -58,6 +58,22 @@ constructor(
             }
         }
 
+    /** Stores a generated or API-exported artifact alongside durable attachments. */
+    suspend fun writeToPersistent(url: String, filename: String, content: String): Result<File> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val target = persistentPath(url, filename)
+                target.parentFile?.mkdirs()
+                val temp = File(target.parentFile, "${target.name}.part")
+                temp.writeText(content)
+                if (target.exists() && !target.delete()) {
+                    error("Couldn't replace persistent cache file")
+                }
+                check(temp.renameTo(target)) { "Couldn't finalize persistent cache file" }
+                target
+            }
+        }
+
     suspend fun downloadToCache(url: String, filename: String): Result<File> =
         withContext(Dispatchers.IO) {
             runCatching {

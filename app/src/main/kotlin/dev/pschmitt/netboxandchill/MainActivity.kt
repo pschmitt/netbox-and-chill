@@ -148,6 +148,10 @@ class MainActivity : FragmentActivity() {
                                     launchSingleTop = true
                                 }
                             },
+                            onTopologyClick = {
+                                coroutineScope.launch { drawerState.close() }
+                                navController.navigate(Route.Topology) { launchSingleTop = true }
+                            },
                             onSettingsClick = {
                                 coroutineScope.launch { drawerState.close() }
                                 navController.navigate(Route.Settings)

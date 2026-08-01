@@ -15,6 +15,7 @@ import dev.pschmitt.netboxandchill.data.api.DynamicBaseUrlInterceptor
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.NetBoxApi
 import dev.pschmitt.netboxandchill.data.api.OfflineModeInterceptor
+import dev.pschmitt.netboxandchill.data.api.TopologyApi
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -105,6 +106,11 @@ object NetworkModule {
     @Singleton
     fun provideGenericNetBoxApi(retrofit: Retrofit): GenericNetBoxApi =
         retrofit.create(GenericNetBoxApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTopologyApi(retrofit: Retrofit): TopologyApi =
+        retrofit.create(TopologyApi::class.java)
 
     // Device-type stock photos and image-attachment URLs are already-absolute NetBox media URLs,
     // same category as the download client above - reuses it rather than the

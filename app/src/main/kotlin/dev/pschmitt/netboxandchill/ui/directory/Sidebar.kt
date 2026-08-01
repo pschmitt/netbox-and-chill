@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.R
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
+import dev.pschmitt.netboxandchill.data.repository.TopologyRepository
 
 private const val DEVICES_PATH = "api/dcim/devices/"
 
@@ -61,6 +63,7 @@ private fun <T> moveItem(items: List<T>, item: T, offset: Int): List<T>? {
 fun Sidebar(
     onDeviceListClick: () -> Unit,
     onModelClick: (NetBoxModelEntity) -> Unit,
+    onTopologyClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: DirectoryViewModel = hiltViewModel(),
 ) {
@@ -251,6 +254,21 @@ fun Sidebar(
                         }
                     }
                     if (isExpanded) {
+                        if (
+                            appKey == TopologyRepository.PLUGIN_APP_KEY &&
+                                (searchQuery.isBlank() ||
+                                    "Topology".contains(searchQuery, ignoreCase = true))
+                        ) {
+                            item {
+                                NavigationDrawerItem(
+                                    label = { Text("Topology") },
+                                    icon = { Icon(Icons.Default.Hub, contentDescription = null) },
+                                    selected = false,
+                                    onClick = onTopologyClick,
+                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                )
+                            }
+                        }
                         items(models, key = { it.endpointPath }) { model ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,

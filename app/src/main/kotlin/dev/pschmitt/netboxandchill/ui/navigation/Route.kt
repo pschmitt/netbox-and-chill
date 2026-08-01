@@ -13,6 +13,8 @@ sealed interface Route {
 
     @Serializable data object DeviceList : Route
 
+    @Serializable data object Topology : Route
+
     @Serializable data class DeviceDetail(val deviceId: Int) : Route
 
     @Serializable data class Scanner(val fromOnboarding: Boolean = false) : Route
