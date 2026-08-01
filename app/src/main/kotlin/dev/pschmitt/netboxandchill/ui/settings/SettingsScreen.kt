@@ -66,6 +66,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -92,6 +93,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -113,6 +115,7 @@ import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.printing.BrotherPrinter
+import dev.pschmitt.netboxandchill.printing.BrotherLabelRenderer
 import dev.pschmitt.netboxandchill.printing.PairedPrinter
 import dev.pschmitt.netboxandchill.ui.common.PrintSettingsViewModel
 
@@ -857,6 +860,59 @@ private fun PrintingSettingsSection(
         settings.defaultPrinterName
             ?: settings.defaultPrinterAddress
             ?: "No default printer selected"
+    val previewText =
+        if (settings.longLabel) {
+            "Example device\nASSET-0001\nSN-EXAMPLE"
+        } else {
+            "ASSET-0001"
+        }
+    val previewBitmap =
+        remember(
+            settings.invertColors,
+            settings.verticalText,
+            settings.longLabel,
+            settings.qrSize,
+        ) {
+            runCatching {
+                    BrotherLabelRenderer.preview(
+                        objectUrl = "https://netbox.example/dcim/devices/1/",
+                        labelText = previewText,
+                        invert = settings.invertColors,
+                        vertical = settings.verticalText,
+                        qrSize = settings.qrSize,
+                    )
+                }
+                .getOrNull()
+        }
+    androidx.compose.runtime.DisposableEffect(previewBitmap) {
+        onDispose { previewBitmap?.recycle() }
+    }
+    SettingsSubsectionHeader("Label designer")
+    Text(
+        "Preview of the current label settings using example content. It works without a printer.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
+    if (previewBitmap == null) {
+        Text(
+            "The label preview is unavailable.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+    } else {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Image(
+                bitmap = previewBitmap.asImageBitmap(),
+                contentDescription = "Label preview",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth().height(144.dp).padding(12.dp),
+            )
+        }
+    }
     ListItem(
         modifier = Modifier.clickable { printerMenuExpanded = true },
         leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },

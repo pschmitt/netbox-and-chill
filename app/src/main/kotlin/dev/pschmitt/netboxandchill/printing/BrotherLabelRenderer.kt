@@ -77,9 +77,28 @@ object BrotherLabelRenderer {
     fun preview(
         objectUrl: String,
         labelText: String,
+        invert: Boolean = false,
         vertical: Boolean = false,
         qrSize: Int = QR_SIZE,
-    ): Bitmap = renderSource(objectUrl, labelText, vertical, qrSize)
+    ): Bitmap {
+        val source = renderSource(objectUrl, labelText, vertical, qrSize)
+        if (!invert) return source
+
+        return Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888).also {
+            bitmap ->
+            for (y in 0 until source.height) {
+                for (x in 0 until source.width) {
+                    val pixel = source.getPixel(x, y)
+                    bitmap.setPixel(
+                        x,
+                        y,
+                        Color.rgb(255 - Color.red(pixel), 255 - Color.green(pixel), 255 - Color.blue(pixel)),
+                    )
+                }
+            }
+            source.recycle()
+        }
+    }
 
     private fun renderSource(
         objectUrl: String,

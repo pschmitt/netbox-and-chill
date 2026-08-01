@@ -3256,11 +3256,14 @@ and PX5.
 Add a label-printer designer to Settings > Printing, beginning with a live preview of the label
 produced by the current print settings.
 
-- [ ] Add a designer/preview entry to the Printing settings screen.
-- [ ] Render a preview using the current saved print options and representative label content.
-- [ ] Keep the preview available without a connected printer and preserve existing printing.
+- [x] Add a designer/preview entry to the Printing settings screen.
+- [x] Render a preview using the current saved print options and representative label content.
+- [x] Keep the preview available without a connected printer and preserve existing printing.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; Mi Pad 4
+rendered the Label designer preview in Settings > Printing while offline, including the current
+QR size and print options. Existing print controls remained available. APK installed
+update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-176: shorten the sidebar NetBox URL
 
