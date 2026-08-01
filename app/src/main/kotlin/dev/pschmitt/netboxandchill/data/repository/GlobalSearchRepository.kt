@@ -61,11 +61,30 @@ constructor(
     /** Instant, offline-capable read - the primary result source, not scoped to
      * [BASELINE_ENDPOINT_PATHS]: anything ever cached under any endpoint is findable offline. */
     fun observeCached(queryText: String, limitPerSource: Int = 50): Flow<List<SearchHit>> =
-        combine(
-            netBoxObjectDao.searchAll(queryText, limitPerSource).map { rows -> rows.map { it.toSearchHit() } },
-            deviceDao.search(queryText).map { rows -> rows.take(limitPerSource).map { it.toSearchHit() } },
-        ) { generic, devices ->
-            generic + devices
+        netBoxObjectDao.searchAll(queryText, limitPerSource).let { genericRows ->
+            val genericHits = genericRows.map { rows -> rows.map { it.toSearchHit() } }
+            val directDeviceHits =
+                deviceDao.search(queryText).map { rows -> rows.take(limitPerSource).map { it.toSearchHit() } }
+            val matchingDeviceTypes =
+                genericRows.map { rows ->
+                    rows
+                        .filter { it.endpointPath == DEVICE_TYPES_ENDPOINT_PATH }
+                        .associate { it.id to it.display }
+                }
+            val devicesOfMatchingTypes =
+                combine(matchingDeviceTypes, deviceDao.observeAll()) { typeLabels, devices ->
+                    devices
+                        .filter { it.deviceTypeId in typeLabels.keys }
+                        .map { device ->
+                            device.toSearchHit(
+                                secondaryLine =
+                                    "Device type: ${typeLabels[device.deviceTypeId] ?: "matching type"}"
+                            )
+                        }
+                }
+            combine(genericHits, directDeviceHits, devicesOfMatchingTypes) { generic, direct, recursive ->
+                generic + direct + recursive
+            }
         }
 
     /** Best-effort live refresh: fans [endpointPaths] out in parallel via `?q=`, upserting
@@ -103,11 +122,12 @@ constructor(
 
     private fun NetBoxObjectEntity.toSearchHit() = SearchHit(endpointPath, id, display, secondaryLine)
 
-    private fun DeviceEntity.toSearchHit() =
-        SearchHit(endpointPath = DEVICES_ENDPOINT_PATH, id = id, display = name, secondaryLine = statusLabel ?: siteName)
+    private fun DeviceEntity.toSearchHit(secondaryLine: String? = statusLabel ?: siteName) =
+        SearchHit(endpointPath = DEVICES_ENDPOINT_PATH, id = id, display = name, secondaryLine = secondaryLine)
 
     companion object {
         private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+        private const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
 
         // Baseline model set for the network refresh + result labeling - GlobalSearchViewModel
         // unions this with the user's pinned model paths so anything explicitly starred in the
@@ -116,7 +136,7 @@ constructor(
         val BASELINE_ENDPOINT_PATHS =
             listOf(
                 DEVICES_ENDPOINT_PATH,
-                "api/dcim/device-types/",
+                DEVICE_TYPES_ENDPOINT_PATH,
                 "api/dcim/sites/",
                 "api/dcim/racks/",
                 "api/ipam/ip-addresses/",

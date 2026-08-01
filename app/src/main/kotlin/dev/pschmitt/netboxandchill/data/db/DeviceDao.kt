@@ -16,6 +16,7 @@ interface DeviceDao {
         WHERE name LIKE '%' || :query || '%'
            OR serial LIKE '%' || :query || '%'
            OR assetTag LIKE '%' || :query || '%'
+           OR primaryIp LIKE '%' || :query || '%'
         ORDER BY name COLLATE NOCASE
         """
     )

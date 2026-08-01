@@ -32,6 +32,8 @@ interface NetBoxObjectDao {
         """
         SELECT * FROM netbox_objects
         WHERE display LIKE '%' || :query || '%'
+           OR secondaryLine LIKE '%' || :query || '%'
+           OR json LIKE '%' || :query || '%'
         ORDER BY display COLLATE NOCASE
         LIMIT :limit
         """

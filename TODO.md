@@ -2028,3 +2028,27 @@ rear ports, and other related device components.
 - [ ] Verify the tab layout and navigation on a physical device.
 
 Status: not started, 2026-08-01 - backlog item captured.
+
+## NBC-83: expand global search matching
+
+Global search should match identifiers beyond names, including IP addresses and MAC addresses. A
+device-type match should also surface the devices using that type.
+
+- [x] Match IP addresses and MAC addresses across cached searchable objects.
+- [x] Expand device-type matches with the devices assigned to each matching type.
+- [x] Deduplicate and label recursive results clearly while preserving cache-first behavior.
+- [x] Verify the expanded result set and offline behavior on a physical device.
+
+Status: **done**, 2026-08-01 - remote lint/tests passed; installed on Zenfone 10, Mi Pad 4, and
+PX5. Mi Pad 4 search for `10.5.0.5` returned both the cached IP row and matching device result;
+MAC matching uses the cached raw JSON path and device-type matches expand through the typed cache.
+
+## NBC-84: reduce app icon and splash artwork scale
+
+The app artwork is slightly oversized, causing parts of the icon to be clipped in the launcher icon
+and splash screen.
+
+- [ ] Reduce the artwork scale while preserving the existing icon and splash assets.
+- [ ] Verify the launcher icon and splash screen on a physical device.
+
+Status: not started, 2026-08-01 - backlog item captured.
