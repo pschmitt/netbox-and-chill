@@ -103,6 +103,7 @@ import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
+import dev.pschmitt.netboxandchill.data.repository.GestureTarget
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
 import dev.pschmitt.netboxandchill.data.repository.PrintSettings
@@ -217,6 +218,8 @@ fun SettingsCategoryScreen(
         viewModel.settingsRepository.changeNotificationFilters.collectAsStateWithLifecycle()
     val gestureActions by
         viewModel.settingsRepository.gestureActions.collectAsStateWithLifecycle()
+    val gestureTargets by viewModel.gestureTargets.collectAsStateWithLifecycle()
+    val gestureModels by viewModel.gestureModels.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val scannerRearLens by
         viewModel.settingsRepository.scannerRearLens.collectAsStateWithLifecycle()
@@ -684,9 +687,12 @@ fun SettingsCategoryScreen(
                     GestureShortcutRow(
                         shortcut = shortcut,
                         action = gestureActions[shortcut] ?: GestureAction.Off,
+                        target = gestureTargets[shortcut],
+                        models = gestureModels,
                         onActionSelected = { action ->
                             viewModel.setGestureAction(shortcut, action)
                         },
+                        onTargetSelected = { model -> viewModel.setGestureTarget(shortcut, model) },
                     )
             }
             SettingsSubsectionHeader("Three-finger gestures")
@@ -694,9 +700,12 @@ fun SettingsCategoryScreen(
                     GestureShortcutRow(
                         shortcut = shortcut,
                         action = gestureActions[shortcut] ?: GestureAction.Off,
+                        target = gestureTargets[shortcut],
+                        models = gestureModels,
                         onActionSelected = { action ->
                             viewModel.setGestureAction(shortcut, action)
                         },
+                        onTargetSelected = { model -> viewModel.setGestureTarget(shortcut, model) },
                     )
                 }
                 }
@@ -1002,13 +1011,20 @@ private fun settingsBluetoothPermissions(): Array<String> =
 private fun GestureShortcutRow(
     shortcut: GestureShortcut,
     action: GestureAction,
+    target: GestureTarget?,
+    models: List<dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity>,
     onActionSelected: (GestureAction) -> Unit,
+    onTargetSelected: (dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var targetPickerVisible by remember { mutableStateOf(false) }
+    var targetQuery by remember { mutableStateOf("") }
+    val actionLabel =
+        target?.let { configured -> "${action.label}: ${configured.label}" } ?: action.label
     ListItem(
         leadingContent = { Icon(Icons.Default.TouchApp, contentDescription = null) },
         headlineContent = { Text(shortcut.label) },
-        supportingContent = { Text(action.label) },
+        supportingContent = { Text(actionLabel) },
         trailingContent = {
             Box {
                 IconButton(onClick = { expanded = true }) {
@@ -1027,6 +1043,14 @@ private fun GestureShortcutRow(
                                         GestureAction.Off -> Icons.Default.Block
                                         GestureAction.GlobalSearch -> Icons.Default.Search
                                         GestureAction.Scanner -> Icons.Default.QrCodeScanner
+                                        GestureAction.Settings -> Icons.Default.Info
+                                        GestureAction.Add,
+                                        GestureAction.AddSpecific -> Icons.Default.Add
+                                        GestureAction.Sync -> Icons.Default.Sync
+                                        GestureAction.OfflineOn,
+                                        GestureAction.OfflineOff -> Icons.Default.CloudOff
+                                        GestureAction.DeviceList,
+                                        GestureAction.ListSpecific -> Icons.Default.Storage
                                     },
                                     contentDescription = null,
                                 )
@@ -1034,6 +1058,13 @@ private fun GestureShortcutRow(
                             onClick = {
                                 onActionSelected(candidate)
                                 expanded = false
+                                if (
+                                    candidate == GestureAction.AddSpecific ||
+                                        candidate == GestureAction.ListSpecific
+                                ) {
+                                    targetQuery = ""
+                                    targetPickerVisible = true
+                                }
                             },
                         )
                     }
@@ -1041,6 +1072,45 @@ private fun GestureShortcutRow(
             }
         },
     )
+    if (targetPickerVisible) {
+        val filteredModels =
+            models.filter { model ->
+                targetQuery.isBlank() ||
+                    model.modelLabel.contains(targetQuery, ignoreCase = true) ||
+                    model.appLabel.contains(targetQuery, ignoreCase = true)
+            }
+        AlertDialog(
+            onDismissRequest = { targetPickerVisible = false },
+            title = { Text("Choose item type") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    OutlinedTextField(
+                        value = targetQuery,
+                        onValueChange = { targetQuery = it },
+                        label = { Text("Search item types") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    filteredModels.forEach { model ->
+                        ListItem(
+                            modifier =
+                                Modifier.clickable {
+                                    onTargetSelected(model)
+                                    targetPickerVisible = false
+                                },
+                            leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                            headlineContent = { Text(model.modelLabel) },
+                            supportingContent = { Text(model.appLabel) },
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { targetPickerVisible = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 private fun selectedChangeNotificationSummary(filters: Set<String>): String {

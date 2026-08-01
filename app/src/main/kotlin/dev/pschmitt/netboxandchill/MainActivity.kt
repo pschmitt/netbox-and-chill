@@ -29,6 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
 import dev.pschmitt.netboxandchill.sync.SyncNotifier
@@ -46,6 +47,7 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var syncNotifier: SyncNotifier
+    @Inject lateinit var syncScheduler: SyncScheduler
 
     private var pendingTarget by mutableStateOf<NetBoxTarget?>(null)
     private var pendingSetup by mutableStateOf<NetBoxTarget.Setup?>(null)
@@ -67,6 +69,8 @@ class MainActivity : FragmentActivity() {
                 val coroutineScope = rememberCoroutineScope()
                 val gestureActions by
                     settingsRepository.gestureActions.collectAsStateWithLifecycle()
+                val gestureTargets by
+                    settingsRepository.gestureTargets.collectAsStateWithLifecycle()
                 val startDestination =
                     if (settingsRepository.isConfigured) Route.Dashboard else Route.Onboarding
 
@@ -151,13 +155,33 @@ class MainActivity : FragmentActivity() {
                         )
                     },
                 ) {
-                    val performGestureAction: (GestureAction) -> Unit = { action ->
+                    val performGestureAction: (GestureShortcut, GestureAction) -> Unit =
+                        { shortcut, action ->
                         when (action) {
                             GestureAction.GlobalSearch ->
                                 navController.navigate(Route.GlobalSearch) {
                                     launchSingleTop = true
                                 }
                             GestureAction.Scanner -> navController.navigate(Route.Scanner())
+                            GestureAction.Settings -> navController.navigate(Route.Settings)
+                            GestureAction.Add -> navController.navigate(Route.Add)
+                            GestureAction.AddSpecific ->
+                                gestureTargets[shortcut]?.let { target ->
+                                    navController.navigate(
+                                        Route.GenericCreate(target.endpointPath, target.label)
+                                    )
+                                }
+                                    ?: navController.navigate(Route.Add)
+                            GestureAction.Sync -> syncScheduler.syncNow()
+                            GestureAction.OfflineOn -> settingsRepository.setOfflineMode(true)
+                            GestureAction.OfflineOff -> settingsRepository.setOfflineMode(false)
+                            GestureAction.DeviceList -> navController.navigate(Route.DeviceList)
+                            GestureAction.ListSpecific ->
+                                gestureTargets[shortcut]?.let { target ->
+                                    navController.navigate(
+                                        Route.GenericList(target.endpointPath, target.label)
+                                    )
+                                }
                             GestureAction.Off -> Unit
                         }
                     }
@@ -168,42 +192,49 @@ class MainActivity : FragmentActivity() {
                             Modifier
                                 .multiFingerSwipe(2, SwipeDirection.Down) {
                                     performGestureAction(
+                                        GestureShortcut.TwoFingerDown,
                                         gestureActions[GestureShortcut.TwoFingerDown]
                                             ?: GestureAction.Off
                                     )
                                 }
                                 .multiFingerSwipe(2, SwipeDirection.Left) {
                                     performGestureAction(
+                                        GestureShortcut.TwoFingerLeft,
                                         gestureActions[GestureShortcut.TwoFingerLeft]
                                             ?: GestureAction.Off
                                     )
                                 }
                                 .multiFingerSwipe(2, SwipeDirection.Right) {
                                     performGestureAction(
+                                        GestureShortcut.TwoFingerRight,
                                         gestureActions[GestureShortcut.TwoFingerRight]
                                             ?: GestureAction.Off
                                     )
                                 }
                                 .multiFingerSwipe(3, SwipeDirection.Up) {
                                     performGestureAction(
+                                        GestureShortcut.ThreeFingerUp,
                                         gestureActions[GestureShortcut.ThreeFingerUp]
                                             ?: GestureAction.Off
                                     )
                                 }
                                 .multiFingerSwipe(3, SwipeDirection.Down) {
                                     performGestureAction(
+                                        GestureShortcut.ThreeFingerDown,
                                         gestureActions[GestureShortcut.ThreeFingerDown]
                                             ?: GestureAction.Off
                                     )
                                 }
                                 .multiFingerSwipe(3, SwipeDirection.Left) {
                                     performGestureAction(
+                                        GestureShortcut.ThreeFingerLeft,
                                         gestureActions[GestureShortcut.ThreeFingerLeft]
                                             ?: GestureAction.Off
                                     )
                                 }
                                 .multiFingerSwipe(3, SwipeDirection.Right) {
                                     performGestureAction(
+                                        GestureShortcut.ThreeFingerRight,
                                         gestureActions[GestureShortcut.ThreeFingerRight]
                                             ?: GestureAction.Off
                                     )

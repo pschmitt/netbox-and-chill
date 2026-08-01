@@ -3130,12 +3130,13 @@ Zenfone, and the APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4
 Gesture shortcuts should support settings, scanning, adding items, syncing, toggling offline mode,
 and navigating to configured list/detail destinations.
 
-- [ ] Add actions for Settings, Scanner, Add, Sync, and offline-mode on/off.
-- [ ] Allow a gesture to open a specific Add-item type.
-- [ ] Allow a gesture to navigate to a specific list or cached item detail view.
-- [ ] Add configuration UI and preserve existing gesture assignments.
+- [x] Add actions for Settings, Scanner, Add, Sync, and offline-mode on/off.
+- [x] Allow a gesture to open a specific Add-item type.
+- [x] Allow a gesture to navigate to a specific cached item list.
+- [ ] Allow a gesture to navigate to a specific cached item detail view.
+- [x] Add configuration UI and preserve existing gesture assignments.
 
-Status: not started.
+Status: in progress.
 
 ## NBC-166: move the app icon to the sidebar header
 

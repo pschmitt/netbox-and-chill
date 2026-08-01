@@ -67,10 +67,20 @@ fun normalizeHiddenFieldPreferenceKey(value: String): String? {
     return normalized.takeIf { parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank() }
 }
 
+data class GestureTarget(val endpointPath: String, val label: String)
+
 enum class GestureAction(val storageKey: String, val label: String) {
     Off("off", "Off"),
     GlobalSearch("global_search", "Global search"),
-    Scanner("scanner", "QR scanner");
+    Scanner("scanner", "QR scanner"),
+    Settings("settings", "Settings"),
+    Add("add", "Add item"),
+    AddSpecific("add_specific", "Add specific item type"),
+    Sync("sync", "Sync now"),
+    OfflineOn("offline_on", "Turn offline mode on"),
+    OfflineOff("offline_off", "Turn offline mode off"),
+    DeviceList("device_list", "Device list"),
+    ListSpecific("list_specific", "Specific item list");
 
     companion object {
         fun fromStorage(value: String?, fallback: GestureAction = GlobalSearch): GestureAction =
@@ -171,6 +181,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _gestureActions = MutableStateFlow(loadGestureActions())
     val gestureActions: StateFlow<Map<GestureShortcut, GestureAction>> = _gestureActions.asStateFlow()
 
+    private val _gestureTargets = MutableStateFlow(loadGestureTargets())
+    val gestureTargets: StateFlow<Map<GestureShortcut, GestureTarget>> = _gestureTargets.asStateFlow()
+
     private val _scannerLens = MutableStateFlow(loadScannerLens())
     val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
 
@@ -247,6 +260,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setGestureAction(shortcut: GestureShortcut, action: GestureAction) {
         prefs.edit().putString(gesturePreferenceKey(shortcut), action.storageKey).apply()
         _gestureActions.value = _gestureActions.value + (shortcut to action)
+    }
+
+    fun setGestureTarget(shortcut: GestureShortcut, target: GestureTarget) {
+        prefs
+            .edit()
+            .putString(gestureTargetKey(shortcut), target.endpointPath + TARGET_SEPARATOR + target.label)
+            .apply()
+        _gestureTargets.value = _gestureTargets.value + (shortcut to target)
+    }
+
+    fun clearGestureTarget(shortcut: GestureShortcut) {
+        prefs.edit().remove(gestureTargetKey(shortcut)).apply()
+        _gestureTargets.value = _gestureTargets.value - shortcut
     }
 
     fun setScannerLens(lens: ScannerLens) {
@@ -369,6 +395,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _offlineMode.value = false
         _printSettings.value = PrintSettings()
         _gestureActions.value = defaultGestureActions()
+        _gestureTargets.value = emptyMap()
         _hiddenFieldKeys.value = emptySet()
         _changeNotificationsEnabled.value = false
         _changeNotificationFilters.value = setOf(ChangeNotificationFilter.All.storageKey)
@@ -410,12 +437,25 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             else GestureAction.Off
         }
 
+    private fun loadGestureTargets(): Map<GestureShortcut, GestureTarget> =
+        GestureShortcut.entries.mapNotNull { shortcut ->
+            val parts = prefs.getString(gestureTargetKey(shortcut), null)?.split(TARGET_SEPARATOR, limit = 2)
+            if (parts?.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
+                shortcut to GestureTarget(parts[0], parts[1])
+            } else {
+                null
+            }
+        }.toMap()
+
     private fun gesturePreferenceKey(shortcut: GestureShortcut): String =
         if (shortcut == GestureShortcut.TwoFingerDown) {
             KEY_GESTURE_ACTION
         } else {
             "gesture_action_${shortcut.storageKey}"
         }
+
+    private fun gestureTargetKey(shortcut: GestureShortcut): String =
+        "gesture_target_${shortcut.storageKey}"
 
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
@@ -487,6 +527,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_CHANGE_NOTIFICATION_FILTERS = "change_notification_filters"
         const val KEY_CHANGE_NOTIFICATION_CURSOR = "change_notification_cursor"
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
+        const val TARGET_SEPARATOR = "\u001F"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
         const val KEY_SCANNER_REAR_LENS = "scanner_default_rear_lens"
         const val KEY_DEFAULT_PRINTER_NAME = "default_printer_name"

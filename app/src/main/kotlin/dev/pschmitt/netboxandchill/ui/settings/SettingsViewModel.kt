@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
+import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
+import dev.pschmitt.netboxandchill.data.repository.GestureTarget
 import dev.pschmitt.netboxandchill.data.repository.PrintSettings
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,6 +50,17 @@ constructor(
             SharingStarted.WhileSubscribed(5000),
             false,
         )
+
+    val gestureTargets: StateFlow<Map<GestureShortcut, GestureTarget>> =
+        settingsRepository.gestureTargets
+
+    val gestureModels: StateFlow<List<NetBoxModelEntity>> =
+        directoryRepository
+            .observeAll()
+            .map { models ->
+                models.distinctBy { it.endpointPath }.sortedBy { it.modelLabel.lowercase() }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isUpdatingBaseUrl = MutableStateFlow(false)
     val isUpdatingBaseUrl: StateFlow<Boolean> = _isUpdatingBaseUrl.asStateFlow()
@@ -131,6 +145,16 @@ constructor(
 
     fun setGestureAction(shortcut: GestureShortcut, action: GestureAction) {
         settingsRepository.setGestureAction(shortcut, action)
+        if (action != GestureAction.AddSpecific && action != GestureAction.ListSpecific) {
+            settingsRepository.clearGestureTarget(shortcut)
+        }
+    }
+
+    fun setGestureTarget(shortcut: GestureShortcut, model: NetBoxModelEntity) {
+        settingsRepository.setGestureTarget(
+            shortcut,
+            GestureTarget(endpointPath = model.endpointPath, label = model.modelLabel),
+        )
     }
 
     fun setScannerLens(lens: ScannerLens) {
