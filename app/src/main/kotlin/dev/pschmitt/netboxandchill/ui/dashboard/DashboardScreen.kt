@@ -45,7 +45,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,6 +57,7 @@ import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.netboxandchill.ui.common.NetBoxSectionHeader
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
@@ -214,7 +214,7 @@ fun DashboardScreen(
                         Spacer(Modifier.height(24.dp))
                     }
                 }
-                item { SectionHeader(Icons.Default.BarChart, "Stats") }
+                item { NetBoxSectionHeader(Icons.Default.BarChart, "Stats") }
                 item {
                     if (stats.isEmpty()) {
                         EmptyHint(isRefreshing, "No stats cached yet - pull to sync")
@@ -226,7 +226,7 @@ fun DashboardScreen(
                 item { GlobalSearchCard(onSearchClick) }
                 item { Spacer(Modifier.height(24.dp)) }
 
-                item { SectionHeader(Icons.Default.Bookmark, "Bookmarks") }
+                item { NetBoxSectionHeader(Icons.Default.Bookmark, "Bookmarks") }
                 if (bookmarks.isEmpty()) {
                     item { EmptyHint(isRefreshing, "No bookmarks yet") }
                 } else {
@@ -250,7 +250,7 @@ fun DashboardScreen(
                 }
                 item { Spacer(Modifier.height(24.dp)) }
 
-                item { SectionHeader(Icons.Default.History, "Recent changes") }
+                item { NetBoxSectionHeader(Icons.Default.History, "Recent changes") }
                 if (changelog.isEmpty()) {
                     item { EmptyHint(isRefreshing, "No changes cached yet - pull to sync") }
                 } else {
@@ -410,27 +410,6 @@ private fun ChangeRow(
         },
         modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
     )
-}
-
-@Composable
-private fun SectionHeader(icon: ImageVector, title: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(bottom = 8.dp),
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-    }
 }
 
 @Composable

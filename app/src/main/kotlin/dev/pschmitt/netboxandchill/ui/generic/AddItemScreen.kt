@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,6 +34,7 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.netboxandchill.ui.common.NetBoxSectionHeader
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 import dev.pschmitt.netboxandchill.ui.directory.DirectoryViewModel
 
@@ -170,11 +170,10 @@ fun AddItemScreen(
                 LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
                     if (pinnedModels.isNotEmpty()) {
                         item {
-                            ListItem(
-                                leadingContent = {
-                                    Icon(Icons.Default.PushPin, contentDescription = null)
-                                },
-                                headlineContent = { Text("Pinned") },
+                            NetBoxSectionHeader(
+                                icon = AppIcons.forAppKey("core"),
+                                title = "Pinned",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
                         items(pinnedModels, key = { "pinned:${it.endpointPath}" }) { model ->
@@ -187,16 +186,11 @@ fun AddItemScreen(
                     }
                     if (otherModels.isNotEmpty()) {
                         item {
-                            ListItem(
-                                leadingContent = {
-                                    Icon(AppIcons.forAppKey("core"), contentDescription = null)
-                                },
-                                headlineContent = {
-                                    Text(
-                                        if (pinnedModels.isEmpty()) "Item types"
-                                        else "All item types"
-                                    )
-                                },
+                            NetBoxSectionHeader(
+                                icon = AppIcons.forAppKey("core"),
+                                title =
+                                    if (pinnedModels.isEmpty()) "Item types" else "All item types",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
                         items(otherModels, key = { it.endpointPath }) { model ->

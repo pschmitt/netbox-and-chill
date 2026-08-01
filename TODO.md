@@ -2424,11 +2424,11 @@ reach while the remaining object types remain searchable.
 
 - [x] Add a search box matching item and app labels.
 - [x] Pin Devices and Device types ahead of the other item types.
-- [ ] Use the Dashboard-style section heading consistently for pinned and unpinned types.
+- [x] Use the Dashboard-style section heading consistently for pinned and unpinned types.
 - [x] Verify the filtered/pinned picker on the Mi Pad 4.
 
-Status: **done**, 2026-08-01 - the Mi Pad 4 Add picker showed pinned workflows and filtered the
-directory to circuit-related item types after entering “circuit”.
+Status: **done**, 2026-08-01 - the Mi Pad 4 Add picker showed the shared Dashboard-style headings
+for Pinned and All item types, plus the existing filtered/pinned workflows.
 
 ## NBC-113: align detail-row action icons
 
