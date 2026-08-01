@@ -3368,9 +3368,11 @@ without that field do not show a badge.
 - [x] Render the asset-tag badge below the subtitle in typed and generic lists.
 - [x] Show a red `No asset tag` badge only for objects with an empty asset-tag field.
 - [x] Apply the same layout to global-search result rows.
-- [ ] Verify the layout on the Mi Pad 4.
+- [x] Verify the layout on the Mi Pad 4.
 
-Status: in progress, 2026-08-01.
+Status: **done**, 2026-08-01 - remote lint/unit tests and a clean debug build passed; the Mi Pad 4
+device list visibly rendered device name, subtitle, and a separate asset-tag badge row with
+cached device-type images. APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-182: make edit review diffs readable and resolve linked IDs
 
