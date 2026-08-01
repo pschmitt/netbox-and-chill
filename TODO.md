@@ -3121,7 +3121,9 @@ default print options.
 - [x] Allow configuring and persisting the default print options.
 - [x] Verify the print dialog uses the saved defaults.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and clean debug build passed; the Printing
+screen showed default-printer selection, persisted label options, copies, and QR size on the wired
+Zenfone, and the APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 
 ## NBC-165: expand gesture actions and destinations
 
