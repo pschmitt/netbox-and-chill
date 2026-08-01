@@ -2485,10 +2485,10 @@ matching image attachments.
 
 - [x] Include model, view, and device-type ID metadata for front/rear stock images.
 - [x] Reuse the existing image-viewer metadata panel.
-- [ ] Verify the metadata panel on the Mi Pad 4.
+- [x] Verify the metadata panel on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - device-type viewer items now carry model/view/ID metadata;
-physical verification remains.
+Status: **done**, 2026-08-01 - the Mi Pad 4 image viewer visibly showed Model, View, and Device
+type metadata below the cached Shelly front image.
 
 ## NBC-119: highlight unsaved edit changes
 
