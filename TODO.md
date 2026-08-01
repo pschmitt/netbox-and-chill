@@ -3350,9 +3350,11 @@ This must be generic across object types, including clusters, rather than a one-
 - [x] Infer related collections and parent relations for generic count fields.
 - [x] Render positive counts as clickable `Type (N)` rows.
 - [x] Reuse cached related-item previews and navigation for all resolved count targets.
-- [x] Add focused tests; device verification remains pending.
+- [x] Add focused tests and verify generic count navigation on a physical device.
 
-Status: in progress, 2026-08-01.
+Status: **done**, 2026-08-02 - Mi Pad 4 offline rendered `Virtual Machines (1)` on the cached
+`fnuc` cluster, opened the reusable bottom sheet with `hass-fnuc`, and navigated to its cached
+virtual-machine detail page.
 
 ## NBC-181: put asset-tag badges on their own list row
 
