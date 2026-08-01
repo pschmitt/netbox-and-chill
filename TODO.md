@@ -3051,11 +3051,13 @@ Wi-Fi ADB transport was not used for the offline toggle.
 Settings > About should show the commit ID and build date for debug builds. Tapping the Build row
 seven times should show Android-style developer-mode progress toasts.
 
-- [ ] Include commit ID and build date in debug build metadata.
-- [ ] Display both values in Settings > About.
-- [ ] Add seven-tap progress toasts without disrupting normal row behavior.
+- [x] Include commit ID and build date in debug build metadata.
+- [x] Display both values in Settings > About.
+- [x] Add seven-tap progress toasts without disrupting normal row behavior.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and debug build passed; About on the wired
+Zenfone showed the commit ID and build date, the seven-tap toast sequence was exercised, and the
+APK installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 
 ## NBC-160: separate scanner camera settings
 

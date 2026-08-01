@@ -37,6 +37,8 @@ android {
 
         val gitRevision = System.getenv("GIT_REVISION") ?: "unknown"
         buildConfigField("String", "GIT_REVISION", "\"$gitRevision\"")
+        val buildDate = System.getenv("BUILD_DATE") ?: "unknown"
+        buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

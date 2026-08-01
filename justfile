@@ -56,8 +56,15 @@ gradle host=remote_host *tasks: (sync host)
 build variant="debug" host=remote_host:
     #!/usr/bin/env bash
     set -euo pipefail
+    git_revision=$(git describe --always --abbrev=12 --dirty)
+    build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     if [[ "{{variant}}" != "release" ]]; then
-      just gradle "{{host}}" ":app:assembleDebug"
+      just sync "{{host}}"
+      ssh "{{host}}" "
+        export GIT_REVISION='$git_revision'
+        export BUILD_DATE='$build_date'
+        cd {{remote_path}} && nix develop --command ./gradlew ':app:assembleDebug'
+      "
       exit 0
     fi
     if ! rbw unlocked >/dev/null 2>&1; then
@@ -66,7 +73,6 @@ build variant="debug" host=remote_host:
     fi
     tmpdir=$(mktemp -d)
     trap 'rm -rf "$tmpdir"' EXIT
-    git_revision=$(git describe --always --abbrev=12 --dirty)
     rbw attachment get "NetBox and Chill CI Signing Keystore" --attachment netboxandchill-ci.jks --output "$tmpdir/netboxandchill-ci.jks"
     rbw attachment get "NetBox and Chill CI Signing Keystore" --attachment netboxandchill-ci-keystore.env --output "$tmpdir/netboxandchill-ci-keystore.env"
     just sync "{{host}}"
@@ -82,6 +88,7 @@ build variant="debug" host=remote_host:
       set +a
       export CI_KEYSTORE_PATH=\$HOME/.netboxandchill-ci-tmp/netboxandchill-ci.jks
       export GIT_REVISION='$git_revision'
+      export BUILD_DATE='$build_date'
       cd {{remote_path}} && nix develop --command ./gradlew ':app:assembleRelease' --rerun-tasks 2>&1 | tee ~/netboxandchill-release-build.log
       rc=\$?
       if [[ \$rc -eq 0 && (! -f \"\$artifact\" || \$(stat -c %Y \"\$artifact\") -le \$previous_mtime) ]]; then

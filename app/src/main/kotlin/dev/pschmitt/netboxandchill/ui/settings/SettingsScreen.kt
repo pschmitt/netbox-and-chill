@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.ui.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.Image
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
@@ -667,7 +669,20 @@ fun SettingsCategoryScreen(
                 headlineContent = { Text("NetBox and Chill") },
                 supportingContent = { Text("Version " + BuildConfig.VERSION_NAME + " · GPLv3") },
             )
+            var buildTapCount by remember { mutableStateOf(0) }
             ListItem(
+                modifier =
+                    Modifier.clickable {
+                        val tapCount = buildTapCount + 1
+                        buildTapCount = if (tapCount >= 7) 0 else tapCount
+                        val message =
+                            if (tapCount >= 7) {
+                                "Developer mode enabled"
+                            } else {
+                                "${7 - tapCount} more taps to enable developer mode"
+                            }
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    },
                 leadingContent = { Icon(Icons.Default.Tag, contentDescription = null) },
                 headlineContent = { Text("Build") },
                 // Deliberately not concatenated with any other literal: Kotlin/R8 constant-folds
@@ -676,6 +691,11 @@ fun SettingsCategoryScreen(
                 // `grep -Fx` revision-verification check (an exact standalone-line match) can't
                 // find it. Kept as a lone reference so it stays its own dex string constant.
                 supportingContent = { Text(BuildConfig.GIT_REVISION) },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                headlineContent = { Text("Build date") },
+                supportingContent = { Text(BuildConfig.BUILD_DATE) },
             )
                 }
             }
