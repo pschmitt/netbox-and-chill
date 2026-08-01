@@ -397,9 +397,9 @@ through the generic list route since there's no typed alternative for them.
   reference-navigation callback
 - [x] Add an optional cached NetBox Labs RSS news section to the dashboard.
 
-Status: in progress, 2026-08-01 - changelog, bookmarks, stats, and optional cache-first RSS news
-are implemented; remote validation passed and Mi Pad 4 launch smoke-tested, but the news-populated
-state still needs visual verification after a networked refresh.
+Status: **done**, 2026-08-02 - remote lint/unit tests/debug build passed; Mi Pad 4 completed a
+read-only refresh, restored 388 devices and 6,553 other objects, and visibly rendered four cached
+NetBox Labs news items on the dashboard.
 
 ## NBC-10: Label printing from the app
 
@@ -3372,12 +3372,13 @@ cached device-type images. APK installed update-in-place on Zenfone 10, Mi Pad 4
 The edit review dialog should show human-readable values for linked objects instead of raw IDs,
 and present changes as a clear colored before/after diff.
 
-- [ ] Resolve linked-object IDs from the cached object directory before rendering the diff.
-- [ ] Render added, removed, and changed values with clear semantic colors and labels.
-- [ ] Preserve the existing cancel/revert and confirm actions.
-- [ ] Add focused tests and verify the review dialog on the Mi Pad 4.
+- [x] Resolve linked-object IDs from the cached object directory before rendering the diff.
+- [x] Render added, removed, and changed values with clear semantic colors and labels.
+- [x] Preserve the existing cancel/revert and confirm actions.
+- [x] Add focused tests and verify the review dialog on the Mi Pad 4.
 
-Status: in progress, 2026-08-01.
+Status: **done**, 2026-08-02 - cached role IDs rendered as IoT and CCTV Solar Panel in a red/blue
+before/after review on the Mi Pad 4; cancel/revert left the NetBox record untouched.
 
 ## NBC-183: show refresh progress as item-page toasts
 
@@ -3387,9 +3388,11 @@ second toast when the refresh finishes, clearly distinguishing success from fail
 - [x] Replace the queued/complete refresh snackbar with toasts on generic and device item pages.
 - [x] Report the terminal sync result as complete or failed.
 - [x] Keep cached content visible while the background refresh runs.
-- [ ] Add focused tests and verify the behavior on the Mi Pad 4.
+- [x] Add focused tests for running/success/failure toast states.
+- [x] Verify the behavior on the Mi Pad 4.
 
-Status: in progress, 2026-08-01.
+Status: **done**, 2026-08-02 - shared terminal-state coverage passes; Mi Pad 4 uses the queued and
+terminal refresh toast flow while preserving cached content.
 
 ## NBC-184: close focused edit after confirmation
 
@@ -3400,4 +3403,5 @@ focused edit dialog must stay closed instead of being relaunched by the route ef
 - [x] Keep the focused editor closed after review confirmation and save.
 - [x] Add a regression test for the one-shot route guard.
 
-Status: in progress, 2026-08-01.
+Status: **done**, 2026-08-02 - Mi Pad 4 confirmed the focused editor closes after an offline
+confirmation; the temporary queued edit was reverted locally and never contacted NetBox.

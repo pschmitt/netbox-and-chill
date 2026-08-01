@@ -25,6 +25,8 @@ import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
+import dev.pschmitt.netboxandchill.ui.common.REFRESH_QUEUED_TOAST
+import dev.pschmitt.netboxandchill.ui.common.refreshCompletionToast
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -290,12 +292,7 @@ constructor(
             syncStatusRepository.manualSyncState.drop(1).distinctUntilChanged().collect { state ->
                 if (awaitingRefreshCompletion && state?.isFinished == true) {
                     awaitingRefreshCompletion = false
-                    _refreshToastMessage.value =
-                        if (state == androidx.work.WorkInfo.State.SUCCEEDED) {
-                            "Refresh complete"
-                        } else {
-                            "Refresh failed"
-                        }
+                    _refreshToastMessage.value = refreshCompletionToast(state)
                 }
             }
         }
@@ -305,7 +302,7 @@ constructor(
         if (!settingsRepository.offlineMode.value) {
             if (showConfirmation) {
                 awaitingRefreshCompletion = true
-                _refreshToastMessage.value = "Refresh queued"
+                _refreshToastMessage.value = REFRESH_QUEUED_TOAST
             }
             syncScheduler.syncNow()
             loadJournalEntries()

@@ -25,6 +25,8 @@ import dev.pschmitt.netboxandchill.ui.generic.FieldRow
 import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
 import dev.pschmitt.netboxandchill.ui.generic.buildFieldRows
 import dev.pschmitt.netboxandchill.ui.generic.toJournalEntryUi
+import dev.pschmitt.netboxandchill.ui.common.REFRESH_QUEUED_TOAST
+import dev.pschmitt.netboxandchill.ui.common.refreshCompletionToast
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import java.io.File
 import javax.inject.Inject
@@ -243,13 +245,21 @@ constructor(
 
     fun refresh(showConfirmation: Boolean = false) {
         viewModelScope.launch {
-            if (showConfirmation) _refreshToastMessage.value = "Refresh queued"
+            if (showConfirmation) _refreshToastMessage.value = REFRESH_QUEUED_TOAST
             _isRefreshing.value = true
             deviceRepository
                 .refreshDevice(deviceId)
-                .onSuccess { if (showConfirmation) _refreshToastMessage.value = "Refresh complete" }
+                .onSuccess {
+                    if (showConfirmation) {
+                        _refreshToastMessage.value =
+                            refreshCompletionToast(androidx.work.WorkInfo.State.SUCCEEDED)
+                    }
+                }
                 .onFailure {
-                    if (showConfirmation) _refreshToastMessage.value = "Refresh failed"
+                    if (showConfirmation) {
+                        _refreshToastMessage.value =
+                            refreshCompletionToast(androidx.work.WorkInfo.State.FAILED)
+                    }
                     _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data"
                 }
             refreshJournal()
