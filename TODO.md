@@ -293,11 +293,12 @@ path for any host in the meantime.
 - [x] Add an exact-host `android:autoVerify` filter whose host is a compile-time setting (defaults
   to `netbox.brkn.lol`; override with `-PnetboxAppLinkHost=...` or `NETBOX_APP_LINK_HOST`); the
   wildcard chooser filter remains available for other configured NetBox instances.
-- [ ] Publish the matching `/.well-known/assetlinks.json` on the NetBox host - still needs
-  infrastructure work outside this repo.
+- [x] Publish the matching `/.well-known/assetlinks.json` on the NetBox host with the release
+  certificate fingerprint.
 
-Status: partially done, 2026-07-31 - the app-side verification filter is implemented and validated;
-server-side Digital Asset Links publication remains required before Android can mark it verified.
+Status: **done**, 2026-08-01 - the exact-host app filter and the generated Nix/nginx Digital Asset
+Links route are in place; the live host returned `200 application/json` with package
+`dev.pschmitt.netboxandchill` and the release certificate fingerprint.
 
 ## NBC-11: QR-code app configuration sharing (like findroidplus's setup codes)
 
