@@ -3042,7 +3042,7 @@ on all three devices.
 The app should retain NetBox object changes/changelog data in the offline cache so the dashboard
 and change details remain usable without connectivity.
 
-- [ ] Confirm what change data is currently synchronized and cached.
+- [x] Confirm what change data is currently synchronized and cached.
 - [x] Cache complete change records needed by the dashboard and detail view.
 - [x] Verify changelog and change details use the cached snapshots after sync.
 
