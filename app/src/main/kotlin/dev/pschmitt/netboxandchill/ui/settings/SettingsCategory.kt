@@ -2,6 +2,7 @@ package dev.pschmitt.netboxandchill.ui.settings
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Storage
@@ -14,7 +15,8 @@ import kotlinx.serialization.Serializable
 enum class SettingsCategory(val title: String, val subtitle: String) {
     Connection("Connection", "NetBox server and credentials"),
     Sync("Sync", "Cached data, offline mode, and refresh policy"),
-    Gestures("Gestures", "Scanner controls and gesture shortcuts"),
+    Camera("Camera", "Scanner camera and lens preferences"),
+    Gestures("Gestures", "Gesture shortcuts"),
     Display("Display", "Fields and item types shown by default"),
     Notifications("Notifications", "NetBox change alerts"),
     About("About", "Application and build information");
@@ -24,6 +26,7 @@ enum class SettingsCategory(val title: String, val subtitle: String) {
             when (this) {
                 Connection -> Icons.Default.Dns
                 Sync -> Icons.Default.Storage
+                Camera -> Icons.Default.Cameraswitch
                 Gestures -> Icons.Default.TouchApp
                 Display -> Icons.Default.Visibility
                 Notifications -> Icons.Default.Notifications

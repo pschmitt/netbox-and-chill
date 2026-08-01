@@ -94,6 +94,18 @@ enum class ScannerLens(val storageKey: String, val label: String) {
     }
 }
 
+enum class ScannerRearLens(val storageKey: String, val label: String) {
+    Automatic("automatic", "Automatic (main rear lens)"),
+    UltraWide("ultra_wide", "Ultra-wide (0.6×)"),
+    Wide("wide", "Wide (1×)"),
+    Telephoto("telephoto", "Telephoto (2×)");
+
+    companion object {
+        fun fromStorage(value: String?): ScannerRearLens =
+            entries.firstOrNull { it.storageKey == value } ?: Automatic
+    }
+}
+
 /**
  * Base URL and API token, backed by [EncryptedSharedPreferences] (Android Keystore-tied, hence
  * `allowBackup=false` in the manifest - a restored backup couldn't decrypt these anyway).
@@ -157,6 +169,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private val _scannerLens = MutableStateFlow(loadScannerLens())
     val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
+
+    private val _scannerRearLens = MutableStateFlow(loadScannerRearLens())
+    val scannerRearLens: StateFlow<ScannerRearLens> = _scannerRearLens.asStateFlow()
 
     private val _printSettings = MutableStateFlow(loadPrintSettings())
     val printSettings: StateFlow<PrintSettings> = _printSettings.asStateFlow()
@@ -233,6 +248,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setScannerLens(lens: ScannerLens) {
         prefs.edit().putString(KEY_SCANNER_LENS, lens.storageKey).apply()
         _scannerLens.value = lens
+    }
+
+    fun setScannerRearLens(lens: ScannerRearLens) {
+        prefs.edit().putString(KEY_SCANNER_REAR_LENS, lens.storageKey).apply()
+        _scannerRearLens.value = lens
     }
 
     fun updatePrintSettings(settings: PrintSettings) {
@@ -394,6 +414,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
 
+    private fun loadScannerRearLens(): ScannerRearLens =
+        ScannerRearLens.fromStorage(
+            prefs.getString(KEY_SCANNER_REAR_LENS, ScannerRearLens.Automatic.storageKey)
+        )
+
     private fun loadPrintSettings(): PrintSettings =
         PrintSettings(
                 invertColors = prefs.getBoolean(KEY_PRINT_INVERT_COLORS, true),
@@ -455,6 +480,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_CHANGE_NOTIFICATION_CURSOR = "change_notification_cursor"
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
+        const val KEY_SCANNER_REAR_LENS = "scanner_default_rear_lens"
         const val KEY_PRINT_INVERT_COLORS = "print_invert_colors"
         const val KEY_PRINT_VERTICAL_TEXT = "print_vertical_text"
         const val KEY_PRINT_LONG_LABEL = "print_long_label"

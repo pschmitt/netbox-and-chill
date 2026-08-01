@@ -11,6 +11,7 @@ import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
@@ -133,6 +134,10 @@ constructor(
 
     fun setScannerLens(lens: ScannerLens) {
         settingsRepository.setScannerLens(lens)
+    }
+
+    fun setScannerRearLens(lens: ScannerRearLens) {
+        settingsRepository.setScannerRearLens(lens)
     }
 
     fun setOfflineMode(enabled: Boolean) {

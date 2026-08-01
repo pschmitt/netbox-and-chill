@@ -65,6 +65,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
 import dev.pschmitt.netboxandchill.scanner.BarcodeAnalyzer
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
@@ -72,6 +73,7 @@ import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +91,7 @@ fun ScannerScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scannerLens by viewModel.scannerLens.collectAsStateWithLifecycle()
+    val scannerRearLens by viewModel.scannerRearLens.collectAsStateWithLifecycle()
     var camera by remember { mutableStateOf<Camera?>(null) }
     var availableCameras by remember { mutableStateOf<List<ScannerCameraOption>>(emptyList()) }
     var selectedRearCameraId by remember { mutableStateOf<String?>(null) }
@@ -159,7 +162,11 @@ fun ScannerScreen(
                                 options.filter { it.lens == ScannerLens.Back }.map { it.id }
                         ) {
                             selectedRearCameraId =
-                                options.firstOrNull { it.lens == ScannerLens.Back }?.id
+                                defaultRearCamera(
+                                        options.filter { it.lens == ScannerLens.Back },
+                                        scannerRearLens,
+                                    )
+                                    ?.id
                         }
                     },
                     onCameraReady = { camera = it },
@@ -555,6 +562,21 @@ private data class ScannerCameraOption(
     val focalLength: Float? = null,
     val zoomRatio: Float = 1f,
 )
+
+private fun defaultRearCamera(
+    cameras: List<ScannerCameraOption>,
+    preferredLens: ScannerRearLens,
+): ScannerCameraOption? {
+    if (cameras.isEmpty()) return null
+    val targetZoom =
+        when (preferredLens) {
+            ScannerRearLens.Automatic,
+            ScannerRearLens.Wide -> 1f
+            ScannerRearLens.UltraWide -> 0.6f
+            ScannerRearLens.Telephoto -> 2f
+        }
+    return cameras.minByOrNull { abs(it.zoomRatio - targetZoom) }
+}
 
 private fun availableCameraOptions(provider: ProcessCameraProvider): List<ScannerCameraOption> {
     val options =

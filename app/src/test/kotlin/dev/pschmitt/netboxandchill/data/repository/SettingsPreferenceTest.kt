@@ -17,6 +17,19 @@ class SettingsPreferenceTest {
     }
 
     @Test
+    fun `rear lens preference defaults safely to the main rear lens`() {
+        assertEquals(ScannerRearLens.Automatic, ScannerRearLens.fromStorage(null))
+        assertEquals(ScannerRearLens.Automatic, ScannerRearLens.fromStorage("unknown"))
+    }
+
+    @Test
+    fun `rear lens preference round trips supported choices`() {
+        ScannerRearLens.entries.forEach { lens ->
+            assertEquals(lens, ScannerRearLens.fromStorage(lens.storageKey))
+        }
+    }
+
+    @Test
     fun `gesture defaults preserve the original shortcut and disable new directions`() {
         assertEquals(GestureAction.GlobalSearch, GestureAction.fromStorage(null))
         assertEquals(GestureAction.Off, GestureAction.fromStorage(null, GestureAction.Off))

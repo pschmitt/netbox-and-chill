@@ -3064,11 +3064,11 @@ APK installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 Move the scanner default camera preference into its own Camera settings screen and add a preference
 for the default rear-camera lens.
 
-- [ ] Add a Camera Settings category/sub-screen.
-- [ ] Move the front/rear scanner camera preference there.
-- [ ] Add and persist the default rear-camera lens preference.
+- [x] Add a Camera Settings category/sub-screen.
+- [x] Move the front/rear scanner camera preference there.
+- [x] Add and persist the default rear-camera lens preference.
 
-Status: not started.
+Status: in progress.
 
 ## NBC-161: make Offline mode a top-level setting
 

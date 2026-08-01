@@ -90,6 +90,7 @@ import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
 import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
@@ -184,6 +185,8 @@ fun SettingsCategoryScreen(
     val gestureActions by
         viewModel.settingsRepository.gestureActions.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
+    val scannerRearLens by
+        viewModel.settingsRepository.scannerRearLens.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val hiddenFieldKeys by
         viewModel.settingsRepository.hiddenFieldKeys.collectAsStateWithLifecycle()
@@ -201,6 +204,7 @@ fun SettingsCategoryScreen(
     var tokenCopied by remember { mutableStateOf(false) }
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var scannerLensMenuExpanded by remember { mutableStateOf(false) }
+    var scannerRearLensMenuExpanded by remember { mutableStateOf(false) }
     var hiddenFieldsDialogVisible by remember { mutableStateOf(false) }
     var changeNotificationsDialogVisible by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
@@ -576,27 +580,7 @@ fun SettingsCategoryScreen(
                 },
             )
                 }
-            SettingsCategory.Gestures -> {
-            SettingsSubsectionHeader("Two-finger gestures")
-            GestureShortcut.entries.filter { it in TWO_FINGER_SHORTCUTS }.forEach { shortcut ->
-                    GestureShortcutRow(
-                        shortcut = shortcut,
-                        action = gestureActions[shortcut] ?: GestureAction.Off,
-                        onActionSelected = { action ->
-                            viewModel.setGestureAction(shortcut, action)
-                        },
-                    )
-            }
-            SettingsSubsectionHeader("Three-finger gestures")
-            GestureShortcut.entries.filter { it in THREE_FINGER_SHORTCUTS }.forEach { shortcut ->
-                    GestureShortcutRow(
-                        shortcut = shortcut,
-                        action = gestureActions[shortcut] ?: GestureAction.Off,
-                        onActionSelected = { action ->
-                            viewModel.setGestureAction(shortcut, action)
-                        },
-                    )
-                }
+                SettingsCategory.Camera -> {
             ListItem(
                 leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
                 headlineContent = { Text("Scanner default camera") },
@@ -631,6 +615,65 @@ fun SettingsCategoryScreen(
                     }
                 },
             )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+                headlineContent = { Text("Default rear lens") },
+                supportingContent = {
+                    Text(
+                        "${scannerRearLens.label}; uses the closest available lens when this " +
+                            "choice is unavailable"
+                    )
+                },
+                trailingContent = {
+                    Box {
+                        IconButton(onClick = { scannerRearLensMenuExpanded = true }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Configure default rear lens",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = scannerRearLensMenuExpanded,
+                            onDismissRequest = { scannerRearLensMenuExpanded = false },
+                        ) {
+                            ScannerRearLens.entries.forEach { lens ->
+                                DropdownMenuItem(
+                                    text = { Text(lens.label) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Cameraswitch, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        viewModel.setScannerRearLens(lens)
+                                        scannerRearLensMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+                }
+                SettingsCategory.Gestures -> {
+            SettingsSubsectionHeader("Two-finger gestures")
+            GestureShortcut.entries.filter { it in TWO_FINGER_SHORTCUTS }.forEach { shortcut ->
+                    GestureShortcutRow(
+                        shortcut = shortcut,
+                        action = gestureActions[shortcut] ?: GestureAction.Off,
+                        onActionSelected = { action ->
+                            viewModel.setGestureAction(shortcut, action)
+                        },
+                    )
+            }
+            SettingsSubsectionHeader("Three-finger gestures")
+            GestureShortcut.entries.filter { it in THREE_FINGER_SHORTCUTS }.forEach { shortcut ->
+                    GestureShortcutRow(
+                        shortcut = shortcut,
+                        action = gestureActions[shortcut] ?: GestureAction.Off,
+                        onActionSelected = { action ->
+                            viewModel.setGestureAction(shortcut, action)
+                        },
+                    )
+                }
                 }
                 SettingsCategory.Notifications -> {
             ListItem(

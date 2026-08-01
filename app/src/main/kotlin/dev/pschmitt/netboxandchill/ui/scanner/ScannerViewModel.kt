@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
@@ -40,6 +41,7 @@ constructor(
     val state: StateFlow<ScanResultState> = _state.asStateFlow()
 
     val scannerLens: StateFlow<ScannerLens> = settingsRepository.scannerLens
+    val scannerRearLens: StateFlow<ScannerRearLens> = settingsRepository.scannerRearLens
 
     private var handled = false
 
