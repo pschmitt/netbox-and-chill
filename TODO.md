@@ -2435,10 +2435,10 @@ not only its small title label.
 
 - [x] Make typed detail rows respond to long press across the complete field content.
 - [x] Make generic detail cards respond to long press across the complete field content.
-- [ ] Verify value-area long press on the Mi Pad 4.
+- [x] Verify value-area long press on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - row-level long-press handlers now wrap typed and generic detail
-content while preserving existing navigation and action buttons; physical verification remains.
+Status: **done**, 2026-08-01 - long-pressing the Site value area on the Mi Pad 4 opened the field
+action sheet with Edit field and Hide by default actions.
 
 ## NBC-115: show breadcrumbs in item detail headers
 
