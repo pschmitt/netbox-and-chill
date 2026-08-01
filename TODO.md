@@ -3081,7 +3081,9 @@ inside the Sync sub-screen.
 - [x] Remove the duplicate control from the Sync sub-screen.
 - [x] Preserve the existing offline-mode behavior and preference.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and clean debug build passed; the top-level
+Offline mode switch and the Sync screen without its duplicate control were verified on the wired
+Zenfone, and the APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 
 ## NBC-162: remove the Battery Saver settings row
 
@@ -3170,5 +3172,17 @@ show a QR-code action and generate a Matter pairing-code QR code when it is tapp
 - [ ] Detect valid Matter pairing-code values without depending on a custom-field name.
 - [ ] Show a QR-code action for matching custom-field rows.
 - [ ] Generate and display a Matter pairing-code QR code on tap.
+
+Status: not started.
+
+## NBC-170: align linked and copy actions on item rows
+
+The model, asset-tag, and primary-IP rows should align their trailing open-link and copy actions
+consistently. Copy actions should use a stable right-aligned action column instead of drifting with
+the row content.
+
+- [ ] Use a shared trailing-action layout for copy and linked-field actions.
+- [ ] Right-align actions consistently across model, asset-tag, serial, and primary-IP rows.
+- [ ] Verify multi-line values and rows with one versus two actions.
 
 Status: not started.
