@@ -69,6 +69,8 @@ import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
+internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -155,10 +157,12 @@ fun DashboardScreen(
                     .toMap()
 
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
-                syncIssue?.let { issue ->
-                    item {
-                        SyncIssueCard(issue, onRetry = viewModel::retrySync)
-                        Spacer(Modifier.height(16.dp))
+                if (shouldShowSyncIssue(offlineMode)) {
+                    syncIssue?.let { issue ->
+                        item {
+                            SyncIssueCard(issue, onRetry = viewModel::retrySync)
+                            Spacer(Modifier.height(16.dp))
+                        }
                     }
                 }
                 if (offlineMode) {

@@ -1984,11 +1984,11 @@ dashboard status showing that offline mode is enabled and when the last successf
 - [x] Show one `Offline mode enabled. Last sync: …` status message.
 - [x] Remove repeated offline sync messages from individual item rows.
 - [x] Use a friendly fallback when no successful sync has happened yet.
+- [x] Suppress stale sync-error details on the Dashboard while offline mode is enabled.
 
-Status: **done**, 2026-08-01 - the dashboard now shows one compact offline status card using a
-persisted successful-sync timestamp, with a clear “not completed yet” fallback; individual rows
-do not repeat the offline message. Remote tests/lint/build passed and the deployed Mi Pad 4
-dashboard showed the cache-first layout.
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/debug build passed; after reinstalling on the
+Mi Pad 4, the dashboard showed only the compact Offline mode card despite stale cached endpoint
+errors. Zenfone 10 and PX5 received the same APK update-in-place.
 
 ## NBC-79: group sync controls in Settings
 
