@@ -5,12 +5,15 @@ import dev.pschmitt.netboxandchill.data.db.BookmarkDao
 import dev.pschmitt.netboxandchill.data.db.BookmarkEntity
 import dev.pschmitt.netboxandchill.data.db.DashboardStatDao
 import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
@@ -33,8 +36,10 @@ constructor(
     private val api: GenericNetBoxApi,
     private val bookmarkDao: BookmarkDao,
     private val objectChangeDao: ObjectChangeDao,
+    private val netBoxObjectDao: NetBoxObjectDao,
     private val statDao: DashboardStatDao,
     private val changeNotificationRepository: ChangeNotificationRepository,
+    private val json: Json,
 ) {
     fun observeBookmarks(): Flow<List<BookmarkEntity>> = bookmarkDao.observeAll()
 
@@ -42,13 +47,13 @@ constructor(
 
     fun observeStats(): Flow<List<DashboardStatEntity>> = statDao.observeAll()
 
-    /**
-     * Not cached (unlike the rest of this repository) - the changelog list only stores the summary
-     * fields [ObjectChangeEntity] needs; `prechange_data`/`postchange_data` are only fetched on
-     * demand when the user actually opens the diff view for one entry (NBC-42).
-     */
     suspend fun fetchObjectChange(id: Int): Result<JsonObject> = runCatching {
-        api.getObject("api/core/object-changes/$id/")
+        val cached =
+            netBoxObjectDao
+                .getById(OBJECT_CHANGE_CACHE_PATH, id)
+                ?.let { runCatching { json.decodeFromString(JsonObject.serializer(), it.json) }.getOrNull() }
+                ?.takeIf(JsonObject::hasChangeSnapshots)
+        cached ?: api.getObject("$OBJECT_CHANGE_ENDPOINT$id/").also { cacheObjectChange(it) }
     }
 
     /**
@@ -87,7 +92,29 @@ constructor(
             .onFailure { Timber.w(it, "Couldn't process NetBox change notifications") }
         val entities = page.results.mapNotNull { it.toObjectChangeEntity() }
         objectChangeDao.replaceAll(entities)
+        cacheObjectChangeDetails(page.results)
         entities.size
+    }
+
+    private suspend fun cacheObjectChangeDetails(summaries: List<JsonObject>) {
+        val details =
+            summaries.mapNotNull { summary ->
+                val id = summary["id"]?.jsonPrimitive?.intOrNull ?: return@mapNotNull null
+                val detail =
+                    if (summary.hasChangeSnapshots()) {
+                        summary
+                    } else {
+                        runCatching { api.getObject("$OBJECT_CHANGE_ENDPOINT$id/") }
+                            .onFailure { Timber.w(it, "Couldn't cache object change %d", id) }
+                            .getOrNull()
+                    }
+                detail?.takeIf(JsonObject::hasChangeSnapshots)?.toObjectChangeCacheEntity()
+            }
+        netBoxObjectDao.upsertAll(details)
+    }
+
+    private suspend fun cacheObjectChange(change: JsonObject) {
+        change.toObjectChangeCacheEntity()?.let { netBoxObjectDao.upsert(it) }
     }
 
     suspend fun refreshStats(): Result<Int> = runCatching {
@@ -153,7 +180,28 @@ constructor(
         )
     }
 
+    private fun JsonObject.toObjectChangeCacheEntity(): NetBoxObjectEntity? {
+        val id = this["id"]?.jsonPrimitive?.intOrNull ?: return null
+        val objectRepr = this["object_repr"]?.jsonPrimitive?.contentOrNull ?: "#$id"
+        val actionLabel =
+            (this["action"] as? JsonObject)?.get("label")?.jsonPrimitive?.contentOrNull
+        return NetBoxObjectEntity(
+            endpointPath = OBJECT_CHANGE_CACHE_PATH,
+            id = id,
+            display = objectRepr,
+            secondaryLine = actionLabel,
+            json = json.encodeToString(JsonObject.serializer(), this),
+            syncedAt = System.currentTimeMillis(),
+        )
+    }
+
     private companion object {
+        const val OBJECT_CHANGE_ENDPOINT = "api/core/object-changes/"
+        // Keep these records separate from the generic directory cache. A directory sync may see
+        // the same endpoint as a normal object type and must not overwrite a full detail snapshot
+        // with the list serializer's summary-only representation.
+        const val OBJECT_CHANGE_CACHE_PATH = "__cache/object-changes/"
+
         // Kept small and cheap (`?limit=1`, only `count` is read, no full sync) - "a handful of
         // key models," not an exhaustive sweep of NetBox's data model. Picked models this app
         // already deals with elsewhere (typed Device/DeviceType caches from NBC-1/NBC-3).
@@ -166,3 +214,6 @@ constructor(
             )
     }
 }
+
+private fun JsonObject.hasChangeSnapshots(): Boolean =
+    containsKey("prechange_data") || containsKey("postchange_data")

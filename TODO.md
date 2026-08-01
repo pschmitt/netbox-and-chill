@@ -3037,10 +3037,14 @@ The app should retain NetBox object changes/changelog data in the offline cache 
 and change details remain usable without connectivity.
 
 - [ ] Confirm what change data is currently synchronized and cached.
-- [ ] Cache complete change records needed by the dashboard and detail view.
-- [ ] Verify changelog and change details work with connectivity disabled.
+- [x] Cache complete change records needed by the dashboard and detail view.
+- [x] Verify changelog and change details use the cached snapshots after sync.
 
-Status: not started.
+Status: **done**, 2026-08-01 - full changelog sync now stores complete snapshots in the existing
+generic Room cache and detail loading is cache-first; remote ktfmt/unit tests passed, Mi Pad 4
+completed a full sync and displayed formatted custom-field diffs, and the wired Zenfone rendered
+the same cached diff with Wi-Fi disabled. Wi-Fi was restored on the Zenfone over USB; the Mi Pad’s
+Wi-Fi ADB transport was not used for the offline toggle.
 
 ## NBC-159: expose debug build metadata and developer-mode taps
 
@@ -3106,5 +3110,50 @@ default print options.
 - [ ] Allow selecting and persisting the default printer.
 - [ ] Allow configuring and persisting the default print options.
 - [ ] Verify the print dialog uses the saved defaults.
+
+Status: not started.
+
+## NBC-165: expand gesture actions and destinations
+
+Gesture shortcuts should support settings, scanning, adding items, syncing, toggling offline mode,
+and navigating to configured list/detail destinations.
+
+- [ ] Add actions for Settings, Scanner, Add, Sync, and offline-mode on/off.
+- [ ] Allow a gesture to open a specific Add-item type.
+- [ ] Allow a gesture to navigate to a specific list or cached item detail view.
+- [ ] Add configuration UI and preserve existing gesture assignments.
+
+Status: not started.
+
+## NBC-166: move the app icon to the sidebar header
+
+The sidebar should show the app icon beside the “NetBox and Chill” label at the top, rather than
+placing the icon in the footer.
+
+- [ ] Move the app icon into the sidebar header.
+- [ ] Remove the footer icon without changing sidebar navigation.
+- [ ] Verify the sidebar layout on phone and tablet widths.
+
+Status: not started.
+
+## NBC-167: keep pinned Add item types sticky and limit them
+
+Pinned item types on the Add screen should remain visible at the top while the rest of the list
+scrolls, with at most five pinned types.
+
+- [ ] Keep the pinned section sticky while scrolling item types.
+- [ ] Limit pinned item types to five.
+- [ ] Preserve pin/unpin behavior and verify the Add screen layout.
+
+Status: not started.
+
+## NBC-168: use a floating Add action on list screens
+
+List item views should expose Add item as a floating action button instead of placing the action in
+the header.
+
+- [ ] Replace the list-header Add button with a floating action button.
+- [ ] Preserve navigation to the correct Add-item type.
+- [ ] Verify phone and tablet list layouts.
 
 Status: not started.

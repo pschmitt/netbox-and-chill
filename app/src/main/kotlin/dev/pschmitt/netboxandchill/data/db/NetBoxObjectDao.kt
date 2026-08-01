@@ -44,6 +44,9 @@ interface NetBoxObjectDao {
     @Query("SELECT * FROM netbox_objects WHERE endpointPath = :endpointPath AND id = :id")
     fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?>
 
+    @Query("SELECT * FROM netbox_objects WHERE endpointPath = :endpointPath AND id = :id")
+    suspend fun getById(endpointPath: String, id: Int): NetBoxObjectEntity?
+
     @Query(
         "SELECT * FROM netbox_objects WHERE endpointPath = :endpointPath ORDER BY display COLLATE NOCASE"
     )
