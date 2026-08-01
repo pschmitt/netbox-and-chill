@@ -41,13 +41,21 @@ constructor(
     suspend fun refresh(): Result<Int> = runCatching {
         val root = api.getApiRoot()
         val models = mutableListOf<NetBoxModelEntity>()
+        val failedApps = mutableListOf<String>()
         for ((appKey, appUrl) in root) {
             if (appKey in SKIPPED_ROOT_KEYS) continue
             runCatching { discoverApp(appKey, appUrl, models) }
                 .onFailure {
                     Timber.w(it, "Failed to discover NetBox app '%s'", appKey)
+                    failedApps += appKey
                     syncIssueReporter.report("Directory discovery failed for $appKey: ${it.message}")
                 }
+        }
+        if (failedApps.isNotEmpty()) {
+            // Keep the last complete directory available to the cache-first sync. Replacing it
+            // with a partial result would silently skip whole model families (notably plugin
+            // documents) whenever one app is temporarily unavailable.
+            error("Directory discovery failed for: ${failedApps.joinToString(", ")}")
         }
         dao.clear()
         dao.upsertAll(models)

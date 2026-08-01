@@ -107,8 +107,22 @@ constructor(
     private suspend fun syncAttachments(): Int {
         val devices = deviceRepository.cachedDevices()
         for (device in devices) {
-            device.deviceTypeId?.let { deviceTypeRepository.refresh(it).getOrThrow() }
-            imageAttachmentRepository.refresh("dcim.device", device.id).getOrThrow()
+            device.deviceTypeId?.let { deviceTypeId ->
+                deviceTypeRepository
+                    .refresh(deviceTypeId)
+                    .onFailure { error ->
+                        syncIssueReporter.report(
+                            "Device type $deviceTypeId refresh failed: ${error.message ?: "failed"}"
+                        )
+                    }
+            }
+            imageAttachmentRepository
+                .refresh("dcim.device", device.id)
+                .onFailure { error ->
+                    syncIssueReporter.report(
+                        "Image attachments for device ${device.id} failed: ${error.message ?: "failed"}"
+                    )
+                }
         }
 
         val attachments = buildList {
@@ -138,6 +152,9 @@ constructor(
                 .onSuccess { downloaded++ }
                 .onFailure { error ->
                     Timber.w(error, "Couldn't persist offline attachment %s", attachment.url)
+                    syncIssueReporter.report(
+                        "Attachment ${attachment.filename} failed: ${error.message ?: "download failed"}"
+                    )
                 }
         }
         Timber.i("Synced %d durable attachments", downloaded)

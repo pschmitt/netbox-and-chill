@@ -1914,3 +1914,17 @@ Scan | Settings`.
 Status: **done**, 2026-08-01 - implemented across dashboard, list, search, and scanner screens;
 remote lint/tests/build passed, and the Mi Pad 4 screenshot verified the rendered `Home | Search |
 Scan | Settings` order and active Home tab.
+
+## NBC-74: make complete offline attachment sync reliable
+
+The full offline sync must retain every discovered NetBox model and surface missing durable files,
+including plugin documents, image attachments, and device-type front/rear images.
+
+- [x] Preserve the previous complete model directory when discovery is partially unavailable.
+- [x] Continue syncing other attachments when one device refresh or download fails.
+- [x] Persist attachment failures as visible sync issues instead of logging them only.
+- [x] Verify cached document/image model counts and durable files against the live NetBox instance.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 contains 171 document records, 106 image-attachment
+records, 238 device types, and 630 durable attachment files (811.0 MiB shown in Settings); remote
+ktfmt/tests passed and a fresh full sync completed with 630 durable attachments and no sync issue.

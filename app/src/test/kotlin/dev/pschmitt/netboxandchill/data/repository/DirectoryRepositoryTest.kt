@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class DirectoryRepositoryTest {
@@ -33,9 +34,22 @@ class DirectoryRepositoryTest {
             api.probedPaths,
         )
     }
+
+    @Test
+    fun `failed app discovery preserves the previous complete model cache`() = runTest {
+        val dao = FakeModelDao().apply {
+            models += NetBoxModelEntity("dcim", "DCIM", "racks", "Racks", "api/dcim/racks/")
+        }
+        val api = FailingDirectoryApi()
+
+        val result = DirectoryRepository(api, dao, dev.pschmitt.netboxandchill.sync.SyncIssueReporter()).refresh()
+
+        assertFalse(result.isSuccess)
+        assertEquals(listOf("api/dcim/racks/"), dao.models.map(NetBoxModelEntity::endpointPath))
+    }
 }
 
-private class FakeDirectoryApi : GenericNetBoxApi {
+private open class FakeDirectoryApi : GenericNetBoxApi {
     val probedPaths = mutableListOf<String>()
 
     override suspend fun getApiRoot(): Map<String, String> =
@@ -95,4 +109,8 @@ private class FakeModelDao : NetBoxModelDao {
     override suspend fun clear() {
         models.clear()
     }
+}
+
+private class FailingDirectoryApi : FakeDirectoryApi() {
+    override suspend fun getUrlMap(url: String): Map<String, String> = error("temporary outage")
 }
