@@ -3209,11 +3209,14 @@ The model, asset-tag, and primary-IP rows should align their trailing open-link 
 consistently. Copy actions should use a stable right-aligned action column instead of drifting with
 the row content.
 
-- [ ] Use a shared trailing-action layout for copy and linked-field actions.
-- [ ] Right-align actions consistently across model, asset-tag, serial, and primary-IP rows.
-- [ ] Verify multi-line values and rows with one versus two actions.
+- [x] Use a shared trailing-action layout for copy and linked-field actions.
+- [x] Right-align actions consistently across model, asset-tag, serial, and primary-IP rows.
+- [x] Verify multi-line values and rows with one versus two actions.
 
-Status: not started.
+Status: **done**, 2026-08-01 - the shared action column right-aligns one or two actions; Mi Pad 4
+showed `Copy Serial` and `Open Model` at the same trailing x-position on the device page. Remote
+ktfmt/unit tests/debug build passed; APK installed update-in-place on Zenfone 10, Mi Pad 4, and
+PX5.
 
 ## NBC-171: copy values from long-pressed item rows
 
