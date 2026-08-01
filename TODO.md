@@ -3107,7 +3107,9 @@ page.
 - [x] Add a link to `https://github.com/sponsors/pschmitt`.
 - [x] Verify both links open externally from About.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and clean debug build passed; both About
+links were visible and opened Firefox externally on the wired Zenfone, and the APK was installed
+update-in-place on Zenfone, PX5, and Mi Pad 4.
 
 ## NBC-164: add printer settings
 
