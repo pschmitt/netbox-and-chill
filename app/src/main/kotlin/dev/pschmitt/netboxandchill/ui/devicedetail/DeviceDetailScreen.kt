@@ -237,7 +237,9 @@ fun DeviceDetailScreen(
     ) { padding ->
         val current = device
         PullToRefreshBox(
-            isRefreshing = isRefreshing,
+            // Sync has a global progress bar and Android notification; avoid the large circular
+            // indicator over the device while that background work is running.
+            isRefreshing = false,
             onRefresh = { viewModel.refresh(showConfirmation = true) },
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {

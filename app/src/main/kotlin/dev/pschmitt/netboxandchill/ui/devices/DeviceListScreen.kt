@@ -102,7 +102,8 @@ fun DeviceListScreen(
         },
     ) { padding ->
         PullToRefreshBox(
-            isRefreshing = isRefreshing,
+            // Keep the gesture active, but don't duplicate the global sync progress indicator.
+            isRefreshing = false,
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {

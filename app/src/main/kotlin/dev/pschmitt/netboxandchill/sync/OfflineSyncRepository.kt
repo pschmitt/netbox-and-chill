@@ -25,6 +25,8 @@ data class OfflineSyncSummary(
     val durableAttachments: Int,
 )
 
+data class SyncProgress(val message: String, val step: Int, val totalSteps: Int)
+
 /** Coordinates the complete cache-first sync used by manual and background refreshes. */
 @Singleton
 class OfflineSyncRepository
@@ -44,8 +46,15 @@ constructor(
     private val syncIssueReporter: SyncIssueReporter,
 ) {
 
-    suspend fun syncAll(onProgress: (String) -> Unit = {}): Result<OfflineSyncSummary> {
+    suspend fun syncAll(onProgress: (SyncProgress) -> Unit = {}): Result<OfflineSyncSummary> {
         var retryableFailure: Throwable? = null
+        var step = 0
+        var totalSteps = 7 + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0
+
+        fun reportProgress(message: String) {
+            step++
+            onProgress(SyncProgress(message, step, totalSteps))
+        }
 
         fun recordFailure(scope: String, error: Throwable) {
             syncIssueReporter.report("$scope: ${error.message ?: error::class.simpleName ?: "failed"}")
@@ -55,31 +64,49 @@ constructor(
         val result =
             runCatching {
             // Resolve queued edits before the normal cache refresh can replace their local view.
-            onProgress("Uploading queued edits…")
+            reportProgress("Uploading queued edits…")
             pendingEditRepository.syncPending()
-            onProgress("Syncing dashboard data…")
+            reportProgress("Syncing dashboard data…")
             dashboardRepository.refresh().onFailure { recordFailure("Dashboard sync", it) }
-            onProgress("Syncing custom-field definitions…")
+            reportProgress("Syncing custom-field definitions…")
             customFieldRepository.refresh().onFailure { recordFailure("Custom-field sync", it) }
-            onProgress("Syncing devices…")
+            reportProgress("Syncing devices…")
             val devices =
                 deviceRepository.syncAll().getOrElse {
                     recordFailure("Device sync", it)
                     0
                 }
-            onProgress("Discovering NetBox models…")
+            reportProgress("Syncing device types…")
+            deviceRepository
+                .cachedDevices()
+                .asSequence()
+                .mapNotNull { it.deviceTypeId }
+                .distinct()
+                .forEach { deviceTypeId ->
+                    deviceTypeRepository
+                        .refresh(deviceTypeId)
+                        .onFailure { error ->
+                            recordFailure(
+                                "Device type $deviceTypeId sync",
+                                error,
+                            )
+                        }
+                }
+            reportProgress("Discovering NetBox models…")
             directoryRepository.refresh().onFailure { recordFailure("Directory sync", it) }
 
             var genericObjects = 0
-            for (model in directoryRepository.cachedModels()) {
-                onProgress("Syncing ${model.modelLabel}…")
+            val models = directoryRepository.cachedModels()
+            totalSteps = 7 + models.size + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0
+            for (model in models) {
+                reportProgress("Syncing ${model.modelLabel}…")
                 genericObjectRepository.syncAll(model.endpointPath).fold(
                     onSuccess = { genericObjects += it },
                     onFailure = { recordFailure("${model.endpointPath} sync", it) },
                 )
             }
 
-            onProgress("Syncing rack elevations…")
+            reportProgress("Syncing rack elevations…")
             genericObjectRepository.cachedObjects("api/dcim/racks/").forEach { rack ->
                 rackElevationRepository
                     .refresh(rack.id, RackFace.FRONT)
@@ -91,7 +118,7 @@ constructor(
 
             val durableAttachments =
                 if (settingsRepository.syncAttachmentsToDisk.value) {
-                    onProgress("Downloading cached images and documents…")
+                    reportProgress("Downloading cached images and documents…")
                     runCatching { syncAttachments() }
                         .getOrElse {
                             recordFailure("Attachment sync", it)
@@ -128,15 +155,6 @@ constructor(
     private suspend fun syncAttachments(): Int {
         val devices = deviceRepository.cachedDevices()
         for (device in devices) {
-            device.deviceTypeId?.let { deviceTypeId ->
-                deviceTypeRepository
-                    .refresh(deviceTypeId)
-                    .onFailure { error ->
-                        syncIssueReporter.report(
-                            "Device type $deviceTypeId refresh failed: ${error.message ?: "failed"}"
-                        )
-                    }
-            }
             imageAttachmentRepository
                 .refresh("dcim.device", device.id)
                 .onFailure { error ->

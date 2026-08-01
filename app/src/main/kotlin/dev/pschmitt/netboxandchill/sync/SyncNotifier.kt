@@ -40,7 +40,7 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
 
     /** Builds the foreground notification required for long-running WorkManager syncs. */
     fun foregroundInfo(message: String = "Syncing NetBox data…"): ForegroundInfo {
-        val notification = progressNotification(message)
+        val notification = progressNotification(message, step = 0, totalSteps = 1)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ForegroundInfo(
                 NOTIFICATION_ID,
@@ -98,17 +98,26 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
 
     /** Shows an ongoing system-level progress notification while any sync attempt is running. */
     fun notifySyncStarted() {
-        notifySyncProgress("Refreshing cached data…")
+        notifySyncProgress(SyncProgress("Refreshing cached data…", step = 0, totalSteps = 1))
     }
 
-    fun notifySyncProgress(message: String) {
+    fun notifySyncProgress(progress: SyncProgress) {
         if (!notificationsAllowed()) return
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, progressNotification(message))
+        NotificationManagerCompat.from(context)
+            .notify(
+                NOTIFICATION_ID,
+                progressNotification(progress.message, progress.step, progress.totalSteps),
+            )
     }
 
     /** Keeps the ongoing notification visible while WorkManager waits before retrying. */
     fun notifySyncRetry(attempt: Int) {
-        notifySyncProgress("Retrying sync (attempt $attempt)…")
+        if (!notificationsAllowed()) return
+        NotificationManagerCompat.from(context)
+            .notify(
+                NOTIFICATION_ID,
+                progressNotification("Retrying sync (attempt $attempt)…"),
+            )
     }
 
     /** Removes the progress notification after a successful sync. */
@@ -123,12 +132,26 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
 
-    private fun progressNotification(message: String) =
+    private fun progressNotification(message: String, step: Int? = null, totalSteps: Int? = null) =
         NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_sync_problem)
-            .setContentTitle("Syncing NetBox data…")
-            .setContentText(message)
-            .setProgress(0, 0, true)
+            // Keep the current stage in the title: Android may omit contentText in the collapsed
+            // foreground notification, which otherwise leaves only the unhelpful generic label.
+            .setContentTitle(message)
+            .setContentText("Syncing NetBox data…")
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(message)
+                    .setSummaryText("Syncing NetBox data…")
+            )
+            .apply {
+                if (step != null && totalSteps != null) {
+                    setProgress(totalSteps, step.coerceIn(0, totalSteps), false)
+                    setSubText("Step ${step.coerceIn(0, totalSteps)} of $totalSteps")
+                } else {
+                    setProgress(0, 0, true)
+                }
+            }
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

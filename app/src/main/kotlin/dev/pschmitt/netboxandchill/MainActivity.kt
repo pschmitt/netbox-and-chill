@@ -10,10 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
@@ -22,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -34,7 +30,6 @@ import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
-import dev.pschmitt.netboxandchill.ui.common.SyncStatusIndicator
 import dev.pschmitt.netboxandchill.ui.directory.Sidebar
 import dev.pschmitt.netboxandchill.ui.gestures.twoFingerSwipeDown
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
@@ -140,9 +135,6 @@ class MainActivity : FragmentActivity() {
                         )
                     },
                 ) {
-                    // SyncStatusIndicator is layered above the nav host (not inside any one
-                    // screen's own Scaffold) so it reflects SyncWorker's WorkManager state
-                    // regardless of which screen is currently showing - see NBC-23.
                     val gestureModifier =
                         if (!settingsRepository.isConfigured || gestureAction == GestureAction.Off) {
                             Modifier
@@ -166,11 +158,6 @@ class MainActivity : FragmentActivity() {
                                 pendingSetup = setup
                             },
                             onSetupConsumed = { pendingSetup = null },
-                        )
-                        SyncStatusIndicator(
-                            modifier =
-                                Modifier.align(Alignment.TopCenter)
-                                    .windowInsetsPadding(WindowInsets.statusBars)
                         )
                     }
                 }

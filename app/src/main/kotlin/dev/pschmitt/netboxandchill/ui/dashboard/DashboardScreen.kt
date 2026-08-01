@@ -113,7 +113,9 @@ fun DashboardScreen(
         },
     ) { padding ->
         PullToRefreshBox(
-            isRefreshing = isRefreshing,
+            // Sync has a global progress bar and Android notification; avoid the large circular
+            // indicator moving over the dashboard while that background work is running.
+            isRefreshing = false,
             onRefresh = viewModel::refresh,
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {

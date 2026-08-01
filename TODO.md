@@ -2057,3 +2057,65 @@ and splash screen.
 
 Status: **done**, 2026-08-01 - reduced the adaptive foreground artwork to 90% around its center;
 the resource compiled successfully and the APK was installed on Zenfone 10, Mi Pad 4, and PX5.
+
+## NBC-85: hide pull-to-refresh spinner during sync
+
+Background sync already has its own app-wide progress bar and Android notification. The large round
+pull-to-refresh indicator should not appear while that sync is running.
+
+- [x] Keep pull-to-refresh gestures active without showing the round refresh indicator.
+- [x] Apply the behavior consistently to dashboard, lists, and detail pages.
+- [x] Verify the UI while a real background sync is active on a physical device.
+
+Status: **done**, 2026-08-01 - remote ktfmt/tests passed; pull-to-refresh gestures remain active
+but their round indicator is suppressed during sync, and the change was deployed to all three
+devices.
+
+## NBC-86: make device-type images persist on device pages
+
+Device detail pages must reliably show the cached device-type front and rear images whenever the
+device type provides them. The image rows have regressed repeatedly and need a durable load path.
+
+- [x] Ensure the device type is refreshed/backfilled before rendering its images.
+- [x] Preserve and render both front and rear image URLs from the device-type cache.
+- [x] Verify the images after app restart, sync, and deployment on a physical device.
+
+Status: **done**, 2026-08-01 - full sync now refreshes device-type metadata independently of the
+optional attachment download setting; after restart, Mi Pad 4 showed both front and rear images.
+
+## NBC-87: remove the header sync animation
+
+The thin animated sync indicator above the screen header is distracting while background sync is
+running. Sync progress should remain available through the Android notification and Settings.
+
+- [x] Remove the animated indicator above the navigation content.
+- [x] Keep the Android sync notification and Settings sync status available.
+- [x] Verify headers remain stable during sync on a physical device.
+
+Status: **done**, 2026-08-01 - removed the app-wide `SyncStatusIndicator` host; the Mi Pad 4
+device page remained stable during sync and the Android notification remained active.
+
+## NBC-88: show the current sync stage in the notification
+
+The ongoing Android sync notification should tell the user which part of the cache refresh is
+currently running, rather than appearing as a generic “Syncing NetBox data…” message.
+
+- [x] Keep the current sync stage visible when the notification is collapsed.
+- [x] Show the same stage in the expanded notification.
+- [x] Verify the notification while a real sync runs on a physical device.
+
+Status: **done**, 2026-08-01 - the current stage is now the visible notification title and the
+expanded notification includes the same stage text; Mi Pad 4 showed “Syncing devices…”.
+
+## NBC-89: show estimated sync progress
+
+The sync notification should show a useful approximate progress position in addition to the
+current stage, even though the exact amount of work varies with the NetBox model inventory.
+
+- [x] Emit numbered sync stages from the complete cache refresh.
+- [x] Show a determinate estimated progress bar and step count in the notification.
+- [x] Recalculate the estimate after the available NetBox models are discovered.
+- [x] Verify progress updates during a real sync on a physical device.
+
+Status: **done**, 2026-08-01 - sync stages now carry a dynamically estimated total that includes
+discovered models; Mi Pad 4 reported “Step 4 of 8” with a determinate progress bar.
