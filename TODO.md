@@ -3143,11 +3143,14 @@ Status: in progress.
 The sidebar should show the app icon beside the “NetBox and Chill” label at the top, rather than
 placing the icon in the footer.
 
-- [ ] Move the app icon into the sidebar header.
-- [ ] Remove the footer icon without changing sidebar navigation.
-- [ ] Verify the sidebar layout on phone and tablet widths.
+- [x] Move the app icon into the sidebar header.
+- [x] Remove the footer icon without changing sidebar navigation.
+- [x] Verify the sidebar layout on phone and tablet widths.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; the
+header title and footer version were visible in the drawer on both the wired Zenfone 10 and Mi
+Pad 4 tablet, with the icon moved beside the title. APK installed update-in-place on Zenfone 10,
+Mi Pad 4, and PX5.
 
 ## NBC-167: keep pinned Add item types sticky and limit them
 
