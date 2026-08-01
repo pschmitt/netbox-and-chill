@@ -2749,18 +2749,18 @@ category headings.
 Status: **done**, 2026-08-01 - the typed Shelly device page showed its Custom fields section and
 purchase rows from the cache; the generic detail renderer was also exercised on the Mi Pad 4.
 
-## NBC-137: move tablet navigation to a right-side rail
+## NBC-137: move tablet navigation to a left-side rail
 
-On tablet-sized windows the universal navigation should use a right-side rail, while phones keep
+On tablet-sized windows the universal navigation should use a left-side rail, while phones keep
 the compact bottom navigation used today.
 
 - [x] Keep the same destinations and order across both navigation layouts.
-- [x] Use a right-side NavigationRail at tablet widths and the bottom bar on phones.
+- [x] Use a left-side NavigationRail at tablet widths and the bottom bar on phones.
 - [x] Apply the responsive shell to dashboard, lists, search, scan, and Add item screens.
-- [x] Verify the rail and navigation actions on the Mi Pad 4.
+- [x] Verify the left-side rail and navigation actions on the Mi Pad 4.
 
-Status: **done**, 2026-08-01 - the Mi Pad 4 dashboard and device list visibly use the right-side
-Home/Search/Scan/Add/Settings rail. The Zenfone received the same APK; PX5 was unreachable.
+Status: **done**, 2026-08-02 - the updated APK was installed on the Zenfone 10, Mi Pad 4, and
+PX5; the Mi Pad 4 dashboard visibly shows the Home/Search/Scan/Add/Settings rail on the left.
 
 ## NBC-138: remember the last label-print settings
 
@@ -3406,7 +3406,8 @@ focused edit dialog must stay closed instead of being relaunched by the route ef
 
 - [x] Make route-driven focused editing a one-shot launch.
 - [x] Keep the focused editor closed after review confirmation and save.
-- [x] Add a regression test for the one-shot route guard.
+- [x] Explicitly clear the focused editor state when the review is confirmed.
+- [x] Add regression coverage for the one-shot route guard and post-confirm state.
 
-Status: **done**, 2026-08-02 - Mi Pad 4 confirmed the focused editor closes after an offline
-confirmation; the temporary queued edit was reverted locally and never contacted NetBox.
+Status: **done**, 2026-08-02 - the Mi Pad 4 long-press → Edit → Review → Confirm flow closes the
+focused editor; confirmation now explicitly clears the focused state, with remote tests passing.

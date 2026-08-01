@@ -36,4 +36,16 @@ class FocusedEditStateTest {
             )
         )
     }
+
+    @Test
+    fun `confirmed review stays closed after the pending review is dismissed`() {
+        assertFalse(
+            shouldLaunchRouteFocusedEditor(
+                routeFocusHandled = true,
+                focusFieldKey = "custom_fields.operating_system",
+                focusedEditFieldKey = null,
+                hasPendingEdits = false,
+            )
+        )
+    }
 }

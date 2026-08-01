@@ -18,7 +18,7 @@ internal val LocalUseNavigationRail = compositionLocalOf { false }
 
 /**
  * The app's responsive shell: a bottom navigation bar on phones and the same navigation as a
- * right-side rail on wider tablet-sized windows.
+ * left-side rail on wider tablet-sized windows.
  */
 @Composable
 fun NetBoxResponsiveScaffold(
@@ -37,10 +37,10 @@ fun NetBoxResponsiveScaffold(
                 bottomBar = { if (!useNavigationRail) bottomBar() },
             ) { padding ->
                 Row(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f).fillMaxHeight()) { content(padding) }
                     if (useNavigationRail) {
                         Box(Modifier.fillMaxHeight()) { bottomBar() }
                     }
+                    Box(Modifier.weight(1f).fillMaxHeight()) { content(padding) }
                 }
             }
         }

@@ -848,6 +848,11 @@ fun GenericDetailScreen(
             },
             onConfirm = {
                 viewModel.save(edits)
+                // Confirmation ends the focused-edit session. The route keeps its focus key for
+                // breadcrumb/back-stack state, so clear the local guard explicitly as well; a
+                // cache update from save must not reopen the editor through the route effect.
+                routeFocusHandled = true
+                focusedEditFieldKey = null
                 pendingEdits = null
                 pendingEditFieldKey = null
             },
