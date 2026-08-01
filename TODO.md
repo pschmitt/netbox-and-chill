@@ -1865,8 +1865,9 @@ and provide the Android pairing flow for a discovered printer such as `PT-P300BT
 
 Status: mostly done, 2026-08-01 - Mi Pad 4 discovered the live `PT-P300BT4590`; Android pairing
 flow and post-bond selection refresh are implemented. Printing now enforces a bonded device and
-cancels discovery before opening RFCOMM. A controlled print attempt found the device bonded but
-not discoverable and the RFCOMM connection failed, so physical output remains open.
+cancels discovery before opening RFCOMM. A later controlled attempt showed the cached preview,
+selected the bonded printer, and reached the RFCOMM/SDP path, but Android still reported the
+printer as not visible and the connection failed; physical output remains open.
 
 ## NBC-68: improve label layout and print-dialog feedback
 
@@ -2298,8 +2299,8 @@ The Android raster path should match printlabel's crisp 1-bit preprocessing and 
 Status: mostly done, 2026-08-01 - compared against the upstream printlabel raster path and removed
 filtered bitmap interpolation, switched to crisp bold 1-bit text, and matched its exact rotate/
 mirror orientation. Remote tests/lint/build passed and all three devices were deployed; the Mi Pad
-4 preview rendered, but the controlled physical attempt failed because the paired printer was not
-discoverable/reachable.
+4 preview rendered, but the controlled physical attempt failed during Bluetooth SDP because the
+paired printer was not discoverable/reachable, so the actual raster remains unverified on tape.
 
 ## NBC-103: make sync notifications unobtrusive
 
@@ -2627,9 +2628,9 @@ should dismiss the dialog while a failed print should leave it open with the err
 - [x] Keep the dialog open and show the printer error after failure.
 - [x] Verify the behavior in the print flow on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - remote checks pass; Mi Pad 4 showed the fixed print controls and
-kept the dialog open with a clear Bluetooth error, but a successful physical print still needs a
-reachable printer connection.
+Status: mostly done, 2026-08-01 - remote checks pass; Mi Pad 4 showed the fixed print controls,
+kept the dialog open with a clear Bluetooth error, and retained the preview after the failed
+attempt. A successful physical print still needs a reachable printer connection.
 
 ## NBC-128: expose more printlabel settings
 
@@ -2655,8 +2656,9 @@ and the selected printer. This is an operational print action rather than an app
 - [ ] Verify the print result and record any printer-specific limitations.
 
 Status: in progress, 2026-08-01 - identified IDs 395-398 (`#SLY-3030` through `#SLY-3033`);
-the first controlled attempt for ID 395 was refused after discovery timed out, so no labels were
-printed and the remaining three are waiting for the paired PT-P300BT4590 to become reachable.
+the controlled app attempt for ID 395 rendered the expected preview but failed at Bluetooth SDP,
+so no labels were printed and the remaining three are waiting for the paired PT-P300BT4590 to
+become reachable.
 
 ## NBC-130: restore custom-field rows on typed device pages
 
