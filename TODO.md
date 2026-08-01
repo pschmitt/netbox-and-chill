@@ -2935,11 +2935,13 @@ disrupting navigation. APK installed update-in-place on Zenfone 10, Mi Pad 4, an
 Global search, and device list rows where appropriate, should visibly surface an item's asset tag
 as a compact badge.
 
-- [ ] Add asset-tag badges to global-search results when present.
-- [ ] Add asset-tag badges to device list rows when present.
-- [ ] Verify badge layout and cached rendering.
+- [x] Add asset-tag badges to global-search results when present.
+- [x] Add asset-tag badges to device list rows when present.
+- [x] Verify badge layout and cached rendering.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; Mi Pad 4
+showed asset-tag badges such as `#LGC-0002` in the cached device list and `#SLY-3033` in cached
+recent global-search results. APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-151: improve sync progress notification text
 
@@ -3291,3 +3293,16 @@ Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build p
 opened the cached device-type picker offline, filtered choices by text, and rendered cached
 front/rear imagery with a fallback icon. APK installed update-in-place on Zenfone 10, Mi Pad 4,
 and PX5.
+
+## NBC-178: support type-aware syntax in linked-field pickers
+
+Linked-field pickers used while creating or editing objects should support the same type-aware
+search syntax as global search. For example, typing `manufacturer ` in a device-type picker
+should offer the manufacturer filter and narrow the cached choices. The behavior should be generic
+for every linked object type.
+
+- [ ] Reuse the cached object-type completion and selection behavior in linked-field pickers.
+- [ ] Filter linked choices from the cache using the selected object type and remaining query.
+- [ ] Preserve image previews, responsive rendering, and the existing create/edit flows.
+
+Status: not started.

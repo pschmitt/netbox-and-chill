@@ -44,8 +44,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
+import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
+import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -154,6 +156,13 @@ fun GlobalSearchScreen(
                                 modelLabel = model?.modelLabel,
                                 icon = AppIcons.forAppKey(appKey),
                                 thumbnail = thumbnail,
+                                assetTag =
+                                    hit.assetTag
+                                        ?: if (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH) {
+                                            devicesById[hit.id]?.assetTag
+                                        } else {
+                                            null
+                                        },
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
@@ -209,6 +218,13 @@ fun GlobalSearchScreen(
                                 modelLabel = model?.modelLabel,
                                 icon = AppIcons.forAppKey(appKey),
                                 thumbnail = thumbnail,
+                                assetTag =
+                                    hit.assetTag
+                                        ?: if (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH) {
+                                            devicesById[hit.id]?.assetTag
+                                        } else {
+                                            null
+                                        },
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
@@ -295,6 +311,7 @@ private fun SearchResultRow(
     modelLabel: String?,
     icon: ImageVector,
     thumbnail: SearchThumbnail?,
+    assetTag: String?,
     localImageFile: (SearchThumbnail) -> java.io.File?,
     onClick: () -> Unit,
 ) {
@@ -334,8 +351,16 @@ private fun SearchResultRow(
             }
         },
         supportingContent = {
-            hit.secondaryLine?.takeIf(String::isNotBlank)?.let { secondaryLine ->
-                Text(secondaryLine)
+            val secondaryLine = hit.secondaryLine?.takeIf(String::isNotBlank)
+            val visibleAssetTag = assetTag?.takeIf(String::isNotBlank)
+            if (secondaryLine != null || visibleAssetTag != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                ) {
+                    visibleAssetTag?.let { AssetTagBadge(it) }
+                    secondaryLine?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                }
             }
         },
         modifier = Modifier.clickable(onClick = onClick),

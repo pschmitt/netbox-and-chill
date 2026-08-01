@@ -33,6 +33,7 @@ data class SearchHit(
     val id: Int,
     val display: String,
     val secondaryLine: String?,
+    val assetTag: String? = null,
 )
 
 fun recentVisitsToSearchHits(visits: List<RecentVisitEntity>): List<SearchHit> =
@@ -211,8 +212,14 @@ constructor(
         }
     }
 
-    private fun NetBoxObjectEntity.toSearchHit() =
-        SearchHit(endpointPath, id, display, secondaryLine)
+private fun NetBoxObjectEntity.toSearchHit() =
+        SearchHit(
+            endpointPath = endpointPath,
+            id = id,
+            display = display,
+            secondaryLine = secondaryLine,
+            assetTag = decodeObject(json)?.assetTag(),
+        )
 
     private fun DeviceEntity.toSearchHit(secondaryLine: String? = statusLabel ?: siteName) =
         SearchHit(
@@ -220,6 +227,7 @@ constructor(
             id = id,
             display = name,
             secondaryLine = secondaryLine,
+            assetTag = assetTag,
         )
 
     private fun decodeObject(raw: String): JsonObject? =
@@ -249,6 +257,9 @@ constructor(
             )
     }
 }
+
+internal fun JsonObject.assetTag(): String? =
+    get("asset_tag")?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
 
 data class NetworkDeviceMatch(val deviceId: Int, val source: String)
 

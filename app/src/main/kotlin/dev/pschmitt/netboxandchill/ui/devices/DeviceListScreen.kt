@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +35,7 @@ import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
+import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,7 +164,18 @@ private fun DeviceRow(
         supportingContent = {
             val subtitle =
                 listOfNotNull(device.siteName, device.deviceTypeModel).joinToString(" · ")
-            if (subtitle.isNotBlank()) Text(subtitle)
+            val assetTag = device.assetTag?.takeIf(String::isNotBlank)
+            if (subtitle.isNotBlank() || assetTag != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (subtitle.isNotBlank()) {
+                        Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    assetTag?.let { AssetTagBadge(it) }
+                }
+            }
         },
         trailingContent = { StatusChip(label = device.statusLabel, value = device.statusValue) },
         modifier = Modifier.clickable(onClick = onClick),
