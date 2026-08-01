@@ -2609,8 +2609,9 @@ Android Battery Saver is enabled.
 - [x] Show the policy in the grouped Sync settings section.
 - [x] Verify the policy mapping with unit tests and deploy to physical devices.
 
-Status: mostly done, 2026-08-01 - remote lint/unit tests pass and the policy build is installed on
-the Mi Pad 4; Zenfone was disconnected and PX5 did not expose an ADB port.
+Status: **done**, 2026-08-02 - remote lint/unit tests pass; the network/battery policy build is
+installed update-in-place on the Zenfone 10, Mi Pad 4, and PX5, and the Mi Pad 4 policy settings
+remain available while offline mode is enabled.
 
 ## NBC-127: stabilize print progress and close after success
 
