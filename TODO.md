@@ -3269,11 +3269,14 @@ update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 The sidebar should display only the configured NetBox hostname, without the URL scheme.
 
-- [ ] Remove the scheme from the NetBox URL shown beside the app name.
-- [ ] Preserve the full configured URL for navigation and connection behavior.
-- [ ] Verify the shortened display works for HTTP and HTTPS URLs.
+- [x] Remove the scheme from the NetBox URL shown beside the app name.
+- [x] Preserve the full configured URL for navigation and connection behavior.
+- [x] Verify the shortened display works for HTTP and HTTPS URLs.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; focused
+HTTP/HTTPS hostname tests passed, and Mi Pad 4 showed `netbox.brkn.lol` in the sidebar while
+the app remained connected to the configured full URL. APK installed update-in-place on Zenfone
+10, Mi Pad 4, and PX5.
 
 ## NBC-177: improve the device-type picker when creating devices
 

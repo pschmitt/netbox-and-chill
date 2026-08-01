@@ -365,7 +365,7 @@ private fun SidebarFooter(appVersion: String, netboxUrl: String, onSettingsClick
             Text("Version $appVersion", style = MaterialTheme.typography.labelMedium)
             if (netboxUrl.isNotBlank()) {
                 Text(
-                    netboxUrl,
+                    displayNetBoxHostname(netboxUrl),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
