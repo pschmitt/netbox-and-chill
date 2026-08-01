@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -75,9 +76,6 @@ fun DeviceListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onCreateClick) {
-                        Icon(Icons.Default.Add, contentDescription = "Create device")
-                    }
                     IconButton(onClick = onSearchClick) {
                         Icon(Icons.Default.Search, contentDescription = "Search all NetBox objects")
                     }
@@ -95,13 +93,14 @@ fun DeviceListScreen(
             )
         },
     ) { padding ->
-        PullToRefreshBox(
-            // Keep the gesture active, but don't duplicate the global sync progress indicator.
-            isRefreshing = false,
-            onRefresh = viewModel::refresh,
-            modifier = Modifier.padding(padding).fillMaxSize(),
-        ) {
-            Column(Modifier.fillMaxSize()) {
+        Box(Modifier.padding(padding).fillMaxSize()) {
+            PullToRefreshBox(
+                // Keep the gesture active, but don't duplicate the global sync progress indicator.
+                isRefreshing = false,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Column(Modifier.fillMaxSize()) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = viewModel::onQueryChange,
@@ -134,6 +133,13 @@ fun DeviceListScreen(
                         }
                     }
                 }
+                }
+            }
+            FloatingActionButton(
+                onClick = onCreateClick,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Create device")
             }
         }
     }

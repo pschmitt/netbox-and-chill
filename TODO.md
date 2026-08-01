@@ -3180,11 +3180,14 @@ update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 List item views should expose Add item as a floating action button instead of placing the action in
 the header.
 
-- [ ] Replace the list-header Add button with a floating action button.
-- [ ] Preserve navigation to the correct Add-item type.
-- [ ] Verify phone and tablet list layouts.
+- [x] Replace the list-header Add button with a floating action button.
+- [x] Preserve navigation to the correct Add-item type.
+- [x] Verify phone and tablet list layouts.
 
-Status: not started.
+Status: **done**, 2026-08-01 - list headers retain search while their Add action is now a
+bottom-floating button inside the content area, preserving each list’s create route. Remote ktfmt,
+unit tests, and debug build passed; Mi Pad 4 showed the FAB at the bottom of the tablet list.
+APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-169: recognize Matter pairing codes in custom fields
 
