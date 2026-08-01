@@ -82,6 +82,7 @@ import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
+import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -154,6 +155,7 @@ fun DeviceDetailScreen(
     // Full-screen image viewer state (NBC-20) - which item list + which index within it is open,
     // shared by both the device-type front/rear photos and the image-attachment row below.
     var imageViewer by remember { mutableStateOf<Pair<List<ImageViewerItem>, Int>?>(null) }
+    var matterPairingCode by remember { mutableStateOf<String?>(null) }
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
@@ -563,6 +565,7 @@ fun DeviceDetailScreen(
                                 isDownloading = isDownloading,
                                 onCopyValue = onCopyValue,
                                 onFieldLongPress = { fieldActionLabel = it },
+                                onMatterPairingCode = { matterPairingCode = it },
                             )
                         }
                         item {
@@ -605,6 +608,9 @@ fun DeviceDetailScreen(
 
     imageViewer?.let { (items, index) ->
         ImageViewerDialog(items = items, initialIndex = index, onDismiss = { imageViewer = null })
+    }
+    matterPairingCode?.let { code ->
+        MatterPairingCodeDialog(code = code, onDismiss = { matterPairingCode = null })
     }
     if (showDeleteConfirmation) {
         AlertDialog(

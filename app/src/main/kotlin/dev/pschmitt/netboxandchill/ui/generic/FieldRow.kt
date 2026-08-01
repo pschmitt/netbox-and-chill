@@ -12,6 +12,7 @@ sealed interface FieldRow {
         override val label: String,
         val value: String,
         val copyable: Boolean = false,
+        val matterPairingCode: Boolean = false,
     ) : FieldRow
 
     /** A real Boolean value, kept semantic so detail pages can show state instead of Yes/No. */

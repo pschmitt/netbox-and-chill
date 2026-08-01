@@ -3194,11 +3194,14 @@ APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 When a custom field value matches the Matter pairing-code format (for example, `0439-591-1333`),
 show a QR-code action and generate a Matter pairing-code QR code when it is tapped.
 
-- [ ] Detect valid Matter pairing-code values without depending on a custom-field name.
-- [ ] Show a QR-code action for matching custom-field rows.
-- [ ] Generate and display a Matter pairing-code QR code on tap.
+- [x] Detect valid Matter pairing-code values without depending on a custom-field name.
+- [x] Show a QR-code action for matching custom-field rows.
+- [x] Generate and display a Matter pairing-code QR code on tap.
 
-Status: not started.
+Status: **done**, 2026-08-01 - generic custom-field rendering detects the strict Matter `4-3-4`
+pairing-code shape independently of field name/type, exposes a QR action, and renders the code in
+a reusable QR dialog. Focused/remote unit tests, remote ktfmt, and a clean debug build passed;
+APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-170: align linked and copy actions on item rows
 

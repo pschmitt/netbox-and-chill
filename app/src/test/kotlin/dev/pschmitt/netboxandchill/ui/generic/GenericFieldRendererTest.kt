@@ -266,6 +266,25 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `custom field pairing codes expose a Matter QR action without a special field name`() {
+        val rows =
+            buildFieldRows(
+                parse("""{"custom_fields":{"anything":"0439-591-1333"}}"""),
+                listOf(CustomFieldDefinition("anything", "text", "Anything", null, 1)),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.PlainText("Anything", "0439-591-1333", matterPairingCode = true),
+            ),
+            rows,
+        )
+        assertTrue(isMatterPairingCode("0439-591-1333"))
+        assertTrue(!isMatterPairingCode("0439-591-133"))
+    }
+
+    @Test
     fun `custom_fields reference values become tappable Reference rows`() {
         val rows =
             buildFieldRows(

@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -97,6 +98,7 @@ import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
+import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -150,6 +152,7 @@ fun GenericDetailScreen(
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
+    var matterPairingCode by remember { mutableStateOf<String?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showHiddenFields by remember { mutableStateOf(false) }
@@ -655,6 +658,7 @@ fun GenericDetailScreen(
                                             isDownloading = isDownloading,
                                             onCopyValue = onCopyValue,
                                             onFieldLongPress = { fieldActionLabel = it },
+                                            onMatterPairingCode = { matterPairingCode = it },
                                         )
                                     }
                                 }
@@ -736,6 +740,9 @@ fun GenericDetailScreen(
             initialIndex = 0,
             onDismiss = { imageViewerItem = null },
         )
+    }
+    matterPairingCode?.let { code ->
+        MatterPairingCodeDialog(code = code, onDismiss = { matterPairingCode = null })
     }
     fieldActionLabel?.let { label ->
         FieldActionDialog(
@@ -1649,6 +1656,7 @@ internal fun LazyListScope.fieldRow(
     isDownloading: Boolean,
     onCopyValue: (label: String, value: String) -> Unit,
     onFieldLongPress: (label: String) -> Unit,
+    onMatterPairingCode: (String) -> Unit,
 ) {
     when (row) {
         is FieldRow.Section ->
@@ -1709,6 +1717,17 @@ internal fun LazyListScope.fieldRow(
                                 copyLabel = row.label,
                                 onCopy = { onCopyValue(row.label, row.value) },
                             )
+                        }
+                        if (row.matterPairingCode) {
+                            IconButton(
+                                onClick = { onMatterPairingCode(row.value) },
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.QrCodeScanner,
+                                    contentDescription = "Show Matter pairing QR code",
+                                )
+                            }
                         }
                     }
                 }

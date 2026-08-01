@@ -31,6 +31,11 @@ private val COPYABLE_KEYS =
 
 private val USER_REFERENCE_KEYS = setOf("created_by", "last_updated_by")
 
+private val MATTER_PAIRING_CODE_PATTERN = Regex("^\\d{4}-\\d{3}-\\d{4}$")
+
+internal fun isMatterPairingCode(value: String): Boolean =
+    MATTER_PAIRING_CODE_PATTERN.matches(value)
+
 // Meta/system fields NetBox manages itself - not user-editable, or too complex to round-trip as
 // plain text yet (custom_fields needs its own per-field-type handling, not a blanket text field).
 private val EDIT_BLOCKLIST =
@@ -136,13 +141,11 @@ fun buildFieldRows(
                 if (group != null && group != activeGroup) add(FieldRow.CustomGroup(group))
                 activeGroup = group
                 val label = definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key)
-                if (definition?.type in setOf("markdown", "text", "longtext")) {
-                    (value as? JsonPrimitive)
-                        ?.contentOrNull
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let {
-                            add(FieldRow.Markdown(label, it))
-                        }
+                val textValue = (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+                if (textValue != null && isMatterPairingCode(textValue)) {
+                    add(FieldRow.PlainText(label, textValue, matterPairingCode = true))
+                } else if (definition?.type in setOf("markdown", "text", "longtext")) {
+                    textValue?.let { add(FieldRow.Markdown(label, it)) }
                 } else {
                     renderField(key, label, value)?.let(::add)
                 }
