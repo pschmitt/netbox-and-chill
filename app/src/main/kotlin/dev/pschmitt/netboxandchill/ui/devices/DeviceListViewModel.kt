@@ -8,6 +8,8 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
+import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,7 +20,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -28,13 +29,19 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    private val syncScheduler: SyncScheduler,
+    syncStatusRepository: SyncStatusRepository,
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    val isRefreshing: StateFlow<Boolean> =
+        syncStatusRepository.isSyncing.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -62,7 +69,7 @@ constructor(
         val newIds = synchronized(requestedDeviceTypeIds) {
             ids.filter { requestedDeviceTypeIds.add(it) }
         }
-        newIds.forEach { id -> viewModelScope.launch { deviceTypeRepository.ensureCached(id) } }
+        if (newIds.isNotEmpty()) syncScheduler.syncNow()
     }
 
     fun onQueryChange(newQuery: String) {
@@ -70,14 +77,8 @@ constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            synchronized(requestedDeviceTypeIds) { requestedDeviceTypeIds.clear() }
-            _isRefreshing.value = true
-            deviceRepository
-                .syncAll()
-                .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached devices" }
-            _isRefreshing.value = false
-        }
+        synchronized(requestedDeviceTypeIds) { requestedDeviceTypeIds.clear() }
+        syncScheduler.syncNow()
     }
 
     fun errorShown() {

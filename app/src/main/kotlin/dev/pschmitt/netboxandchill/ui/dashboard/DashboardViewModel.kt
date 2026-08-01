@@ -10,13 +10,13 @@ import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
+import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 @HiltViewModel
 class DashboardViewModel
@@ -26,13 +26,18 @@ constructor(
     pendingEditRepository: PendingEditRepository,
     settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
+    syncStatusRepository: SyncStatusRepository,
 ) : ViewModel() {
 
     val offlineMode: StateFlow<Boolean> = settingsRepository.offlineMode
     val syncIssue = settingsRepository.syncIssue
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    val isRefreshing: StateFlow<Boolean> =
+        syncStatusRepository.isSyncing.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -56,14 +61,7 @@ constructor(
     }
 
     fun refresh() {
-        if (offlineMode.value) return
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            repository.refresh().onFailure {
-                _errorMessage.value = it.message ?: "Sync failed - showing cached data"
-            }
-            _isRefreshing.value = false
-        }
+        if (!offlineMode.value) syncScheduler.syncNow()
     }
 
     fun errorShown() {

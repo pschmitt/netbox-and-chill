@@ -7,6 +7,8 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
+import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,13 +18,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GenericListViewModel
 @Inject
-constructor(savedStateHandle: SavedStateHandle, private val repository: GenericObjectRepository) :
+constructor(
+    savedStateHandle: SavedStateHandle,
+    private val repository: GenericObjectRepository,
+    private val syncScheduler: SyncScheduler,
+    syncStatusRepository: SyncStatusRepository,
+) :
     ViewModel() {
 
     val route: Route.GenericList = savedStateHandle.toRoute()
@@ -30,8 +36,12 @@ constructor(savedStateHandle: SavedStateHandle, private val repository: GenericO
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    val isRefreshing: StateFlow<Boolean> =
+        syncStatusRepository.isSyncing.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -52,19 +62,7 @@ constructor(savedStateHandle: SavedStateHandle, private val repository: GenericO
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            repository
-                .syncAll(
-                    route.endpointPath,
-                    filters =
-                        route.filterKey?.let { key ->
-                            route.filterValue?.let { value -> mapOf("${key}_id" to value.toString()) }
-                        } ?: emptyMap(),
-                )
-                .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached data" }
-            _isRefreshing.value = false
-        }
+        syncScheduler.syncNow()
     }
 
     fun errorShown() {

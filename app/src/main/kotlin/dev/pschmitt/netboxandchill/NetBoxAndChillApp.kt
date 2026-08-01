@@ -32,6 +32,7 @@ class NetBoxAndChillApp : Application(), Configuration.Provider, SingletonImageL
         // rather than tracking whether it's already been done.
         syncNotifier.createChannel()
         syncScheduler.schedulePeriodic()
+        syncScheduler.scheduleStartup()
     }
 
     // Wires AsyncImage/rememberAsyncImagePainter app-wide to the Hilt-provided ImageLoader (the

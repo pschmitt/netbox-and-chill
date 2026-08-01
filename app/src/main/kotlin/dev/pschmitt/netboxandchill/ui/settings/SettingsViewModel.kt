@@ -10,12 +10,17 @@ import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
-import dev.pschmitt.netboxandchill.sync.OfflineSyncRepository
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
+import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -25,14 +30,19 @@ class SettingsViewModel
 constructor(
     val settingsRepository: SettingsRepository,
     private val deviceRepository: DeviceRepository,
-    private val offlineSyncRepository: OfflineSyncRepository,
+    private val syncScheduler: SyncScheduler,
+    syncStatusRepository: SyncStatusRepository,
     private val directoryRepository: DirectoryRepository,
     private val appDatabase: AppDatabase,
     private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
 
-    private val _isSyncing = MutableStateFlow(false)
-    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+    val isSyncing: StateFlow<Boolean> =
+        syncStatusRepository.isSyncing.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
 
     private val _isUpdatingBaseUrl = MutableStateFlow(false)
     val isUpdatingBaseUrl: StateFlow<Boolean> = _isUpdatingBaseUrl.asStateFlow()
@@ -57,18 +67,16 @@ constructor(
 
     init {
         refreshCacheCounts()
+        viewModelScope.launch {
+            isSyncing.drop(1).distinctUntilChanged().collect { syncing ->
+                if (!syncing) refreshCacheCounts()
+            }
+        }
     }
 
     fun syncNow() {
         if (settingsRepository.offlineMode.value) return
-        viewModelScope.launch {
-            _isSyncing.value = true
-            offlineSyncRepository
-                .syncAll()
-                .onFailure { _errorMessage.value = it.message ?: "Sync failed - showing cached data" }
-            refreshCacheCounts()
-            _isSyncing.value = false
-        }
+        syncScheduler.syncNow()
     }
 
     fun errorShown() {

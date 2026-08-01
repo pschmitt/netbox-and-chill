@@ -2,12 +2,16 @@ package dev.pschmitt.netboxandchill.sync
 
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.data.repository.OfflineAttachment
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
+import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
+import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,10 +31,13 @@ class OfflineSyncRepository
 @Inject
 constructor(
     private val deviceRepository: DeviceRepository,
+    private val dashboardRepository: DashboardRepository,
+    private val customFieldRepository: CustomFieldRepository,
     private val directoryRepository: DirectoryRepository,
     private val genericObjectRepository: GenericObjectRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
+    private val rackElevationRepository: RackElevationRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val settingsRepository: SettingsRepository,
     private val pendingEditRepository: PendingEditRepository,
@@ -50,6 +57,10 @@ constructor(
             // Resolve queued edits before the normal cache refresh can replace their local view.
             onProgress("Uploading queued edits…")
             pendingEditRepository.syncPending()
+            onProgress("Syncing dashboard data…")
+            dashboardRepository.refresh().onFailure { recordFailure("Dashboard sync", it) }
+            onProgress("Syncing custom-field definitions…")
+            customFieldRepository.refresh().onFailure { recordFailure("Custom-field sync", it) }
             onProgress("Syncing devices…")
             val devices =
                 deviceRepository.syncAll().getOrElse {
@@ -66,6 +77,16 @@ constructor(
                     onSuccess = { genericObjects += it },
                     onFailure = { recordFailure("${model.endpointPath} sync", it) },
                 )
+            }
+
+            onProgress("Syncing rack elevations…")
+            genericObjectRepository.cachedObjects("api/dcim/racks/").forEach { rack ->
+                rackElevationRepository
+                    .refresh(rack.id, RackFace.FRONT)
+                    .onFailure { recordFailure("Rack ${rack.id} front elevation", it) }
+                rackElevationRepository
+                    .refresh(rack.id, RackFace.REAR)
+                    .onFailure { recordFailure("Rack ${rack.id} rear elevation", it) }
             }
 
             val durableAttachments =

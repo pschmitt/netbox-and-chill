@@ -7,23 +7,19 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.work.ForegroundInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.pschmitt.netboxandchill.MainActivity
 import dev.pschmitt.netboxandchill.R
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Posts a system [android.app.Notification] when the *background* periodic/scheduled sync
- * ([SyncWorker]) fails with no retries left (NBC-23) - the gap NBC-17 slice 2 flagged: a background
- * `Worker` has no foreground `Activity` to show a `Snackbar` in, unlike the manual "Sync now" path
- * (`SettingsViewModel`/`SettingsScreen`), which already surfaces failures via Snackbar and is
- * unaffected by this.
- */
+/** Owns the progress and failure notifications for the background WorkManager sync. */
 @Singleton
 class SyncNotifier @Inject constructor(@ApplicationContext private val context: Context) {
 
@@ -38,8 +34,22 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
                     "Background sync",
                     NotificationManager.IMPORTANCE_DEFAULT,
                 )
-                .apply { description = "Alerts when a scheduled background sync fails" }
+                .apply { description = "Shows background NetBox sync progress and failures" }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+
+    /** Builds the foreground notification required for long-running WorkManager syncs. */
+    fun foregroundInfo(message: String = "Syncing NetBox data…"): ForegroundInfo {
+        val notification = progressNotification(message)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ForegroundInfo(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+            )
+        } else {
+            ForegroundInfo(NOTIFICATION_ID, notification)
+        }
     }
 
     /**
@@ -93,17 +103,7 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
 
     fun notifySyncProgress(message: String) {
         if (!notificationsAllowed()) return
-        val notification =
-            NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_stat_sync_problem)
-                .setContentTitle("Syncing NetBox")
-                .setContentText(message)
-                .setProgress(0, 0, true)
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build()
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, progressNotification(message))
     }
 
     /** Keeps the ongoing notification visible while WorkManager waits before retrying. */
@@ -122,6 +122,17 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
                 context,
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
+
+    private fun progressNotification(message: String) =
+        NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_sync_problem)
+            .setContentTitle("Syncing NetBox data…")
+            .setContentText(message)
+            .setProgress(0, 0, true)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
 
     companion object {
         const val CHANNEL_ID = "background_sync"

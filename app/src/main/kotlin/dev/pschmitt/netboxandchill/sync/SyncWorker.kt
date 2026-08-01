@@ -20,7 +20,10 @@ constructor(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (!settingsRepository.isConfigured) return Result.success()
-        syncNotifier.notifySyncStarted()
+        // Full syncs include every discovered model plus optional durable attachments and can
+        // legitimately run for minutes. Promote the WorkManager job before touching the network
+        // so Android keeps it alive and the user gets the real system progress notification.
+        setForeground(syncNotifier.foregroundInfo())
         return offlineSyncRepository
             .syncAll(onProgress = syncNotifier::notifySyncProgress)
             .fold(

@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Full cache refreshes run as a WorkManager foreground service while backgrounded. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Native Brother P-touch RFCOMM printing (NBC-10). CONNECT is runtime-gated on API 31+;
          SCAN is declared for devices that require it while discovering paired printers. -->
@@ -135,6 +138,14 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- WorkManager uses this service for CoroutineWorker.setForeground(). The explicit type
+             is required on Android 14+ for the long-running NetBox data refresh. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"
+            tools:node="merge" />
 
         <!-- Grants temporary read access to downloaded attachments (documents, images, ...) so
              they can be opened via ACTION_VIEW in whatever app the user has for that file type -

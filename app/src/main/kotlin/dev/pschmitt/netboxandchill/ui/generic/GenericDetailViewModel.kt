@@ -20,6 +20,7 @@ import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
+import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import java.io.File
 import javax.inject.Inject
@@ -70,6 +71,7 @@ constructor(
     private val recentVisitRepository: RecentVisitRepository,
     private val rackElevationRepository: RackElevationRepository,
     private val syncScheduler: SyncScheduler,
+    syncStatusRepository: SyncStatusRepository,
     private val json: Json,
     private val api: GenericNetBoxApi,
 ) : ViewModel() {
@@ -80,8 +82,12 @@ constructor(
     // device's QR/asset-tag sticker) - other object types don't have a label to (re)print.
     val isPrintableDevice: Boolean = route.endpointPath == DEVICES_ENDPOINT_PATH
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    val isRefreshing: StateFlow<Boolean> =
+        syncStatusRepository.isSyncing.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
@@ -146,8 +152,7 @@ constructor(
     private val _relatedTarget = MutableStateFlow<CountTarget?>(null)
     val relatedTarget: StateFlow<CountTarget?> = _relatedTarget.asStateFlow()
 
-    private val _isRelatedRefreshing = MutableStateFlow(false)
-    val isRelatedRefreshing: StateFlow<Boolean> = _isRelatedRefreshing.asStateFlow()
+    val isRelatedRefreshing: StateFlow<Boolean> = isRefreshing
 
     val relatedObjects: StateFlow<List<NetBoxObjectEntity>> =
         _relatedTarget
@@ -215,17 +220,7 @@ constructor(
     fun showRelatedItems(target: CountTarget) {
         _relatedTarget.value = target
         if (settingsRepository.offlineMode.value) return
-        viewModelScope.launch {
-            _isRelatedRefreshing.value = true
-            try {
-                repository.syncAll(
-                    target.endpointPath,
-                    filters = mapOf("${target.relationKey}_id" to target.parentId.toString()),
-                )
-            } finally {
-                _isRelatedRefreshing.value = false
-            }
-        }
+        syncScheduler.syncNow()
     }
 
     fun dismissRelatedItems() {
@@ -255,48 +250,17 @@ constructor(
 
     init {
         refresh()
-        if (isRack) viewModelScope.launch { refreshElevations() }
         loadJournalEntries()
-        viewModelScope.launch { customFieldRepository.refresh() }
         viewModelScope.launch {
             objectFlow.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
     }
 
     fun refresh(showConfirmation: Boolean = false) {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            repository
-                .refreshObject(route.endpointPath, route.id)
-                .onSuccess { if (showConfirmation) _refreshedMessage.value = "Refreshed" }
-                .onFailure { _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data" }
-            if (isRack && !settingsRepository.offlineMode.value) refreshElevations()
-            _isRefreshing.value = false
+        if (!settingsRepository.offlineMode.value) {
+            syncScheduler.syncNow()
+            if (showConfirmation) _refreshedMessage.value = "Refresh queued"
         }
-    }
-
-    private suspend fun refreshElevations() {
-        if (settingsRepository.offlineMode.value) return
-        rackElevationRepository.refresh(route.id, RackFace.FRONT)
-        rackElevationRepository.refresh(route.id, RackFace.REAR)
-        // Elevation responses only contain a compact device reference. Sync the rack's devices
-        // so the cached JSON can provide device_type IDs, then refresh those small image records.
-        repository.syncAll(DEVICES_ENDPOINT_PATH, filters = mapOf("rack_id" to route.id.toString()))
-        repository
-            .cachedObjects(DEVICES_ENDPOINT_PATH)
-            .mapNotNull { entity ->
-                val objectJson = decode(entity.json) ?: return@mapNotNull null
-                val rackId =
-                    (objectJson["rack"] as? JsonObject)?.let {
-                        (it["id"] as? JsonPrimitive)?.intOrNull
-                    }
-                if (rackId != route.id) return@mapNotNull null
-                (objectJson["device_type"] as? JsonObject)?.let {
-                    (it["id"] as? JsonPrimitive)?.intOrNull
-                }
-            }
-            .distinct()
-            .forEach { deviceTypeRepository.refresh(it) }
     }
 
     private fun loadJournalEntries() {
@@ -379,7 +343,7 @@ constructor(
             val endpoint = field.referenceEndpointPath ?: return@forEach
             var cached = repository.cachedObjects(endpoint)
             if (cached.isEmpty() && !settingsRepository.offlineMode.value) {
-                repository.syncAll(endpoint, pageSize = 100)
+                syncScheduler.syncNow()
                 cached = repository.cachedObjects(endpoint)
             }
             val options =

@@ -1928,3 +1928,55 @@ including plugin documents, image attachments, and device-type front/rear images
 Status: **done**, 2026-08-01 - Mi Pad 4 contains 171 document records, 106 image-attachment
 records, 238 device types, and 630 durable attachment files (811.0 MiB shown in Settings); remote
 ktfmt/tests passed and a fresh full sync completed with 630 durable attachments and no sync issue.
+
+## NBC-75: run NetBox sync entirely in background
+
+The full cache refresh must run through WorkManager instead of blocking the foreground UI, with a
+real Android foreground-service notification while the long-running sync and attachment pass are
+active.
+
+- [x] Move manual/settings/dashboard/list full-sync triggers to WorkManager.
+- [x] Add a startup one-time sync alongside the periodic sync schedule.
+- [x] Promote the worker with a `Syncing NetBox data…` foreground notification.
+- [x] Keep dashboard cache refreshes inside the worker and preserve visible sync status/errors.
+- [x] Verify on Mi Pad 4 with WorkManager and notification evidence.
+
+Status: **done**, 2026-08-01 - remote ktfmt/tests passed; debug APK deployed to Zenfone 10, Mi Pad
+4, and PX5. Mi Pad WorkManager evidence showed `SystemForegroundService` with an ongoing data-sync
+notification (`foregroundId=1001`, `types=0x00000001`), and the worker completed with `SUCCESS` and
+`Synced 630 durable attachments`.
+
+## NBC-76: create NetBox items from the app
+
+Add creation flows for all supported NetBox object types, starting with the typed device and device
+type screens and extending the generic model screens to every endpoint that exposes writable fields.
+
+- [ ] Add a reusable create form driven by NetBox field metadata/options.
+- [ ] Support device and device-type creation with validation and references.
+- [ ] Support generic creation for circuits and all other writable model endpoints.
+- [ ] Cache newly created objects immediately and enqueue background sync afterward.
+- [ ] Verify offline-safe error handling and creation on a physical device.
+
+Status: not started, 2026-08-01 - backlog item captured.
+
+## NBC-78: consolidate offline-mode sync status
+
+When offline mode is enabled, replace repeated per-item sync status messages with one compact
+dashboard status showing that offline mode is enabled and when the last successful sync completed.
+
+- [ ] Show one `Offline mode enabled. Last sync: …` status message.
+- [ ] Remove repeated offline sync messages from individual item rows.
+- [ ] Use a friendly fallback when no successful sync has happened yet.
+
+Status: not started, 2026-08-01 - backlog item captured.
+
+## NBC-77: hide empty related-item count rows
+
+Item detail pages should show related-object count rows only when the count is greater than zero,
+so empty relationships such as front-port templates do not add visual noise.
+
+- [ ] Filter zero-count related rows from item views.
+- [ ] Keep the bottom-sheet/detail navigation for positive counts unchanged.
+- [ ] Verify across device, rack, and generic item pages.
+
+Status: not started, 2026-08-01 - backlog item captured.
