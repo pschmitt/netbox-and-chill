@@ -2461,10 +2461,10 @@ explain where the preference is reflected.
 - [x] Long-press an Add item type to toggle its persisted pin preference.
 - [x] Render user-pinned types above the searchable remainder while keeping devices first.
 - [x] Expose the pinned-type preference in Settings.
-- [ ] Verify custom pinning and persistence on the Mi Pad 4.
+- [x] Verify custom pinning and persistence on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - Add rows now toggle the existing persisted model-pin preference
-on long press and Settings reports the configured count; physical verification remains.
+Status: **done**, 2026-08-01 - long-pressing Circuit Groups on the Mi Pad 4 moved it into the
+Pinned section, and reopening Add item preserved the placement.
 
 ## NBC-117: double-tap to zoom image viewer content
 
