@@ -34,6 +34,8 @@ import retrofit2.Retrofit
  */
 @Qualifier @Retention(AnnotationRetention.BINARY) annotation class DownloadClient
 
+@Qualifier @Retention(AnnotationRetention.BINARY) annotation class NewsClient
+
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
@@ -86,6 +88,14 @@ object NetworkModule {
             .addInterceptor(logging)
             .build()
     }
+
+    @Provides
+    @Singleton
+    @NewsClient
+    fun provideNewsClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .callTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
 
     @Provides
     @Singleton

@@ -8,6 +8,7 @@ import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
+import dev.pschmitt.netboxandchill.data.db.NewsItemEntity
 import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
@@ -69,6 +70,11 @@ constructor(
     val changelog: StateFlow<List<ObjectChangeEntity>> =
         repository
             .observeChangelog()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val news: StateFlow<List<NewsItemEntity>> =
+        repository
+            .observeNews()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val devicesById: StateFlow<Map<Int, DeviceEntity>> =

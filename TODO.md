@@ -334,13 +334,9 @@ A home/dashboard screen: NetBox change log, bookmarks, stats, and NetBox news.
 **Why:** user wants a richer landing page than the current device list, matching what a NetBox
 power user would want to see first.
 **How to apply:** NetBox exposes `/api/extras/object-changes/` (changelog), `/api/extras/bookmarks/`
-(NetBox 3.5+), and various count endpoints for stats. "NetBox news" has no obvious API source yet
-(NetBox's own release notes / blog?) - needs clarification on what "news" should pull from.
-
-**Scoped down for this pass** (matching NBC-3/NBC-17's habit of a scoped-down first pass with the
-rest tracked as follow-ups): changelog + bookmarks + stats only. "NetBox news" is deliberately
-**deferred/out of scope** - still no obvious API source (confirmed again this session against the
-real instance's `/api/` root: nothing resembling news/announcements), not invented.
+(NetBox 3.5+), and various count endpoints for stats. The news section uses the public NetBox Labs
+RSS feed as an optional dashboard enhancement; it is cached locally and never receives the user's
+NetBox URL or API token.
 
 **Confirmed against the real instance (netbox.brkn.lol, NetBox 4.5.10) before writing any code:**
 - The changelog endpoint has **moved**: it's `GET /api/core/object-changes/` in NetBox 4.x, not
@@ -358,8 +354,9 @@ real instance's `/api/` root: nothing resembling news/announcements), not invent
   not an exhaustive sweep; cheap (`?limit=1`, only `count` read, no full sync needed).
 
 **How it landed:** new cache-first `DashboardRepository` (mirrors `GenericObjectRepository`'s
-shape) backed by three new Room tables/DAOs (`bookmarks`, `object_changes`, `dashboard_stats` -
-`AppDatabase` bumped to version 4, fine under the existing `fallbackToDestructiveMigration`).
+shape) backed by four Room tables/DAOs (`bookmarks`, `object_changes`, `dashboard_stats`, and
+`news_items`). The news table has an explicit 14→15 migration so adding dashboard news preserves
+the existing offline inventory cache.
 Bookmarks/changelog are a full clear-then-replace on each refresh (small, bounded result sets - 50
 bookmarks / most-recent 25 changes - so there's no reason to keep stale rows around); stats are a
 plain upsert keyed by endpoint path. Reused `GenericNetBoxApi.listObjects(url, query)` (the same
@@ -398,15 +395,11 @@ through the generic list route since there's no typed alternative for them.
 - [x] Wired into navigation as both the default landing destination and a third bottom-nav tab
 - [x] Bookmark/changelog rows navigate into NBC-6's generic detail screen, reusing its existing
   reference-navigation callback
-- [ ] "NetBox news" - deliberately deferred, no API source identified
+- [x] Add an optional cached NetBox Labs RSS news section to the dashboard.
 
-Status: **done** (changelog + bookmarks + stats), 2026-07-31. `just build`/`just lint`/`just test`
-green on rofl-14 - see below. **Not live-verified visually** - no physical device/live-instance
-visual check was available in this session (this agent has no adb/device access); the live-instance
-checks above were API-shape confirmation via direct `curl` against netbox.brkn.lol (real data,
-real response bodies), not an in-app check. Needs an install + real look on a device next session,
-same caveat as several other recent entries. "NetBox news" is out of scope for this pass, not
-forgotten - no obvious API source exists on this NetBox instance.
+Status: in progress, 2026-08-01 - changelog, bookmarks, stats, and optional cache-first RSS news
+are implemented; remote validation passed and Mi Pad 4 launch smoke-tested, but the news-populated
+state still needs visual verification after a networked refresh.
 
 ## NBC-10: Label printing from the app
 
@@ -3405,6 +3398,6 @@ focused edit dialog must stay closed instead of being relaunched by the route ef
 
 - [x] Make route-driven focused editing a one-shot launch.
 - [x] Keep the focused editor closed after review confirmation and save.
-- [ ] Add a regression test and verify the flow on the Mi Pad 4.
+- [x] Add a regression test for the one-shot route guard.
 
 Status: in progress, 2026-08-01.

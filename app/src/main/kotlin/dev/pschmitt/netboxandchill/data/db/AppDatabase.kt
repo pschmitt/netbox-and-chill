@@ -18,8 +18,9 @@ import androidx.room.RoomDatabase
             PendingEditEntity::class,
             RecentVisitEntity::class,
             RackElevationEntity::class,
+            NewsItemEntity::class,
         ],
-    version = 14,
+    version = 15,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -46,4 +47,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recentVisitDao(): RecentVisitDao
 
     abstract fun rackElevationDao(): RackElevationDao
+
+    abstract fun newsDao(): NewsDao
 }

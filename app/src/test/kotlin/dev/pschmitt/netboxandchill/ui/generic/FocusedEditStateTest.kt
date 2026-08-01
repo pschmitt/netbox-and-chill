@@ -1,0 +1,39 @@
+package dev.pschmitt.netboxandchill.ui.generic
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class FocusedEditStateTest {
+    @Test
+    fun `route focus launches only before it is handled`() {
+        assertTrue(
+            shouldLaunchRouteFocusedEditor(
+                routeFocusHandled = false,
+                focusFieldKey = "custom_fields.operating_system",
+                focusedEditFieldKey = null,
+                hasPendingEdits = false,
+            )
+        )
+        assertFalse(
+            shouldLaunchRouteFocusedEditor(
+                routeFocusHandled = true,
+                focusFieldKey = "custom_fields.operating_system",
+                focusedEditFieldKey = null,
+                hasPendingEdits = false,
+            )
+        )
+    }
+
+    @Test
+    fun `review state cannot relaunch the route-focused editor`() {
+        assertFalse(
+            shouldLaunchRouteFocusedEditor(
+                routeFocusHandled = false,
+                focusFieldKey = "custom_fields.operating_system",
+                focusedEditFieldKey = null,
+                hasPendingEdits = true,
+            )
+        )
+    }
+}

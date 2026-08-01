@@ -1,5 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.dashboard
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,8 +28,10 @@ import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.BookmarkEntity
 import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
+import dev.pschmitt.netboxandchill.data.db.NewsItemEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
@@ -81,6 +87,7 @@ fun DashboardScreen(
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
+    val news by viewModel.news.collectAsStateWithLifecycle()
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
     val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
     val conflictCount by viewModel.conflictCount.collectAsStateWithLifecycle()
@@ -91,6 +98,7 @@ fun DashboardScreen(
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -240,6 +248,22 @@ fun DashboardScreen(
                 item { GlobalSearchCard(onSearchClick) }
                 item { Spacer(Modifier.height(24.dp)) }
 
+                item { NetBoxSectionHeader(Icons.Default.Newspaper, "NetBox news") }
+                if (news.isEmpty()) {
+                    item { EmptyHint(isRefreshing, "No news cached yet - pull to sync") }
+                } else {
+                    items(news, key = { "news-${it.guid}" }) { newsItem ->
+                        NewsRow(newsItem) {
+                            runCatching {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(newsItem.link))
+                                )
+                            }
+                        }
+                    }
+                }
+                item { Spacer(Modifier.height(24.dp)) }
+
                 item { NetBoxSectionHeader(Icons.Default.Bookmark, "Bookmarks") }
                 if (bookmarks.isEmpty()) {
                     item { EmptyHint(isRefreshing, "No bookmarks yet") }
@@ -291,6 +315,36 @@ fun DashboardScreen(
             }
         }
     }
+}
+
+@Composable
+private fun NewsRow(item: NewsItemEntity, onClick: () -> Unit) {
+    ListItem(
+        leadingContent = { Icon(Icons.Default.Newspaper, contentDescription = null) },
+        headlineContent = {
+            Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
+            Column {
+                item.summary?.let {
+                    Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                if (item.publishedAt > 0) {
+                    Text(
+                        formatTimestamp(
+                            java.time.Instant.ofEpochMilli(item.publishedAt).toString()
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+        },
+        trailingContent = {
+            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open news article")
+        },
+        modifier = Modifier.clickable(onClick = onClick),
+    )
 }
 
 @Composable

@@ -215,7 +215,14 @@ fun GenericDetailScreen(
     }
     LaunchedEffect(viewModel.route.focusFieldKey, editableFields) {
         val fieldKey = viewModel.route.focusFieldKey ?: return@LaunchedEffect
-        if (!routeFocusHandled && focusedEditFieldKey == null) {
+        if (
+            shouldLaunchRouteFocusedEditor(
+                routeFocusHandled = routeFocusHandled,
+                focusFieldKey = fieldKey,
+                focusedEditFieldKey = focusedEditFieldKey,
+                hasPendingEdits = pendingEdits != null,
+            )
+        ) {
             editableFields
                 .firstOrNull { it.key == fieldKey }
                 ?.let { field ->
@@ -809,10 +816,14 @@ fun GenericDetailScreen(
             },
             onValueChange = { focusedEditValue = it },
             onDismiss = {
+                routeFocusHandled = true
                 viewModel.cancelFieldEditing()
                 focusedEditFieldKey = null
             },
             onReview = { editedValue ->
+                // The route is retained for back-stack/breadcrumb state, but it must not relaunch
+                // the focused editor after this review has been confirmed.
+                routeFocusHandled = true
                 if (editedValue == field.value) {
                     viewModel.cancelFieldEditing()
                     focusedEditFieldKey = null

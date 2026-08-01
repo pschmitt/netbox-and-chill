@@ -7,6 +7,7 @@ import dev.pschmitt.netboxandchill.data.db.DashboardStatDao
 import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.db.NewsItemEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
@@ -24,10 +25,8 @@ import timber.log.Timber
  * Cache-first data for the dashboard/home screen (NBC-9): NetBox's changelog, the signed-in user's
  * bookmarks, and a handful of simple object-count stat tiles. Mirrors [GenericObjectRepository]'s
  * cache-first shape (Room-backed Flow reads, refresh as a best-effort background update) rather
- * than a network-only screen.
- *
- * "NetBox news" (also asked for in the original NBC-9 ask) is deliberately out of scope - no API
- * source for it was found, see TODO.md.
+ * than a network-only screen. News is cached separately and fetched from the official NetBox Labs
+ * RSS feed as an optional dashboard enhancement.
  */
 @Singleton
 class DashboardRepository
@@ -39,6 +38,7 @@ constructor(
     private val netBoxObjectDao: NetBoxObjectDao,
     private val statDao: DashboardStatDao,
     private val changeNotificationRepository: ChangeNotificationRepository,
+    private val newsRepository: NewsRepository,
     private val json: Json,
 ) {
     fun observeBookmarks(): Flow<List<BookmarkEntity>> = bookmarkDao.observeAll()
@@ -46,6 +46,8 @@ constructor(
     fun observeChangelog(): Flow<List<ObjectChangeEntity>> = objectChangeDao.observeAll()
 
     fun observeStats(): Flow<List<DashboardStatEntity>> = statDao.observeAll()
+
+    fun observeNews(): Flow<List<NewsItemEntity>> = newsRepository.observeLatest()
 
     suspend fun fetchObjectChange(id: Int): Result<JsonObject> = runCatching {
         val cached =
@@ -68,6 +70,10 @@ constructor(
                 refreshChangelog().exceptionOrNull(),
                 refreshStats().exceptionOrNull(),
             )
+        newsRepository.refresh().onFailure {
+            // The external feed is optional; an outage must never mark inventory sync as failed.
+            Timber.w(it, "Optional NetBox news refresh failed")
+        }
         return if (failures.isEmpty()) Result.success(Unit) else Result.failure(failures.first())
     }
 
