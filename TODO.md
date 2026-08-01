@@ -1861,7 +1861,9 @@ and provide the Android pairing flow for a discovered printer such as `PT-P300BT
 - [ ] Keep printing restricted to bonded devices and verify with the PT-P300BT4590.
 
 Status: mostly done, 2026-08-01 - Mi Pad 4 discovered the live `PT-P300BT4590`; Android pairing
-flow and post-bond selection refresh are implemented, while physical print verification remains.
+flow and post-bond selection refresh are implemented. A controlled print attempt found the
+device bonded but not discoverable and the RFCOMM connection failed, so physical output remains
+open.
 
 ## NBC-68: improve label layout and print-dialog feedback
 
@@ -2291,8 +2293,9 @@ The Android raster path should match printlabel's crisp 1-bit preprocessing and 
 
 Status: mostly done, 2026-08-01 - compared against the upstream printlabel raster path and removed
 filtered bitmap interpolation, switched to crisp bold 1-bit text, and matched its exact rotate/
-mirror orientation. Remote tests/lint/build passed and all three devices were deployed; physical
-printing remains open because the paired printer did not accept the test connection.
+mirror orientation. Remote tests/lint/build passed and all three devices were deployed; the Mi Pad
+4 preview rendered, but the controlled physical attempt failed because the paired printer was not
+discoverable/reachable.
 
 ## NBC-103: make sync notifications unobtrusive
 
@@ -2644,7 +2647,8 @@ and the selected printer. This is an operational print action rather than an app
 - [ ] Verify the print result and record any printer-specific limitations.
 
 Status: in progress, 2026-08-01 - identified IDs 395-398 (`#SLY-3030` through `#SLY-3033`);
-printing is waiting for the paired PT-P300BT4590 to become reachable.
+the first controlled attempt for ID 395 was refused after discovery timed out, so no labels were
+printed and the remaining three are waiting for the paired PT-P300BT4590 to become reachable.
 
 ## NBC-130: restore custom-field rows on typed device pages
 
