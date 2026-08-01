@@ -76,6 +76,12 @@ fun Sidebar(
     // "plugins/netbox-documents", ...), not the humanized labels.
     var expandedApps by remember { mutableStateOf(emptySet<String>()) }
     var reorderMode by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    // ic_launcher is an adaptive icon; render the resolved drawable so the same app artwork is
+    // usable inside Compose on every Android version.
+    val appIconBitmap = remember {
+        ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.toBitmap()?.asImageBitmap()
+    }
 
     val filteredModelsByApp =
         if (searchQuery.isBlank()) modelsByApp
@@ -90,11 +96,28 @@ fun Sidebar(
         Column(Modifier.fillMaxHeight()) {
             LazyColumn(Modifier.weight(1f)) {
                 item {
-                    Text(
-                        "NetBox and Chill",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    ) {
+                        if (appIconBitmap != null) {
+                            Image(
+                                bitmap = appIconBitmap,
+                                contentDescription = null,
+                                modifier =
+                                    Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)),
+                            )
+                        } else {
+                            Icon(
+                                AppIcons.Devices,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Text("NetBox and Chill", style = MaterialTheme.typography.titleLarge)
+                    }
                 }
                 item {
                     OutlinedTextField(
@@ -316,33 +339,10 @@ fun Sidebar(
 /** Static (non-scrolling) footer pinned to the bottom of the drawer. */
 @Composable
 private fun SidebarFooter(appVersion: String, netboxUrl: String, onSettingsClick: () -> Unit) {
-    val context = LocalContext.current
-    // ic_launcher is an <adaptive-icon> (background + foreground layers) - painterResource() only
-    // supports VectorDrawables and raster assets, not that wrapper format, and throws at runtime.
-    // Rendering it through a Drawable -> Bitmap first works for any drawable type.
-    val appIconBitmap = remember {
-        ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.toBitmap()?.asImageBitmap()
-    }
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        if (appIconBitmap != null) {
-            Image(
-                bitmap = appIconBitmap,
-                contentDescription = null,
-                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)),
-            )
-        } else {
-            Icon(
-                AppIcons.Devices,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp),
-            )
-        }
-        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text("Version $appVersion", style = MaterialTheme.typography.labelMedium)
             if (netboxUrl.isNotBlank()) {
