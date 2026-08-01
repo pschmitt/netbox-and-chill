@@ -91,12 +91,6 @@ fun NetBoxBottomBar(
                 icon = { Icon(Icons.Default.AddCircle, contentDescription = null) },
                 label = { Text("ADD") },
             )
-            NavigationBarItem(
-                selected = selected == BottomTab.Settings,
-                onClick = onSettingsClick,
-                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                label = { Text("SETTINGS") },
-            )
         }
     }
 }

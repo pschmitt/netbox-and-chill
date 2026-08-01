@@ -2897,11 +2897,13 @@ on Zenfone 10, Mi Pad 4, and PX5.
 Keep the Settings destination in the tablet navigation rail, but remove it from the bottom
 navigation bar on phones.
 
-- [ ] Hide the Settings item from phone bottom navigation.
-- [ ] Keep Settings available in tablet navigation.
-- [ ] Verify both navigation layouts on the Mi Pad 4.
+- [x] Hide the Settings item from phone bottom navigation.
+- [x] Keep Settings available in tablet navigation.
+- [x] Verify both navigation layouts on the Mi Pad 4.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote debug build passed; Zenfone 10 showed only Home/Search/Scan/Add
+in the phone bar, while Mi Pad 4 retained Settings in the tablet rail. APK installed update-in-place
+on all three devices.
 
 ## NBC-148: find devices by IP and MAC address
 
