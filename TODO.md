@@ -2497,10 +2497,10 @@ user submits the update.
 
 - [x] Compare each edit control against its original cached value.
 - [x] Highlight changed text, Markdown, picker, multi-select, and boolean controls.
-- [ ] Verify the visual state on the Mi Pad 4 without submitting.
+- [x] Verify the visual state on the Mi Pad 4 without submitting.
 
-Status: mostly done, 2026-08-01 - changed edit controls now receive a visible primary-colored
-outline while save payload generation remains unchanged; physical verification remains.
+Status: **done**, 2026-08-01 - changing the cached Shelly device name on the Mi Pad 4 produced a
+visible primary-colored outline; the edit was canceled without submitting.
 
 ## NBC-120: review edit diffs before submission
 
