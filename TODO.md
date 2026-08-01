@@ -3068,7 +3068,9 @@ for the default rear-camera lens.
 - [x] Move the front/rear scanner camera preference there.
 - [x] Add and persist the default rear-camera lens preference.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests passed; the Camera settings screen exposed
+front/rear camera and rear-lens preferences, dropdown choices were verified on the wired Zenfone,
+and the clean APK was installed update-in-place on Zenfone, PX5, and Mi Pad 4.
 
 ## NBC-161: make Offline mode a top-level setting
 
@@ -3157,5 +3159,16 @@ the header.
 - [ ] Replace the list-header Add button with a floating action button.
 - [ ] Preserve navigation to the correct Add-item type.
 - [ ] Verify phone and tablet list layouts.
+
+Status: not started.
+
+## NBC-169: recognize Matter pairing codes in custom fields
+
+When a custom field value matches the Matter pairing-code format (for example, `0439-591-1333`),
+show a QR-code action and generate a Matter pairing-code QR code when it is tapped.
+
+- [ ] Detect valid Matter pairing-code values without depending on a custom-field name.
+- [ ] Show a QR-code action for matching custom-field rows.
+- [ ] Generate and display a Matter pairing-code QR code on tap.
 
 Status: not started.
