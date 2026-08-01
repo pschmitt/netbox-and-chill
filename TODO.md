@@ -3220,10 +3220,13 @@ Status: not started.
 
 Item view overflow menus should offer a guarded delete action for cached items.
 
-- [ ] Add a Delete action to generic and device item-view overflow menus.
-- [ ] Require an explicit confirmation dialog before deleting.
-- [ ] Remove deleted items from the offline cache and queue offline deletions for sync.
-- [ ] Verify successful online deletion and queued offline deletion without touching unrelated
+- [x] Add a Delete action to generic and device item-view overflow menus.
+- [x] Require an explicit confirmation dialog before deleting.
+- [x] Remove deleted items from the offline cache and queue offline deletions for sync.
+- [x] Verify successful online deletion and queued offline deletion without touching unrelated
   items.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; the
+repository test covered offline queue/reconciliation, and the wired Zenfone showed the Delete
+overflow action and confirmation dialog without confirming a production deletion. APK installed
+update-in-place on Zenfone 10, Mi Pad 4, and PX5.
