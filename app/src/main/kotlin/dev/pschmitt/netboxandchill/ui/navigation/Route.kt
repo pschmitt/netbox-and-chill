@@ -51,7 +51,13 @@ sealed interface Route {
         val startInEdit: Boolean = false,
     ) : Route
 
-    @Serializable data class GenericCreate(val endpointPath: String, val label: String) : Route
+    @Serializable
+    data class GenericCreate(
+        val endpointPath: String,
+        val label: String,
+        val returnFieldKey: String? = null,
+        val reopenFocusedEditor: Boolean = false,
+    ) : Route
 
     /**
      * Field-by-field before/after view for one dashboard changelog entry (NBC-42) - distinct from

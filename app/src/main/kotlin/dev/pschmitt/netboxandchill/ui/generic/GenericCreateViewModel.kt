@@ -61,6 +61,8 @@ constructor(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     private val _createdId = MutableStateFlow<Int?>(null)
     val createdId: StateFlow<Int?> = _createdId.asStateFlow()
+    private val _createdDisplay = MutableStateFlow<String?>(null)
+    val createdDisplay: StateFlow<String?> = _createdDisplay.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -123,6 +125,12 @@ constructor(
                                 _errorMessage.value =
                                     "The created item has no numeric ID"
                             } else {
+                                _createdDisplay.value =
+                                    sequenceOf("display", "name", "label", "model", "serial")
+                                        .mapNotNull {
+                                            (createdObject[it] as? JsonPrimitive)?.contentOrNull
+                                        }
+                                        .firstOrNull { it.isNotBlank() }
                                 _createdId.value = id
                                 if (submission is CreateSubmission.Created) {
                                     when (route.endpointPath) {

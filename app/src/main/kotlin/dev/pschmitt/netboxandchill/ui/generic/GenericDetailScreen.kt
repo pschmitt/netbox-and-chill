@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
@@ -107,6 +108,12 @@ import dev.pschmitt.netboxandchill.ui.common.shareIntent
 fun GenericDetailScreen(
     onBack: () -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int, breadcrumb: String?) -> Unit,
+    onCreateLinkedItem: (
+        fieldKey: String,
+        endpointPath: String,
+        label: String,
+        reopenFocusedEditor: Boolean,
+    ) -> Unit,
     viewModel: GenericDetailViewModel = hiltViewModel(),
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
@@ -131,10 +138,11 @@ fun GenericDetailScreen(
     val relatedObjects by viewModel.relatedObjects.collectAsStateWithLifecycle()
     val relatedPreviewUrls by viewModel.relatedPreviewUrls.collectAsStateWithLifecycle()
     val isRelatedRefreshing by viewModel.isRelatedRefreshing.collectAsStateWithLifecycle()
+    val editDraftValues by viewModel.editDraftValues.collectAsStateWithLifecycle()
+    val linkedCreateResult by viewModel.linkedCreateResult.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var editValues by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
@@ -160,8 +168,36 @@ fun GenericDetailScreen(
     val focusedEditField = focusedEditFieldKey?.let { key ->
         editableFields.firstOrNull { it.key == key }
     }
-    LaunchedEffect(isEditing) {
-        if (isEditing) editValues = editableFields.associate { it.key to it.value }
+    LaunchedEffect(isEditing, editableFields) {
+        if (isEditing) viewModel.initializeEditDraftIfNeeded()
+    }
+    LaunchedEffect(linkedCreateResult, editableFields) {
+        val result = linkedCreateResult ?: return@LaunchedEffect
+        val field = editableFields.firstOrNull { it.key == result.fieldKey }
+        if (field != null && field.referenceEndpointPath == result.endpointPath) {
+            val nextValue =
+                if (field.kind == EditFieldKind.MULTI_REFERENCE) {
+                    selectedValuesToJson(
+                        (selectedValuesFromJson(editDraftValues[field.key] ?: field.value) +
+                                result.id.toString())
+                            .distinct()
+                    )
+                } else {
+                    result.id.toString()
+                }
+            viewModel.addReferenceOption(
+                field.key,
+                EditOption(result.id.toString(), result.display),
+            )
+            if (result.reopenFocusedEditor) {
+                focusedEditFieldKey = field.key
+                focusedEditValue = nextValue
+                viewModel.startFieldEditing(field.key)
+            } else {
+                viewModel.setEditDraftValue(field.key, nextValue)
+            }
+        }
+        viewModel.consumeLinkedCreateResult()
     }
     LaunchedEffect(viewModel.route.focusFieldKey, editableFields) {
         val fieldKey = viewModel.route.focusFieldKey ?: return@LaunchedEffect
@@ -272,7 +308,7 @@ fun GenericDetailScreen(
                                 onClick = {
                                     val kindByKey = editableFields.associateBy { it.key }
                                     // Only the fields actually changed from their original value -
-                                    // editValues holds the *entire* form's current state (it's
+                                    // editDraftValues holds the *entire* form's current state (it's
                                     // seeded from every editable field when entering edit mode),
                                     // so PATCHing all of it back unconditionally resends untouched
                                     // fields too. Beyond the unnecessary noise in NetBox's own
@@ -280,7 +316,7 @@ fun GenericDetailScreen(
                                     // computes itself (e.g. an absolute media URL) may reject being
                                     // resent as-is even when nothing about it changed.
                                     val edits =
-                                        editValues
+                                        editDraftValues
                                             .mapNotNull { (key, value) ->
                                                 kindByKey[key]?.let { field ->
                                                     if (value != field.value)
@@ -437,11 +473,16 @@ fun GenericDetailScreen(
         if (isEditing) {
             EditForm(
                 fields = editableFields,
-                values = editValues,
+                values = editDraftValues,
                 referenceOptions = referenceOptions,
                 choiceOptions = choiceOptions,
-                onValueChange = { key, value -> editValues = editValues + (key to value) },
+                onValueChange = viewModel::setEditDraftValue,
                 errorMessage = errorMessage,
+                onCreateLinkedItem = { field ->
+                    field.referenceEndpointPath?.let { endpoint ->
+                        onCreateLinkedItem(field.key, endpoint, field.label, false)
+                    }
+                },
                 modifier = Modifier.padding(padding).fillMaxSize(),
             )
         } else {
@@ -655,6 +696,16 @@ fun GenericDetailScreen(
             value = focusedEditValue,
             referenceOptions = referenceOptions,
             choiceOptions = choiceOptions,
+            onCreateLinkedItem = { linkedField ->
+                linkedField.referenceEndpointPath?.let { endpoint ->
+                    onCreateLinkedItem(
+                        linkedField.key,
+                        endpoint,
+                        linkedField.label,
+                        true,
+                    )
+                }
+            },
             onValueChange = { focusedEditValue = it },
             onDismiss = {
                 viewModel.cancelFieldEditing()
@@ -980,6 +1031,7 @@ private fun EditForm(
     choiceOptions: Map<String, List<EditOption>>,
     onValueChange: (key: String, value: String) -> Unit,
     errorMessage: String?,
+    onCreateLinkedItem: (EditableField) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -1030,6 +1082,9 @@ private fun EditForm(
                     value = value,
                     referenceOptions = referenceOptions,
                     choiceOptions = choiceOptions,
+                    onCreateLinkedItem = {
+                        if (field.referenceEndpointPath != null) onCreateLinkedItem(field)
+                    },
                     onValueChange = { onValueChange(field.key, it) },
                 )
             }
@@ -1043,6 +1098,7 @@ private fun EditFieldControl(
     value: String,
     referenceOptions: Map<String, List<EditOption>>,
     choiceOptions: Map<String, List<EditOption>>,
+    onCreateLinkedItem: () -> Unit,
     onValueChange: (String) -> Unit,
 ) {
     when (field.kind) {
@@ -1099,6 +1155,7 @@ private fun EditFieldControl(
                 options = referenceOptions[field.key].orEmpty(),
                 onValueChange = { _, next -> onValueChange(next) },
                 allowClear = true,
+                onCreateLinkedItem = onCreateLinkedItem,
             )
         EditFieldKind.CHOICE ->
             EditPickerField(
@@ -1120,6 +1177,9 @@ private fun EditFieldControl(
                         choiceOptions[field.key].orEmpty()
                     },
                 onValueChange = { _, next -> onValueChange(next) },
+                onCreateLinkedItem =
+                    if (field.kind == EditFieldKind.MULTI_REFERENCE) onCreateLinkedItem
+                    else null,
             )
     }
 }
@@ -1130,6 +1190,7 @@ private fun FocusedEditFieldDialog(
     value: String,
     referenceOptions: Map<String, List<EditOption>>,
     choiceOptions: Map<String, List<EditOption>>,
+    onCreateLinkedItem: (EditableField) -> Unit,
     onValueChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onReview: (String) -> Unit,
@@ -1144,6 +1205,9 @@ private fun FocusedEditFieldDialog(
                 value = value,
                 referenceOptions = referenceOptions,
                 choiceOptions = choiceOptions,
+                onCreateLinkedItem = {
+                    if (field.referenceEndpointPath != null) onCreateLinkedItem(field)
+                },
                 onValueChange = onValueChange,
             )
         },
@@ -1171,6 +1235,7 @@ private fun EditMultiPickerField(
     value: String,
     options: List<EditOption>,
     onValueChange: (key: String, value: String) -> Unit,
+    onCreateLinkedItem: (() -> Unit)? = null,
 ) {
     var expanded by remember(field.key) { mutableStateOf(false) }
     var query by remember(field.key) { mutableStateOf("") }
@@ -1219,6 +1284,20 @@ private fun EditMultiPickerField(
                         onQueryChange = { query = it },
                         label = "Search ${field.label}",
                     )
+                    onCreateLinkedItem?.let { createLinkedItem ->
+                        ListItem(
+                            headlineContent = { Text("Create new ${field.label}") },
+                            leadingContent = {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                            },
+                            modifier =
+                                Modifier.clickable {
+                                    expanded = false
+                                    query = ""
+                                    createLinkedItem()
+                                },
+                        )
+                    }
                     ListItem(
                         headlineContent = { Text("Clear all") },
                         leadingContent = { Icon(Icons.Default.Clear, contentDescription = null) },
@@ -1271,6 +1350,7 @@ private fun EditPickerField(
     options: List<EditOption>,
     onValueChange: (key: String, value: String) -> Unit,
     allowClear: Boolean,
+    onCreateLinkedItem: (() -> Unit)? = null,
 ) {
     var expanded by remember(field.key) { mutableStateOf(false) }
     var query by remember(field.key) { mutableStateOf("") }
@@ -1316,6 +1396,20 @@ private fun EditPickerField(
                         onQueryChange = { query = it },
                         label = "Search ${field.label}",
                     )
+                    onCreateLinkedItem?.let { createLinkedItem ->
+                        ListItem(
+                            headlineContent = { Text("Create new ${field.label}") },
+                            leadingContent = {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                            },
+                            modifier =
+                                Modifier.clickable {
+                                    expanded = false
+                                    query = ""
+                                    createLinkedItem()
+                                },
+                        )
+                    }
                     if (allowClear) {
                         ListItem(
                             headlineContent = { Text("None") },

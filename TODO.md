@@ -2838,12 +2838,12 @@ text control reachable after an upward swipe. PX5 also showed one deduplicated p
 When editing a linked attribute such as Tenant, the focused editor should offer a way to create a
 new item of the linked type and use it for the field once created.
 
-- [ ] Add a clearly labeled create action to linked-object editors.
-- [ ] Open the normal create flow for the selected linked item type.
-- [ ] Return the newly created item to the original editor and select it.
-- [ ] Verify creating and assigning a linked item without losing other pending edits.
+- [x] Add a clearly labeled create action to linked-object editors.
+- [x] Open the normal create flow for the selected linked item type.
+- [x] Return the newly created item to the original editor and select it.
+- [x] Verify creating and assigning a linked item without losing other pending edits.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests/debug build passed; Mi Pad 4 showed Create new Site, opened the normal create form, and returned to the existing editor without creating or modifying a NetBox record.
 
 ## NBC-144: opt-in NetBox change notifications
 

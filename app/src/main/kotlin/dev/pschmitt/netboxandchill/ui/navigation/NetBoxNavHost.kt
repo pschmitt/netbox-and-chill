@@ -15,6 +15,9 @@ import dev.pschmitt.netboxandchill.ui.generic.AddItemScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericCreateScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericDetailScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericListScreen
+import dev.pschmitt.netboxandchill.ui.generic.LINKED_CREATE_RESULT_KEY
+import dev.pschmitt.netboxandchill.ui.generic.LinkedCreateResult
+import dev.pschmitt.netboxandchill.ui.generic.encodeForSavedState
 import dev.pschmitt.netboxandchill.ui.onboarding.OnboardingScreen
 import dev.pschmitt.netboxandchill.ui.pending.PendingChangesScreen
 import dev.pschmitt.netboxandchill.ui.scanner.ScannerScreen
@@ -194,6 +197,16 @@ fun NetBoxNavHost(
                 onNavigateToReference = { endpointPath, id, breadcrumb ->
                     navController.navigate(Route.Generic(endpointPath, id, breadcrumb))
                 },
+                onCreateLinkedItem = { fieldKey, endpointPath, label, reopenFocusedEditor ->
+                    navController.navigate(
+                        Route.GenericCreate(
+                            endpointPath = endpointPath,
+                            label = label,
+                            returnFieldKey = fieldKey,
+                            reopenFocusedEditor = reopenFocusedEditor,
+                        )
+                    )
+                },
             )
         }
         composable<Route.Add> {
@@ -216,12 +229,29 @@ fun NetBoxNavHost(
                 },
             )
         }
-        composable<Route.GenericCreate> {
+        composable<Route.GenericCreate> { backStackEntry ->
+            val route: Route.GenericCreate = backStackEntry.toRoute()
             GenericCreateScreen(
                 onBack = { navController.popBackStack() },
-                onCreated = { endpointPath, id ->
-                    navController.popBackStack()
-                    navController.navigateToObject(endpointPath, id)
+                onCreated = { endpointPath, id, display ->
+                    if (route.returnFieldKey != null) {
+                        val result =
+                            LinkedCreateResult(
+                                fieldKey = route.returnFieldKey,
+                                endpointPath = endpointPath,
+                                id = id,
+                                display = display ?: "#$id",
+                                reopenFocusedEditor = route.reopenFocusedEditor,
+                            )
+                        navController.previousBackStackEntry?.savedStateHandle?.set(
+                            LINKED_CREATE_RESULT_KEY,
+                            result.encodeForSavedState(),
+                        )
+                        navController.popBackStack()
+                    } else {
+                        navController.popBackStack()
+                        navController.navigateToObject(endpointPath, id)
+                    }
                 },
             )
         }

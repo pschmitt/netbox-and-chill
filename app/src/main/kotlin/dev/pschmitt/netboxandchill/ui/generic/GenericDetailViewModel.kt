@@ -59,7 +59,7 @@ data class RackDevicePreview(
 class GenericDetailViewModel
 @Inject
 constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val repository: GenericObjectRepository,
     private val settingsRepository: SettingsRepository,
     private val fileDownloadRepository: FileDownloadRepository,
@@ -93,6 +93,11 @@ constructor(
 
     private val _isEditing = MutableStateFlow(false)
     val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
+
+    // Keep the full edit draft in the ViewModel so opening a linked-item create form cannot lose
+    // unrelated unsaved fields when navigation temporarily removes this composable.
+    private val _editDraftValues = MutableStateFlow<Map<String, String>>(emptyMap())
+    val editDraftValues: StateFlow<Map<String, String>> = _editDraftValues.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -145,6 +150,13 @@ constructor(
 
     private val _choiceOptions = MutableStateFlow<Map<String, List<EditOption>>>(emptyMap())
     val choiceOptions: StateFlow<Map<String, List<EditOption>>> = _choiceOptions.asStateFlow()
+
+    private val linkedCreateResultRaw =
+        savedStateHandle.getStateFlow<String?>(LINKED_CREATE_RESULT_KEY, null)
+    val linkedCreateResult: StateFlow<LinkedCreateResult?> =
+        linkedCreateResultRaw
+            .map(::decodeLinkedCreateResult)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
 
@@ -290,6 +302,7 @@ constructor(
     fun startEditing() {
         _errorMessage.value = null
         editBaseJson = objectEntity.value?.json
+        _editDraftValues.value = editableFields.value.associate { it.key to it.value }
         _isEditing.value = true
         _referenceOptions.value = emptyMap()
         _choiceOptions.value = emptyMap()
@@ -317,6 +330,7 @@ constructor(
     fun cancelEditing() {
         _errorMessage.value = null
         editBaseJson = null
+        _editDraftValues.value = emptyMap()
         _isEditing.value = false
         _referenceOptions.value = emptyMap()
         _choiceOptions.value = emptyMap()
@@ -325,6 +339,7 @@ constructor(
     /** [edits] maps field key -> (kind, edited text), one entry per changed field. */
     fun save(edits: Map<String, Pair<EditFieldKind, String>>) {
         if (edits.isEmpty()) {
+            _editDraftValues.value = emptyMap()
             _isEditing.value = false
             return
         }
@@ -339,6 +354,7 @@ constructor(
                     .onSuccess { submission ->
                         _isEditing.value = false
                         editBaseJson = null
+                        _editDraftValues.value = emptyMap()
                         when (submission) {
                             EditSubmission.Updated -> {
                                 _refreshedMessage.value = "${title.value ?: "Item"} updated!"
@@ -358,6 +374,27 @@ constructor(
             }
             _isSaving.value = false
         }
+    }
+
+    fun initializeEditDraftIfNeeded() {
+        if (_editDraftValues.value.isEmpty() && editableFields.value.isNotEmpty()) {
+            _editDraftValues.value = editableFields.value.associate { it.key to it.value }
+        }
+    }
+
+    fun setEditDraftValue(key: String, value: String) {
+        _editDraftValues.value = _editDraftValues.value + (key to value)
+    }
+
+    fun addReferenceOption(fieldKey: String, option: EditOption) {
+        val options = _referenceOptions.value[fieldKey].orEmpty()
+        _referenceOptions.value =
+            _referenceOptions.value +
+                (fieldKey to (options + option).distinctBy { it.value })
+    }
+
+    fun consumeLinkedCreateResult() {
+        savedStateHandle[LINKED_CREATE_RESULT_KEY] = null
     }
 
     private suspend fun loadEditOptions(fields: List<EditableField>) {

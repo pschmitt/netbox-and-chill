@@ -50,7 +50,7 @@ import dev.pschmitt.netboxandchill.data.repository.CreateFieldDefinition
 @Composable
 fun GenericCreateScreen(
     onBack: () -> Unit,
-    onCreated: (endpointPath: String, id: Int) -> Unit,
+    onCreated: (endpointPath: String, id: Int, display: String?) -> Unit,
     viewModel: GenericCreateViewModel = hiltViewModel(),
 ) {
     val fields by viewModel.fields.collectAsStateWithLifecycle()
@@ -60,9 +60,10 @@ fun GenericCreateScreen(
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val createdId by viewModel.createdId.collectAsStateWithLifecycle()
+    val createdDisplay by viewModel.createdDisplay.collectAsStateWithLifecycle()
 
     LaunchedEffect(createdId) {
-        createdId?.let { onCreated(viewModel.route.endpointPath, it) }
+        createdId?.let { onCreated(viewModel.route.endpointPath, it, createdDisplay) }
     }
 
     Scaffold(
