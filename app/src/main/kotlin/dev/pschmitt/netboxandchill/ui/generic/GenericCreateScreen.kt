@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -49,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -288,8 +291,9 @@ private fun CreateChoiceInput(
     onValueChange: (String, String) -> Unit,
 ) {
     var expanded by remember(field.key) { mutableStateOf(false) }
-    var query by remember(field.key) { mutableStateOf("") }
+    var queryValue by remember(field.key) { mutableStateOf(TextFieldValue()) }
     val label = if (field.required) "${field.label} *" else field.label
+    val query = queryValue.text
     val filteredOptions = filterCreateChoices(options, query)
     Box {
         OutlinedTextField(
@@ -300,7 +304,7 @@ private fun CreateChoiceInput(
             trailingIcon = {
                 IconButton(
                     onClick = {
-                        query = ""
+                        queryValue = TextFieldValue()
                         expanded = true
                     }
                 ) {
@@ -313,16 +317,45 @@ private fun CreateChoiceInput(
             ModalBottomSheet(
                 onDismissRequest = {
                     expanded = false
-                    query = ""
+                    queryValue = TextFieldValue()
                 }
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     Text(field.label, style = MaterialTheme.typography.headlineSmall)
                     CreateChoiceSearchField(
-                        query = query,
-                        onQueryChange = { query = it },
+                        value = queryValue,
+                        onValueChange = { queryValue = it },
                         label = "Search ${field.label}",
                     )
+                    val fieldSuggestions = createChoiceFieldSuggestions(options, query)
+                    if (fieldSuggestions.isNotEmpty()) {
+                        Column(Modifier.fillMaxWidth()) {
+                            Text(
+                                "Filter by related field",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            fieldSuggestions.forEach { suggestion ->
+                                ListItem(
+                                    leadingContent = {
+                                        Icon(Icons.Default.FilterAlt, contentDescription = null)
+                                    },
+                                    headlineContent = { Text(suggestion.label) },
+                                    supportingContent = {
+                                        Text("Type ${suggestion.key} followed by a value")
+                                    },
+                                    modifier = Modifier.clickable {
+                                        val nextQuery = "${suggestion.key} "
+                                        queryValue =
+                                            TextFieldValue(
+                                                text = nextQuery,
+                                                selection = TextRange(nextQuery.length),
+                                            )
+                                    },
+                                )
+                            }
+                        }
+                    }
                     if (!field.required) {
                         DropdownMenuItem(
                             text = { Text("Clear") },
@@ -332,7 +365,7 @@ private fun CreateChoiceInput(
                             onClick = {
                                 onValueChange(field.key, "")
                                 expanded = false
-                                query = ""
+                                queryValue = TextFieldValue()
                             },
                         )
                     }
@@ -346,7 +379,7 @@ private fun CreateChoiceInput(
                                 modifier = Modifier.clickable {
                                     onValueChange(field.key, option.value)
                                     expanded = false
-                                    query = ""
+                                    queryValue = TextFieldValue()
                                 },
                             )
                         }
@@ -372,18 +405,18 @@ private fun CreateChoiceInput(
 
 @Composable
 private fun CreateChoiceSearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     label: String,
 ) {
     OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
+        value = value,
+        onValueChange = onValueChange,
         label = { Text(label) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
+            if (value.text.isNotEmpty()) {
+                IconButton(onClick = { onValueChange(TextFieldValue()) }) {
                     Icon(Icons.Default.Clear, contentDescription = "Clear search")
                 }
             }
@@ -393,16 +426,64 @@ private fun CreateChoiceSearchField(
     )
 }
 
+internal data class CreateChoiceFieldSuggestion(val key: String, val label: String)
+
+internal fun createChoiceFieldSuggestions(
+    options: List<CreateChoice>,
+    query: String,
+    limit: Int = 5,
+): List<CreateChoiceFieldSuggestion> {
+    val prefix = query.trimStart().takeWhile { !it.isWhitespace() && it != ':' }.lowercase()
+    if (prefix.length < 2 || query.trimStart().drop(prefix.length).isNotBlank()) return emptyList()
+    return options
+        .asSequence()
+        .flatMap { it.searchFields.keys.asSequence() }
+        .distinct()
+        .filter { key ->
+            key.lowercase().startsWith(prefix) || createChoiceFieldLabel(key).lowercase().startsWith(prefix)
+        }
+        .sorted()
+        .map { key -> CreateChoiceFieldSuggestion(key, createChoiceFieldLabel(key)) }
+        .take(limit)
+        .toList()
+}
+
 internal fun filterCreateChoices(
     options: List<CreateChoice>,
     query: String,
 ): List<CreateChoice> {
-    val normalized = query.trim().lowercase()
+    val rawQuery = query.lowercase()
+    val separator = rawQuery.indexOfFirst { it.isWhitespace() || it == ':' }
+    if (separator > 0) {
+        val requestedField = rawQuery.substring(0, separator)
+        val fieldKey =
+            options
+                .asSequence()
+                .flatMap { it.searchFields.keys.asSequence() }
+                .distinct()
+                .firstOrNull { key ->
+                    key.lowercase() == requestedField ||
+                        createChoiceFieldLabel(key).lowercase() == requestedField
+                }
+        if (fieldKey != null) {
+            val fieldQuery = rawQuery.substring(separator + 1).trim()
+            return options.filter { option ->
+                val fieldValue = option.searchFields[fieldKey] ?: return@filter false
+                fieldQuery.isBlank() || fieldValue.lowercase().contains(fieldQuery)
+            }
+        }
+    }
+    val normalized = rawQuery.trim()
     if (normalized.isEmpty()) return options
     return options.filter {
-        it.label.lowercase().contains(normalized) || it.value.contains(normalized)
+        it.label.lowercase().contains(normalized) ||
+            it.value.contains(normalized) ||
+            it.searchFields.values.any { fieldValue -> fieldValue.lowercase().contains(normalized) }
     }
 }
+
+private fun createChoiceFieldLabel(key: String): String =
+    key.replace('_', ' ').replaceFirstChar { it.titlecase() }
 
 @Composable
 private fun CreateChoicePreview(

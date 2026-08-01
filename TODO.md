@@ -3301,8 +3301,11 @@ search syntax as global search. For example, typing `manufacturer ` in a device-
 should offer the manufacturer filter and narrow the cached choices. The behavior should be generic
 for every linked object type.
 
-- [ ] Reuse the cached object-type completion and selection behavior in linked-field pickers.
-- [ ] Filter linked choices from the cache using the selected object type and remaining query.
-- [ ] Preserve image previews, responsive rendering, and the existing create/edit flows.
+- [x] Reuse the cached object-type completion and selection behavior in linked-field pickers.
+- [x] Filter linked choices from the cache using the selected object type and remaining query.
+- [x] Preserve image previews, responsive rendering, and the existing create/edit flows.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; Mi Pad 4
+completed the offline `manu` → `Manufacturer` suggestion, accepted `manufacturer d-link`, and
+rendered the filtered `DGS-1100-24PV2` device type without submitting a new object. APK installed
+update-in-place on Zenfone 10, Mi Pad 4, and PX5.

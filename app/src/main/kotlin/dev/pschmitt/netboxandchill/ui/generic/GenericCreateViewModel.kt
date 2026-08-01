@@ -18,6 +18,7 @@ import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.buildCreateBody
 import dev.pschmitt.netboxandchill.data.repository.fallbackCreateFieldDefinitions
+import dev.pschmitt.netboxandchill.data.repository.createChoiceSearchFields
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import javax.inject.Inject
@@ -27,6 +28,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 
 @HiltViewModel
@@ -39,6 +42,7 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    private val json: Json,
     private val settingsRepository: SettingsRepository,
     private val pendingEditRepository: PendingEditRepository,
     private val syncScheduler: SyncScheduler,
@@ -184,6 +188,16 @@ constructor(
                                 label = objectEntity.display,
                                 frontImageUrl = images?.frontImageUrl,
                                 rearImageUrl = images?.rearImageUrl,
+                                searchFields =
+                                    runCatching {
+                                            json.decodeFromString(
+                                                JsonObject.serializer(),
+                                                objectEntity.json,
+                                            )
+                                        }
+                                        .getOrNull()
+                                        ?.createChoiceSearchFields()
+                                        .orEmpty(),
                             )
                         }
                     if (values.isNotEmpty()) put(field.key, values)
