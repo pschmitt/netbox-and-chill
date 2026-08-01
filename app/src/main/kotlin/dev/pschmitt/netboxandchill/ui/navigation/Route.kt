@@ -45,6 +45,7 @@ sealed interface Route {
         val id: Int,
         val breadcrumb: String? = null,
         val focusFieldKey: String? = null,
+        val startInEdit: Boolean = false,
     ) : Route
 
     @Serializable data class GenericCreate(val endpointPath: String, val label: String) : Route

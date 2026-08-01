@@ -113,7 +113,13 @@ fun NetBoxNavHost(
                 deviceId = route.deviceId,
                 onBack = { navController.popBackStack() },
                 onEditClick = {
-                    navController.navigate(Route.Generic(DEVICES_ENDPOINT_PATH, route.deviceId))
+                    navController.navigate(
+                        Route.Generic(
+                            endpointPath = DEVICES_ENDPOINT_PATH,
+                            id = route.deviceId,
+                            startInEdit = true,
+                        )
+                    )
                 },
                 onEditFieldClick = { fieldKey ->
                     navController.navigate(

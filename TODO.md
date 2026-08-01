@@ -2374,9 +2374,12 @@ does not already contain the item.
 
 - [x] Best-effort fetch the selected object directly when its detail view opens.
 - [x] Keep cached/offline rendering available when that fetch fails.
+- [x] Make the typed Device overflow Edit action open the generic edit form directly.
 - [x] Verify the overflow Edit action on the Mi Pad 4 without saving to production.
 
-Status: **done**, 2026-08-01 - Mi Pad 4 overflow Edit opened the device edit form without saving.
+Status: **done**, 2026-08-01 - remote lint/tests/debug build passed; on the Mi Pad 4 the typed
+Shelly device overflow Edit opened the editable Name/Device Type/Asset Tag form directly, then
+Cancel was used without saving.
 
 ## NBC-110: edit fields from a long press
 

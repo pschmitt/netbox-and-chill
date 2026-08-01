@@ -145,6 +145,7 @@ fun GenericDetailScreen(
     var pendingEditFieldKey by remember { mutableStateOf<String?>(null) }
     var focusedEditFieldKey by remember { mutableStateOf<String?>(null) }
     var focusedEditValue by remember { mutableStateOf("") }
+    var automaticEditStarted by remember { mutableStateOf(false) }
     val hiddenObjectKey = hiddenFieldObjectKey(viewModel.route.endpointPath)
     val hiddenFieldsForObject = hiddenFieldKeys.filter { it.startsWith("$hiddenObjectKey/") }
     val visibleFields =
@@ -172,6 +173,17 @@ fun GenericDetailScreen(
                     focusedEditValue = field.value
                     viewModel.startFieldEditing(field.key)
                 }
+        }
+    }
+    LaunchedEffect(viewModel.route.startInEdit, title, editableFields) {
+        if (
+            viewModel.route.startInEdit &&
+                !automaticEditStarted &&
+                title != null &&
+                editableFields.isNotEmpty()
+        ) {
+            automaticEditStarted = true
+            viewModel.startEditing()
         }
     }
 
