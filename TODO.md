@@ -2750,3 +2750,16 @@ the compact bottom navigation used today.
 
 Status: **done**, 2026-08-01 - the Mi Pad 4 dashboard and device list visibly use the right-side
 Home/Search/Scan/Add/Settings rail. The Zenfone received the same APK; PX5 was unreachable.
+
+## NBC-138: remember the last label-print settings
+
+The print dialog should restore the user's last valid label options the next time it opens, while
+keeping those preferences local to the app and preserving safe defaults on a fresh install.
+
+- [x] Persist invert-colors, vertical-text, long-label, copy-count, and QR-size choices.
+- [x] Restore the saved values when opening the print dialog and update them as controls change.
+- [x] Keep invalid/incomplete copy-count input from overwriting the last valid value.
+- [x] Verify persistence across closing/reopening the dialog on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - remote lint, unit tests, and debug build passed; the Mi Pad 4
+reopened the dialog with persisted Copies 2, QR 48px, and the selected toggle states.

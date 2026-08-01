@@ -15,6 +15,20 @@ data class NetBoxCredentials(val baseUrl: String, val token: String) {
         get() = baseUrl.isNotBlank() && token.isNotBlank()
 }
 
+data class PrintSettings(
+    val invertColors: Boolean = true,
+    val verticalText: Boolean = false,
+    val longLabel: Boolean = false,
+    val copies: Int = 1,
+    val qrSize: Int = 64,
+) {
+    fun normalized(): PrintSettings =
+        copy(
+            copies = copies.coerceIn(1, 9),
+            qrSize = qrSize.takeIf { it == 48 || it == 56 || it == 64 } ?: 64,
+        )
+}
+
 data class SyncIssue(val message: String, val occurredAt: Long)
 
 /** Stable object key used by field preferences, e.g. `device`. */
@@ -118,6 +132,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _scannerLens = MutableStateFlow(loadScannerLens())
     val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
 
+    private val _printSettings = MutableStateFlow(loadPrintSettings())
+    val printSettings: StateFlow<PrintSettings> = _printSettings.asStateFlow()
+
     private val _offlineMode = MutableStateFlow(prefs.getBoolean(KEY_OFFLINE_MODE, false))
     val offlineMode: StateFlow<Boolean> = _offlineMode.asStateFlow()
 
@@ -159,6 +176,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setScannerLens(lens: ScannerLens) {
         prefs.edit().putString(KEY_SCANNER_LENS, lens.storageKey).apply()
         _scannerLens.value = lens
+    }
+
+    fun updatePrintSettings(settings: PrintSettings) {
+        val normalized = settings.normalized()
+        prefs
+            .edit()
+            .putBoolean(KEY_PRINT_INVERT_COLORS, normalized.invertColors)
+            .putBoolean(KEY_PRINT_VERTICAL_TEXT, normalized.verticalText)
+            .putBoolean(KEY_PRINT_LONG_LABEL, normalized.longLabel)
+            .putInt(KEY_PRINT_COPIES, normalized.copies)
+            .putInt(KEY_PRINT_QR_SIZE, normalized.qrSize)
+            .apply()
+        _printSettings.value = normalized
     }
 
     fun setOfflineMode(enabled: Boolean) {
@@ -253,6 +283,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         prefs.edit().clear().apply()
         _credentials.value = NetBoxCredentials("", "")
         _offlineMode.value = false
+        _printSettings.value = PrintSettings()
         _hiddenFieldKeys.value = emptySet()
         clearSyncIssue()
     }
@@ -279,6 +310,16 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
+
+    private fun loadPrintSettings(): PrintSettings =
+        PrintSettings(
+                invertColors = prefs.getBoolean(KEY_PRINT_INVERT_COLORS, true),
+                verticalText = prefs.getBoolean(KEY_PRINT_VERTICAL_TEXT, false),
+                longLabel = prefs.getBoolean(KEY_PRINT_LONG_LABEL, false),
+                copies = prefs.getInt(KEY_PRINT_COPIES, 1),
+                qrSize = prefs.getInt(KEY_PRINT_QR_SIZE, 64),
+            )
+            .normalized()
 
     private fun loadHiddenFieldKeys(): Set<String> =
         prefs
@@ -317,6 +358,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_SYNC_WHILE_ROAMING = "sync_while_roaming"
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
+        const val KEY_PRINT_INVERT_COLORS = "print_invert_colors"
+        const val KEY_PRINT_VERTICAL_TEXT = "print_vertical_text"
+        const val KEY_PRINT_LONG_LABEL = "print_long_label"
+        const val KEY_PRINT_COPIES = "print_copies"
+        const val KEY_PRINT_QR_SIZE = "print_qr_size"
         const val KEY_OFFLINE_MODE = "offline_mode"
         const val KEY_SYNC_ISSUE_MESSAGE = "sync_issue_message"
         const val KEY_SYNC_ISSUE_TIME = "sync_issue_time"

@@ -12,6 +12,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.printing.BrotherLabelRenderer
 import dev.pschmitt.netboxandchill.printing.BrotherPrinter
 import dev.pschmitt.netboxandchill.printing.NearbyPrinter
@@ -70,9 +72,14 @@ data class PrintLabelRequest(
 )
 
 @Composable
-fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
+fun PrintLabelDialog(
+    request: PrintLabelRequest,
+    onDismiss: () -> Unit,
+    settingsViewModel: PrintSettingsViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val savedPrintSettings by settingsViewModel.settings.collectAsStateWithLifecycle()
     var hasPermission by remember { mutableStateOf(hasBluetoothPermission(context)) }
     var bluetoothEnabled by remember {
         mutableStateOf(bluetoothAdapter(context)?.isEnabled == true)
@@ -83,11 +90,21 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
     var isDiscovering by remember { mutableStateOf(false) }
     var pairingAddress by remember { mutableStateOf<String?>(null) }
     var isPrinting by remember { mutableStateOf(false) }
-    var invertColors by remember { mutableStateOf(true) }
-    var verticalText by remember { mutableStateOf(false) }
-    var longLabel by remember { mutableStateOf(false) }
-    var copiesText by remember { mutableStateOf("1") }
-    var qrSize by remember { mutableStateOf(64) }
+    var invertColors by remember(savedPrintSettings.invertColors) {
+        mutableStateOf(savedPrintSettings.invertColors)
+    }
+    var verticalText by remember(savedPrintSettings.verticalText) {
+        mutableStateOf(savedPrintSettings.verticalText)
+    }
+    var longLabel by remember(savedPrintSettings.longLabel) {
+        mutableStateOf(savedPrintSettings.longLabel)
+    }
+    var copiesText by remember(savedPrintSettings.copies) {
+        mutableStateOf(savedPrintSettings.copies.toString())
+    }
+    var qrSize by remember(savedPrintSettings.qrSize) {
+        mutableStateOf(savedPrintSettings.qrSize)
+    }
     var qrSizeMenuExpanded by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     val copyCount = copiesText.toIntOrNull()?.takeIf { it in 1..9 }
@@ -349,7 +366,15 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                     ) {
                         OutlinedTextField(
                             value = copiesText,
-                            onValueChange = { copiesText = it.filter(Char::isDigit).take(1) },
+                            onValueChange = { value ->
+                                copiesText = value.filter(Char::isDigit).take(1)
+                                copiesText
+                                    .toIntOrNull()
+                                    ?.takeIf { it in 1..9 }
+                                    ?.let { copies ->
+                                        settingsViewModel.update { it.copy(copies = copies) }
+                                    }
+                            },
                             label = { Text("Copies") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -370,6 +395,7 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                         text = { Text("${size}px") },
                                         onClick = {
                                             qrSize = size
+                                            settingsViewModel.update { it.copy(qrSize = size) }
                                             qrSizeMenuExpanded = false
                                         },
                                     )
@@ -390,7 +416,13 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Switch(checked = longLabel, onCheckedChange = { longLabel = it })
+                            Switch(
+                                checked = longLabel,
+                                onCheckedChange = { value ->
+                                    longLabel = value
+                                    settingsViewModel.update { it.copy(longLabel = value) }
+                                },
+                            )
                         }
                     }
                     Row(
@@ -405,7 +437,13 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Switch(checked = invertColors, onCheckedChange = { invertColors = it })
+                        Switch(
+                            checked = invertColors,
+                            onCheckedChange = { value ->
+                                invertColors = value
+                                settingsViewModel.update { it.copy(invertColors = value) }
+                            },
+                        )
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -419,7 +457,13 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Switch(checked = verticalText, onCheckedChange = { verticalText = it })
+                        Switch(
+                            checked = verticalText,
+                            onCheckedChange = { value ->
+                                verticalText = value
+                                settingsViewModel.update { it.copy(verticalText = value) }
+                            },
+                        )
                     }
                 }
                 if (isPrinting) {
