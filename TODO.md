@@ -2882,12 +2882,15 @@ Status: **done**, 2026-08-01 - remote ktfmt, unit tests, and debug build passed;
 Global search should recognize an object-type prefix while the user is typing, offer a completion
 such as `tena` → Tenant, and constrain results to the selected NetBox object type.
 
-- [ ] Recognize known object-type prefixes and show completion suggestions.
-- [ ] Apply a selected type filter while preserving the normal free-text query.
-- [ ] Keep type-filtered search cache-first and usable offline.
-- [ ] Verify suggestions, filtering, and clearing the filter on the Mi Pad 4.
+- [x] Recognize known object-type prefixes and show completion suggestions.
+- [x] Apply a selected type filter while preserving the normal free-text query.
+- [x] Keep type-filtered search cache-first and usable offline.
+- [x] Verify suggestions, filtering, and clearing the filter on the Mi Pad 4.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests/debug build passed; Mi Pad 4 showed the
+tena to Tenants completion, selected the endpoint-scoped filter, rendered cached tenant results,
+and returned to the normal recent-search view after clearing it. All installs were update-in-place
+on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-147: hide Settings from the phone navbar
 
@@ -2929,5 +2932,50 @@ as a compact badge.
 - [ ] Add asset-tag badges to global-search results when present.
 - [ ] Add asset-tag badges to device list rows when present.
 - [ ] Verify badge layout and cached rendering.
+
+Status: not started.
+
+## NBC-151: improve sync progress notification text
+
+Make the background sync notification less redundant and surface useful progress for attachment
+and image/document downloads, including synced-versus-total counts where available.
+
+- [ ] Use the generic title “Syncing data”.
+- [ ] Keep the current stage in the subtitle/content.
+- [ ] Show useful attachment/image/document progress counts.
+- [ ] Verify the notification remains silent and readable.
+
+Status: not started.
+
+## NBC-152: move cached-data summary near Sync now
+
+Move the Settings “Cached data” summary down so it sits directly above the Sync now button.
+
+- [ ] Move the Cached data row below the sync policy controls.
+- [ ] Keep cache counts and storage size unchanged.
+- [ ] Verify the Settings layout on the Mi Pad 4.
+
+Status: not started.
+
+## NBC-153: give change notifications their own Settings section
+
+Move “NetBox change notifications” out of the Sync section into a dedicated notification section.
+
+- [ ] Add a clearly titled notification section.
+- [ ] Move the notification switch and filter chooser into it.
+- [ ] Keep the setting behavior unchanged.
+
+Status: not started.
+
+## NBC-154: reorganize Settings into sections and gesture preferences
+
+Make Settings a main category screen with sub-screens such as Connection, Sync, Gestures, and
+Display. Move the two-finger swipe setting into Gestures, rename the section to “Gestures,” and
+add configurable three-finger up/down/left/right plus two-finger left/right actions.
+
+- [ ] Make the main Settings screen navigate to category sub-screens.
+- [ ] Move existing settings into the appropriate category screens.
+- [ ] Add the requested gesture action preferences.
+- [ ] Verify gesture navigation and persistence.
 
 Status: not started.

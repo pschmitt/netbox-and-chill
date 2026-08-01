@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.data.repository
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.db.DeviceDao
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
+import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
@@ -14,6 +15,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 
@@ -69,36 +71,57 @@ constructor(
      * Instant, offline-capable read - the primary result source, not scoped to
      * [BASELINE_ENDPOINT_PATHS]: anything ever cached under any endpoint is findable offline.
      */
-    fun observeCached(queryText: String, limitPerSource: Int = 50): Flow<List<SearchHit>> =
-        netBoxObjectDao.searchAll(queryText, limitPerSource).let { genericRows ->
-            val genericHits = genericRows.map { rows -> rows.map { it.toSearchHit() } }
-            val directDeviceHits =
-                deviceDao.search(queryText).map { rows ->
-                    rows.take(limitPerSource).map { it.toSearchHit() }
-                }
-            val matchingDeviceTypes = genericRows.map { rows ->
-                rows
-                    .filter { it.endpointPath == DEVICE_TYPES_ENDPOINT_PATH }
-                    .associate { it.id to it.display }
-            }
-            val devicesOfMatchingTypes =
-                combine(matchingDeviceTypes, deviceDao.observeAll()) { typeLabels, devices ->
-                    devices
-                        .filter { it.deviceTypeId in typeLabels.keys }
-                        .map { device ->
-                            device.toSearchHit(
-                                secondaryLine =
-                                    "Device type: ${typeLabels[device.deviceTypeId] ?: "matching type"}"
-                            )
+    fun observeCached(
+        queryText: String,
+        endpointPath: String? = null,
+        limitPerSource: Int = 50,
+    ): Flow<List<SearchHit>> =
+        (endpointPath?.let {
+                netBoxObjectDao.searchAllInEndpoint(it, queryText, limitPerSource)
+            } ?: netBoxObjectDao.searchAll(queryText, limitPerSource))
+            .let { genericRows ->
+                val genericHits = genericRows.map { rows -> rows.map { it.toSearchHit() } }
+                val directDeviceHits =
+                    if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
+                        deviceDao.search(queryText).map { rows ->
+                            rows.take(limitPerSource).map { it.toSearchHit() }
                         }
+                    } else {
+                        flowOf(emptyList())
+                    }
+                val matchingDeviceTypes = genericRows.map { rows ->
+                    if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
+                        rows
+                            .filter { it.endpointPath == DEVICE_TYPES_ENDPOINT_PATH }
+                            .associate { it.id to it.display }
+                    } else {
+                        emptyMap()
+                    }
                 }
-            combine(genericHits, directDeviceHits, devicesOfMatchingTypes) {
-                generic,
-                direct,
-                recursive ->
-                generic + direct + recursive
+                val devicesOfMatchingTypes =
+                    if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
+                        combine(matchingDeviceTypes, deviceDao.observeAll()) { typeLabels, devices ->
+                            devices
+                                .filter { it.deviceTypeId in typeLabels.keys }
+                                .map { device ->
+                                    device.toSearchHit(
+                                        secondaryLine =
+                                            "Device type: " +
+                                                (typeLabels[device.deviceTypeId]
+                                                    ?: "matching type")
+                                    )
+                                }
+                        }
+                    } else {
+                        flowOf(emptyList())
+                    }
+                combine(genericHits, directDeviceHits, devicesOfMatchingTypes) {
+                    generic,
+                    direct,
+                    recursive ->
+                    generic + direct + recursive
+                }
             }
-        }
 
     /**
      * Best-effort live refresh: fans [endpointPaths] out in parallel via `?q=`, upserting
@@ -198,3 +221,24 @@ private fun searchRelevance(query: String, hit: SearchHit): Int {
         else -> 0
     }
 }
+
+/** Returns cached directory model types whose label/key can complete the first query word. */
+fun typeFilterSuggestions(
+    queryText: String,
+    models: Collection<NetBoxModelEntity>,
+    limit: Int = 6,
+): List<NetBoxModelEntity> {
+    val prefix = queryText.trimStart().substringBefore(' ').lowercase()
+    if (prefix.length < 2) return emptyList()
+    return models
+        .filter {
+            it.modelLabel.lowercase().startsWith(prefix) ||
+                it.modelKey.lowercase().startsWith(prefix)
+        }
+        .distinctBy { it.endpointPath }
+        .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.modelLabel })
+        .take(limit)
+}
+
+fun queryRemainderAfterTypeSelection(queryText: String): String =
+    queryText.trimStart().substringAfter(' ', missingDelimiterValue = "").trimStart()

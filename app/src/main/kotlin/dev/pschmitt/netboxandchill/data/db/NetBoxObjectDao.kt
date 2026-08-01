@@ -22,6 +22,25 @@ interface NetBoxObjectDao {
     )
     fun search(endpointPath: String, query: String): Flow<List<NetBoxObjectEntity>>
 
+    @Query(
+        """
+        SELECT * FROM netbox_objects
+        WHERE endpointPath = :endpointPath
+          AND (
+              display LIKE '%' || :query || '%'
+              OR secondaryLine LIKE '%' || :query || '%'
+              OR json LIKE '%' || :query || '%'
+          )
+        ORDER BY display COLLATE NOCASE
+        LIMIT :limit
+        """
+    )
+    fun searchAllInEndpoint(
+        endpointPath: String,
+        query: String,
+        limit: Int,
+    ): Flow<List<NetBoxObjectEntity>>
+
     @Query("SELECT * FROM netbox_objects WHERE endpointPath = :endpointPath AND id = :id")
     fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?>
 

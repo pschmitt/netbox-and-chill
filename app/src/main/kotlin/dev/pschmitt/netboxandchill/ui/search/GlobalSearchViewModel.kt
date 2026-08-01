@@ -16,6 +16,8 @@ import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.rankSearchHits
 import dev.pschmitt.netboxandchill.data.repository.recentVisitsToSearchHits
+import dev.pschmitt.netboxandchill.data.repository.queryRemainderAfterTypeSelection
+import dev.pschmitt.netboxandchill.data.repository.typeFilterSuggestions
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -59,6 +62,9 @@ constructor(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
+    private val _typeFilter = MutableStateFlow<NetBoxModelEntity?>(null)
+    val typeFilter: StateFlow<NetBoxModelEntity?> = _typeFilter.asStateFlow()
+
     private val debouncedQuery: StateFlow<String> =
         _query
             .debounce(300)
@@ -71,9 +77,15 @@ constructor(
      * upserts new rows into Room, the same "Flow straight from the DAO" shape
      * `GenericListViewModel` uses, not a one-shot network call.
      */
-    private val cachedResults = debouncedQuery.flatMapLatest { text ->
-        if (text.isBlank()) flowOf(emptyList()) else searchRepository.observeCached(text)
-    }
+    private val cachedResults =
+        combine(debouncedQuery, _typeFilter) { text, model -> text to model?.endpointPath }
+            .flatMapLatest { (text, endpointPath) ->
+                if (text.isBlank() && endpointPath == null) {
+                    flowOf(emptyList())
+                } else {
+                    searchRepository.observeCached(text, endpointPath)
+                }
+            }
 
     val results: StateFlow<List<SearchHit>> =
         kotlinx.coroutines.flow
@@ -100,19 +112,27 @@ constructor(
             .map { types -> types.associateBy { it.id } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    private val knownModels: StateFlow<List<NetBoxModelEntity>> =
+        directoryRepository
+            .observeAll()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val typeSuggestions: StateFlow<List<NetBoxModelEntity>> =
+        combine(_query, _typeFilter, knownModels) { text, selected, models ->
+                if (selected == null) typeFilterSuggestions(text, models) else emptyList()
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // Baseline models unioned with whatever the user has pinned (they've told us those matter to
-    // them) - resolved to their NetBoxModelEntity so result rows can show a proper humanized model
-    // label + the same appKey the sidebar/list rows use for AppIcons.forAppKey.
+    // Every discovered cached model is available here so result rows and type completions can use
+    // the same humanized labels and app icons as the sidebar.
     val modelsByEndpointPath: StateFlow<Map<String, NetBoxModelEntity>> =
-        settingsRepository.pinnedModelPaths
-            .map { pinned -> (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS + pinned).toSet() }
-            .flatMapLatest { paths -> directoryRepository.observePinned(paths) }
+        knownModels
             .map { models -> models.associateBy { it.endpointPath } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
@@ -126,9 +146,10 @@ constructor(
                 if (text.isBlank()) return@collectLatest
                 _isRefreshing.value = true
                 val endpointPaths =
-                    (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS +
-                            settingsRepository.pinnedModelPaths.value)
-                        .distinct()
+                    typeFilter.value?.endpointPath?.let(::listOf)
+                        ?: (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS +
+                                settingsRepository.pinnedModelPaths.value)
+                            .distinct()
                 try {
                     searchRepository.refresh(text, endpointPaths)
                 } catch (cancelled: CancellationException) {
@@ -144,6 +165,15 @@ constructor(
 
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
+    }
+
+    fun selectType(model: NetBoxModelEntity) {
+        _typeFilter.value = model
+        _query.value = queryRemainderAfterTypeSelection(_query.value)
+    }
+
+    fun clearTypeFilter() {
+        _typeFilter.value = null
     }
 
     fun errorShown() {

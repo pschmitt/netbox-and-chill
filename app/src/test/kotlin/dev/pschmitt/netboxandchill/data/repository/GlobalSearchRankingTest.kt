@@ -1,5 +1,6 @@
 package dev.pschmitt.netboxandchill.data.repository
 
+import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -42,4 +43,22 @@ class GlobalSearchRankingTest {
 
         assertEquals(1, rankSearchHits("router", hits).size)
     }
+
+    @Test
+    fun typePrefixSuggestionsMatchLabelsAndPreserveRemainingQuery() {
+        val suggestions =
+            typeFilterSuggestions(
+                "tena office",
+                listOf(
+                    model("tenants", "Tenants", "api/tenancy/tenants/"),
+                    model("devices", "Devices", "api/dcim/devices/"),
+                ),
+            )
+
+        assertEquals(listOf("Tenants"), suggestions.map { it.modelLabel })
+        assertEquals("office", queryRemainderAfterTypeSelection("tena office"))
+    }
+
+    private fun model(modelKey: String, label: String, endpointPath: String) =
+        NetBoxModelEntity("app", "App", modelKey, label, endpointPath)
 }

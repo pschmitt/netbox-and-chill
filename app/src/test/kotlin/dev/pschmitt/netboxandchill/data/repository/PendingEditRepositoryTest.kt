@@ -363,6 +363,12 @@ private class FakeNetBoxObjectDao : NetBoxObjectDao {
     override fun search(endpointPath: String, query: String): Flow<List<NetBoxObjectEntity>> =
         flowOf(emptyList())
 
+    override fun searchAllInEndpoint(
+        endpointPath: String,
+        query: String,
+        limit: Int,
+    ): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
+
     override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
         flowOf(last)
 

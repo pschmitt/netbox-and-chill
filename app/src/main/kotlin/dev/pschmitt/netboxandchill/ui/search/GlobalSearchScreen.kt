@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
@@ -65,6 +67,8 @@ fun GlobalSearchScreen(
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
+    val typeFilter by viewModel.typeFilter.collectAsStateWithLifecycle()
+    val typeSuggestions by viewModel.typeSuggestions.collectAsStateWithLifecycle()
     val recentResults by viewModel.recentResults.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -120,7 +124,7 @@ fun GlobalSearchScreen(
             // must keep working with no connectivity, so cached hits always take priority.
             if (isRefreshing) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             when {
-                query.isBlank() && recentResults.isNotEmpty() ->
+                typeFilter == null && query.isBlank() && recentResults.isNotEmpty() ->
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         item {
                             ListItem(
@@ -150,13 +154,45 @@ fun GlobalSearchScreen(
                             )
                         }
                     }
-                query.isBlank() ->
+                typeFilter == null && query.isBlank() ->
                     SearchEmptyState(
                         title = "Search your NetBox",
                         message = "Find devices, sites, racks, IPs, circuits, and more",
                     )
-                results.isNotEmpty() ->
+                typeSuggestions.isNotEmpty() || results.isNotEmpty() ->
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        typeFilter?.let { model ->
+                            item(key = "active-type-filter") {
+                                ActiveTypeFilter(
+                                    model = model,
+                                    onClear = viewModel::clearTypeFilter,
+                                )
+                            }
+                        }
+                        if (typeSuggestions.isNotEmpty()) {
+                            item(key = "type-filter-heading") {
+                                ListItem(
+                                    headlineContent = { Text("Filter by object type") },
+                                    supportingContent = {
+                                        Text("Choose a type to search only that NetBox collection")
+                                    },
+                                )
+                            }
+                            items(
+                                typeSuggestions,
+                                key = { "type-suggestion-${it.endpointPath}" },
+                            ) { model ->
+                                TypeSuggestionRow(
+                                    model = model,
+                                    onClick = { viewModel.selectType(model) },
+                                )
+                            }
+                        }
+                        if (results.isNotEmpty() && typeSuggestions.isNotEmpty()) {
+                            item(key = "search-results-heading") {
+                                ListItem(headlineContent = { Text("Matches") })
+                            }
+                        }
                         items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
                             val model = modelsByEndpointPath[hit.endpointPath]
                             val appKey =
@@ -176,12 +212,45 @@ fun GlobalSearchScreen(
                 isRefreshing -> CenteredHint("Searching…")
                 else ->
                     SearchEmptyState(
-                        title = "No matches yet",
-                        message = "Try a device name, asset tag, IP address, or model",
+                        title = if (typeFilter == null) "No matches yet" else "No cached matches",
+                        message =
+                            if (typeFilter == null) {
+                                "Try a device name, asset tag, IP address, or model"
+                            } else {
+                                "Try another query or clear the object-type filter"
+                            },
                     )
             }
         }
     }
+}
+
+@Composable
+private fun ActiveTypeFilter(model: NetBoxModelEntity, onClear: () -> Unit) {
+    ListItem(
+        leadingContent = {
+            Icon(AppIcons.forAppKey(model.appKey), contentDescription = null)
+        },
+        headlineContent = { Text("Object type filter") },
+        supportingContent = { Text(model.modelLabel) },
+        trailingContent = {
+            IconButton(onClick = onClear) {
+                Icon(Icons.Default.Clear, contentDescription = "Clear object type filter")
+            }
+        },
+    )
+}
+
+@Composable
+private fun TypeSuggestionRow(model: NetBoxModelEntity, onClick: () -> Unit) {
+    ListItem(
+        leadingContent = {
+            Icon(AppIcons.forAppKey(model.appKey), contentDescription = null)
+        },
+        headlineContent = { Text(model.modelLabel) },
+        supportingContent = { Text("Search only " + model.modelLabel.lowercase()) },
+        modifier = Modifier.clickable(onClick = onClick),
+    )
 }
 
 @Composable
