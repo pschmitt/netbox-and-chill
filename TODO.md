@@ -2423,10 +2423,10 @@ slots so they share a vertical alignment even when one action is absent.
 
 - [x] Use one shared fixed-width action-slot component for detail rows.
 - [x] Keep copy and reference navigation actions in stable leading/trailing slots.
-- [ ] Verify the revised alignment on the Mi Pad 4.
+- [x] Verify the revised alignment on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - typed and generic detail rows now share a fixed two-slot action
-area; physical visual verification remains.
+Status: **done**, 2026-08-01 - Mi Pad 4 UI inspection showed the shared 96dp trailing area with
+copy actions consistently in the first slot and reference actions consistently in the second.
 
 ## NBC-114: long-press anywhere on a detail row
 
