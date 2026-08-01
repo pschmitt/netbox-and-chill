@@ -20,4 +20,7 @@ interface ImageAttachmentDao {
 
     @Query("DELETE FROM image_attachments WHERE objectType = :objectType AND objectId = :objectId")
     suspend fun clearFor(objectType: String, objectId: Int)
+
+    @Query("DELETE FROM image_attachments WHERE objectType = :objectType")
+    suspend fun clearForObjectType(objectType: String)
 }

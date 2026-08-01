@@ -24,6 +24,8 @@ interface NetBoxApi {
     @GET("api/extras/image-attachments/")
     suspend fun listImageAttachments(
         @Query("object_type") objectType: String,
-        @Query("object_id") objectId: Int,
+        @Query("object_id") objectId: Int? = null,
+        @Query("limit") limit: Int = 200,
+        @Query("offset") offset: Int = 0,
     ): PagedResponseDto<ImageAttachmentDto>
 }

@@ -47,8 +47,7 @@ object BrotherPrinter {
         withContext(Dispatchers.IO) {
             var socket: BluetoothSocket? = null
             try {
-                socket = printer.device.createRfcommSocketToServiceRecord(SPP_UUID)
-                socket.connect()
+                socket = connectSocket(printer.device)
                 val input = socket.inputStream
                 val output = socket.outputStream
                 output.writePacket(ByteArray(64))
@@ -84,6 +83,36 @@ object BrotherPrinter {
                 runCatching { socket?.close() }
             }
         }
+
+    /**
+     * P-touch devices expose the standard SPP UUID, but some Android Bluetooth stacks reject the
+     * secure service-record connection even for a bonded printer. Retry the connection with the
+     * public insecure SPP API before touching the print protocol. Keeping this fallback here means
+     * a failed negotiation cannot replay a partially transmitted label.
+     */
+    @SuppressLint("MissingPermission")
+    private fun connectSocket(device: BluetoothDevice): BluetoothSocket {
+        var secureSocket: BluetoothSocket? = null
+        try {
+            val candidate = device.createRfcommSocketToServiceRecord(SPP_UUID)
+            secureSocket = candidate
+            candidate.connect()
+            return candidate
+        } catch (secureError: Exception) {
+            runCatching { secureSocket?.close() }
+            var insecureSocket: BluetoothSocket? = null
+            return try {
+                val candidate = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                insecureSocket = candidate
+                candidate.connect()
+                candidate
+            } catch (insecureError: Exception) {
+                runCatching { insecureSocket?.close() }
+                secureError.addSuppressed(insecureError)
+                throw secureError
+            }
+        }
+    }
 
     private fun OutputStream.writePacket(bytes: ByteArray) {
         write(bytes)

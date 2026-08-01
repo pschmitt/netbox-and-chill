@@ -1806,11 +1806,13 @@ the complete offline cache for those responses, and real failures/warnings must 
 - [x] Persist the latest sync failure or partial-sync warning across app restarts.
 - [x] Show sync issues with a retry action on Dashboard and Settings.
 - [x] Show an ongoing system notification while background/manual sync is running.
+- [x] Refresh device image attachments through one paginated collection walk instead of one
+  request per cached device.
 - [x] Verify a real sync against the configured NetBox instance and physical test devices.
 
-Status: **done**, 2026-08-01 - Mi Pad 4 completed a real full sync (383 devices, 630 durable
-attachments) with WorkManager SUCCESS and no persisted sync issue; the final build was deployed
-to all three physical test devices.
+Status: **done**, 2026-08-01 - Mi Pad 4 completed a fresh full sync with one HTTP 200 paginated
+device-attachment collection walk, 634 durable attachments, no per-device timeout issues, and
+WorkManager SUCCESS.
 
 ## NBC-72: keep router actions out of the offline sync model list
 
@@ -1861,6 +1863,7 @@ and provide the Android pairing flow for a discovered printer such as `PT-P300BT
 - [x] Discover nearby Brother/P-touch Bluetooth devices from the print dialog.
 - [x] Offer Android's pairing flow and refresh the selectable printer after bonding.
 - [x] Enforce bonded-state filtering in the print transport and stop discovery before RFCOMM.
+- [x] Retry bonded SPP connections through Android's insecure RFCOMM API when secure SDP fails.
 - [ ] Keep printing restricted to bonded devices and verify with the PT-P300BT4590.
 
 Status: mostly done, 2026-08-01 - Mi Pad 4 discovered the live `PT-P300BT4590`; Android pairing

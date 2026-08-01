@@ -158,13 +158,10 @@ constructor(
             }
 
     private suspend fun syncAttachments(): Int {
-        val devices = deviceRepository.cachedDevices()
-        for (device in devices) {
-            imageAttachmentRepository.refresh("dcim.device", device.id).onFailure { error ->
-                syncIssueReporter.report(
-                    "Image attachments for device ${device.id} failed: ${error.message ?: "failed"}"
-                )
-            }
+        imageAttachmentRepository.refreshAll("dcim.device").onFailure { error ->
+            syncIssueReporter.report(
+                "Image attachments for devices failed: ${error.message ?: "failed"}"
+            )
         }
 
         val attachments =
