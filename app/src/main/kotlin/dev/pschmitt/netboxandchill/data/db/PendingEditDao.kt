@@ -20,8 +20,7 @@ interface PendingEditDao {
     @Query("SELECT * FROM pending_edits WHERE endpointPath = :endpointPath AND id = :id LIMIT 1")
     suspend fun get(endpointPath: String, id: Int): PendingEditEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(edit: PendingEditEntity)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(edit: PendingEditEntity)
 
     @Query("DELETE FROM pending_edits WHERE endpointPath = :endpointPath AND id = :id")
     suspend fun delete(endpointPath: String, id: Int)

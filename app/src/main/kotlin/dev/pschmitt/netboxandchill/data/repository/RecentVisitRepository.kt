@@ -30,7 +30,12 @@ class RecentVisitRepository @Inject constructor(private val dao: RecentVisitDao)
         )
     }
 
-    private suspend fun record(endpointPath: String, id: Int, display: String, secondaryLine: String?) {
+    private suspend fun record(
+        endpointPath: String,
+        id: Int,
+        display: String,
+        secondaryLine: String?,
+    ) {
         dao.upsert(
             RecentVisitEntity(
                 endpointPath = endpointPath,

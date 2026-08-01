@@ -19,9 +19,27 @@ class CreateObjectTest {
                             put(
                                 "POST",
                                 buildJsonObject {
-                                    put("name", buildJsonObject { put("type", "string"); put("label", "Name") })
-                                    put("site", buildJsonObject { put("type", "nested object"); put("required", true) })
-                                    put("id", buildJsonObject { put("type", "integer"); put("read_only", true) })
+                                    put(
+                                        "name",
+                                        buildJsonObject {
+                                            put("type", "string")
+                                            put("label", "Name")
+                                        },
+                                    )
+                                    put(
+                                        "site",
+                                        buildJsonObject {
+                                            put("type", "nested object")
+                                            put("required", true)
+                                        },
+                                    )
+                                    put(
+                                        "id",
+                                        buildJsonObject {
+                                            put("type", "integer")
+                                            put("read_only", true)
+                                        },
+                                    )
                                 },
                             )
                         },
@@ -42,12 +60,21 @@ class CreateObjectTest {
                     put(
                         "actions",
                         buildJsonObject {
-                            put("PUT", buildJsonObject {
-                                put("name", buildJsonObject { put("type", "string"); put("read_only", false) })
-                            })
+                            put(
+                                "PUT",
+                                buildJsonObject {
+                                    put(
+                                        "name",
+                                        buildJsonObject {
+                                            put("type", "string")
+                                            put("read_only", false)
+                                        },
+                                    )
+                                },
+                            )
                         },
                     )
-                },
+                }
             )
         assertEquals(listOf("name"), fields.map { it.key })
     }
@@ -57,11 +84,29 @@ class CreateObjectTest {
         val fields =
             listOf(
                 CreateFieldDefinition("name", "Name", "string", false, null, emptyList(), null),
-                CreateFieldDefinition("site", "Site", "nested object", true, null, emptyList(), "api/dcim/sites/"),
-                CreateFieldDefinition("active", "Active", "boolean", false, null, emptyList(), null),
+                CreateFieldDefinition(
+                    "site",
+                    "Site",
+                    "nested object",
+                    true,
+                    null,
+                    emptyList(),
+                    "api/dcim/sites/",
+                ),
+                CreateFieldDefinition(
+                    "active",
+                    "Active",
+                    "boolean",
+                    false,
+                    null,
+                    emptyList(),
+                    null,
+                ),
             )
         assertTrue(buildCreateBody(fields, mapOf("name" to "Router", "active" to "true")).isFailure)
-        val body = buildCreateBody(fields, mapOf("name" to "Router", "site" to "3", "active" to "true")).getOrThrow()
+        val body =
+            buildCreateBody(fields, mapOf("name" to "Router", "site" to "3", "active" to "true"))
+                .getOrThrow()
         assertEquals(JsonPrimitive("Router"), body["name"])
         assertEquals(JsonPrimitive(3), body["site"])
         assertEquals(JsonPrimitive(true), body["active"])

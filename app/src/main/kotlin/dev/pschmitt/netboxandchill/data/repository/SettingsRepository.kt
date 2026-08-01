@@ -100,8 +100,17 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     // Off by default: downloading every cached object's attachments is a meaningful amount of
     // storage/bandwidth the user should opt into, not something that happens the first time they
     // sync.
-    private val _syncAttachmentsToDisk = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ATTACHMENTS, false))
+    private val _syncAttachmentsToDisk =
+        MutableStateFlow(prefs.getBoolean(KEY_SYNC_ATTACHMENTS, false))
     val syncAttachmentsToDisk: StateFlow<Boolean> = _syncAttachmentsToDisk.asStateFlow()
+
+    // Preserve the existing connected-network behavior by default; users can opt into the safer
+    // Wi-Fi-only policy when a full cache (especially attachments) should never use mobile data.
+    private val _syncOnlyOnWifi = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ONLY_ON_WIFI, false))
+    val syncOnlyOnWifi: StateFlow<Boolean> = _syncOnlyOnWifi.asStateFlow()
+
+    private val _syncWhileRoaming = MutableStateFlow(prefs.getBoolean(KEY_SYNC_WHILE_ROAMING, true))
+    val syncWhileRoaming: StateFlow<Boolean> = _syncWhileRoaming.asStateFlow()
 
     private val _gestureAction = MutableStateFlow(loadGestureAction())
     val gestureAction: StateFlow<GestureAction> = _gestureAction.asStateFlow()
@@ -132,6 +141,16 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _syncAttachmentsToDisk.value = enabled
     }
 
+    fun setSyncOnlyOnWifi(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SYNC_ONLY_ON_WIFI, enabled).apply()
+        _syncOnlyOnWifi.value = enabled
+    }
+
+    fun setSyncWhileRoaming(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SYNC_WHILE_ROAMING, enabled).apply()
+        _syncWhileRoaming.value = enabled
+    }
+
     fun setGestureAction(action: GestureAction) {
         prefs.edit().putString(KEY_GESTURE_ACTION, action.storageKey).apply()
         _gestureAction.value = action
@@ -157,7 +176,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     fun recordSyncIssue(message: String) {
         val issueMessage = message.takeIf { it.isNotBlank() } ?: "Sync failed"
-        val issue = SyncIssue(issueMessage.take(MAX_SYNC_MESSAGE_LENGTH), System.currentTimeMillis())
+        val issue =
+            SyncIssue(issueMessage.take(MAX_SYNC_MESSAGE_LENGTH), System.currentTimeMillis())
         prefs
             .edit()
             .putString(KEY_SYNC_ISSUE_MESSAGE, issue.message)
@@ -192,7 +212,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     fun setSidebarAppOrder(order: List<String>) {
         val normalized = order.distinct().filter(String::isNotBlank)
-        prefs.edit().putString(KEY_SIDEBAR_APP_ORDER, normalized.joinToString(ORDER_SEPARATOR)).apply()
+        prefs
+            .edit()
+            .putString(KEY_SIDEBAR_APP_ORDER, normalized.joinToString(ORDER_SEPARATOR))
+            .apply()
         _sidebarAppOrder.value = normalized
     }
 
@@ -206,7 +229,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     fun togglePinned(endpointPath: String) {
         val current = _pinnedModelPaths.value
-        val updated = if (endpointPath in current) current - endpointPath else current + endpointPath
+        val updated =
+            if (endpointPath in current) current - endpointPath else current + endpointPath
         prefs.edit().putStringSet(KEY_PINNED_MODELS, updated).apply()
         _pinnedModelPaths.value = updated
     }
@@ -249,13 +273,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         prefs.getLong(KEY_LAST_SUCCESSFUL_SYNC, 0L).takeIf { it > 0L }
 
     private fun loadGestureAction(): GestureAction =
-        GestureAction.fromStorage(prefs.getString(KEY_GESTURE_ACTION, GestureAction.GlobalSearch.storageKey))
+        GestureAction.fromStorage(
+            prefs.getString(KEY_GESTURE_ACTION, GestureAction.GlobalSearch.storageKey)
+        )
 
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
 
     private fun loadHiddenFieldKeys(): Set<String> =
-        prefs.getStringSet(KEY_HIDDEN_FIELDS, null).orEmpty().mapNotNull(::normalizeHiddenFieldPreferenceKey).toSet()
+        prefs
+            .getStringSet(KEY_HIDDEN_FIELDS, null)
+            .orEmpty()
+            .mapNotNull(::normalizeHiddenFieldPreferenceKey)
+            .toSet()
 
     private fun loadOrder(key: String): List<String> =
         prefs.getString(key, null).orEmpty().split(ORDER_SEPARATOR).filter(String::isNotBlank)
@@ -283,6 +313,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_PINNED_MODELS = "pinned_model_paths"
         const val DEFAULT_PINNED_MODEL_PATH = "api/dcim/devices/"
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
+        const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"
+        const val KEY_SYNC_WHILE_ROAMING = "sync_while_roaming"
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
         const val KEY_OFFLINE_MODE = "offline_mode"

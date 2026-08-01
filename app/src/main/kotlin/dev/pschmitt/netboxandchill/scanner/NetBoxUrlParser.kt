@@ -2,7 +2,10 @@ package dev.pschmitt.netboxandchill.scanner
 
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 
-/** What a scanned/opened NetBox URL (or a bare numeric id, which is assumed to be a device) resolves to. */
+/**
+ * What a scanned/opened NetBox URL (or a bare numeric id, which is assumed to be a device) resolves
+ * to.
+ */
 sealed interface NetBoxTarget {
     data class Device(val id: Int) : NetBoxTarget
 
@@ -24,7 +27,9 @@ object NetBoxUrlParser {
         val trimmed = text.trim()
         if (QrConfigCodec.looksLikeQrConfigUri(trimmed)) {
             return runCatching {
-                    QrConfigCodec.decodePayload(trimmed).let { NetBoxTarget.Setup(it.baseUrl, it.token) }
+                    QrConfigCodec.decodePayload(trimmed).let {
+                        NetBoxTarget.Setup(it.baseUrl, it.token)
+                    }
                 }
                 .getOrNull()
         }
@@ -45,7 +50,8 @@ object NetBoxUrlParser {
     /** Returns a barcode-friendly asset-tag candidate without changing URL/ID parsing semantics. */
     fun parseAssetTag(text: String): String? {
         val trimmed = text.trim()
-        if (trimmed.isEmpty() || trimmed.toIntOrNull() != null || parse(trimmed) != null) return null
+        if (trimmed.isEmpty() || trimmed.toIntOrNull() != null || parse(trimmed) != null)
+            return null
         return trimmed.takeIf { ASSET_TAG_PATTERN.matches(it) }
     }
 }

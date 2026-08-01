@@ -49,7 +49,9 @@ object BrotherPtcBp {
     fun print(): ByteArray = byteArrayOf(0x1a)
 
     fun encodeRasterLines(raster: ByteArray): List<ByteArray> {
-        require(raster.size % RASTER_BYTES == 0) { "Raster data must contain complete 128-dot lines" }
+        require(raster.size % RASTER_BYTES == 0) {
+            "Raster data must contain complete 128-dot lines"
+        }
         val packets = ArrayList<ByteArray>(raster.size / RASTER_BYTES)
         for (offset in raster.indices step RASTER_BYTES) {
             val line = raster.copyOfRange(offset, offset + RASTER_BYTES)
@@ -57,12 +59,13 @@ object BrotherPtcBp {
                 packets += byteArrayOf(0x5a)
             } else {
                 val compressed = packBits(line)
-                packets += ByteBuffer.allocate(3 + compressed.size)
-                    .order(ByteOrder.LITTLE_ENDIAN)
-                    .put(0x47.toByte())
-                    .putShort(compressed.size.toShort())
-                    .put(compressed)
-                    .array()
+                packets +=
+                    ByteBuffer.allocate(3 + compressed.size)
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .put(0x47.toByte())
+                        .putShort(compressed.size.toShort())
+                        .put(compressed)
+                        .array()
             }
         }
         return packets

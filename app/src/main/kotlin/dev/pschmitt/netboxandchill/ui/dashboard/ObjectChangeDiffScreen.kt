@@ -34,7 +34,10 @@ import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ObjectChangeDiffScreen(onBack: () -> Unit, viewModel: ObjectChangeDiffViewModel = hiltViewModel()) {
+fun ObjectChangeDiffScreen(
+    onBack: () -> Unit,
+    viewModel: ObjectChangeDiffViewModel = hiltViewModel(),
+) {
     val diff by viewModel.diff.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -75,10 +78,12 @@ fun ObjectChangeDiffScreen(onBack: () -> Unit, viewModel: ObjectChangeDiffViewMo
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text("Couldn't load this change", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Couldn't load this change",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-            else ->
-                DiffContent(diff = diff!!, modifier = Modifier.padding(padding).fillMaxSize())
+            else -> DiffContent(diff = diff!!, modifier = Modifier.padding(padding).fillMaxSize())
         }
     }
 }

@@ -23,7 +23,8 @@ fun StatusChip(label: String?, value: String?) {
     Text(
         text = label,
         modifier =
-            Modifier.background(color, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp),
+            Modifier.background(color, RoundedCornerShape(50))
+                .padding(horizontal = 10.dp, vertical = 4.dp),
         style = MaterialTheme.typography.labelMedium,
     )
 }

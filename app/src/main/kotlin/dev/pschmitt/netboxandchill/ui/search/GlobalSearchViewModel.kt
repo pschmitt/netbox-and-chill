@@ -13,10 +13,12 @@ import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
-import dev.pschmitt.netboxandchill.data.repository.recentVisitsToSearchHits
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.rankSearchHits
+import dev.pschmitt.netboxandchill.data.repository.recentVisitsToSearchHits
+import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,16 +32,16 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import java.io.File
 
 data class SearchThumbnail(val url: String, val filename: String)
 
-/** Backs [GlobalSearchScreen] (NBC-13) - debounced free-text search, cache-first like every other
+/**
+ * Backs [GlobalSearchScreen] (NBC-13) - debounced free-text search, cache-first like every other
  * screen in this app (see [GlobalSearchRepository]'s doc comment). [results] reads straight from
  * Room so it's instant and offline-capable; [refresh] is a best-effort network pass that widens
- * results and feeds the cache, mirroring `GenericListViewModel`'s `objects`/`refresh()` split. */
+ * results and feeds the cache, mirroring `GenericListViewModel`'s `objects`/`refresh()` split.
+ */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GlobalSearchViewModel
@@ -64,17 +66,18 @@ constructor(
             .distinctUntilChanged()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    /** Cache-first, offline-capable - re-emits automatically once [refresh] (or any other sync)
-     * upserts new rows into Room, the same "Flow straight from the DAO" shape `GenericListViewModel`
-     * uses, not a one-shot network call. */
-    private val cachedResults =
-        debouncedQuery
-            .flatMapLatest { text ->
-                if (text.isBlank()) flowOf(emptyList()) else searchRepository.observeCached(text)
-            }
+    /**
+     * Cache-first, offline-capable - re-emits automatically once [refresh] (or any other sync)
+     * upserts new rows into Room, the same "Flow straight from the DAO" shape
+     * `GenericListViewModel` uses, not a one-shot network call.
+     */
+    private val cachedResults = debouncedQuery.flatMapLatest { text ->
+        if (text.isBlank()) flowOf(emptyList()) else searchRepository.observeCached(text)
+    }
 
     val results: StateFlow<List<SearchHit>> =
-        kotlinx.coroutines.flow.combine(debouncedQuery, cachedResults) { text, hits ->
+        kotlinx.coroutines.flow
+            .combine(debouncedQuery, cachedResults) { text, hits ->
                 rankSearchHits(text, hits)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -123,7 +126,8 @@ constructor(
                 if (text.isBlank()) return@collectLatest
                 _isRefreshing.value = true
                 val endpointPaths =
-                    (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS + settingsRepository.pinnedModelPaths.value)
+                    (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS +
+                            settingsRepository.pinnedModelPaths.value)
                         .distinct()
                 try {
                     searchRepository.refresh(text, endpointPaths)
@@ -158,9 +162,10 @@ constructor(
                 }
             GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
                 devicesById[hit.id]?.deviceTypeId?.let { deviceTypeId ->
-                    deviceTypesById[deviceTypeId]?.frontImageUrl
-                        ?.takeIf(String::isNotBlank)
-                        ?.let { url -> SearchThumbnail(url, "device-type-$deviceTypeId-front") }
+                    deviceTypesById[deviceTypeId]?.frontImageUrl?.takeIf(String::isNotBlank)?.let {
+                        url ->
+                        SearchThumbnail(url, "device-type-$deviceTypeId-front")
+                    }
                 }
             else -> null
         }

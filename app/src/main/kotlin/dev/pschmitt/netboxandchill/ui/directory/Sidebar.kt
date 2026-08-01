@@ -81,7 +81,9 @@ fun Sidebar(
         if (searchQuery.isBlank()) modelsByApp
         else
             modelsByApp
-                .mapValues { (_, models) -> models.filter { it.modelLabel.contains(searchQuery, ignoreCase = true) } }
+                .mapValues { (_, models) ->
+                    models.filter { it.modelLabel.contains(searchQuery, ignoreCase = true) }
+                }
                 .filterValues { it.isNotEmpty() }
 
     ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
@@ -119,7 +121,9 @@ fun Sidebar(
                         IconButton(onClick = { reorderMode = !reorderMode }) {
                             Icon(
                                 if (reorderMode) Icons.Default.ExpandLess else Icons.Default.Edit,
-                                contentDescription = if (reorderMode) "Finish reordering sidebar" else "Reorder sidebar",
+                                contentDescription =
+                                    if (reorderMode) "Finish reordering sidebar"
+                                    else "Reorder sidebar",
                             )
                         }
                     }
@@ -140,7 +144,9 @@ fun Sidebar(
                     ) { model ->
                         NavigationDrawerItem(
                             label = { Text(model.modelLabel) },
-                            icon = { Icon(AppIcons.forAppKey(model.appKey), contentDescription = null) },
+                            icon = {
+                                Icon(AppIcons.forAppKey(model.appKey), contentDescription = null)
+                            },
                             selected = false,
                             onClick = { onModelClick(model) },
                             modifier = Modifier.padding(horizontal = 12.dp),
@@ -186,26 +192,36 @@ fun Sidebar(
                                 modifier = Modifier.weight(1f),
                             )
                             if (reorderMode) {
-                                val orderedApps = orderSidebarAppKeys(filteredModelsByApp.keys, sidebarAppOrder)
+                                val orderedApps =
+                                    orderSidebarAppKeys(filteredModelsByApp.keys, sidebarAppOrder)
                                 IconButton(
                                     onClick = {
-                                        moveItem(orderedApps, appKey, -1)?.let(viewModel::setSidebarAppOrder)
+                                        moveItem(orderedApps, appKey, -1)
+                                            ?.let(viewModel::setSidebarAppOrder)
                                     },
                                     enabled = orderedApps.firstOrNull() != appKey,
                                 ) {
-                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Move $appLabel up")
+                                    Icon(
+                                        Icons.Default.ArrowUpward,
+                                        contentDescription = "Move $appLabel up",
+                                    )
                                 }
                                 IconButton(
                                     onClick = {
-                                        moveItem(orderedApps, appKey, 1)?.let(viewModel::setSidebarAppOrder)
+                                        moveItem(orderedApps, appKey, 1)
+                                            ?.let(viewModel::setSidebarAppOrder)
                                     },
                                     enabled = orderedApps.lastOrNull() != appKey,
                                 ) {
-                                    Icon(Icons.Default.ArrowDownward, contentDescription = "Move $appLabel down")
+                                    Icon(
+                                        Icons.Default.ArrowDownward,
+                                        contentDescription = "Move $appLabel down",
+                                    )
                                 }
                             }
                             Icon(
-                                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                if (isExpanded) Icons.Default.ExpandLess
+                                else Icons.Default.ExpandMore,
                                 contentDescription = if (isExpanded) "Collapse" else "Expand",
                                 tint = MaterialTheme.colorScheme.primary,
                             )
@@ -233,7 +249,10 @@ fun Sidebar(
                                         },
                                         enabled = orderedModels.firstOrNull() != model.modelKey,
                                     ) {
-                                        Icon(Icons.Default.ArrowUpward, contentDescription = "Move ${model.modelLabel} up")
+                                        Icon(
+                                            Icons.Default.ArrowUpward,
+                                            contentDescription = "Move ${model.modelLabel} up",
+                                        )
                                     }
                                     IconButton(
                                         onClick = {
@@ -243,13 +262,19 @@ fun Sidebar(
                                         },
                                         enabled = orderedModels.lastOrNull() != model.modelKey,
                                     ) {
-                                        Icon(Icons.Default.ArrowDownward, contentDescription = "Move ${model.modelLabel} down")
+                                        Icon(
+                                            Icons.Default.ArrowDownward,
+                                            contentDescription = "Move ${model.modelLabel} down",
+                                        )
                                     }
                                 }
                                 val isPinned = model.endpointPath in pinnedPaths
-                                IconButton(onClick = { viewModel.togglePinned(model.endpointPath) }) {
+                                IconButton(
+                                    onClick = { viewModel.togglePinned(model.endpointPath) }
+                                ) {
                                     Icon(
-                                        if (isPinned) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                        if (isPinned) Icons.Filled.Star
+                                        else Icons.Outlined.StarBorder,
                                         contentDescription = if (isPinned) "Unpin" else "Pin",
                                         tint =
                                             if (isPinned) MaterialTheme.colorScheme.primary
@@ -262,11 +287,18 @@ fun Sidebar(
                 }
                 item {
                     ListItem(
-                        leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
+                        leadingContent = {
+                            Icon(Icons.Default.CloudOff, contentDescription = null)
+                        },
                         headlineContent = { Text("Offline mode") },
-                        supportingContent = { Text(if (offlineMode) "Cached data only" else "Allow network sync") },
+                        supportingContent = {
+                            Text(if (offlineMode) "Cached data only" else "Allow network sync")
+                        },
                         trailingContent = {
-                            Switch(checked = offlineMode, onCheckedChange = viewModel::setOfflineMode)
+                            Switch(
+                                checked = offlineMode,
+                                onCheckedChange = viewModel::setOfflineMode,
+                            )
                         },
                     )
                 }
@@ -288,8 +320,9 @@ private fun SidebarFooter(appVersion: String, netboxUrl: String, onSettingsClick
     // ic_launcher is an <adaptive-icon> (background + foreground layers) - painterResource() only
     // supports VectorDrawables and raster assets, not that wrapper format, and throws at runtime.
     // Rendering it through a Drawable -> Bitmap first works for any drawable type.
-    val appIconBitmap =
-        remember { ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.toBitmap()?.asImageBitmap() }
+    val appIconBitmap = remember {
+        ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.toBitmap()?.asImageBitmap()
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,

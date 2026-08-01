@@ -1,9 +1,9 @@
 package dev.pschmitt.netboxandchill.sync
 
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
-import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
-import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
@@ -13,9 +13,9 @@ import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
 import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
-import java.io.IOException
 import retrofit2.HttpException
 import timber.log.Timber
 
@@ -57,12 +57,13 @@ constructor(
         }
 
         fun recordFailure(scope: String, error: Throwable) {
-            syncIssueReporter.report("$scope: ${error.message ?: error::class.simpleName ?: "failed"}")
+            syncIssueReporter.report(
+                "$scope: ${error.message ?: error::class.simpleName ?: "failed"}"
+            )
             if (error.isRetryableSyncFailure() && retryableFailure == null) retryableFailure = error
         }
 
-        val result =
-            runCatching {
+        val result = runCatching {
             // Resolve queued edits before the normal cache refresh can replace their local view.
             reportProgress("Uploading queued edits…")
             pendingEditRepository.syncPending()
@@ -83,37 +84,38 @@ constructor(
                 .mapNotNull { it.deviceTypeId }
                 .distinct()
                 .forEach { deviceTypeId ->
-                    deviceTypeRepository
-                        .refresh(deviceTypeId)
-                        .onFailure { error ->
-                            recordFailure(
-                                "Device type $deviceTypeId sync",
-                                error,
-                            )
-                        }
+                    deviceTypeRepository.refresh(deviceTypeId).onFailure { error ->
+                        recordFailure(
+                            "Device type $deviceTypeId sync",
+                            error,
+                        )
+                    }
                 }
             reportProgress("Discovering NetBox models…")
             directoryRepository.refresh().onFailure { recordFailure("Directory sync", it) }
 
             var genericObjects = 0
             val models = directoryRepository.cachedModels()
-            totalSteps = 7 + models.size + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0
+            totalSteps =
+                7 + models.size + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0
             for (model in models) {
                 reportProgress("Syncing ${model.modelLabel}…")
-                genericObjectRepository.syncAll(model.endpointPath).fold(
-                    onSuccess = { genericObjects += it },
-                    onFailure = { recordFailure("${model.endpointPath} sync", it) },
-                )
+                genericObjectRepository
+                    .syncAll(model.endpointPath)
+                    .fold(
+                        onSuccess = { genericObjects += it },
+                        onFailure = { recordFailure("${model.endpointPath} sync", it) },
+                    )
             }
 
             reportProgress("Syncing rack elevations…")
             genericObjectRepository.cachedObjects("api/dcim/racks/").forEach { rack ->
-                rackElevationRepository
-                    .refresh(rack.id, RackFace.FRONT)
-                    .onFailure { recordFailure("Rack ${rack.id} front elevation", it) }
-                rackElevationRepository
-                    .refresh(rack.id, RackFace.REAR)
-                    .onFailure { recordFailure("Rack ${rack.id} rear elevation", it) }
+                rackElevationRepository.refresh(rack.id, RackFace.FRONT).onFailure {
+                    recordFailure("Rack ${rack.id} front elevation", it)
+                }
+                rackElevationRepository.refresh(rack.id, RackFace.REAR).onFailure {
+                    recordFailure("Rack ${rack.id} rear elevation", it)
+                }
             }
 
             val durableAttachments =
@@ -124,11 +126,10 @@ constructor(
                             recordFailure("Attachment sync", it)
                             0
                         }
-                }
-                else 0
+                } else 0
             retryableFailure?.let { throw it }
-                OfflineSyncSummary(devices, genericObjects, durableAttachments)
-            }
+            OfflineSyncSummary(devices, genericObjects, durableAttachments)
+        }
         val warnings = syncIssueReporter.drain()
         when {
             result.isFailure ->
@@ -151,41 +152,46 @@ constructor(
     }
 
     private fun Throwable.isRetryableSyncFailure(): Boolean =
-        generateSequence(this) { it.cause }.any { cause ->
-            cause is IOException || cause is HttpException && cause.code() >= 500
-        }
+        generateSequence(this) { it.cause }
+            .any { cause ->
+                cause is IOException || cause is HttpException && cause.code() >= 500
+            }
 
     private suspend fun syncAttachments(): Int {
         val devices = deviceRepository.cachedDevices()
         for (device in devices) {
-            imageAttachmentRepository
-                .refresh("dcim.device", device.id)
-                .onFailure { error ->
-                    syncIssueReporter.report(
-                        "Image attachments for device ${device.id} failed: ${error.message ?: "failed"}"
-                    )
-                }
+            imageAttachmentRepository.refresh("dcim.device", device.id).onFailure { error ->
+                syncIssueReporter.report(
+                    "Image attachments for device ${device.id} failed: ${error.message ?: "failed"}"
+                )
+            }
         }
 
-        val attachments = buildList {
-            addAll(genericObjectRepository.cachedMediaAttachments())
-            deviceTypeRepository.cachedAll().forEach { deviceType ->
-                deviceType.frontImageUrl?.let { add(OfflineAttachment(it, "device-type-${deviceType.id}-front")) }
-                deviceType.rearImageUrl?.let { add(OfflineAttachment(it, "device-type-${deviceType.id}-rear")) }
-            }
-            imageAttachmentRepository.cachedAll().forEach { attachment ->
-                attachment.imageUrl?.let {
-                    add(
-                        OfflineAttachment(
-                            it,
-                            attachment.name?.takeIf(String::isNotBlank)
-                                ?: attachment.display?.takeIf(String::isNotBlank)
-                                ?: "image-attachment-${attachment.id}",
-                        )
-                    )
+        val attachments =
+            buildList {
+                    addAll(genericObjectRepository.cachedMediaAttachments())
+                    deviceTypeRepository.cachedAll().forEach { deviceType ->
+                        deviceType.frontImageUrl?.let {
+                            add(OfflineAttachment(it, "device-type-${deviceType.id}-front"))
+                        }
+                        deviceType.rearImageUrl?.let {
+                            add(OfflineAttachment(it, "device-type-${deviceType.id}-rear"))
+                        }
+                    }
+                    imageAttachmentRepository.cachedAll().forEach { attachment ->
+                        attachment.imageUrl?.let {
+                            add(
+                                OfflineAttachment(
+                                    it,
+                                    attachment.name?.takeIf(String::isNotBlank)
+                                        ?: attachment.display?.takeIf(String::isNotBlank)
+                                        ?: "image-attachment-${attachment.id}",
+                                )
+                            )
+                        }
+                    }
                 }
-            }
-        }.distinctBy(OfflineAttachment::url)
+                .distinctBy(OfflineAttachment::url)
 
         var downloaded = 0
         for (attachment in attachments) {

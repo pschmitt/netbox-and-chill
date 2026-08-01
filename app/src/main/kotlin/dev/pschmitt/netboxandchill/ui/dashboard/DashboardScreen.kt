@@ -1,8 +1,8 @@
 package dev.pschmitt.netboxandchill.ui.dashboard
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -34,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -58,9 +57,10 @@ import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
-import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
+import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
+import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,6 +74,7 @@ fun DashboardScreen(
     onChangeDiffClick: (changeId: Int) -> Unit,
     onConflictsClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAddClick: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -96,7 +97,7 @@ fun DashboardScreen(
         }
     }
 
-    Scaffold(
+    NetBoxResponsiveScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -114,6 +115,7 @@ fun DashboardScreen(
                 onDashboardClick = {},
                 onSearchClick = onSearchClick,
                 onScanClick = onScanClick,
+                onAddClick = onAddClick,
                 onSettingsClick = onSettingsClick,
             )
         },
@@ -126,17 +128,21 @@ fun DashboardScreen(
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
             val bookmarkTargets =
-                bookmarks.mapNotNull { bookmark ->
-                    val path = bookmark.targetEndpointPath
-                    val id = bookmark.targetId
-                    if (path != null && id != null) bookmark.id to (path to id) else null
-                }.toMap()
+                bookmarks
+                    .mapNotNull { bookmark ->
+                        val path = bookmark.targetEndpointPath
+                        val id = bookmark.targetId
+                        if (path != null && id != null) bookmark.id to (path to id) else null
+                    }
+                    .toMap()
             val changeTargets =
-                changelog.mapNotNull { change ->
-                    val path = change.targetEndpointPath
-                    val id = change.targetId
-                    if (path != null && id != null) change.id to (path to id) else null
-                }.toMap()
+                changelog
+                    .mapNotNull { change ->
+                        val path = change.targetEndpointPath
+                        val id = change.targetId
+                        if (path != null && id != null) change.id to (path to id) else null
+                    }
+                    .toMap()
 
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
                 syncIssue?.let { issue ->
@@ -155,7 +161,10 @@ fun DashboardScreen(
                                 Icon(Icons.Default.CloudOff, contentDescription = null)
                                 Spacer(Modifier.width(12.dp))
                                 Column {
-                                    Text("Offline mode", style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        "Offline mode",
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
                                     Text(
                                         "Showing cached data; network sync is paused",
                                         style = MaterialTheme.typography.bodySmall,
@@ -195,7 +204,10 @@ fun DashboardScreen(
                                         "$conflictCount edit conflict${if (conflictCount == 1) "" else "s"}",
                                         style = MaterialTheme.typography.titleMedium,
                                     )
-                                    Text("Review local and server values", style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        "Review local and server values",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
                                 }
                             }
                         }
@@ -230,7 +242,9 @@ fun DashboardScreen(
                             thumbnail = thumbnail,
                             localImageFile = viewModel::localImageFile,
                         ) {
-                            bookmarkTargets[bookmark.id]?.let { (path, id) -> onNavigateToReference(path, id) }
+                            bookmarkTargets[bookmark.id]?.let { (path, id) ->
+                                onNavigateToReference(path, id)
+                            }
                         }
                     }
                 }
@@ -252,7 +266,9 @@ fun DashboardScreen(
                             thumbnail = thumbnail,
                             localImageFile = viewModel::localImageFile,
                             onClick = {
-                                changeTargets[change.id]?.let { (path, id) -> onNavigateToReference(path, id) }
+                                changeTargets[change.id]?.let { (path, id) ->
+                                    onNavigateToReference(path, id)
+                                }
                             },
                             onDiffClick = { onChangeDiffClick(change.id) },
                         )
@@ -283,7 +299,10 @@ private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(stat.endpointPath)), contentDescription = null)
+            Icon(
+                AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(stat.endpointPath)),
+                contentDescription = null,
+            )
             Spacer(Modifier.height(8.dp))
             Text(stat.count.toString(), style = MaterialTheme.typography.headlineSmall)
             Text(
@@ -320,8 +339,9 @@ private fun BookmarkRow(
 ) {
     val hasTarget = bookmark.targetEndpointPath != null && bookmark.targetId != null
     val icon =
-        bookmark.targetEndpointPath?.let { AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(it)) }
-            ?: Icons.Default.Bookmark
+        bookmark.targetEndpointPath?.let {
+            AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(it))
+        } ?: Icons.Default.Bookmark
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     ListItem(
         leadingContent = {
@@ -405,7 +425,11 @@ private fun SectionHeader(icon: ImageVector, title: String) {
             modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(8.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 
@@ -418,7 +442,9 @@ private fun EmptyHint(isRefreshing: Boolean, idleText: String) {
     )
 }
 
-/** "2026-07-25T16:33:05.946712Z" -> "2026-07-25 16:33" - a first-pass, good-enough human format;
- * no timezone conversion, matches how timestamps are shown elsewhere in the app (e.g. Journal
- * entries) - just raw-ish ISO trimmed to the minute. */
+/**
+ * "2026-07-25T16:33:05.946712Z" -> "2026-07-25 16:33" - a first-pass, good-enough human format; no
+ * timezone conversion, matches how timestamps are shown elsewhere in the app (e.g. Journal
+ * entries) - just raw-ish ISO trimmed to the minute.
+ */
 private fun formatTimestamp(iso: String): String = formatNetBoxDateTime(iso)

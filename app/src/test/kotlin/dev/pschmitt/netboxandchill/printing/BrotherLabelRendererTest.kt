@@ -8,7 +8,9 @@ class BrotherLabelRendererTest {
     @Test
     fun `normal raster keeps source white as printer white`() {
         assertTrue(BrotherLabelRenderer.printerWhiteBit(sourcePixelIsWhite = true, invert = false))
-        assertFalse(BrotherLabelRenderer.printerWhiteBit(sourcePixelIsWhite = false, invert = false))
+        assertFalse(
+            BrotherLabelRenderer.printerWhiteBit(sourcePixelIsWhite = false, invert = false)
+        )
     }
 
     @Test

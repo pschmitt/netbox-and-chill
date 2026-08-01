@@ -19,7 +19,7 @@ import androidx.room.RoomDatabase
             RecentVisitEntity::class,
             RackElevationEntity::class,
         ],
-    version = 12,
+    version = 14,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

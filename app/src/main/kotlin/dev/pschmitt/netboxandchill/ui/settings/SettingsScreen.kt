@@ -1,12 +1,13 @@
 package dev.pschmitt.netboxandchill.ui.settings
 
-import android.graphics.Bitmap
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.graphics.Bitmap
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,38 +15,40 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -77,8 +80,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
-import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
@@ -109,10 +112,16 @@ fun SettingsScreen(
     val persistentCacheFiles by viewModel.persistentCacheFiles.collectAsStateWithLifecycle()
     val syncAttachmentsToDisk by
         viewModel.settingsRepository.syncAttachmentsToDisk.collectAsStateWithLifecycle()
+    val syncOnlyOnWifi by viewModel.settingsRepository.syncOnlyOnWifi.collectAsStateWithLifecycle()
+    val syncWhileRoaming by
+        viewModel.settingsRepository.syncWhileRoaming.collectAsStateWithLifecycle()
     val gestureAction by viewModel.settingsRepository.gestureAction.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
-    val hiddenFieldKeys by viewModel.settingsRepository.hiddenFieldKeys.collectAsStateWithLifecycle()
+    val hiddenFieldKeys by
+        viewModel.settingsRepository.hiddenFieldKeys.collectAsStateWithLifecycle()
+    val pinnedModelPaths by
+        viewModel.settingsRepository.pinnedModelPaths.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.settingsRepository.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -143,7 +152,10 @@ fun SettingsScreen(
                             pendingTokenAction = null
                         }
 
-                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        override fun onAuthenticationError(
+                            errorCode: Int,
+                            errString: CharSequence,
+                        ) {
                             pendingTokenAction = null
                             tokenAuthError = errString.toString()
                         }
@@ -243,11 +255,9 @@ fun SettingsScreen(
                     }
                 },
             )
-        }
+        },
     ) { padding ->
-        Column(
-            Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())
-        ) {
+        Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
             SettingsSectionHeader(
                 title = "Connection",
                 subtitle = "The NetBox server and credentials used by this app",
@@ -277,19 +287,23 @@ fun SettingsScreen(
                                 } else {
                                     authenticateForToken { tokenVisible = true }
                                 }
-                            },
+                            }
                         ) {
                             Icon(
-                                if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (tokenVisible) "Hide API token" else "Show API token",
+                                if (tokenVisible) Icons.Default.VisibilityOff
+                                else Icons.Default.Visibility,
+                                contentDescription =
+                                    if (tokenVisible) "Hide API token" else "Show API token",
                             )
                         }
                         IconButton(
                             onClick = {
                                 authenticateForToken {
-                                    context.getSystemService<ClipboardManager>()?.setPrimaryClip(
-                                        ClipData.newPlainText("API token", credentials.token)
-                                    )
+                                    context
+                                        .getSystemService<ClipboardManager>()
+                                        ?.setPrimaryClip(
+                                            ClipData.newPlainText("API token", credentials.token)
+                                        )
                                     tokenCopied = true
                                 }
                             },
@@ -321,9 +335,13 @@ fun SettingsScreen(
                                 qrBitmap = QrBitmap.encode(payload)
                             }
                         },
-                        enabled = credentials.baseUrl.isNotBlank() && credentials.token.isNotBlank(),
+                        enabled =
+                            credentials.baseUrl.isNotBlank() && credentials.token.isNotBlank(),
                     ) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Show connection setup QR code")
+                        Icon(
+                            Icons.Default.QrCodeScanner,
+                            contentDescription = "Show connection setup QR code",
+                        )
                     }
                 },
             )
@@ -358,7 +376,49 @@ fun SettingsScreen(
                     Text("Download documents and images on sync for full offline access")
                 },
                 trailingContent = {
-                    Switch(checked = syncAttachmentsToDisk, onCheckedChange = viewModel::setSyncAttachmentsToDisk)
+                    Switch(
+                        checked = syncAttachmentsToDisk,
+                        onCheckedChange = viewModel::setSyncAttachmentsToDisk,
+                    )
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Wifi, contentDescription = null) },
+                headlineContent = { Text("Sync only on Wi-Fi") },
+                supportingContent = {
+                    Text("Use an unmetered connection for background and manual sync")
+                },
+                trailingContent = {
+                    Switch(checked = syncOnlyOnWifi, onCheckedChange = viewModel::setSyncOnlyOnWifi)
+                },
+            )
+            ListItem(
+                leadingContent = {
+                    Icon(Icons.Default.SignalCellularAlt, contentDescription = null)
+                },
+                headlineContent = { Text("Sync while roaming") },
+                supportingContent = {
+                    Text(
+                        if (syncOnlyOnWifi) {
+                            "No effect while Wi-Fi-only sync is enabled"
+                        } else {
+                            "Allow sync over a roaming mobile connection"
+                        }
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = syncWhileRoaming,
+                        onCheckedChange = viewModel::setSyncWhileRoaming,
+                        enabled = !syncOnlyOnWifi,
+                    )
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.BatteryAlert, contentDescription = null) },
+                headlineContent = { Text("Battery Saver") },
+                supportingContent = {
+                    Text("Sync pauses automatically while Android Battery Saver is enabled")
                 },
             )
             ListItem(
@@ -377,7 +437,11 @@ fun SettingsScreen(
                     enabled = !isSyncing,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Default.Sync,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text(if (isSyncing) "Syncing…" else "Sync now")
                 }
@@ -412,6 +476,17 @@ fun SettingsScreen(
                             Icon(Icons.Default.Edit, contentDescription = "Configure hidden fields")
                         }
                     }
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.PushPin, contentDescription = null) },
+                headlineContent = { Text("Pinned item types") },
+                supportingContent = {
+                    Text(
+                        if (pinnedModelPaths.isEmpty()) "No item types pinned"
+                        else
+                            "${pinnedModelPaths.size} pinned · Long-press an item type on Add to change this"
+                    )
                 },
             )
             ListItem(
@@ -463,7 +538,10 @@ fun SettingsScreen(
                 trailingContent = {
                     Box {
                         IconButton(onClick = { scannerLensMenuExpanded = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Configure scanner camera")
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Configure scanner camera",
+                            )
                         }
                         DropdownMenu(
                             expanded = scannerLensMenuExpanded,
@@ -472,7 +550,9 @@ fun SettingsScreen(
                             ScannerLens.entries.forEach { lens ->
                                 DropdownMenuItem(
                                     text = { Text(lens.label) },
-                                    leadingIcon = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Cameraswitch, contentDescription = null)
+                                    },
                                     onClick = {
                                         viewModel.setScannerLens(lens)
                                         scannerLensMenuExpanded = false
@@ -563,7 +643,10 @@ private fun HiddenFieldsDialog(
                 )
                 Spacer(Modifier.height(12.dp))
                 keys.sorted().forEach { key ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
                         Text(key, modifier = Modifier.weight(1f))
                         IconButton(onClick = { onRemove(key) }) {
                             Icon(Icons.Default.Clear, contentDescription = "Remove $key")
@@ -606,10 +689,12 @@ private fun HiddenFieldsDialog(
     )
 }
 
-/** Edit the configured NetBox base URL (NBC-39). Save triggers
- * [SettingsViewModel.updateBaseUrl], which validates reachability before committing and reverts on
- * failure - this dialog doesn't wait around for that, it dismisses immediately and any failure
- * surfaces via the screen's existing Snackbar, same as every other async action here. */
+/**
+ * Edit the configured NetBox base URL (NBC-39). Save triggers [SettingsViewModel.updateBaseUrl],
+ * which validates reachability before committing and reverts on failure - this dialog doesn't wait
+ * around for that, it dismisses immediately and any failure surfaces via the screen's existing
+ * Snackbar, same as every other async action here.
+ */
 @Composable
 private fun EditServerDialog(
     currentBaseUrl: String,
@@ -637,7 +722,9 @@ private fun EditServerDialog(
                 Text("Save")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !isUpdating) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isUpdating) { Text("Cancel") }
+        },
     )
 }
 

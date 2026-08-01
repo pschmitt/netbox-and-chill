@@ -17,8 +17,8 @@ import timber.log.Timber
 /**
  * Discovers every NetBox object type (including plugin-provided ones) by walking the API's own
  * self-describing root views - `GET api/` lists app namespaces, `GET api/<app>/` lists that app's
- * models - rather than parsing the full OpenAPI schema. This is what drives the sidebar (NBC-6)
- * and the generic list/detail screens.
+ * models - rather than parsing the full OpenAPI schema. This is what drives the sidebar (NBC-6) and
+ * the generic list/detail screens.
  */
 @Singleton
 class DirectoryRepository
@@ -48,7 +48,9 @@ constructor(
                 .onFailure {
                     Timber.w(it, "Failed to discover NetBox app '%s'", appKey)
                     failedApps += appKey
-                    syncIssueReporter.report("Directory discovery failed for $appKey: ${it.message}")
+                    syncIssueReporter.report(
+                        "Directory discovery failed for $appKey: ${it.message}"
+                    )
                 }
         }
         if (failedApps.isNotEmpty()) {
@@ -62,14 +64,19 @@ constructor(
         models.size
     }
 
-    private suspend fun discoverApp(appKey: String, appUrl: String, into: MutableList<NetBoxModelEntity>) {
+    private suspend fun discoverApp(
+        appKey: String,
+        appUrl: String,
+        into: MutableList<NetBoxModelEntity>,
+    ) {
         val appModels = api.getUrlMap(relativePath(appUrl))
         if (appKey == "plugins") {
             // One extra nesting level: api/plugins/ -> {pluginName: url}, then
             // api/plugins/<plugin>/ -> {modelKey: url} - flatten so each plugin reads as its own
             // sidebar group.
             for ((pluginKey, pluginUrl) in appModels) {
-                val pluginModels = runCatching { api.getUrlMap(relativePath(pluginUrl)) }.getOrNull() ?: continue
+                val pluginModels =
+                    runCatching { api.getUrlMap(relativePath(pluginUrl)) }.getOrNull() ?: continue
                 for ((modelKey, modelUrl) in pluginModels) {
                     addCollectionModel(
                         into = into,
@@ -124,9 +131,10 @@ constructor(
      */
     private suspend fun isPaginatedCollection(endpointPath: String): Boolean =
         runCatching {
-            val page = api.listObjects(endpointPath, mapOf("limit" to "1", "offset" to "0"))
-            page.results.isEmpty() || page.results.any(JsonObject::hasNumericId)
-        }.getOrDefault(false)
+                val page = api.listObjects(endpointPath, mapOf("limit" to "1", "offset" to "0"))
+                page.results.isEmpty() || page.results.any(JsonObject::hasNumericId)
+            }
+            .getOrDefault(false)
 
     private fun relativePath(url: String): String =
         url.toHttpUrlOrNull()?.encodedPath?.trimStart('/') ?: url.trimStart('/')

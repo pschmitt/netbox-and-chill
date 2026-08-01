@@ -19,8 +19,10 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class DirectoryViewModel
 @Inject
-constructor(private val directoryRepository: DirectoryRepository, val settingsRepository: SettingsRepository) :
-    ViewModel() {
+constructor(
+    private val directoryRepository: DirectoryRepository,
+    val settingsRepository: SettingsRepository,
+) : ViewModel() {
 
     val modelsByApp: StateFlow<Map<String, List<NetBoxModelEntity>>> =
         directoryRepository
@@ -29,20 +31,13 @@ constructor(private val directoryRepository: DirectoryRepository, val settingsRe
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val sidebarAppOrder: StateFlow<List<String>> = settingsRepository.sidebarAppOrder
-    val sidebarModelOrders: StateFlow<Map<String, List<String>>> = settingsRepository.sidebarModelOrders
+    val sidebarModelOrders: StateFlow<Map<String, List<String>>> =
+        settingsRepository.sidebarModelOrders
 
     val pinnedModels: StateFlow<List<NetBoxModelEntity>> =
         settingsRepository.pinnedModelPaths
             .flatMapLatest { paths -> directoryRepository.observePinned(paths) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    init {
-        viewModelScope.launch {
-            if (!settingsRepository.offlineMode.value && directoryRepository.cachedModelCount() == 0) {
-                directoryRepository.refresh()
-            }
-        }
-    }
 
     fun refresh() {
         if (settingsRepository.offlineMode.value) return

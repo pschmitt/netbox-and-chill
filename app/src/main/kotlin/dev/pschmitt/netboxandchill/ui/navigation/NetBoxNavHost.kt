@@ -5,15 +5,16 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
+import dev.pschmitt.netboxandchill.ui.conflicts.EditConflictsScreen
 import dev.pschmitt.netboxandchill.ui.dashboard.DashboardScreen
 import dev.pschmitt.netboxandchill.ui.dashboard.ObjectChangeDiffScreen
-import dev.pschmitt.netboxandchill.ui.conflicts.EditConflictsScreen
 import dev.pschmitt.netboxandchill.ui.devicedetail.DeviceDetailScreen
 import dev.pschmitt.netboxandchill.ui.devices.DeviceListScreen
-import dev.pschmitt.netboxandchill.ui.generic.GenericDetailScreen
+import dev.pschmitt.netboxandchill.ui.generic.AddItemScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericCreateScreen
+import dev.pschmitt.netboxandchill.ui.generic.GenericDetailScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericListScreen
-import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.ui.onboarding.OnboardingScreen
 import dev.pschmitt.netboxandchill.ui.scanner.ScannerScreen
 import dev.pschmitt.netboxandchill.ui.search.GlobalSearchScreen
@@ -53,15 +54,20 @@ fun NetBoxNavHost(
                     navController.navigate(Route.Dashboard) {
                         popUpTo(Route.Onboarding) { inclusive = true }
                     }
-                }
+                },
             )
         }
         composable<Route.Dashboard> {
             DashboardScreen(
                 onOpenDrawer = onOpenDrawer,
                 onScanClick = { navController.navigate(Route.Scanner()) },
-                onSearchClick = { navController.navigate(Route.GlobalSearch) { launchSingleTop = true } },
-                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
+                onSearchClick = {
+                    navController.navigate(Route.GlobalSearch) { launchSingleTop = true }
+                },
+                onSettingsClick = {
+                    navController.navigate(Route.Settings) { launchSingleTop = true }
+                },
+                onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
                 onNavigateToReference = { endpointPath, id ->
                     navController.navigateToObject(endpointPath, id)
                 },
@@ -74,7 +80,9 @@ fun NetBoxNavHost(
                         }
                     }
                 },
-                onChangeDiffClick = { changeId -> navController.navigate(Route.ObjectChangeDiff(changeId)) },
+                onChangeDiffClick = { changeId ->
+                    navController.navigate(Route.ObjectChangeDiff(changeId))
+                },
                 onConflictsClick = { navController.navigate(Route.EditConflicts) },
             )
         }
@@ -87,11 +95,16 @@ fun NetBoxNavHost(
                 onCreateClick = {
                     navController.navigate(Route.GenericCreate(DEVICES_ENDPOINT_PATH, "device"))
                 },
-                onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
+                onDashboardClick = {
+                    navController.navigate(Route.Dashboard) { launchSingleTop = true }
+                },
                 onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
                 onSearchClick = { navController.navigate(Route.GlobalSearch) },
-                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
+                onSettingsClick = {
+                    navController.navigate(Route.Settings) { launchSingleTop = true }
+                },
+                onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
             )
         }
         composable<Route.DeviceDetail> { backStackEntry ->
@@ -102,8 +115,23 @@ fun NetBoxNavHost(
                 onEditClick = {
                     navController.navigate(Route.Generic(DEVICES_ENDPOINT_PATH, route.deviceId))
                 },
-                onDeviceTypeClick = { id -> navController.navigate(Route.Generic(DEVICE_TYPES_ENDPOINT_PATH, id)) },
-                onReferenceClick = { endpointPath, id -> navController.navigate(Route.Generic(endpointPath, id)) },
+                onEditFieldClick = { fieldKey ->
+                    navController.navigate(
+                        Route.Generic(
+                            endpointPath = DEVICES_ENDPOINT_PATH,
+                            id = route.deviceId,
+                            focusFieldKey = fieldKey,
+                        )
+                    )
+                },
+                onDeviceTypeClick = { id, breadcrumb ->
+                    navController.navigate(
+                        Route.Generic(DEVICE_TYPES_ENDPOINT_PATH, id, breadcrumb)
+                    )
+                },
+                onReferenceClick = { endpointPath, id, breadcrumb ->
+                    navController.navigate(Route.Generic(endpointPath, id, breadcrumb))
+                },
             )
         }
         composable<Route.GenericList> { backStackEntry ->
@@ -113,27 +141,59 @@ fun NetBoxNavHost(
                 onCreateClick = {
                     navController.navigate(Route.GenericCreate(route.endpointPath, route.label))
                 },
-                onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
+                onDashboardClick = {
+                    navController.navigate(Route.Dashboard) { launchSingleTop = true }
+                },
                 onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
                 onSearchClick = { navController.navigate(Route.GlobalSearch) },
-                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
+                onSettingsClick = {
+                    navController.navigate(Route.Settings) { launchSingleTop = true }
+                },
+                onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
             )
         }
         composable<Route.GlobalSearch> {
             GlobalSearchScreen(
-                onResultClick = { endpointPath, id -> navController.navigateToObject(endpointPath, id) },
+                onResultClick = { endpointPath, id ->
+                    navController.navigateToObject(endpointPath, id)
+                },
                 onBack = { navController.popBackStack() },
-                onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
+                onDashboardClick = {
+                    navController.navigate(Route.Dashboard) { launchSingleTop = true }
+                },
                 onScanClick = { navController.navigate(Route.Scanner()) },
-                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
+                onSettingsClick = {
+                    navController.navigate(Route.Settings) { launchSingleTop = true }
+                },
+                onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
             )
         }
         composable<Route.Generic> {
             GenericDetailScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToReference = { endpointPath, id ->
-                    navController.navigateToObject(endpointPath, id)
+                onNavigateToReference = { endpointPath, id, breadcrumb ->
+                    navController.navigate(Route.Generic(endpointPath, id, breadcrumb))
+                },
+            )
+        }
+        composable<Route.Add> {
+            AddItemScreen(
+                onBack = { navController.popBackStack() },
+                onModelClick = { model ->
+                    navController.navigate(
+                        Route.GenericCreate(model.endpointPath, model.modelLabel)
+                    )
+                },
+                onDashboardClick = {
+                    navController.navigate(Route.Dashboard) { launchSingleTop = true }
+                },
+                onSearchClick = {
+                    navController.navigate(Route.GlobalSearch) { launchSingleTop = true }
+                },
+                onScanClick = { navController.navigate(Route.Scanner()) },
+                onSettingsClick = {
+                    navController.navigate(Route.Settings) { launchSingleTop = true }
                 },
             )
         }
@@ -163,12 +223,21 @@ fun NetBoxNavHost(
                                 return@ScannerScreen
                             }
                         }
-                    navController.navigate(destination) { popUpTo(Route.Scanner()) { inclusive = true } }
+                    navController.navigate(destination) {
+                        popUpTo(Route.Scanner()) { inclusive = true }
+                    }
                 },
                 onBack = { navController.popBackStack() },
-                onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
-                onSearchClick = { navController.navigate(Route.GlobalSearch) { launchSingleTop = true } },
-                onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
+                onDashboardClick = {
+                    navController.navigate(Route.Dashboard) { launchSingleTop = true }
+                },
+                onSearchClick = {
+                    navController.navigate(Route.GlobalSearch) { launchSingleTop = true }
+                },
+                onSettingsClick = {
+                    navController.navigate(Route.Settings) { launchSingleTop = true }
+                },
+                onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
                 showBottomBar = !route.fromOnboarding,
             )
         }

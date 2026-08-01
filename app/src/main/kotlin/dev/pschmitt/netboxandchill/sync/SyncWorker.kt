@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.sync
 
 import android.content.Context
+import android.os.PowerManager
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -20,10 +21,26 @@ constructor(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (!settingsRepository.isConfigured) return Result.success()
+        // WorkManager can express low battery but not Android's explicit Battery Saver mode. Do
+        // this check immediately before starting the network/foreground work so a manual or
+        // already-enqueued request cannot begin while the user has asked the system to conserve
+        // power. Returning retry leaves it queued for a later attempt after Battery Saver ends.
+        val powerManager =
+            applicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        if (powerManager?.isPowerSaveMode == true) return Result.retry()
         // Full syncs include every discovered model plus optional durable attachments and can
         // legitimately run for minutes. Promote the WorkManager job before touching the network
         // so Android keeps it alive and the user gets the real system progress notification.
-        setForeground(syncNotifier.foregroundInfo())
+        // A foreground service notification is mandatory for a background-started long-running
+        // worker, but it is needlessly intrusive when the user is already looking at the app. In
+        // that case the in-app sync state remains visible and the worker stays an ordinary
+        // WorkManager job; if the app is backgrounded before the next scheduled run, the normal
+        // foreground path is used again.
+        if (!syncNotifier.isAppInForeground()) {
+            setForeground(syncNotifier.foregroundInfo())
+        } else {
+            syncNotifier.notifySyncStarted()
+        }
         return offlineSyncRepository
             .syncAll(onProgress = syncNotifier::notifySyncProgress)
             .fold(

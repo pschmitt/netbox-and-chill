@@ -14,6 +14,7 @@ import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -36,8 +36,7 @@ constructor(
     private val fileDownloadRepository: FileDownloadRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
-) :
-    ViewModel() {
+) : ViewModel() {
 
     val route: Route.GenericList = savedStateHandle.toRoute()
 
@@ -57,7 +56,12 @@ constructor(
     val objects: StateFlow<List<NetBoxObjectEntity>> =
         _query
             .flatMapLatest {
-                repository.observeObjects(route.endpointPath, it, route.filterKey, route.filterValue)
+                repository.observeObjects(
+                    route.endpointPath,
+                    it,
+                    route.filterKey,
+                    route.filterValue,
+                )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -72,10 +76,6 @@ constructor(
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
-
-    init {
-        refresh()
-    }
 
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery

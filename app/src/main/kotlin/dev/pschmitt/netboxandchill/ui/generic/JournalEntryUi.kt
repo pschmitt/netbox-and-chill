@@ -5,9 +5,17 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
-/** A NetBox Journal entry (`/api/extras/journal-entries/`), reduced to what the detail screen
- * renders - see [dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository]. */
-data class JournalEntryUi(val id: Int, val created: String, val kind: String, val kindLabel: String, val comments: String)
+/**
+ * A NetBox Journal entry (`/api/extras/journal-entries/`), reduced to what the detail screen
+ * renders - see [dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository].
+ */
+data class JournalEntryUi(
+    val id: Int,
+    val created: String,
+    val kind: String,
+    val kindLabel: String,
+    val comments: String,
+)
 
 fun JsonObject.toJournalEntryUi(): JournalEntryUi? {
     val id = this["id"]?.jsonPrimitive?.intOrNull ?: return null

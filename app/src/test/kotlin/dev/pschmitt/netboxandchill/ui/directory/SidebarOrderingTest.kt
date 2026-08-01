@@ -37,10 +37,13 @@ class SidebarOrderingTest {
 
     @Test
     fun `saved model order takes precedence`() {
-        val models = listOf(model("devices", "Devices"), model("sites", "Sites"), model("racks", "Racks"))
+        val models =
+            listOf(model("devices", "Devices"), model("sites", "Sites"), model("racks", "Racks"))
         assertEquals(
             listOf("devices", "sites", "racks"),
-            orderSidebarModels("dcim", models, listOf("devices", "sites", "racks")).map { it.modelKey },
+            orderSidebarModels("dcim", models, listOf("devices", "sites", "racks")).map {
+                it.modelKey
+            },
         )
     }
 

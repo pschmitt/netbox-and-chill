@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -86,7 +85,10 @@ fun EditConflictsScreen(
     ) { padding ->
         if (conflicts.isEmpty()) {
             Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No unresolved edit conflicts", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "No unresolved edit conflicts",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         } else {
             LazyColumn(Modifier.padding(padding).fillMaxSize()) {
@@ -100,14 +102,19 @@ fun EditConflictsScreen(
                 items(conflicts, key = { "${it.endpointPath}-${it.id}" }) { conflict ->
                     ListItem(
                         leadingContent = {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
                         },
                         headlineContent = { Text("${conflict.endpointPath} #${conflict.id}") },
                         supportingContent = { Text("Choose which changes to keep") },
-                        modifier = Modifier.clickable {
-                            selected = conflict
-                            choices = defaultChoices(viewModel.fields(conflict))
-                        },
+                        modifier =
+                            Modifier.clickable {
+                                selected = conflict
+                                choices = defaultChoices(viewModel.fields(conflict))
+                            },
                     )
                 }
             }
@@ -166,9 +173,15 @@ private fun ConflictFieldRow(
         Text("Local: ${field.local}", style = MaterialTheme.typography.bodySmall)
         Text("Server: ${field.server}", style = MaterialTheme.typography.bodySmall)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(selected = choice == ConflictChoice.LOCAL, onClick = { onChoice(ConflictChoice.LOCAL) })
+            RadioButton(
+                selected = choice == ConflictChoice.LOCAL,
+                onClick = { onChoice(ConflictChoice.LOCAL) },
+            )
             Text("Keep local")
-            RadioButton(selected = choice == ConflictChoice.SERVER, onClick = { onChoice(ConflictChoice.SERVER) })
+            RadioButton(
+                selected = choice == ConflictChoice.SERVER,
+                onClick = { onChoice(ConflictChoice.SERVER) },
+            )
             Text("Keep server")
         }
     }
@@ -176,6 +189,5 @@ private fun ConflictFieldRow(
 
 private fun defaultChoices(fields: List<ConflictField>): Map<String, ConflictChoice> =
     fields.associate { field ->
-        field.key to
-            if (field.local != field.base) ConflictChoice.LOCAL else ConflictChoice.SERVER
+        field.key to if (field.local != field.base) ConflictChoice.LOCAL else ConflictChoice.SERVER
     }

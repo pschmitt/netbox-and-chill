@@ -6,8 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -15,7 +15,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -25,18 +24,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
-import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
-import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +45,7 @@ fun DeviceListScreen(
     onOpenDrawer: () -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAddClick: () -> Unit,
     viewModel: DeviceListViewModel = hiltViewModel(),
 ) {
     val devices by viewModel.devices.collectAsStateWithLifecycle()
@@ -57,18 +55,6 @@ fun DeviceListScreen(
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
-
-    LaunchedEffect(listState, devices) {
-        snapshotFlow {
-                listState.layoutInfo.visibleItemsInfo.mapNotNull { item ->
-                    devices.getOrNull(item.index)?.deviceTypeId
-                }.toSet()
-            }
-            .collect { visibleDeviceTypeIds ->
-                viewModel.ensureDeviceTypeImages(visibleDeviceTypeIds)
-            }
-    }
-
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -76,7 +62,7 @@ fun DeviceListScreen(
         }
     }
 
-    Scaffold(
+    NetBoxResponsiveScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -102,6 +88,7 @@ fun DeviceListScreen(
                 onDashboardClick = onDashboardClick,
                 onSearchClick = onSearchClick,
                 onScanClick = onScanClick,
+                onAddClick = onAddClick,
                 onSettingsClick = onSettingsClick,
             )
         },
@@ -137,7 +124,8 @@ fun DeviceListScreen(
                         ) { device ->
                             DeviceRow(
                                 device = device,
-                                frontImageUrl = deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
+                                frontImageUrl =
+                                    deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onDeviceClick(device.id) },
                             )
@@ -172,7 +160,8 @@ private fun DeviceRow(
         },
         headlineContent = { Text(device.name) },
         supportingContent = {
-            val subtitle = listOfNotNull(device.siteName, device.deviceTypeModel).joinToString(" · ")
+            val subtitle =
+                listOfNotNull(device.siteName, device.deviceTypeModel).joinToString(" · ")
             if (subtitle.isNotBlank()) Text(subtitle)
         },
         trailingContent = { StatusChip(label = device.statusLabel, value = device.statusValue) },

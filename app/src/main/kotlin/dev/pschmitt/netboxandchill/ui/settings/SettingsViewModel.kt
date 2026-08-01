@@ -8,19 +8,19 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
-import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
+import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -88,8 +88,9 @@ constructor(
             _cachedDeviceCount.value = deviceRepository.cachedDeviceCount()
             _cachedObjectCount.value = appDatabase.netBoxObjectDao().countAll()
             _cachedImageCount.value =
-                appDatabase.deviceTypeDao().getAll().count { it.frontImageUrl != null || it.rearImageUrl != null } +
-                    appDatabase.imageAttachmentDao().getAll().size
+                appDatabase.deviceTypeDao().getAll().count {
+                    it.frontImageUrl != null || it.rearImageUrl != null
+                } + appDatabase.imageAttachmentDao().getAll().size
             fileDownloadRepository.persistentStats().let { stats ->
                 _persistentCacheBytes.value = stats.bytes
                 _persistentCacheFiles.value = stats.fileCount
@@ -100,6 +101,16 @@ constructor(
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         settingsRepository.setSyncAttachmentsToDisk(enabled)
         if (enabled) syncNow()
+    }
+
+    fun setSyncOnlyOnWifi(enabled: Boolean) {
+        settingsRepository.setSyncOnlyOnWifi(enabled)
+        syncScheduler.schedulePeriodic()
+    }
+
+    fun setSyncWhileRoaming(enabled: Boolean) {
+        settingsRepository.setSyncWhileRoaming(enabled)
+        syncScheduler.schedulePeriodic()
     }
 
     fun setGestureAction(action: GestureAction) {
@@ -122,14 +133,16 @@ constructor(
         settingsRepository.removeHiddenField(key)
     }
 
-    /** Switches the configured NetBox server. Saves eagerly (the dynamic base-URL interceptor
-     * reads from [SettingsRepository] reactively, so there's no other way to actually test the new
-     * URL) then validates reachability, reverting back to the previous URL/token on failure rather
-     * than leaving the app pointed at an unreachable instance - mirrors
+    /**
+     * Switches the configured NetBox server. Saves eagerly (the dynamic base-URL interceptor reads
+     * from [SettingsRepository] reactively, so there's no other way to actually test the new URL)
+     * then validates reachability, reverting back to the previous URL/token on failure rather than
+     * leaving the app pointed at an unreachable instance - mirrors
      * `OnboardingViewModel.connect()`'s save-then-validate shape. On success, wipes the local cache
      * (`AppDatabase.clearAllTables()`) since cached rows are tied to the *previous* server - ids
      * from two different NetBox instances aren't the same objects, so keeping them around would
-     * silently mix data from both. */
+     * silently mix data from both.
+     */
     fun updateBaseUrl(newBaseUrl: String) {
         val previous = settingsRepository.credentials.value
         val trimmed = newBaseUrl.trim().trimEnd('/')
@@ -145,7 +158,8 @@ constructor(
                 }
                 .onFailure {
                     settingsRepository.save(previous.baseUrl, previous.token)
-                    _errorMessage.value = it.message ?: "Couldn't reach that NetBox instance - reverted"
+                    _errorMessage.value =
+                        it.message ?: "Couldn't reach that NetBox instance - reverted"
                 }
             _isUpdatingBaseUrl.value = false
         }

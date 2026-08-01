@@ -1,7 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.onboarding
 
 import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -56,7 +55,8 @@ fun OnboardingScreen(
     initialSetup: NetBoxTarget.Setup? = null,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
-    var baseUrl by remember(initialSetup?.baseUrl) { mutableStateOf(initialSetup?.baseUrl.orEmpty()) }
+    var baseUrl by
+        remember(initialSetup?.baseUrl) { mutableStateOf(initialSetup?.baseUrl.orEmpty()) }
     var token by remember(initialSetup?.token) { mutableStateOf(initialSetup?.token.orEmpty()) }
     var tokenVisible by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -64,11 +64,18 @@ fun OnboardingScreen(
     // ic_launcher is an <adaptive-icon> (background + foreground layers) - painterResource() only
     // supports VectorDrawables and raster assets, not that wrapper format, and throws at runtime.
     // Rendering it through a Drawable -> Bitmap first works for any drawable type.
-    val appIconBitmap =
-        remember { ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.toBitmap()?.asImageBitmap() }
+    val appIconBitmap = remember {
+        ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.toBitmap()?.asImageBitmap()
+    }
 
     LaunchedEffect(uiState) {
         if (uiState is OnboardingUiState.Success) onDone()
+    }
+
+    // A setup QR code is already a complete set of credentials. Start validation as soon as the
+    // scanner hands it back instead of making the user re-enter the fields and press Connect.
+    LaunchedEffect(initialSetup?.baseUrl, initialSetup?.token) {
+        initialSetup?.let { viewModel.connect(it.baseUrl, it.token) }
     }
 
     Scaffold { padding ->
@@ -150,21 +157,29 @@ fun OnboardingScreen(
                     Row {
                         IconButton(onClick = { tokenVisible = !tokenVisible }) {
                             Icon(
-                                if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (tokenVisible) "Hide token" else "Show token",
+                                if (tokenVisible) Icons.Default.VisibilityOff
+                                else Icons.Default.Visibility,
+                                contentDescription =
+                                    if (tokenVisible) "Hide token" else "Show token",
                             )
                         }
                         IconButton(
                             onClick = {
                                 val clipboard = context.getSystemService<ClipboardManager>()
-                                token = clipboard?.primaryClip?.takeIf { it.itemCount > 0 }
+                                token =
+                                    clipboard
+                                        ?.primaryClip
+                                        ?.takeIf { it.itemCount > 0 }
                                         ?.getItemAt(0)
                                         ?.text
                                         ?.toString()
                                         ?.trim() ?: token
                             }
                         ) {
-                            Icon(Icons.Default.ContentPaste, contentDescription = "Paste from clipboard")
+                            Icon(
+                                Icons.Default.ContentPaste,
+                                contentDescription = "Paste from clipboard",
+                            )
                         }
                     }
                 },
@@ -188,7 +203,11 @@ fun OnboardingScreen(
                 if (uiState is OnboardingUiState.Validating) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.Login,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Connect")
                 }

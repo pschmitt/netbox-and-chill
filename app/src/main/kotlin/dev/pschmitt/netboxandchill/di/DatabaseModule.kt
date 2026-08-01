@@ -18,8 +18,8 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxModelDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import dev.pschmitt.netboxandchill.data.db.PendingEditDao
-import dev.pschmitt.netboxandchill.data.db.RecentVisitDao
 import dev.pschmitt.netboxandchill.data.db.RackElevationDao
+import dev.pschmitt.netboxandchill.data.db.RecentVisitDao
 import javax.inject.Singleton
 
 @Module
@@ -37,15 +37,18 @@ object DatabaseModule {
 
     @Provides fun provideDeviceDao(database: AppDatabase): DeviceDao = database.deviceDao()
 
-    @Provides fun provideNetBoxModelDao(database: AppDatabase): NetBoxModelDao = database.netBoxModelDao()
+    @Provides
+    fun provideNetBoxModelDao(database: AppDatabase): NetBoxModelDao = database.netBoxModelDao()
 
     @Provides
     fun provideNetBoxObjectDao(database: AppDatabase): NetBoxObjectDao = database.netBoxObjectDao()
 
-    @Provides fun provideDeviceTypeDao(database: AppDatabase): DeviceTypeDao = database.deviceTypeDao()
+    @Provides
+    fun provideDeviceTypeDao(database: AppDatabase): DeviceTypeDao = database.deviceTypeDao()
 
     @Provides
-    fun provideImageAttachmentDao(database: AppDatabase): ImageAttachmentDao = database.imageAttachmentDao()
+    fun provideImageAttachmentDao(database: AppDatabase): ImageAttachmentDao =
+        database.imageAttachmentDao()
 
     @Provides fun provideBookmarkDao(database: AppDatabase): BookmarkDao = database.bookmarkDao()
 
@@ -53,14 +56,19 @@ object DatabaseModule {
     fun provideObjectChangeDao(database: AppDatabase): ObjectChangeDao = database.objectChangeDao()
 
     @Provides
-    fun provideDashboardStatDao(database: AppDatabase): DashboardStatDao = database.dashboardStatDao()
-
-    @Provides fun provideCustomFieldDao(database: AppDatabase): CustomFieldDao = database.customFieldDao()
-
-    @Provides fun providePendingEditDao(database: AppDatabase): PendingEditDao = database.pendingEditDao()
-
-    @Provides fun provideRecentVisitDao(database: AppDatabase): RecentVisitDao = database.recentVisitDao()
+    fun provideDashboardStatDao(database: AppDatabase): DashboardStatDao =
+        database.dashboardStatDao()
 
     @Provides
-    fun provideRackElevationDao(database: AppDatabase): RackElevationDao = database.rackElevationDao()
+    fun provideCustomFieldDao(database: AppDatabase): CustomFieldDao = database.customFieldDao()
+
+    @Provides
+    fun providePendingEditDao(database: AppDatabase): PendingEditDao = database.pendingEditDao()
+
+    @Provides
+    fun provideRecentVisitDao(database: AppDatabase): RecentVisitDao = database.recentVisitDao()
+
+    @Provides
+    fun provideRackElevationDao(database: AppDatabase): RackElevationDao =
+        database.rackElevationDao()
 }

@@ -9,7 +9,9 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import timber.log.Timber
 
-/** Cache-first: reads always come from Room; [syncAll]/[refreshDevice] pull from the API and upsert. */
+/**
+ * Cache-first: reads always come from Room; [syncAll]/[refreshDevice] pull from the API and upsert.
+ */
 @Singleton
 class DeviceRepository @Inject constructor(private val api: NetBoxApi, private val dao: DeviceDao) {
 
@@ -24,11 +26,16 @@ class DeviceRepository @Inject constructor(private val api: NetBoxApi, private v
         entity
     }
 
-    /** Resolves a scanner asset-tag payload from Room first, then performs a narrow best-effort API search. */
+    /**
+     * Resolves a scanner asset-tag payload from Room first, then performs a narrow best-effort API
+     * search.
+     */
     suspend fun findByAssetTag(assetTag: String): DeviceEntity? {
         val trimmed = assetTag.trim()
         val withoutPrefix = trimmed.removePrefix("#")
-        dao.getByAssetTag(trimmed, withoutPrefix)?.let { return it }
+        dao.getByAssetTag(trimmed, withoutPrefix)?.let {
+            return it
+        }
         return runCatching {
                 api.listDevices(limit = 50, search = withoutPrefix)
                     .results
@@ -78,10 +85,12 @@ private fun DeviceDto.toEntity(): DeviceEntity =
         deviceTypeId = deviceType?.id,
         serial = serial,
         assetTag = assetTag,
-        primaryIp = primaryIp?.address,
+        primaryIp = primaryIp?.address ?: primaryIp?.display,
         comments = comments,
         lastUpdated = lastUpdated,
         syncedAt = System.currentTimeMillis(),
+        customFieldsJson = customFields?.toString(),
+        primaryIpId = primaryIp?.id,
     )
 
 private fun normalizeAssetTag(value: String?): String =

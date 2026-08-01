@@ -10,13 +10,14 @@ import com.google.zxing.MultiFormatWriter
 object QrBitmap {
     fun encode(payload: String, size: Int = 768): Bitmap {
         val matrix =
-            MultiFormatWriter().encode(
-                payload,
-                BarcodeFormat.QR_CODE,
-                size,
-                size,
-                mapOf(EncodeHintType.MARGIN to 1),
-            )
+            MultiFormatWriter()
+                .encode(
+                    payload,
+                    BarcodeFormat.QR_CODE,
+                    size,
+                    size,
+                    mapOf(EncodeHintType.MARGIN to 1),
+                )
         return Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bitmap ->
             for (y in 0 until size) {
                 for (x in 0 until size) {

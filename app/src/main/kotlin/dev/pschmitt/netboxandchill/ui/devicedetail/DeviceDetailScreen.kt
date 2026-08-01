@@ -24,8 +24,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
@@ -48,14 +46,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,21 +72,35 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
-import dev.pschmitt.netboxandchill.ui.common.CommentCard
-import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
-import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
-import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.StatusChip
+import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
+import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
+import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
-import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.ui.generic.FieldRow
 import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
-import java.text.DateFormat
+import dev.pschmitt.netboxandchill.ui.generic.fieldRow
 import java.io.File
+import java.text.DateFormat
 import java.util.Date
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+
+private val interfaceJson = Json { ignoreUnknownKeys = true }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -95,15 +108,20 @@ fun DeviceDetailScreen(
     deviceId: Int,
     onBack: () -> Unit,
     onEditClick: () -> Unit,
-    onDeviceTypeClick: (Int) -> Unit,
-    onReferenceClick: (endpointPath: String, id: Int) -> Unit,
+    onEditFieldClick: (fieldKey: String) -> Unit,
+    onDeviceTypeClick: (id: Int, breadcrumb: String) -> Unit,
+    onReferenceClick: (endpointPath: String, id: Int, breadcrumb: String) -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
+    val interfaceIpAddresses by viewModel.interfaceIpAddresses.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val customFieldRows by viewModel.customFieldRows.collectAsStateWithLifecycle()
+    val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
+    val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(-1) }
     val selectedRelatedObjects =
         if (selectedTab >= 0) {
@@ -112,14 +130,14 @@ fun DeviceDetailScreen(
         } else {
             emptyList()
         }
-    val relatedCounts =
-        DEVICE_RELATED_TABS.map { tab ->
-            if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
-                journalEntries.size
-            } else {
-                viewModel.relatedObjects[tab.endpointPath]?.collectAsStateWithLifecycle()?.value?.size ?: 0
-            }
+    val relatedCounts = DEVICE_RELATED_TABS.map { tab ->
+        if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+            journalEntries.size
+        } else {
+            viewModel.relatedObjects[tab.endpointPath]?.collectAsStateWithLifecycle()?.value?.size
+                ?: 0
         }
+    }
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
@@ -138,6 +156,9 @@ fun DeviceDetailScreen(
     val isFieldVisible: (String) -> Boolean = { label ->
         showHiddenFields || hiddenFieldPreferenceKey("api/dcim/devices/", label) !in hiddenFieldKeys
     }
+    val visibleCustomFieldRows =
+        visibleDeviceCustomFieldRows(customFieldRows, hiddenFieldKeys, showHiddenFields)
+    val detailAccent = MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/")
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -160,8 +181,17 @@ fun DeviceDetailScreen(
         }
     }
 
+    LaunchedEffect(fileToOpen) {
+        val file = fileToOpen ?: return@LaunchedEffect
+        runCatching { context.startActivity(fileViewIntent(context, file)) }
+            .onFailure { snackbarHostState.showSnackbar("No app found to open ${file.name}") }
+        viewModel.fileOpened()
+    }
+
     val onCopyValue: (String, String) -> Unit = { label, value ->
-        context.getSystemService<ClipboardManager>()?.setPrimaryClip(ClipData.newPlainText(label, value))
+        context
+            .getSystemService<ClipboardManager>()
+            ?.setPrimaryClip(ClipData.newPlainText(label, value))
         copiedMessage = "Copied $label"
     }
 
@@ -169,7 +199,15 @@ fun DeviceDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Device") },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = detailAccent.copy(alpha = 0.12f),
+                        navigationIconContentColor = detailAccent,
+                        actionIconContentColor = detailAccent,
+                    ),
+                title = {
+                    Text("Device", maxLines = 1)
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -186,7 +224,9 @@ fun DeviceDetailScreen(
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Refresh") },
-                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Refresh, contentDescription = null)
+                                },
                                 enabled = !isRefreshing,
                                 onClick = {
                                     viewModel.refresh(showConfirmation = true)
@@ -195,7 +235,9 @@ fun DeviceDetailScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text("Edit") },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, contentDescription = null)
+                                },
                                 enabled = device != null,
                                 onClick = {
                                     onEditClick()
@@ -204,7 +246,9 @@ fun DeviceDetailScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text("Print label") },
-                                leadingIcon = { Icon(Icons.Default.Print, contentDescription = null) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Print, contentDescription = null)
+                                },
                                 enabled = device != null && webUrl != null,
                                 onClick = {
                                     val current = device
@@ -213,7 +257,17 @@ fun DeviceDetailScreen(
                                         printRequest =
                                             PrintLabelRequest(
                                                 objectUrl = url,
-                                                labelText = current.assetTag?.takeIf { it.isNotBlank() } ?: current.name,
+                                                labelText =
+                                                    current.assetTag?.takeIf { it.isNotBlank() }
+                                                        ?: current.name,
+                                                longLabelText =
+                                                    listOfNotNull(
+                                                            current.name,
+                                                            current.assetTag,
+                                                            current.serial,
+                                                        )
+                                                        .filter(String::isNotBlank)
+                                                        .joinToString("\n"),
                                             )
                                     }
                                     actionMenuExpanded = false
@@ -222,15 +276,21 @@ fun DeviceDetailScreen(
                             webUrl?.let { url ->
                                 DropdownMenuItem(
                                     text = { Text("Open in browser") },
-                                    leadingIcon = { Icon(Icons.Default.OpenInBrowser, contentDescription = null) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.OpenInBrowser, contentDescription = null)
+                                    },
                                     onClick = {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                        )
                                         actionMenuExpanded = false
                                     },
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Share") },
-                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Share, contentDescription = null)
+                                    },
                                     onClick = {
                                         context.startActivity(shareIntent(url))
                                         actionMenuExpanded = false
@@ -240,7 +300,9 @@ fun DeviceDetailScreen(
                             if (hiddenFieldsForDevice.isNotEmpty()) {
                                 DropdownMenuItem(
                                     text = { Text("Show hidden fields") },
-                                    leadingIcon = { Icon(Icons.Default.Visibility, contentDescription = null) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Visibility, contentDescription = null)
+                                    },
                                     onClick = {
                                         showHiddenFields = true
                                         actionMenuExpanded = false
@@ -280,21 +342,25 @@ fun DeviceDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                                    color = detailAccent.copy(alpha = 0.18f),
+                                    shape =
+                                        androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                                     modifier = Modifier.size(52.dp),
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             Icons.Default.Cable,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            tint = detailAccent,
                                             modifier = Modifier.size(28.dp),
                                         )
                                     }
                                 }
                                 Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                                    Text(current.name, style = MaterialTheme.typography.headlineSmall)
+                                    Text(
+                                        current.name,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                    )
                                     current.deviceTypeModel?.let {
                                         Text(
                                             it,
@@ -323,11 +389,6 @@ fun DeviceDetailScreen(
                                     selected = selectedTab == index,
                                     onClick = {
                                         selectedTab = index
-                                        if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
-                                            viewModel.refreshJournal()
-                                        } else {
-                                            viewModel.refreshRelated()
-                                        }
                                     },
                                     text = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -348,18 +409,122 @@ fun DeviceDetailScreen(
                         item {
                             Spacer(Modifier.height(16.dp))
                         }
-                        deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index -> imageViewer = items to index }
-                        imageAttachmentRow(imageAttachments, viewModel::localImageFile) { items, index -> imageViewer = items to index }
-                        if (isFieldVisible("site")) detailField("Site", current.siteName, onClick = current.siteId?.let { id -> { onReferenceClick("api/dcim/sites/", id) } }, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("rack")) detailField("Rack", current.rackName, onClick = current.rackId?.let { id -> { onReferenceClick("api/dcim/racks/", id) } }, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("position")) detailField("Position", current.position?.toString(), onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("role")) detailField("Role", current.roleName, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("manufacturer")) detailField("Manufacturer", current.manufacturerName, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("model")) detailField("Model", current.deviceTypeModel, onClick = deviceType?.id?.let { id -> { onDeviceTypeClick(id) } }, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("serial")) detailField("Serial", current.serial, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("asset_tag")) detailField("Asset tag", current.assetTag, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("primary_ip")) detailField("Primary IP", current.primaryIp, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
-                        if (isFieldVisible("comments")) detailMarkdownField("Comments", current.comments, onFieldLongPress = { fieldActionLabel = it })
+                        deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index ->
+                            imageViewer = items to index
+                        }
+                        imageAttachmentRow(imageAttachments, viewModel::localImageFile) {
+                            items,
+                            index ->
+                            imageViewer = items to index
+                        }
+                        if (isFieldVisible("site"))
+                            detailField(
+                                "Site",
+                                current.siteName,
+                                onClick =
+                                    current.siteId?.let { id ->
+                                        { onReferenceClick("api/dcim/sites/", id, current.name) }
+                                    },
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("rack"))
+                            detailField(
+                                "Rack",
+                                current.rackName,
+                                onClick =
+                                    current.rackId?.let { id ->
+                                        { onReferenceClick("api/dcim/racks/", id, current.name) }
+                                    },
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("position"))
+                            detailField(
+                                "Position",
+                                current.position?.toString(),
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("role"))
+                            detailField(
+                                "Role",
+                                current.roleName,
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("manufacturer"))
+                            detailField(
+                                "Manufacturer",
+                                current.manufacturerName,
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("model"))
+                            detailField(
+                                "Model",
+                                current.deviceTypeModel,
+                                onClick =
+                                    deviceType?.id?.let { id ->
+                                        { onDeviceTypeClick(id, current.name) }
+                                    },
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("serial"))
+                            detailField(
+                                "Serial",
+                                current.serial,
+                                copyable = true,
+                                onCopyValue = onCopyValue,
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("asset_tag"))
+                            detailField(
+                                "Asset tag",
+                                current.assetTag,
+                                copyable = true,
+                                onCopyValue = onCopyValue,
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("primary_ip"))
+                            detailField(
+                                "Primary IP",
+                                current.primaryIp,
+                                copyable = true,
+                                onCopyValue = onCopyValue,
+                                onClick =
+                                    current.primaryIpId?.let { id ->
+                                        {
+                                            onReferenceClick(
+                                                "api/ipam/ip-addresses/",
+                                                id,
+                                                current.name,
+                                            )
+                                        }
+                                    },
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        if (isFieldVisible("comments"))
+                            detailMarkdownField(
+                                "Comments",
+                                current.comments,
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        visibleCustomFieldRows.forEach { row ->
+                            fieldRow(
+                                row = row,
+                                onNavigateToReference = { endpointPath, id ->
+                                    onReferenceClick(endpointPath, id, current.name)
+                                },
+                                onRelatedItems = {},
+                                onOpenUrl = { url ->
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    )
+                                },
+                                onDownloadAttachment = viewModel::downloadAttachment,
+                                localAttachmentFile = viewModel::localImageFile,
+                                onImageClick = { item -> imageViewer = listOf(item) to 0 },
+                                isDownloading = isDownloading,
+                                onCopyValue = onCopyValue,
+                                onFieldLongPress = { fieldActionLabel = it },
+                            )
+                        }
                         item {
                             Spacer(Modifier.height(24.dp))
                             Text(
@@ -377,7 +542,10 @@ fun DeviceDetailScreen(
                                 DeviceRelatedObjects(
                                     tab = tab,
                                     objects = selectedRelatedObjects,
-                                    onObjectClick = { objectId -> onReferenceClick(tab.endpointPath, objectId) },
+                                    interfaceIpAddresses = interfaceIpAddresses,
+                                    onObjectClick = { objectId ->
+                                        onReferenceClick(tab.endpointPath, objectId, current.name)
+                                    },
                                 )
                             }
                         }
@@ -399,7 +567,7 @@ fun DeviceDetailScreen(
             canEdit = true,
             onEdit = {
                 fieldActionLabel = null
-                onEditClick()
+                onEditFieldClick(deviceEditFieldKey(label))
             },
             onHide = {
                 viewModel.hideField(label)
@@ -410,14 +578,49 @@ fun DeviceDetailScreen(
     }
 }
 
+private fun visibleDeviceCustomFieldRows(
+    rows: List<FieldRow>,
+    hiddenFieldKeys: Set<String>,
+    showHiddenFields: Boolean,
+): List<FieldRow> {
+    if (showHiddenFields) return rows
+    val filtered = rows.filterNot { row ->
+        row !is FieldRow.Section &&
+            row !is FieldRow.CustomGroup &&
+            hiddenFieldPreferenceKey("api/dcim/devices/", row.label) in hiddenFieldKeys
+    }
+    return buildList {
+        val pendingHeaders = mutableListOf<FieldRow>()
+        filtered.forEach { row ->
+            if (row is FieldRow.Section || row is FieldRow.CustomGroup) {
+                pendingHeaders += row
+            } else {
+                addAll(pendingHeaders)
+                pendingHeaders.clear()
+                add(row)
+            }
+        }
+    }
+}
+
+private fun deviceEditFieldKey(label: String): String =
+    when (label) {
+        "Model" -> "device_type"
+        "Asset tag" -> "asset_tag"
+        "Primary IP" -> "primary_ip"
+        else -> label.replace(' ', '_').lowercase()
+    }
+
 @Composable
 private fun tabIcon(tab: DeviceRelatedTab) =
-    if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) Icons.Default.History else Icons.Default.Cable
+    if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) Icons.Default.History
+    else Icons.Default.Cable
 
 @Composable
 private fun DeviceRelatedObjects(
     tab: DeviceRelatedTab,
     objects: List<dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity>,
+    interfaceIpAddresses: Map<Int, List<String>> = emptyMap(),
     onObjectClick: (Int) -> Unit,
 ) {
     if (objects.isEmpty()) {
@@ -432,7 +635,16 @@ private fun DeviceRelatedObjects(
         ListItem(
             leadingContent = { Icon(Icons.Default.Cable, contentDescription = null) },
             headlineContent = { Text(objectEntity.display) },
-            supportingContent = { objectEntity.secondaryLine?.let { Text(it) } },
+            supportingContent = {
+                (if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
+                        objectEntity.interfaceSubtitle(
+                            interfaceIpAddresses[objectEntity.id].orEmpty()
+                        )
+                    } else {
+                        objectEntity.secondaryLine
+                    })
+                    ?.let { Text(it) }
+            },
             modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
         )
         HorizontalDivider()
@@ -460,7 +672,12 @@ private fun DeviceJournalEntries(entries: List<JournalEntryUi>) {
                 }
             Column(Modifier.padding(vertical = 6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(icon, contentDescription = entry.kindLabel, tint = tint, modifier = Modifier.size(16.dp))
+                    Icon(
+                        icon,
+                        contentDescription = entry.kindLabel,
+                        tint = tint,
+                        modifier = Modifier.size(16.dp),
+                    )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         "${entry.kindLabel} · ${formatNetBoxDateTime(entry.created)}",
@@ -493,20 +710,26 @@ private fun LazyListScope.deviceTypePhotos(
     if (front.isNullOrBlank() && rear.isNullOrBlank()) return
     val items =
         listOfNotNull(
-            front.takeUnless { it.isNullOrBlank() }?.let {
-                ImageViewerItem(
-                    url = it,
-                    title = "Front of $model",
-                    localFile = localImageFile(it, "device-type-${deviceType.id}-front"),
-                )
-            },
-            rear.takeUnless { it.isNullOrBlank() }?.let {
-                ImageViewerItem(
-                    url = it,
-                    title = "Rear of $model",
-                    localFile = localImageFile(it, "device-type-${deviceType.id}-rear"),
-                )
-            },
+            front
+                .takeUnless { it.isNullOrBlank() }
+                ?.let {
+                    ImageViewerItem(
+                        url = it,
+                        title = "Front of $model",
+                        metadata = deviceTypeImageMetadata(deviceType, "Front"),
+                        localFile = localImageFile(it, "device-type-${deviceType.id}-front"),
+                    )
+                },
+            rear
+                .takeUnless { it.isNullOrBlank() }
+                ?.let {
+                    ImageViewerItem(
+                        url = it,
+                        title = "Rear of $model",
+                        metadata = deviceTypeImageMetadata(deviceType, "Rear"),
+                        localFile = localImageFile(it, "device-type-${deviceType.id}-rear"),
+                    )
+                },
         )
     item {
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
@@ -515,7 +738,8 @@ private fun LazyListScope.deviceTypePhotos(
                     imageUrl = front,
                     contentDescription = "Front of $model",
                     localFile = localImageFile(front, "device-type-${deviceType.id}-front"),
-                    modifier = Modifier.weight(1f).height(140.dp).clickable { onImageClick(items, 0) },
+                    modifier =
+                        Modifier.weight(1f).height(140.dp).clickable { onImageClick(items, 0) },
                     // Fit, not the default Crop - these are stock product photos with varying
                     // aspect ratios; cropping to fill a fixed square/rect chops off real content
                     // (e.g. a wide rack-mount unit's edges), unlike the row/grid thumbnails below
@@ -540,6 +764,15 @@ private fun LazyListScope.deviceTypePhotos(
     }
 }
 
+private fun deviceTypeImageMetadata(
+    deviceType: DeviceTypeEntity,
+    view: String,
+): List<Pair<String, String>> = buildList {
+    deviceType.model?.takeIf { it.isNotBlank() }?.let { add("Model" to it) }
+    add("View" to view)
+    add("Device type" to "#${deviceType.id}")
+}
+
 /**
  * Uploaded `extras.ImageAttachment` image attachments for this device - tap one to open the
  * full-screen zoomable viewer (NBC-20), opened to the tapped index with horizontal swipe between
@@ -560,7 +793,9 @@ private fun LazyListScope.imageAttachmentRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { index, attachment ->
+                itemsIndexed(attachments, key = { _, attachment -> attachment.id }) {
+                    index,
+                    attachment ->
                     RemoteThumbnail(
                         imageUrl = attachment.imageUrl,
                         contentDescription = attachment.name,
@@ -568,7 +803,10 @@ private fun LazyListScope.imageAttachmentRow(
                             attachment.imageUrl?.let {
                                 localImageFile(it, attachment.fileName())
                             },
-                        modifier = Modifier.size(100.dp).padding(end = 8.dp).clickable { onImageClick(items, index) },
+                        modifier =
+                            Modifier.size(100.dp).padding(end = 8.dp).clickable {
+                                onImageClick(items, index)
+                            },
                     )
                 }
             }
@@ -576,16 +814,26 @@ private fun LazyListScope.imageAttachmentRow(
     }
 }
 
-/** Maps the real `extras.ImageAttachment` fields NetBox actually returns (confirmed live, see
+/**
+ * Maps the real `extras.ImageAttachment` fields NetBox actually returns (confirmed live, see
  * NBC-20) into the viewer's generic metadata rows - no `size`/`content_type` field exists on this
- * serializer to show, unlike the TODO's original wishlist. */
-private fun ImageAttachmentEntity.toViewerItem(localImageFile: (String, String) -> File?): ImageViewerItem {
-    val title = name?.takeIf { it.isNotBlank() } ?: display?.takeIf { it.isNotBlank() } ?: "Image attachment #$id"
+ * serializer to show, unlike the TODO's original wishlist.
+ */
+private fun ImageAttachmentEntity.toViewerItem(
+    localImageFile: (String, String) -> File?
+): ImageViewerItem {
+    val title =
+        name?.takeIf { it.isNotBlank() }
+            ?: display?.takeIf { it.isNotBlank() }
+            ?: "Image attachment #$id"
     val metadata = buildList {
         if (!description.isNullOrBlank()) add("Description" to description)
-        if (imageWidth != null && imageHeight != null) add("Dimensions" to "$imageWidth × $imageHeight")
+        if (imageWidth != null && imageHeight != null)
+            add("Dimensions" to "$imageWidth × $imageHeight")
         created?.takeIf { it.isNotBlank() }?.let { add("Created" to formatNetBoxDateTime(it)) }
-        lastUpdated?.takeIf { it.isNotBlank() && it != created }?.let { add("Last updated" to formatNetBoxDateTime(it)) }
+        lastUpdated
+            ?.takeIf { it.isNotBlank() && it != created }
+            ?.let { add("Last updated" to formatNetBoxDateTime(it)) }
     }
     val url = imageUrl.orEmpty()
     return ImageViewerItem(
@@ -601,6 +849,51 @@ private fun ImageAttachmentEntity.fileName(): String =
         ?: display?.takeIf { it.isNotBlank() }
         ?: "image-attachment-$id"
 
+/** Pull the useful network identity into interface list subtitles when NetBox includes it. */
+private fun dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity.interfaceSubtitle(
+    cachedIpAddresses: List<String>
+): String? {
+    val objectJson =
+        runCatching { interfaceJson.parseToJsonElement(json).jsonObject }.getOrNull()
+            ?: return secondaryLine
+    val addresses =
+        buildList {
+                val ipList = objectJson["ip_addresses"] as? JsonArray
+                ipList.orEmpty().forEach { element -> element.displayValue()?.let(::add) }
+                listOf("primary_ip4", "primary_ip6", "ip_address").forEach { key ->
+                    objectJson[key]?.displayValue()?.let(::add)
+                }
+                addAll(cachedIpAddresses)
+            }
+            .distinct()
+    val macAddresses =
+        buildList {
+                listOf("mac_address", "primary_mac_address").forEach { key ->
+                    objectJson[key]?.displayValue()?.let(::add)
+                }
+                (objectJson["mac_addresses"] as? JsonArray).orEmpty().forEach { element ->
+                    element.displayValue()?.let(::add)
+                }
+            }
+            .distinct()
+    val networkParts = buildList {
+        if (addresses.isNotEmpty()) add("IP: ${addresses.joinToString(", ")}")
+        if (macAddresses.isNotEmpty()) add("MAC: ${macAddresses.joinToString(", ")}")
+    }
+    return networkParts.joinToString(" · ").takeIf { it.isNotBlank() } ?: secondaryLine
+}
+
+private fun JsonElement.displayValue(): String? =
+    when (this) {
+        is JsonPrimitive -> contentOrNull?.takeIf { it.isNotBlank() }
+        is JsonObject ->
+            listOf("address", "display", "cidr", "value")
+                .asSequence()
+                .mapNotNull { key -> this[key]?.displayValue() }
+                .firstOrNull()
+        else -> null
+    }
+
 private fun LazyListScope.detailField(
     label: String,
     value: String?,
@@ -611,26 +904,39 @@ private fun LazyListScope.detailField(
 ) {
     if (value.isNullOrBlank()) return
     item {
-        Column(
-            Modifier
-                .padding(vertical = 6.dp)
-                .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier),
+        Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         ) {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.combinedClickable(onClick = {}, onLongClick = { onFieldLongPress(label) }),
-            )
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text(value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                if (copyable) {
-                    IconButton(onClick = { onCopyValue(label, value) }) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy $label")
-                    }
-                }
-                if (onClick != null) {
-                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open $label")
+            Column(
+                Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    .combinedClickable(
+                        onClick = { onClick?.invoke() },
+                        onLongClick = { onFieldLongPress(label) },
+                    )
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        value,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    DetailTrailingActions(
+                        copyLabel = label.takeIf { copyable },
+                        onCopy = { onCopyValue(label, value) }.takeIf { copyable },
+                        openLabel = label.takeIf { onClick != null },
+                        onOpen = onClick,
+                    )
                 }
             }
         }
@@ -645,14 +951,23 @@ private fun LazyListScope.detailMarkdownField(
 ) {
     if (value.isNullOrBlank()) return
     item {
-        Column(Modifier.padding(vertical = 6.dp)) {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.combinedClickable(onClick = {}, onLongClick = { onFieldLongPress(label) }),
-            )
-            CommentCard(content = value, modifier = Modifier.fillMaxWidth())
+        Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        ) {
+            Column(
+                Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    .combinedClickable(onClick = {}, onLongClick = { onFieldLongPress(label) })
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                CommentCard(content = value, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }

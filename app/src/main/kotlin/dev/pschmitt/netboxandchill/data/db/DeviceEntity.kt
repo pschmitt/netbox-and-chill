@@ -25,4 +25,8 @@ data class DeviceEntity(
     val comments: String?,
     val lastUpdated: String?,
     val syncedAt: Long,
+    /** Raw NetBox custom-fields map, retained so typed device pages stay cache-first. */
+    val customFieldsJson: String? = null,
+    /** NetBox object ID for the primary IP, retained for cache-first navigation. */
+    val primaryIpId: Int? = null,
 )

@@ -31,15 +31,33 @@ class PendingEditRepositoryTest {
         val objectDao = FakeNetBoxObjectDao()
         val repository = repository(api, pending, objectDao)
 
-        val result = repository.submitEdit("api/dcim/devices/", 1, server("old", "v1").toString(), patch("local"))
+        val result =
+            repository.submitEdit(
+                "api/dcim/devices/",
+                1,
+                server("old", "v1").toString(),
+                patch("local"),
+            )
 
         assertEquals(EditSubmission.ConflictDetected, result.getOrThrow())
         assertNull(api.lastPatch)
         val conflict = pending.get("api/dcim/devices/", 1)
         assertNotNull(conflict)
         assertEquals(PendingEditEntity.CONFLICT, conflict!!.state)
-        assertEquals("server", json.decodeFromString(JsonObject.serializer(), conflict.serverJson!!)["name"]?.toString()?.trim('"'))
-        assertEquals("local", json.decodeFromString(JsonObject.serializer(), objectDao.last!!.json)["name"]?.toString()?.trim('"'))
+        assertEquals(
+            "server",
+            json
+                .decodeFromString(JsonObject.serializer(), conflict.serverJson!!)["name"]
+                ?.toString()
+                ?.trim('"'),
+        )
+        assertEquals(
+            "local",
+            json
+                .decodeFromString(JsonObject.serializer(), objectDao.last!!.json)["name"]
+                ?.toString()
+                ?.trim('"'),
+        )
     }
 
     @Test
@@ -49,14 +67,32 @@ class PendingEditRepositoryTest {
         val objectDao = FakeNetBoxObjectDao()
         val repository = repository(api, pending, objectDao)
 
-        val result = repository.submitEdit("api/dcim/devices/", 1, server("old", "v1").toString(), patch("local"))
+        val result =
+            repository.submitEdit(
+                "api/dcim/devices/",
+                1,
+                server("old", "v1").toString(),
+                patch("local"),
+            )
 
         assertEquals(EditSubmission.Queued, result.getOrThrow())
         val queued = pending.get("api/dcim/devices/", 1)
         assertNotNull(queued)
         assertEquals(PendingEditEntity.QUEUED, queued!!.state)
-        assertEquals("local", json.decodeFromString(JsonObject.serializer(), queued.localJson)["name"]?.toString()?.trim('"'))
-        assertEquals("local", json.decodeFromString(JsonObject.serializer(), objectDao.last!!.json)["name"]?.toString()?.trim('"'))
+        assertEquals(
+            "local",
+            json
+                .decodeFromString(JsonObject.serializer(), queued.localJson)["name"]
+                ?.toString()
+                ?.trim('"'),
+        )
+        assertEquals(
+            "local",
+            json
+                .decodeFromString(JsonObject.serializer(), objectDao.last!!.json)["name"]
+                ?.toString()
+                ?.trim('"'),
+        )
     }
 
     @Test
@@ -66,12 +102,24 @@ class PendingEditRepositoryTest {
         val objectDao = FakeNetBoxObjectDao()
         val repository = repository(api, pending, objectDao)
 
-        val result = repository.submitEdit("api/dcim/devices/", 1, server("old", "v1").toString(), patch("local"))
+        val result =
+            repository.submitEdit(
+                "api/dcim/devices/",
+                1,
+                server("old", "v1").toString(),
+                patch("local"),
+            )
 
         assertEquals(EditSubmission.Updated, result.getOrThrow())
         assertEquals(patch("local"), api.lastPatch)
         assertNull(pending.get("api/dcim/devices/", 1))
-        assertEquals("local", json.decodeFromString(JsonObject.serializer(), objectDao.last!!.json)["name"]?.toString()?.trim('"'))
+        assertEquals(
+            "local",
+            json
+                .decodeFromString(JsonObject.serializer(), objectDao.last!!.json)["name"]
+                ?.toString()
+                ?.trim('"'),
+        )
         assertTrue(api.server["last_updated"] == JsonPrimitive("v1"))
     }
 
@@ -124,10 +172,23 @@ class PendingEditRepositoryTest {
 
         assertTrue(result.exceptionOrNull() is StaleConflictException)
         assertNull(api.lastPatch)
-        assertEquals("v3", json.decodeFromString(JsonObject.serializer(), pending.get("api/dcim/devices/", 1)!!.serverJson!!)["last_updated"]?.toString()?.trim('"'))
+        assertEquals(
+            "v3",
+            json
+                .decodeFromString(
+                    JsonObject.serializer(),
+                    pending.get("api/dcim/devices/", 1)!!.serverJson!!,
+                )["last_updated"]
+                ?.toString()
+                ?.trim('"'),
+        )
     }
 
-    private fun repository(api: FakeApi, pending: FakePendingEditDao, objectDao: FakeNetBoxObjectDao) =
+    private fun repository(
+        api: FakeApi,
+        pending: FakePendingEditDao,
+        objectDao: FakeNetBoxObjectDao,
+    ) =
         PendingEditRepository(
             api,
             pending,
@@ -158,7 +219,10 @@ private class FakeApi(
 
     override suspend fun getUrlMap(url: String): Map<String, String> = error("unused")
 
-    override suspend fun listObjects(url: String, query: Map<String, String>): PagedResponseDto<JsonObject> = error("unused")
+    override suspend fun listObjects(
+        url: String,
+        query: Map<String, String>,
+    ): PagedResponseDto<JsonObject> = error("unused")
 
     override suspend fun getObject(url: String): JsonObject {
         if (failGets) throw IOException("offline")
@@ -169,10 +233,13 @@ private class FakeApi(
 
     override suspend fun patchObject(url: String, body: JsonObject): JsonObject {
         lastPatch = body
-        server = JsonObject(buildMap {
-            putAll(server)
-            putAll(body)
-        })
+        server =
+            JsonObject(
+                buildMap {
+                    putAll(server)
+                    putAll(body)
+                }
+            )
         return server
     }
 
@@ -184,13 +251,17 @@ private class FakeApi(
 private class FakePendingEditDao : PendingEditDao {
     private val edits = mutableMapOf<Pair<String, Int>, PendingEditEntity>()
 
-    override fun observeConflicts(): Flow<List<PendingEditEntity>> = flowOf(edits.values.filter { it.state == PendingEditEntity.CONFLICT })
+    override fun observeConflicts(): Flow<List<PendingEditEntity>> =
+        flowOf(edits.values.filter { it.state == PendingEditEntity.CONFLICT })
 
-    override fun observeConflictCount(): Flow<Int> = flowOf(edits.values.count { it.state == PendingEditEntity.CONFLICT })
+    override fun observeConflictCount(): Flow<Int> =
+        flowOf(edits.values.count { it.state == PendingEditEntity.CONFLICT })
 
-    override suspend fun getQueued(): List<PendingEditEntity> = edits.values.filter { it.state == PendingEditEntity.QUEUED }
+    override suspend fun getQueued(): List<PendingEditEntity> =
+        edits.values.filter { it.state == PendingEditEntity.QUEUED }
 
-    override suspend fun get(endpointPath: String, id: Int): PendingEditEntity? = edits[endpointPath to id]
+    override suspend fun get(endpointPath: String, id: Int): PendingEditEntity? =
+        edits[endpointPath to id]
 
     override suspend fun upsert(edit: PendingEditEntity) {
         edits[edit.endpointPath to edit.id] = edit
@@ -204,13 +275,17 @@ private class FakePendingEditDao : PendingEditDao {
 private class FakeNetBoxObjectDao : NetBoxObjectDao {
     var last: NetBoxObjectEntity? = null
 
-    override fun observeAll(endpointPath: String): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
+    override fun observeAll(endpointPath: String): Flow<List<NetBoxObjectEntity>> =
+        flowOf(emptyList())
 
-    override fun search(endpointPath: String, query: String): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
+    override fun search(endpointPath: String, query: String): Flow<List<NetBoxObjectEntity>> =
+        flowOf(emptyList())
 
-    override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> = flowOf(last)
+    override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
+        flowOf(last)
 
-    override fun searchAll(query: String, limit: Int): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
+    override fun searchAll(query: String, limit: Int): Flow<List<NetBoxObjectEntity>> =
+        flowOf(emptyList())
 
     override suspend fun upsertAll(objects: List<NetBoxObjectEntity>) {
         last = objects.lastOrNull() ?: last
@@ -220,7 +295,8 @@ private class FakeNetBoxObjectDao : NetBoxObjectDao {
         last = obj
     }
 
-    override suspend fun count(endpointPath: String): Int = if (last?.endpointPath == endpointPath) 1 else 0
+    override suspend fun count(endpointPath: String): Int =
+        if (last?.endpointPath == endpointPath) 1 else 0
 
     override suspend fun countAll(): Int = if (last == null) 0 else 1
 

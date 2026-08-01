@@ -23,8 +23,13 @@ enum class ConflictChoice {
 private val CONFLICT_METADATA = setOf("id", "url", "display", "last_updated")
 
 /** Builds a compact three-way diff for the field-level conflict resolver. */
-fun buildConflictFields(base: JsonObject, local: JsonObject, server: JsonObject): List<ConflictField> {
-    val keys = (base.keys + local.keys + server.keys).filterNot { it in CONFLICT_METADATA }.toSortedSet()
+fun buildConflictFields(
+    base: JsonObject,
+    local: JsonObject,
+    server: JsonObject,
+): List<ConflictField> {
+    val keys =
+        (base.keys + local.keys + server.keys).filterNot { it in CONFLICT_METADATA }.toSortedSet()
     return keys.mapNotNull { key ->
         val baseValue = renderValue(base[key])
         val localValue = renderValue(local[key])
@@ -39,7 +44,8 @@ fun buildConflictFields(base: JsonObject, local: JsonObject, server: JsonObject)
 
 private fun renderValue(value: JsonElement?): String =
     when (value) {
-        null, JsonNull -> "—"
+        null,
+        JsonNull -> "—"
         is JsonPrimitive -> value.contentOrNull ?: value.toString()
         else -> value.toString()
     }

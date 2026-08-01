@@ -19,9 +19,11 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
-/** One field that differs between a changelog entry's before/after snapshots - either side may be
+/**
+ * One field that differs between a changelog entry's before/after snapshots - either side may be
  * null: absent entirely for a create (no "before"), or a delete (no "after"), or genuinely absent
- * from that particular snapshot (e.g. a field added by a later NetBox version). */
+ * from that particular snapshot (e.g. a field added by a later NetBox version).
+ */
 data class DiffRow(val label: String, val before: String?, val after: String?)
 
 data class ObjectChangeDiffUi(
@@ -35,7 +37,8 @@ data class ObjectChangeDiffUi(
 @HiltViewModel
 class ObjectChangeDiffViewModel
 @Inject
-constructor(savedStateHandle: SavedStateHandle, private val repository: DashboardRepository) : ViewModel() {
+constructor(savedStateHandle: SavedStateHandle, private val repository: DashboardRepository) :
+    ViewModel() {
 
     private val route: Route.ObjectChangeDiff = savedStateHandle.toRoute()
 
@@ -84,8 +87,10 @@ constructor(savedStateHandle: SavedStateHandle, private val repository: Dashboar
     }
 }
 
-/** Internal rather than private so a unit test can exercise the diffing logic directly, same
- * pattern as `GenericFieldRenderer.buildFieldRows`. */
+/**
+ * Internal rather than private so a unit test can exercise the diffing logic directly, same pattern
+ * as `GenericFieldRenderer.buildFieldRows`.
+ */
 internal fun buildDiffRows(pre: JsonObject?, post: JsonObject?): List<DiffRow> {
     val keys = (pre?.keys.orEmpty() + post?.keys.orEmpty()).toSet().sorted()
     return keys.mapNotNull { key ->
@@ -95,9 +100,12 @@ internal fun buildDiffRows(pre: JsonObject?, post: JsonObject?): List<DiffRow> {
     }
 }
 
-/** Best-effort human-readable rendering of one changelog snapshot value - primitives print as
- * plain text, nested objects/arrays (e.g. a FK reference or a tag list) fall back to their raw
- * JSON since there's no schema here to render them more richly, unlike [dev.pschmitt.netboxandchill.ui.generic.GenericFieldRenderer]. */
+/**
+ * Best-effort human-readable rendering of one changelog snapshot value - primitives print as plain
+ * text, nested objects/arrays (e.g. a FK reference or a tag list) fall back to their raw JSON since
+ * there's no schema here to render them more richly, unlike
+ * [dev.pschmitt.netboxandchill.ui.generic.GenericFieldRenderer].
+ */
 private fun JsonElement.diffString(): String? =
     when (this) {
         is JsonNull -> null

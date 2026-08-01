@@ -27,35 +27,36 @@ class JournalEntryRepository @Inject constructor(private val api: GenericNetBoxA
 
     private var contentTypeChoicesCache: List<String>? = null
 
-    suspend fun fetchJournalEntries(endpointPath: String, objectId: Int): Result<List<JsonObject>> = runCatching {
-        val assignedObjectType = resolveAssignedObjectType(endpointPath) ?: return@runCatching emptyList()
-        api
-            .listObjects(
-                "api/extras/journal-entries/",
-                mapOf(
-                    "assigned_object_type" to assignedObjectType,
-                    "assigned_object_id" to objectId.toString(),
-                    "ordering" to "-created",
-                ),
-            )
-            .results
-    }
+    suspend fun fetchJournalEntries(endpointPath: String, objectId: Int): Result<List<JsonObject>> =
+        runCatching {
+            val assignedObjectType =
+                resolveAssignedObjectType(endpointPath) ?: return@runCatching emptyList()
+            api.listObjects(
+                    "api/extras/journal-entries/",
+                    mapOf(
+                        "assigned_object_type" to assignedObjectType,
+                        "assigned_object_id" to objectId.toString(),
+                        "ordering" to "-created",
+                    ),
+                )
+                .results
+        }
 
     private suspend fun resolveAssignedObjectType(endpointPath: String): String? {
         val segments = endpointPath.trim('/').split('/')
         if (segments.size < 3) return null
         // Plugin models nest one level deeper (api/plugins/<plugin>/<model>/) - the plugin's own
         // key is the closer (if imperfect) proxy for its content-type app_label than "plugins".
-        val appKey = if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
+        val appKey =
+            if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
         val modelKey = segments.last()
         val normalized = modelKey.replace("-", "").replace("_", "").lowercase()
-        val candidates =
-            buildSet {
-                add(normalized)
-                add(normalized.removeSuffix("s"))
-                if (normalized.endsWith("es")) add(normalized.dropLast(2))
-                if (normalized.endsWith("ies")) add(normalized.dropLast(3) + "y")
-            }
+        val candidates = buildSet {
+            add(normalized)
+            add(normalized.removeSuffix("s"))
+            if (normalized.endsWith("es")) add(normalized.dropLast(2))
+            if (normalized.endsWith("ies")) add(normalized.dropLast(3) + "y")
+        }
         return contentTypeChoices().firstOrNull { choice ->
             val parts = choice.split(".", limit = 2)
             parts.size == 2 && parts[0] == appKey && parts[1] in candidates
@@ -74,7 +75,9 @@ class JournalEntryRepository @Inject constructor(private val api: GenericNetBoxA
                         ?.jsonObject
                         ?.get("choices")
                         ?.jsonArray
-                        ?.mapNotNull { (it as? JsonObject)?.get("value")?.jsonPrimitive?.contentOrNull }
+                        ?.mapNotNull {
+                            (it as? JsonObject)?.get("value")?.jsonPrimitive?.contentOrNull
+                        }
                         .orEmpty()
                 }
                 .getOrDefault(emptyList())

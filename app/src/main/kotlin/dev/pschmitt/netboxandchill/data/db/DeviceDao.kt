@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DeviceDao {
-    @Query("SELECT * FROM devices ORDER BY name COLLATE NOCASE") fun observeAll(): Flow<List<DeviceEntity>>
+    @Query("SELECT * FROM devices ORDER BY name COLLATE NOCASE")
+    fun observeAll(): Flow<List<DeviceEntity>>
 
     @Query(
         """
@@ -38,7 +39,8 @@ interface DeviceDao {
 
     @Query("SELECT * FROM devices") suspend fun getAll(): List<DeviceEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertAll(devices: List<DeviceEntity>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(devices: List<DeviceEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(device: DeviceEntity)
 

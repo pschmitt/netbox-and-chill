@@ -19,7 +19,10 @@ class SettingsPreferenceTest {
     @Test
     fun `hidden field keys use a stable singular object name`() {
         assertEquals("device/model", hiddenFieldPreferenceKey("api/dcim/devices/", "Model"))
-        assertEquals("device-type/front_image", hiddenFieldPreferenceKey("api/dcim/device-types/", "front_image"))
+        assertEquals(
+            "device-type/front_image",
+            hiddenFieldPreferenceKey("api/dcim/device-types/", "front_image"),
+        )
     }
 
     @Test

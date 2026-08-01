@@ -17,7 +17,12 @@ enum class EditFieldKind {
     MULTI_CHOICE,
 }
 
-data class EditOption(val value: String, val label: String)
+data class EditOption(
+    val value: String,
+    val label: String,
+    val frontImageUrl: String? = null,
+    val rearImageUrl: String? = null,
+)
 
 /**
  * A field that can be edited and PATCHed back, e.g. via NBC-5's edit mode on the generic detail
@@ -32,12 +37,16 @@ data class EditableField(
     val referenceEndpointPath: String? = null,
     val currentDisplay: String? = null,
     val customFieldName: String? = null,
+    val markdown: Boolean = false,
 )
 
 fun selectedValuesFromJson(text: String): List<String> =
     runCatching {
-        Json.decodeFromString(JsonArray.serializer(), text).mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
-    }.getOrDefault(emptyList())
+            Json.decodeFromString(JsonArray.serializer(), text).mapNotNull {
+                (it as? JsonPrimitive)?.contentOrNull
+            }
+        }
+        .getOrDefault(emptyList())
 
 fun selectedValuesToJson(values: Collection<String>): String =
     JsonArray(values.map(::JsonPrimitive)).toString()

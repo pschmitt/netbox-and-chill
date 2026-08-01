@@ -11,7 +11,10 @@ import org.junit.Test
 class BrotherPtcBpTest {
     @Test
     fun `packbits compresses long runs and literals`() {
-        assertArrayEquals(byteArrayOf(0xfe.toByte(), 7, 2, 1, 2, 3), BrotherPtcBp.packBits(byteArrayOf(7, 7, 7, 1, 2, 3)))
+        assertArrayEquals(
+            byteArrayOf(0xfe.toByte(), 7, 2, 1, 2, 3),
+            BrotherPtcBp.packBits(byteArrayOf(7, 7, 7, 1, 2, 3)),
+        )
     }
 
     @Test

@@ -28,8 +28,7 @@ constructor(private val api: GenericNetBoxApi, private val dao: RackElevationDao
     /** Refreshes one face while leaving the existing Room snapshot intact on failure. */
     suspend fun refresh(rackId: Int, face: RackFace): Result<Int> = runCatching {
         val slots =
-            api
-                .listObjects(
+            api.listObjects(
                     "api/dcim/racks/$rackId/elevation/",
                     mapOf("face" to face.apiValue, "limit" to "1000"),
                 )
@@ -52,7 +51,9 @@ internal fun JsonObject.toRackElevationEntity(rackId: Int, face: String): RackEl
     val deviceDisplay =
         (device?.get("display") as? JsonPrimitive)?.contentOrNull
             ?: (device?.get("name") as? JsonPrimitive)?.contentOrNull
-    val occupied = (this["occupied"] as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull() ?: (deviceId != null)
+    val occupied =
+        (this["occupied"] as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull()
+            ?: (deviceId != null)
     return RackElevationEntity(
         rackId = rackId,
         face = face,

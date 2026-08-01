@@ -26,7 +26,9 @@ constructor(
     private val json: Json,
 ) : ViewModel() {
     val conflicts: StateFlow<List<PendingEditEntity>> =
-        repository.observeConflicts().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        repository
+            .observeConflicts()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isResolving = MutableStateFlow(false)
     val isResolving: StateFlow<Boolean> = _isResolving.asStateFlow()

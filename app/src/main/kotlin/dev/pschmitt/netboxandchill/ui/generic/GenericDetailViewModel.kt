@@ -8,15 +8,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
-import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.EditSubmission
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
-import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
 import dev.pschmitt.netboxandchill.data.repository.RackFace
+import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -165,29 +164,36 @@ constructor(
 
     val relatedPreviewUrls: StateFlow<Map<Int, String>> =
         combine(relatedObjects, deviceTypeRepository.observeAll()) { objects, deviceTypes ->
-                val typeImages =
-                    deviceTypes.associate { it.id to (it.frontImageUrl ?: it.rearImageUrl) }
-                objects.mapNotNull { objectEntity ->
-                    previewImageUrl(objectEntity, typeImages)?.let { objectEntity.id to it }
-                }.toMap()
+                val typeImages = deviceTypes.associate {
+                    it.id to (it.frontImageUrl ?: it.rearImageUrl)
+                }
+                objects
+                    .mapNotNull { objectEntity ->
+                        previewImageUrl(objectEntity, typeImages)?.let { objectEntity.id to it }
+                    }
+                    .toMap()
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val isRack: Boolean = route.endpointPath == "api/dcim/racks/"
 
     val frontElevation =
-        rackElevationRepository.observe(route.id, RackFace.FRONT).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            emptyList(),
-        )
+        rackElevationRepository
+            .observe(route.id, RackFace.FRONT)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList(),
+            )
 
     val rearElevation =
-        rackElevationRepository.observe(route.id, RackFace.REAR).stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            emptyList(),
-        )
+        rackElevationRepository
+            .observe(route.id, RackFace.REAR)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList(),
+            )
 
     /** Device-type stock photos keyed by device id, for the rack elevation blocks. */
     val rackDevicePreviews: StateFlow<Map<Int, RackDevicePreview>> =
@@ -196,20 +202,22 @@ constructor(
                 deviceTypeRepository.observeAll(),
             ) { devices, deviceTypes ->
                 val types = deviceTypes.associateBy { it.id }
-                devices.mapNotNull { entity ->
-                    val objectJson = decode(entity.json) ?: return@mapNotNull null
-                    val deviceTypeId =
-                        (objectJson["device_type"] as? JsonObject)?.let {
-                            (it["id"] as? JsonPrimitive)?.intOrNull
-                        } ?: return@mapNotNull null
-                    val deviceType = types[deviceTypeId] ?: return@mapNotNull null
-                    entity.id to
-                        RackDevicePreview(
-                            deviceTypeId = deviceTypeId,
-                            frontUrl = deviceType.frontImageUrl,
-                            rearUrl = deviceType.rearImageUrl,
-                        )
-                }.toMap()
+                devices
+                    .mapNotNull { entity ->
+                        val objectJson = decode(entity.json) ?: return@mapNotNull null
+                        val deviceTypeId =
+                            (objectJson["device_type"] as? JsonObject)?.let {
+                                (it["id"] as? JsonPrimitive)?.intOrNull
+                            } ?: return@mapNotNull null
+                        val deviceType = types[deviceTypeId] ?: return@mapNotNull null
+                        entity.id to
+                            RackDevicePreview(
+                                deviceTypeId = deviceTypeId,
+                                frontUrl = deviceType.frontImageUrl,
+                                rearUrl = deviceType.rearImageUrl,
+                            )
+                    }
+                    .toMap()
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
@@ -219,8 +227,6 @@ constructor(
 
     fun showRelatedItems(target: CountTarget) {
         _relatedTarget.value = target
-        if (settingsRepository.offlineMode.value) return
-        syncScheduler.syncNow()
     }
 
     fun dismissRelatedItems() {
@@ -249,8 +255,6 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
-        refresh()
-        loadJournalEntries()
         viewModelScope.launch {
             objectFlow.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
@@ -260,6 +264,7 @@ constructor(
         if (!settingsRepository.offlineMode.value) {
             syncScheduler.syncNow()
             if (showConfirmation) _refreshedMessage.value = "Refresh queued"
+            loadJournalEntries()
         }
     }
 
@@ -289,6 +294,24 @@ constructor(
         _referenceOptions.value = emptyMap()
         _choiceOptions.value = emptyMap()
         viewModelScope.launch { loadEditOptions(editableFields.value) }
+    }
+
+    /** Prepare the existing save path for a focused edit dialog without opening the full form. */
+    fun startFieldEditing(fieldKey: String) {
+        val field = editableFields.value.firstOrNull { it.key == fieldKey } ?: return
+        _errorMessage.value = null
+        editBaseJson = objectEntity.value?.json
+        _isEditing.value = false
+        _referenceOptions.value = emptyMap()
+        _choiceOptions.value = emptyMap()
+        viewModelScope.launch { loadEditOptions(listOf(field)) }
+    }
+
+    fun cancelFieldEditing() {
+        _errorMessage.value = null
+        editBaseJson = null
+        _referenceOptions.value = emptyMap()
+        _choiceOptions.value = emptyMap()
     }
 
     fun cancelEditing() {
@@ -339,24 +362,39 @@ constructor(
 
     private suspend fun loadEditOptions(fields: List<EditableField>) {
         val references = mutableMapOf<String, List<EditOption>>()
-        fields.filter { it.kind in setOf(EditFieldKind.REFERENCE, EditFieldKind.MULTI_REFERENCE) }.forEach { field ->
-            val endpoint = field.referenceEndpointPath ?: return@forEach
-            var cached = repository.cachedObjects(endpoint)
-            if (cached.isEmpty() && !settingsRepository.offlineMode.value) {
-                syncScheduler.syncNow()
-                cached = repository.cachedObjects(endpoint)
+        fields
+            .filter { it.kind in setOf(EditFieldKind.REFERENCE, EditFieldKind.MULTI_REFERENCE) }
+            .forEach { field ->
+                val endpoint = field.referenceEndpointPath ?: return@forEach
+                val cached = repository.cachedObjects(endpoint)
+                val options =
+                    buildList {
+                            field.currentDisplay?.let { add(EditOption(field.value, it)) }
+                            addAll(
+                                cached.map { entity ->
+                                    val objectJson = decode(entity.json)
+                                    EditOption(
+                                        value = entity.id.toString(),
+                                        label = entity.display,
+                                        frontImageUrl =
+                                            (objectJson?.get("front_image") as? JsonPrimitive)
+                                                ?.contentOrNull,
+                                        rearImageUrl =
+                                            (objectJson?.get("rear_image") as? JsonPrimitive)
+                                                ?.contentOrNull,
+                                    )
+                                }
+                            )
+                        }
+                        .distinctBy { it.value }
+                references[field.key] = options
             }
-            val options =
-                buildList {
-                    field.currentDisplay?.let { add(EditOption(field.value, it)) }
-                    addAll(cached.map { EditOption(it.id.toString(), it.display) })
-                }.distinctBy { it.value }
-            references[field.key] = options
-        }
         _referenceOptions.value = references
 
         val choices = mutableMapOf<String, List<EditOption>>()
-        if (fields.any { it.kind == EditFieldKind.CHOICE } && !settingsRepository.offlineMode.value) {
+        if (
+            fields.any { it.kind == EditFieldKind.CHOICE } && !settingsRepository.offlineMode.value
+        ) {
             choices.putAll(
                 runCatching { api.getObjectOptions("${route.endpointPath}${route.id}/") }
                     .getOrNull()
@@ -366,9 +404,15 @@ constructor(
         }
         if (!settingsRepository.offlineMode.value) {
             val definitions = customFieldRepository.observeDefinitions().first()
-            fields.filter { it.customFieldName != null && it.kind in setOf(EditFieldKind.CHOICE, EditFieldKind.MULTI_CHOICE) }
+            fields
+                .filter {
+                    it.customFieldName != null &&
+                        it.kind in setOf(EditFieldKind.CHOICE, EditFieldKind.MULTI_CHOICE)
+                }
                 .forEach { field ->
-                    val definition = definitions.firstOrNull { it.name == field.customFieldName } ?: return@forEach
+                    val definition =
+                        definitions.firstOrNull { it.name == field.customFieldName }
+                            ?: return@forEach
                     val url = definition.choiceSetUrl ?: return@forEach
                     runCatching { api.getObject(url) }
                         .getOrNull()
@@ -409,7 +453,12 @@ constructor(
     ): String? {
         val obj = decode(entity.json) ?: return null
         listOf("front_image", "image", "rear_image").forEach { key ->
-            (obj[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }?.let { return it }
+            (obj[key] as? JsonPrimitive)
+                ?.contentOrNull
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    return it
+                }
         }
         val deviceType = obj["device_type"] as? JsonObject
         val deviceTypeId = (deviceType?.get("id") as? JsonPrimitive)?.intOrNull
@@ -422,22 +471,24 @@ constructor(
 
 internal fun parseChoiceOptions(response: JsonObject): Map<String, List<EditOption>> {
     val actions = response["actions"] as? JsonObject
-    val editableFields =
-        ((actions?.get("PATCH") ?: actions?.get("PUT")) as? JsonObject).orEmpty()
-    return editableFields.mapNotNull { (key, definition) ->
-        val choices = (definition as? JsonObject)?.get("choices") as? JsonArray ?: return@mapNotNull null
-        val options =
-            choices.mapNotNull { choice ->
+    val editableFields = ((actions?.get("PATCH") ?: actions?.get("PUT")) as? JsonObject).orEmpty()
+    return editableFields
+        .mapNotNull { (key, definition) ->
+            val choices =
+                (definition as? JsonObject)?.get("choices") as? JsonArray ?: return@mapNotNull null
+            val options = choices.mapNotNull { choice ->
                 val obj = choice as? JsonObject ?: return@mapNotNull null
-                val value = (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                val value =
+                    (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
                 val label =
                     (obj["display_name"] as? JsonPrimitive)?.contentOrNull
                         ?: (obj["display"] as? JsonPrimitive)?.contentOrNull
                         ?: value
                 EditOption(value, label)
             }
-        key to options
-    }.toMap()
+            key to options
+        }
+        .toMap()
 }
 
 internal fun parseCustomChoiceOptions(response: JsonObject): List<EditOption> =
@@ -445,7 +496,8 @@ internal fun parseCustomChoiceOptions(response: JsonObject): List<EditOption> =
         .flatMap { key ->
             (response[key] as? JsonArray).orEmpty().mapNotNull { choice ->
                 val pair = choice as? JsonArray ?: return@mapNotNull null
-                val value = (pair.getOrNull(0) as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                val value =
+                    (pair.getOrNull(0) as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
                 val label = (pair.getOrNull(1) as? JsonPrimitive)?.contentOrNull ?: value
                 EditOption(value, label)
             }

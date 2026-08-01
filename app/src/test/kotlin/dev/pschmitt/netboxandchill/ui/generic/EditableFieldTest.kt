@@ -11,7 +11,8 @@ import org.junit.Test
 
 class EditableFieldTest {
 
-    private fun parse(rawJson: String): JsonObject = Json.decodeFromString(JsonObject.serializer(), rawJson)
+    private fun parse(rawJson: String): JsonObject =
+        Json.decodeFromString(JsonObject.serializer(), rawJson)
 
     @Test
     fun `excludes blocklisted meta fields`() {
@@ -35,10 +36,11 @@ class EditableFieldTest {
     fun `detects a reference field with its endpoint and display`() {
         val field =
             buildEditableFields(
-                parse(
-                    """{"site":{"id":7,"url":"https://x/api/dcim/sites/7/","display":"Berlin"}}"""
+                    parse(
+                        """{"site":{"id":7,"url":"https://x/api/dcim/sites/7/","display":"Berlin"}}"""
+                    )
                 )
-            ).single()
+                .single()
         assertEquals(EditFieldKind.REFERENCE, field.kind)
         assertEquals("7", field.value)
         assertEquals("api/dcim/sites/", field.referenceEndpointPath)
@@ -47,7 +49,9 @@ class EditableFieldTest {
 
     @Test
     fun `detects a choice field and keeps its wire value`() {
-        val field = buildEditableFields(parse("""{"status":{"value":"active","label":"Active"}}""")).single()
+        val field =
+            buildEditableFields(parse("""{"status":{"value":"active","label":"Active"}}"""))
+                .single()
         assertEquals(EditFieldKind.CHOICE, field.kind)
         assertEquals("active", field.value)
         assertEquals("Active", field.currentDisplay)
@@ -56,7 +60,10 @@ class EditableFieldTest {
     @Test
     fun `detects string fields`() {
         val fields = buildEditableFields(parse("""{"serial":"ABC123"}"""))
-        assertEquals(listOf(EditableField("serial", "Serial", EditFieldKind.STRING, "ABC123")), fields)
+        assertEquals(
+            listOf(EditableField("serial", "Serial", EditFieldKind.STRING, "ABC123")),
+            fields,
+        )
     }
 
     @Test
@@ -127,7 +134,10 @@ class EditableFieldTest {
             parse(
                 """{"actions":{"PUT":{"status":{"choices":[{"value":"active","display_name":"Active"}]}}}}"""
             )
-        assertEquals(mapOf("status" to listOf(EditOption("active", "Active"))), parseChoiceOptions(response))
+        assertEquals(
+            mapOf("status" to listOf(EditOption("active", "Active"))),
+            parseChoiceOptions(response),
+        )
     }
 
     @Test
@@ -137,7 +147,11 @@ class EditableFieldTest {
                 """{"base_choices":[["EUR","Euro"]],"extra_choices":[["USD","US Dollar"],["GBP","Pound"]]}"""
             )
         assertEquals(
-            listOf(EditOption("EUR", "Euro"), EditOption("USD", "US Dollar"), EditOption("GBP", "Pound")),
+            listOf(
+                EditOption("EUR", "Euro"),
+                EditOption("USD", "US Dollar"),
+                EditOption("GBP", "Pound"),
+            ),
             parseCustomChoiceOptions(response),
         )
     }

@@ -2,6 +2,7 @@ package dev.pschmitt.netboxandchill.data.api.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class PagedResponseDto<T>(
@@ -30,7 +31,13 @@ data class DeviceTypeRefDto(
     val manufacturer: ManufacturerRefDto? = null,
 )
 
-@Serializable data class IpAddressRefDto(val id: Int, val address: String? = null)
+@Serializable
+data class IpAddressRefDto(
+    val id: Int,
+    val address: String? = null,
+    val display: String? = null,
+    @SerialName("dns_name") val dnsName: String? = null,
+)
 
 @Serializable
 data class DeviceDto(
@@ -51,6 +58,7 @@ data class DeviceDto(
     @SerialName("asset_tag") val assetTag: String? = null,
     @SerialName("primary_ip") val primaryIp: IpAddressRefDto? = null,
     val comments: String? = null,
+    @SerialName("custom_fields") val customFields: JsonObject? = null,
     @SerialName("last_updated") val lastUpdated: String? = null,
 ) {
     val effectiveRole: NestedRefDto?

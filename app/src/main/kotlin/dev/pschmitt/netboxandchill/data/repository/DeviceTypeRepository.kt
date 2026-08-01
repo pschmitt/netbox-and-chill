@@ -8,9 +8,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
-/** Cache-first, like [DeviceRepository] - only the front/rear stock-photo URLs are of interest here. */
+/**
+ * Cache-first, like [DeviceRepository] - only the front/rear stock-photo URLs are of interest here.
+ */
 @Singleton
-class DeviceTypeRepository @Inject constructor(private val api: NetBoxApi, private val dao: DeviceTypeDao) {
+class DeviceTypeRepository
+@Inject
+constructor(private val api: NetBoxApi, private val dao: DeviceTypeDao) {
 
     fun observeAll(): Flow<List<DeviceTypeEntity>> = dao.observeAll()
 
@@ -18,7 +22,9 @@ class DeviceTypeRepository @Inject constructor(private val api: NetBoxApi, priva
 
     suspend fun cachedAll(): List<DeviceTypeEntity> = dao.getAll()
 
-    /** Fetches and caches [id] only if it isn't already cached - device-type photos rarely change. */
+    /**
+     * Fetches and caches [id] only if it isn't already cached - device-type photos rarely change.
+     */
     suspend fun ensureCached(id: Int) {
         if (dao.getById(id) == null) refresh(id)
     }

@@ -2233,13 +2233,13 @@ Refresh the item detail presentation so device, device type, rack, and other obj
 more like a modern inventory app while keeping the information-dense NetBox data easy to scan.
 
 - [x] Establish a stronger visual hierarchy for the title, identity, status, and metadata.
-- [ ] Improve section/card treatment for fields, markdown, images, and related-item counts.
+- [x] Improve section/card treatment for fields, markdown, images, and related-item counts.
 - [x] Keep actions, tabs, offline rendering, and accessibility intact.
 - [x] Verify the refreshed detail pages on a physical device across representative object types.
 
-Status: in progress, 2026-08-01 - typed and generic detail headers now use elevated identity
-cards with category icons, IDs, device-type/status context, and stable tabs. Mi Pad 4 verified
-the typed device and generic device-type presentations; richer field-section cards remain open.
+Status: **done**, 2026-08-01 - typed and generic detail headers and field rows now use elevated
+identity/field cards with category icons, IDs, device-type/status context, and stable tabs. Mi Pad 4
+verified the typed device and generic device-type presentations, including the richer field cards.
 
 ## NBC-99: localize timestamps and dates
 
@@ -2293,3 +2293,455 @@ Status: mostly done, 2026-08-01 - compared against the upstream printlabel raste
 filtered bitmap interpolation, switched to crisp bold 1-bit text, and matched its exact rotate/
 mirror orientation. Remote tests/lint/build passed and all three devices were deployed; physical
 printing remains open because the paired printer did not accept the test connection.
+
+## NBC-103: make sync notifications unobtrusive
+
+The long-running sync notification should not make sound or vibration, and should be hidden while
+the app is visibly in the foreground when Android permits that lifecycle-aware behavior.
+
+- [x] Make the sync notification silent.
+- [x] Suppress or remove it while the app is in the foreground, restoring it when backgrounded.
+- [x] Keep sync progress available in-app and verify notification behavior on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - the sync channel is low-importance/silent, foreground syncs have no
+active notification, and the Mi Pad 4 dumpsys verification confirmed the channel configuration.
+
+## NBC-104: regularly sync and resume after connectivity returns
+
+Offline cache refreshes should run on a regular schedule and retry automatically when a queued
+sync regains its network constraint, such as after connectivity is restored.
+
+- [x] Run a persisted periodic sync on a reasonable interval.
+- [x] Queue startup/manual syncs with a connectivity constraint so they resume after reconnect.
+- [x] Verify the scheduling/constraint behavior and document it in the sync backlog.
+
+Status: **done**, 2026-08-01 - WorkManager keeps a six-hour periodic job plus startup/manual
+one-time work, all constrained to CONNECTED; retries use WorkManager backoff.
+
+## NBC-105: show interface IP and MAC addresses
+
+The device detail page's Interfaces tab should show the interface's configured IP addresses and
+MAC address in the row subtitle when NetBox provides them.
+
+- [x] Extract IP and MAC values from cached interface JSON.
+- [x] Display them as a readable interface-list subtitle without changing offline behavior.
+- [x] Verify the populated subtitle on the Mi Pad 4 using a device with assigned addresses.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 device 18's `wlan0` row rendered the cached IP and MAC
+subtitle.
+
+## NBC-106: align device overview field actions
+
+The copy-to-clipboard and linked-reference actions on the device Overview tab should share stable
+trailing slots so their icons line up across fields.
+
+- [x] Give copy and link actions equal-sized trailing slots.
+- [x] Preserve the existing copy, navigation, and long-press behavior.
+- [x] Verify the alignment on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 UI inspection confirmed matching trailing action slots.
+
+## NBC-107: provide an add-item entry point
+
+Devices and generic NetBox object lists should expose a clear way to create an item through the
+metadata-driven creation form, including a global action from the main bottom navigation.
+
+- [x] Expose a create action on the typed Devices list.
+- [x] Expose a create action on generic object lists for all discovered models.
+- [x] Add a global bottom-navigation picker for any discovered object type.
+- [x] Verify the entry points and form without mutating the production NetBox instance.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 opened the global Add picker and a typed device form with
+no production submission.
+
+## NBC-108: make custom fields first-class in create and edit forms
+
+Custom fields should render as individual controls based on their cached NetBox definitions,
+including choices and Markdown-capable long text, rather than appearing as one raw JSON object.
+
+- [x] Split applicable custom fields into per-field create controls.
+- [x] Serialize custom-field values back into the nested `custom_fields` API payload.
+- [x] Support typed values, select/multi-select choices, and Markdown live preview.
+- [x] Verify the full custom-field form without submitting a production mutation.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 rendered individual typed custom-field controls alongside
+the device fields; no production submission was performed.
+
+## NBC-109: repair the generic item edit entry point
+
+The overflow Edit action should reliably open an editable view even when the generic object cache
+does not already contain the item.
+
+- [x] Best-effort fetch the selected object directly when its detail view opens.
+- [x] Keep cached/offline rendering available when that fetch fails.
+- [x] Verify the overflow Edit action on the Mi Pad 4 without saving to production.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 overflow Edit opened the device edit form without saving.
+
+## NBC-110: edit fields from a long press
+
+Long-pressing a visible field should offer the existing field action dialog, including an Edit
+action that opens the editable item view.
+
+- [x] Expose field long-press actions on generic detail rows.
+- [x] Route Edit from the field action dialog into the editable view.
+- [x] Keep hide-field behavior alongside the edit action.
+- [x] Verify long-press editing on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 long-press opened the field action dialog with Edit and
+Hide by default actions.
+
+## NBC-111: auto-submit setup QR codes and handle slow validation
+
+Scanning a connection setup QR code should submit the complete URL/token payload automatically,
+and a slow API response should produce a useful retryable message instead of an opaque timeout.
+
+- [x] Automatically start setup validation when a setup QR scan returns to onboarding.
+- [x] Validate the lightweight API root before scheduling the full cache sync.
+- [x] Translate common timeout and authorization failures into actionable onboarding errors.
+- [ ] Verify the QR setup flow on the Zenfone 10.
+
+Status: mostly done, 2026-08-01 - QR setup now auto-submits and avoids the full directory fan-out
+during login; physical Zenfone verification remains.
+
+## NBC-112: search and pin common Add item types
+
+The Add page should stay usable with a large directory: common device workflows should be easy to
+reach while the remaining object types remain searchable.
+
+- [x] Add a search box matching item and app labels.
+- [x] Pin Devices and Device types ahead of the other item types.
+- [ ] Verify the filtered/pinned picker on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - the Add picker now has a searchable list with pinned device
+workflows; physical verification remains.
+
+## NBC-113: align detail-row action icons
+
+Copy and open-reference actions on typed and generic item pages should use the same fixed trailing
+slots so they share a vertical alignment even when one action is absent.
+
+- [x] Use one shared fixed-width action-slot component for detail rows.
+- [x] Keep copy and reference navigation actions in stable leading/trailing slots.
+- [ ] Verify the revised alignment on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - typed and generic detail rows now share a fixed two-slot action
+area; physical visual verification remains.
+
+## NBC-114: long-press anywhere on a detail row
+
+The field action menu should be reachable by long-pressing the row's value or surrounding content,
+not only its small title label.
+
+- [x] Make typed detail rows respond to long press across the complete field content.
+- [x] Make generic detail cards respond to long press across the complete field content.
+- [ ] Verify value-area long press on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - row-level long-press handlers now wrap typed and generic detail
+content while preserving existing navigation and action buttons; physical verification remains.
+
+## NBC-115: show breadcrumbs in item detail headers
+
+When navigating from a device into an interface, rack, site, or device type, the detail header should
+identify both the current item type and the parent item instead of displaying only a generic title.
+
+- [x] Show the current object name and model type in generic detail headers.
+- [x] Carry the parent item's name into references opened from device and generic detail pages.
+- [x] Render the parent/type breadcrumb in the detail header.
+- [ ] Verify a device-to-interface navigation chain on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - typed and generic reference navigation now carries a parent label
+and generic headers render the current type; physical verification remains.
+
+## NBC-116: pin Add item types with a long press
+
+The Add picker should let users promote frequently used object types, persist that choice, and
+explain where the preference is reflected.
+
+- [x] Long-press an Add item type to toggle its persisted pin preference.
+- [x] Render user-pinned types above the searchable remainder while keeping devices first.
+- [x] Expose the pinned-type preference in Settings.
+- [ ] Verify custom pinning and persistence on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - Add rows now toggle the existing persisted model-pin preference
+on long press and Settings reports the configured count; physical verification remains.
+
+## NBC-117: double-tap to zoom image viewer content
+
+The image viewer should offer a familiar double-tap gesture to zoom in and return to the fitted
+view, in addition to pinch-to-zoom.
+
+- [x] Zoom to a readable scale on double tap.
+- [x] Return to fit-to-screen on a second double tap.
+- [ ] Verify the gesture on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - the viewer's combined gesture detector now recognizes double taps
+without consuming ordinary pager/dismiss drags; physical verification remains.
+
+## NBC-118: show metadata for device-type images
+
+Front/rear device-type images opened in the viewer should show useful metadata in the bottom panel,
+matching image attachments.
+
+- [x] Include model, view, and device-type ID metadata for front/rear stock images.
+- [x] Reuse the existing image-viewer metadata panel.
+- [ ] Verify the metadata panel on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - device-type viewer items now carry model/view/ID metadata;
+physical verification remains.
+
+## NBC-119: highlight unsaved edit changes
+
+The generic edit form should make fields that differ from their original values obvious before the
+user submits the update.
+
+- [x] Compare each edit control against its original cached value.
+- [x] Highlight changed text, Markdown, picker, multi-select, and boolean controls.
+- [ ] Verify the visual state on the Mi Pad 4 without submitting.
+
+Status: mostly done, 2026-08-01 - changed edit controls now receive a visible primary-colored
+outline while save payload generation remains unchanged; physical verification remains.
+
+## NBC-120: review edit diffs before submission
+
+Submitting edits should first show a before/after diff so the user can reject accidental changes or
+confirm the exact update that will be sent.
+
+- [x] Collect only changed fields when Save is pressed.
+- [x] Show original and edited values in a confirmation dialog.
+- [x] Allow canceling the review without making a network mutation.
+- [x] Submit only after explicit confirmation.
+- [ ] Verify the review flow on the Mi Pad 4 without submitting.
+
+Status: mostly done, 2026-08-01 - Save now opens an explicit before/after review and only the
+confirmation action invokes the existing save path; physical verification remains.
+
+## NBC-121: searchable reference pickers with device-type previews
+
+Reference fields in the edit view should not open an unbounded, slow-to-render list. In particular,
+changing a device type should support filtering and show the cached device-type front/rear images.
+
+- [x] Replace the giant reference dropdown with a searchable, lazy list.
+- [x] Match both object labels and IDs when filtering.
+- [x] Show cached front/rear device-type images in reference and multi-reference choices.
+- [x] Keep the picker cache-first and usable offline.
+- [x] Verify changing a device type's selection UI on the Mi Pad 4 without submitting.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 showed the searchable Device Type picker, filtered it, and
+rendered cached front/rear previews without submitting.
+
+## NBC-122: focused long-press field editing
+
+Editing a single field from its long-press action should open a compact editor for that field,
+instead of taking the user through the full object edit form.
+
+- [x] Open a focused field editor from the long-press Edit action.
+- [x] Reuse typed controls, searchable reference pickers, and device-type previews.
+- [x] Send the focused change through the existing before/after review.
+- [x] Offer explicit Revert and Confirm changes actions before any PATCH.
+- [x] Verify the focused edit and review flow on the Mi Pad 4 without submitting.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 showed the focused Device Type editor and before/after
+review; Revert closed it without a save.
+
+## NBC-123: cache-first item navigation
+
+Opening a list, detail page, or related-item sheet should render the existing Room data directly
+without triggering a server lookup that makes navigation appear stuck. Network refreshes remain
+available from explicit pull-to-refresh/Refresh actions and background sync.
+
+- [x] Stop list and generic-detail initialization from scheduling a network sync.
+- [x] Stop related-item clicks from scheduling a network sync.
+- [x] Stop generic detail from directly fetching an uncached object on navigation.
+- [x] Move device journal/attachment refreshes behind explicit device refresh.
+- [x] Keep cached reference options available to the edit picker without a hidden sync.
+- [x] Remove automatic sync triggers from device lists, dashboard, sidebar metadata, and detail tabs.
+- [x] Verify site navigation on the Mi Pad 4 while monitoring that no request is made.
+
+Status: **done**, 2026-08-01 - normal navigation now reads cached Room flows only; explicit
+refresh actions retain the network path. Mi Pad 4 site navigation showed cached content and
+produced no OkHttp request after the navigation tap.
+
+## NBC-124: focused edit from typed device pages
+
+The typed device detail screen should use the same focused long-press editor as generic item
+pages, rather than navigating into the full generic edit form.
+
+- [x] Map typed device field labels to their generic edit keys.
+- [x] Open the focused editor when navigation arrives from a device long press.
+- [x] Reuse the existing diff/revert/confirm flow.
+- [x] Verify the typed-device long-press editor on the Mi Pad 4 without submitting.
+
+Status: **done**, 2026-08-01 - Mi Pad 4 typed-device long press opened the focused Device Type
+editor and its review/revert flow without submitting.
+
+## NBC-125: open NetBox asset-tag QR URLs from other camera apps
+
+NetBox sticker QR codes should offer NetBox and Chill when scanned by the device's regular camera
+or another QR reader. Support both HTTPS and HTTP NetBox object URLs; a bare asset-tag string is
+not an Android URL and can only be resolved by the in-app scanner (or a reader's share action).
+
+- [x] Match HTTP NetBox object URLs in the external VIEW intent filters.
+- [x] Keep the compile-time configured host covered for HTTP as well as verified HTTPS links.
+- [x] Verify Android's resolver matches both schemes on the Mi Pad 4.
+- [x] Document the limitation of bare asset-tag payloads.
+
+Status: **done**, 2026-08-01 - Android resolver testing on the Mi Pad 4 matched the installed
+app for both HTTP and HTTPS device URLs; bare text correctly has no URL activity to dispatch.
+
+## NBC-126: make background sync network- and battery-aware
+
+Background and manual sync should respect the user's data policy and should never begin while
+Android Battery Saver is enabled.
+
+- [x] Add settings for Wi-Fi-only sync and whether roaming mobile data is allowed.
+- [x] Apply the selected network constraint to periodic, startup, and manual sync work.
+- [x] Pause workers while Battery Saver is active and retry after it is safe to run.
+- [x] Show the policy in the grouped Sync settings section.
+- [x] Verify the policy mapping with unit tests and deploy to physical devices.
+
+Status: mostly done, 2026-08-01 - remote lint/unit tests pass and the policy build is installed on
+the Mi Pad 4; Zenfone was disconnected and PX5 did not expose an ADB port.
+
+## NBC-127: stabilize print progress and close after success
+
+The print dialog's progress indicator should occupy a fixed footprint, and a successful print
+should dismiss the dialog while a failed print should leave it open with the error visible.
+
+- [x] Use a fixed-size progress indicator for discovery and printing.
+- [x] Dismiss the dialog only after a successful print.
+- [x] Keep the dialog open and show the printer error after failure.
+- [x] Verify the behavior in the print flow on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - remote checks pass; Mi Pad 4 showed the fixed print controls and
+kept the dialog open with a clear Bluetooth error, but a successful physical print still needs a
+reachable printer connection.
+
+## NBC-128: expose more printlabel settings
+
+The in-app label dialog should expose the useful printlabel controls that are currently only
+available from the command line, while keeping the existing printer, inversion, and orientation
+choices.
+
+- [x] Add copy count and QR-size controls.
+- [x] Add the long-label layout with device name, asset tag, and serial where available.
+- [x] Keep invalid settings from starting a print.
+- [x] Verify the new settings are visible on the Mi Pad 4.
+
+Status: mostly done, 2026-08-01 - copies, QR size, long-label, inversion, and vertical controls are
+visible in the Mi Pad 4 dialog; physical output verification remains pending printer reachability.
+
+## NBC-129: print the four newest Shelly Mini Gen4 devices
+
+Print labels for the four newest matching devices in NetBox after confirming the cached/API result
+and the selected printer. This is an operational print action rather than an app feature.
+
+- [x] Identify the four newest Shelly Mini Gen4 devices without changing NetBox data.
+- [ ] Print their labels through the app/printer workflow.
+- [ ] Verify the print result and record any printer-specific limitations.
+
+Status: in progress, 2026-08-01 - identified IDs 395-398 (`#SLY-3030` through `#SLY-3033`);
+printing is waiting for the paired PT-P300BT4590 to become reachable.
+
+## NBC-130: restore custom-field rows on typed device pages
+
+Typed device details should show the same per-field custom-field rows as generic details, including
+purchase information, grouping, Markdown rendering, links, and cached attachment values.
+
+- [x] Retain the raw custom-field map in the cache when devices are synced.
+- [x] Render non-empty custom fields as individually grouped rows on the device overview.
+- [x] Reuse custom-field type handling so text/long-text fields render Markdown.
+- [x] Verify purchase fields on the Mi Pad 4 after a fresh sync.
+
+Status: **done**, 2026-08-01 - fresh Mi Pad 4 device data shows Store, Order Number, Date, Price,
+Currency, and Markdown-rendered Notes rows from the cache.
+
+## NBC-131: represent IP addresses as structured NetBox references
+
+IP address values should retain their NetBox identity and be rendered as address data with useful
+navigation/copy behavior instead of being treated as an undifferentiated text value.
+
+- [x] Preserve primary-IP IDs and address metadata in the typed cache.
+- [ ] Render primary and related interface IP addresses consistently.
+- [x] Make IP values navigable to their cached IP address item and copyable.
+- [ ] Verify IPv4/IPv6 and prefix-length display on the Mi Pad 4.
+
+Status: in progress, 2026-08-01 - primary-IP IDs are now retained and the typed row is navigable;
+related-interface IP presentation and physical IPv4/IPv6 verification remain.
+
+## NBC-132: use distinct accents on object detail pages
+
+Different NetBox object types should be visually distinguishable without changing the global app
+theme. Device and device-type detail pages are the first important distinction, with other
+namespaces using stable accents too.
+
+- [x] Define stable accents by NetBox endpoint namespace/type.
+- [x] Apply the accent subtly to typed and generic detail headers/cards.
+- [x] Verify device versus device-type pages on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - device and device-type detail pages were checked on the Mi Pad 4;
+the distinct header/card accents render without changing the global theme.
+
+## NBC-133: remove duplicate item names from detail headers
+
+Detail cards already prominently show the current object's name. The app bar should use the object
+type, with only the parent context shown when navigating through a relationship.
+
+- [x] Replace the typed device app-bar title with its object type.
+- [x] Replace generic item-name app-bar titles with the object type and optional parent context.
+- [x] Verify direct and nested detail navigation on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - the Mi Pad 4 showed the short Device/Device Types app bars and the
+parent breadcrumb while navigating from a device to its device type.
+
+## NBC-134: keep all detail tabs horizontal
+
+Tabs should consistently place their icon beside the label. Material's separate icon slot stacks
+the icon above the text, which makes some detail pages look vertically arranged.
+
+- [x] Change generic Details and Journal tabs to horizontal icon-plus-label content.
+- [x] Preserve the existing horizontal layout on typed device tabs.
+- [x] Verify tabs on device and generic detail pages on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - typed device and generic device-type tabs were visually checked on
+the Mi Pad 4 and remain horizontal with icons and counts.
+
+## NBC-135: render Boolean fields as state cards
+
+Boolean fields such as Enabled should communicate state directly rather than showing a generic
+Yes/No value.
+
+- [x] Preserve Boolean values as semantic field rows.
+- [x] Show Enabled with a green card and checkmark; show Disabled with a neutral card/icon.
+- [x] Add renderer coverage for true and false values.
+- [x] Verify a Boolean field on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - the device-type page on the Mi Pad 4 showed Enabled with a
+checkmark card and Is Full Depth as Disabled with a neutral card.
+
+## NBC-136: add sections to item detail pages
+
+Item detail pages should visually group their content in the same spirit as the dashboard. Custom
+fields, especially purchase metadata, deserve a dedicated section and should retain their optional
+category headings.
+
+- [x] Add reusable section-heading rows to the generic field renderer.
+- [x] Give non-empty custom fields a dedicated “Custom fields” heading.
+- [x] Keep custom-field category headings and avoid orphan headings when rows are hidden.
+- [x] Verify generic and typed detail pages on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - the typed Shelly device page showed its Custom fields section and
+purchase rows from the cache; the generic detail renderer was also exercised on the Mi Pad 4.
+
+## NBC-137: move tablet navigation to a right-side rail
+
+On tablet-sized windows the universal navigation should use a right-side rail, while phones keep
+the compact bottom navigation used today.
+
+- [x] Keep the same destinations and order across both navigation layouts.
+- [x] Use a right-side NavigationRail at tablet widths and the bottom bar on phones.
+- [x] Apply the responsive shell to dashboard, lists, search, scan, and Add item screens.
+- [x] Verify the rail and navigation actions on the Mi Pad 4.
+
+Status: **done**, 2026-08-01 - the Mi Pad 4 dashboard and device list visibly use the right-side
+Home/Search/Scan/Add/Settings rail. The Zenfone received the same APK; PX5 was unreachable.

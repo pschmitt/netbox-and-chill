@@ -4,10 +4,10 @@ import android.content.Intent
 
 /**
  * NBC-10: the user's existing [printlabel](https://github.com/pschmitt/printlabel) project is a
- * local shell/Python CLI that talks directly over Bluetooth to a paired Brother P-Touch Cube
- * label printer (see `ptcbp.py`/`labelmaker.py` in that repo) - it has no daemon, server, or HTTP
- * surface an Android app could call into directly, so a real in-app "print" integration isn't
- * feasible in this pass (see the NBC-10 entry in TODO.md for the full investigation).
+ * local shell/Python CLI that talks directly over Bluetooth to a paired Brother P-Touch Cube label
+ * printer (see `ptcbp.py`/`labelmaker.py` in that repo) - it has no daemon, server, or HTTP surface
+ * an Android app could call into directly, so a real in-app "print" integration isn't feasible in
+ * this pass (see the NBC-10 entry in TODO.md for the full investigation).
  *
  * Its `--netbox QUERY` mode already does everything needed once it runs on the user's machine:
  * given a NetBox device id (and optionally `--netbox-url`), it resolves the device via the `nbx`
@@ -25,7 +25,11 @@ fun printLabelCommand(deviceId: Int, netboxBaseUrl: String?): String = buildStri
 }
 
 /** Share sheet for a ready-to-run `printlabel --netbox <id>` command - see [printLabelCommand]. */
-fun printLabelShareIntent(deviceId: Int, netboxBaseUrl: String?, deviceName: String? = null): Intent {
+fun printLabelShareIntent(
+    deviceId: Int,
+    netboxBaseUrl: String?,
+    deviceName: String? = null,
+): Intent {
     val subject = if (deviceName.isNullOrBlank()) "Print label" else "Print label - $deviceName"
     val send =
         Intent(Intent.ACTION_SEND).apply {

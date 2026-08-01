@@ -20,7 +20,9 @@ class DirectoryRepositoryTest {
     fun `discovery keeps paginated collections and skips action routes`() = runTest {
         val dao = FakeModelDao()
         val api = FakeDirectoryApi()
-        val result = DirectoryRepository(api, dao, dev.pschmitt.netboxandchill.sync.SyncIssueReporter()).refresh()
+        val result =
+            DirectoryRepository(api, dao, dev.pschmitt.netboxandchill.sync.SyncIssueReporter())
+                .refresh()
 
         assertEquals(1, result.getOrThrow())
         assertEquals(listOf("api/dcim/racks/"), dao.models.map(NetBoxModelEntity::endpointPath))
@@ -37,12 +39,15 @@ class DirectoryRepositoryTest {
 
     @Test
     fun `failed app discovery preserves the previous complete model cache`() = runTest {
-        val dao = FakeModelDao().apply {
-            models += NetBoxModelEntity("dcim", "DCIM", "racks", "Racks", "api/dcim/racks/")
-        }
+        val dao =
+            FakeModelDao().apply {
+                models += NetBoxModelEntity("dcim", "DCIM", "racks", "Racks", "api/dcim/racks/")
+            }
         val api = FailingDirectoryApi()
 
-        val result = DirectoryRepository(api, dao, dev.pschmitt.netboxandchill.sync.SyncIssueReporter()).refresh()
+        val result =
+            DirectoryRepository(api, dao, dev.pschmitt.netboxandchill.sync.SyncIssueReporter())
+                .refresh()
 
         assertFalse(result.isSuccess)
         assertEquals(listOf("api/dcim/racks/"), dao.models.map(NetBoxModelEntity::endpointPath))
@@ -66,16 +71,28 @@ private open class FakeDirectoryApi : GenericNetBoxApi {
                     "connected-device" to "https://netbox.example/api/dcim/connected-device/",
                     "background-queues" to "https://netbox.example/api/dcim/background-queues/",
                 )
-            "api/plugins/" -> mapOf("netbox_topology_views" to "https://netbox.example/api/plugins/netbox_topology_views/")
+            "api/plugins/" ->
+                mapOf(
+                    "netbox_topology_views" to
+                        "https://netbox.example/api/plugins/netbox_topology_views/"
+                )
             "api/plugins/netbox_topology_views/" ->
-                mapOf("xml-export" to "https://netbox.example/api/plugins/netbox_topology_views/xml-export/")
+                mapOf(
+                    "xml-export" to
+                        "https://netbox.example/api/plugins/netbox_topology_views/xml-export/"
+                )
             else -> error("Unexpected URL map request: $url")
         }
 
-    override suspend fun listObjects(url: String, query: Map<String, String>): PagedResponseDto<JsonObject> {
+    override suspend fun listObjects(
+        url: String,
+        query: Map<String, String>,
+    ): PagedResponseDto<JsonObject> {
         probedPaths += url
         if (url == "api/dcim/background-queues/") {
-            return PagedResponseDto(results = listOf(JsonObject(mapOf("name" to JsonPrimitive("running")))))
+            return PagedResponseDto(
+                results = listOf(JsonObject(mapOf("name" to JsonPrimitive("running"))))
+            )
         }
         if (url != "api/dcim/racks/") throw IOException("not a paginated collection")
         return PagedResponseDto()
@@ -97,7 +114,8 @@ private class FakeModelDao : NetBoxModelDao {
 
     override fun observeAll(): Flow<List<NetBoxModelEntity>> = flowOf(models)
 
-    override fun observeByPaths(endpointPaths: Set<String>): Flow<List<NetBoxModelEntity>> = flowOf(emptyList())
+    override fun observeByPaths(endpointPaths: Set<String>): Flow<List<NetBoxModelEntity>> =
+        flowOf(emptyList())
 
     override suspend fun count(): Int = models.size
 

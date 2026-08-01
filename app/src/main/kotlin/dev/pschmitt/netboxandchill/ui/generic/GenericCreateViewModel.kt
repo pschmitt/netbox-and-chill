@@ -7,6 +7,8 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.repository.CreateChoice
 import dev.pschmitt.netboxandchill.data.repository.CreateFieldDefinition
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
@@ -19,6 +21,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -29,6 +32,7 @@ class GenericCreateViewModel
 constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: GenericObjectRepository,
+    private val customFieldRepository: CustomFieldRepository,
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val settingsRepository: SettingsRepository,
@@ -40,7 +44,8 @@ constructor(
     val fields: StateFlow<List<CreateFieldDefinition>> = _fields.asStateFlow()
 
     private val _referenceOptions = MutableStateFlow<Map<String, List<CreateChoice>>>(emptyMap())
-    val referenceOptions: StateFlow<Map<String, List<CreateChoice>>> = _referenceOptions.asStateFlow()
+    val referenceOptions: StateFlow<Map<String, List<CreateChoice>>> =
+        _referenceOptions.asStateFlow()
 
     private val _values = MutableStateFlow<Map<String, String>>(emptyMap())
     val values: StateFlow<Map<String, String>> = _values.asStateFlow()
@@ -56,14 +61,17 @@ constructor(
 
     init {
         viewModelScope.launch {
-            repository.createFieldDefinitions(route.endpointPath)
+            val customDefinitions = customFieldRepository.observeDefinitions().first()
+            repository
+                .createFieldDefinitions(route.endpointPath)
                 .onSuccess { definitions ->
                     val fallback = fallbackCreateFieldDefinitions(route.endpointPath)
                     if (definitions.isEmpty() && fallback.isNotEmpty()) {
-                        _errorMessage.value = "NetBox did not provide form metadata; using the core fields"
-                        initializeFields(fallback)
+                        _errorMessage.value =
+                            "NetBox did not provide form metadata; using the core fields"
+                        initializeFields(withCustomFields(fallback, customDefinitions))
                     } else {
-                        initializeFields(definitions)
+                        initializeFields(withCustomFields(definitions, customDefinitions))
                     }
                 }
                 .onFailure {
@@ -71,8 +79,9 @@ constructor(
                     if (fallback.isEmpty()) {
                         _errorMessage.value = it.message ?: "Couldn't load the creation form"
                     } else {
-                        _errorMessage.value = "NetBox did not provide form metadata; using the core fields"
-                        initializeFields(fallback)
+                        _errorMessage.value =
+                            "NetBox did not provide form metadata; using the core fields"
+                        initializeFields(withCustomFields(fallback, customDefinitions))
                     }
                 }
             _isLoading.value = false
@@ -94,11 +103,14 @@ constructor(
             .onSuccess { body ->
                 viewModelScope.launch {
                     _isSaving.value = true
-                    repository.createObject(route.endpointPath, body)
+                    repository
+                        .createObject(route.endpointPath, body)
                         .onSuccess { objectJson ->
-                            val id = (objectJson["id"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                            val id =
+                                (objectJson["id"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
                             if (id == null) {
-                                _errorMessage.value = "NetBox created the item but returned no numeric ID"
+                                _errorMessage.value =
+                                    "NetBox created the item but returned no numeric ID"
                             } else {
                                 _createdId.value = id
                                 when (route.endpointPath) {
@@ -108,7 +120,9 @@ constructor(
                                 syncScheduler.syncNow()
                             }
                         }
-                        .onFailure { _errorMessage.value = it.message ?: "Couldn't create ${route.label}" }
+                        .onFailure {
+                            _errorMessage.value = it.message ?: "Couldn't create ${route.label}"
+                        }
                     _isSaving.value = false
                 }
             }
@@ -120,12 +134,15 @@ constructor(
 
     private suspend fun loadReferenceOptions(definitions: List<CreateFieldDefinition>) {
         val options = buildMap {
-            definitions.filter { it.referenceEndpointPath != null }.forEach { field ->
-                val values = repository.cachedObjects(field.referenceEndpointPath!!).map {
-                    CreateChoice(it.id.toString(), it.display)
+            definitions
+                .filter { it.referenceEndpointPath != null }
+                .forEach { field ->
+                    val values =
+                        repository.cachedObjects(field.referenceEndpointPath!!).map {
+                            CreateChoice(it.id.toString(), it.display)
+                        }
+                    if (values.isNotEmpty()) put(field.key, values)
                 }
-                if (values.isNotEmpty()) put(field.key, values)
-            }
         }
         _referenceOptions.value = options
     }
@@ -136,5 +153,85 @@ constructor(
             field.key to ((field.defaultValue as? JsonPrimitive)?.contentOrNull ?: "")
         }
         viewModelScope.launch { loadReferenceOptions(definitions) }
+        viewModelScope.launch { loadCustomChoices(definitions) }
+    }
+
+    private suspend fun loadCustomChoices(definitions: List<CreateFieldDefinition>) {
+        if (settingsRepository.offlineMode.value) return
+        val customDefinitions =
+            customFieldRepository.observeDefinitions().first().associateBy { it.name }
+        val choices = buildMap {
+            definitions
+                .filter {
+                    it.customFieldName != null &&
+                        it.type in setOf("select", "choice", "multiselect", "multi-select")
+                }
+                .forEach { field ->
+                    val name = field.customFieldName ?: return@forEach
+                    customDefinitions[name]?.let { definition ->
+                        put(field.key, customFieldRepository.choicesFor(definition))
+                    }
+                }
+        }
+        if (choices.isNotEmpty()) {
+            _fields.value =
+                _fields.value.map { field ->
+                    field.copy(choices = choices[field.key].orEmpty().ifEmpty { field.choices })
+                }
+        }
+    }
+
+    private fun withCustomFields(
+        definitions: List<CreateFieldDefinition>,
+        customDefinitions: List<CustomFieldDefinition>,
+    ): List<CreateFieldDefinition> {
+        val target = route.endpointPath.toObjectType()
+        val customFields =
+            customDefinitions
+                .filter { definition ->
+                    target == null ||
+                        definition.objectTypes.isEmpty() ||
+                        target in definition.objectTypes
+                }
+                .sortedWith(
+                    compareBy<CustomFieldDefinition>(
+                        { it.group.orEmpty() },
+                        { it.weight },
+                        { it.label ?: it.name },
+                    )
+                )
+                .map { definition ->
+                    val type = definition.type.lowercase()
+                    CreateFieldDefinition(
+                        key = "custom_fields.${definition.name}",
+                        label = definition.label?.takeIf { it.isNotBlank() } ?: definition.name,
+                        type = type,
+                        required = false,
+                        defaultValue = null,
+                        choices = emptyList(),
+                        referenceEndpointPath = null,
+                        customFieldName = definition.name,
+                        markdown = type in setOf("markdown", "longtext"),
+                        multiple =
+                            type in
+                                setOf(
+                                    "multiselect",
+                                    "multi-select",
+                                    "multiple-choice",
+                                    "multiple_choice",
+                                    "multiple-object",
+                                ),
+                    )
+                }
+        return (definitions.filterNot { it.key == "custom_fields" } + customFields).distinctBy {
+            it.key
+        }
+    }
+
+    private fun String.toObjectType(): String? {
+        val parts = removePrefix("api/").trim('/').split('/')
+        if (parts.size < 2) return null
+        val model = parts.last().removeSuffix("s").replace("-", "")
+        return "${parts.first()}.$model"
     }
 }

@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CustomFieldDao {
-    @Query("SELECT * FROM custom_fields ORDER BY groupName COLLATE NOCASE, weight, label COLLATE NOCASE, name COLLATE NOCASE")
+    @Query(
+        "SELECT * FROM custom_fields ORDER BY groupName COLLATE NOCASE, weight, label COLLATE NOCASE, name COLLATE NOCASE"
+    )
     fun observeAll(): Flow<List<CustomFieldEntity>>
 
     @Query("SELECT name FROM custom_fields WHERE type = 'markdown' ORDER BY name")

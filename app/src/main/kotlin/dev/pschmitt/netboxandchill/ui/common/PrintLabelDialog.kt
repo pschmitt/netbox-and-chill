@@ -2,8 +2,8 @@ package dev.pschmitt.netboxandchill.ui.common
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -13,6 +13,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Print
@@ -29,13 +31,16 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
@@ -57,14 +63,20 @@ import dev.pschmitt.netboxandchill.printing.PairedPrinter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-data class PrintLabelRequest(val objectUrl: String, val labelText: String)
+data class PrintLabelRequest(
+    val objectUrl: String,
+    val labelText: String,
+    val longLabelText: String? = null,
+)
 
 @Composable
 fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var hasPermission by remember { mutableStateOf(hasBluetoothPermission(context)) }
-    var bluetoothEnabled by remember { mutableStateOf(bluetoothAdapter(context)?.isEnabled == true) }
+    var bluetoothEnabled by remember {
+        mutableStateOf(bluetoothAdapter(context)?.isEnabled == true)
+    }
     var printers by remember { mutableStateOf<List<PairedPrinter>>(emptyList()) }
     var nearbyPrinters by remember { mutableStateOf<List<NearbyPrinter>>(emptyList()) }
     var selected by remember { mutableStateOf<PairedPrinter?>(null) }
@@ -73,7 +85,12 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
     var isPrinting by remember { mutableStateOf(false) }
     var invertColors by remember { mutableStateOf(true) }
     var verticalText by remember { mutableStateOf(false) }
+    var longLabel by remember { mutableStateOf(false) }
+    var copiesText by remember { mutableStateOf("1") }
+    var qrSize by remember { mutableStateOf(64) }
+    var qrSizeMenuExpanded by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
+    val copyCount = copiesText.toIntOrNull()?.takeIf { it in 1..9 }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             hasPermission = hasBluetoothPermission(context)
@@ -90,19 +107,23 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
             return
         }
         printers = adapter?.let { BrotherPrinter.pairedPrinters(it.bondedDevices) }.orEmpty()
-        selected = selected?.takeIf { current -> printers.any { it.address == current.address } } ?: printers.firstOrNull()
+        selected =
+            selected?.takeIf { current -> printers.any { it.address == current.address } }
+                ?: printers.firstOrNull()
         nearbyPrinters = emptyList()
-        isDiscovering = adapter?.let {
-            runCatching {
-                if (it.isDiscovering) it.cancelDiscovery()
-                it.startDiscovery()
-            }.getOrDefault(false)
-        } ?: false
+        isDiscovering =
+            adapter?.let {
+                runCatching {
+                        if (it.isDiscovering) it.cancelDiscovery()
+                        it.startDiscovery()
+                    }
+                    .getOrDefault(false)
+            } ?: false
     }
 
     DisposableEffect(context, hasPermission) {
         if (!hasPermission) {
-            onDispose { }
+            onDispose {}
         } else {
             val receiver =
                 object : BroadcastReceiver() {
@@ -118,7 +139,8 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                     )
                                 val printer = device?.let(BrotherPrinter::nearbyPrinter) ?: return
                                 nearbyPrinters =
-                                    (nearbyPrinters.filterNot { it.address == printer.address } + printer)
+                                    (nearbyPrinters.filterNot { it.address == printer.address } +
+                                            printer)
                                         .sortedBy { it.name.lowercase() }
                             }
                             BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> isDiscovering = false
@@ -136,10 +158,15 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                 when (device?.bondState) {
                                     BluetoothDevice.BOND_BONDED -> {
                                         pairingAddress = null
-                                        val paired = BrotherPrinter.pairedPrinters(setOf(device)).firstOrNull()
+                                        val paired =
+                                            BrotherPrinter.pairedPrinters(setOf(device))
+                                                .firstOrNull()
                                         if (paired != null) {
-                                            printers = (printers.filterNot { it.address == paired.address } + paired)
-                                                .sortedBy { it.name.lowercase() }
+                                            printers =
+                                                (printers.filterNot {
+                                                        it.address == paired.address
+                                                    } + paired)
+                                                    .sortedBy { it.name.lowercase() }
                                             selected = paired
                                         }
                                     }
@@ -159,7 +186,12 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                 }
             // Bluetooth discovery broadcasts originate from the system Bluetooth service, so a
             // NOT_EXPORTED receiver would not receive them on some Android releases.
-            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_EXPORTED)
+            ContextCompat.registerReceiver(
+                context,
+                receiver,
+                filter,
+                ContextCompat.RECEIVER_EXPORTED,
+            )
             onDispose {
                 runCatching { context.unregisterReceiver(receiver) }
                 runCatching { bluetoothAdapter(context)?.cancelDiscovery() }
@@ -234,7 +266,10 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                     )
                                     Column {
                                         Text(printer.name)
-                                        Text(printer.address, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            printer.address,
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
                                     }
                                 }
                             }
@@ -247,7 +282,10 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                 modifier = Modifier.size(20.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                )
                             }
                             Spacer(Modifier.width(8.dp))
                             Text("Searching for nearby Brother printers…")
@@ -265,7 +303,10 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                     Spacer(Modifier.width(8.dp))
                                     Column(Modifier.weight(1f)) {
                                         Text(printer.name)
-                                        Text(printer.address, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            printer.address,
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
                                     }
                                     if (printers.any { it.address == printer.address }) {
                                         Text("Paired", style = MaterialTheme.typography.labelMedium)
@@ -273,14 +314,19 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                                         OutlinedButton(
                                             onClick = {
                                                 pairingAddress = printer.address
-                                                val started = runCatching { printer.device.createBond() }.getOrDefault(false)
+                                                val started =
+                                                    runCatching { printer.device.createBond() }
+                                                        .getOrDefault(false)
                                                 if (!started) pairingAddress = null
                                             },
                                             enabled = pairingAddress == null,
                                         ) {
                                             Icon(Icons.Default.Bluetooth, contentDescription = null)
                                             Spacer(Modifier.width(4.dp))
-                                            Text(if (pairingAddress == printer.address) "Pairing…" else "Pair")
+                                            Text(
+                                                if (pairingAddress == printer.address) "Pairing…"
+                                                else "Pair"
+                                            )
                                         }
                                     }
                                 }
@@ -297,6 +343,56 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedTextField(
+                            value = copiesText,
+                            onValueChange = { copiesText = it.filter(Char::isDigit).take(1) },
+                            label = { Text("Copies") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = copyCount == null,
+                            modifier = Modifier.width(110.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Box {
+                            OutlinedButton(onClick = { qrSizeMenuExpanded = true }) {
+                                Text("QR ${qrSize}px")
+                            }
+                            DropdownMenu(
+                                expanded = qrSizeMenuExpanded,
+                                onDismissRequest = { qrSizeMenuExpanded = false },
+                            ) {
+                                listOf(48, 56, 64).forEach { size ->
+                                    DropdownMenuItem(
+                                        text = { Text("${size}px") },
+                                        onClick = {
+                                            qrSize = size
+                                            qrSizeMenuExpanded = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (request.longLabelText != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Long label")
+                                Text(
+                                    "Print name, asset tag, and serial like printlabel --long",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(checked = longLabel, onCheckedChange = { longLabel = it })
+                        }
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -328,7 +424,15 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                 }
                 if (isPrinting) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator()
+                        androidx.compose.foundation.layout.Box(
+                            modifier = Modifier.size(20.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        }
                         Spacer(Modifier.width(8.dp))
                         Text("Printing…")
                     }
@@ -336,7 +440,9 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                 resultMessage?.let { message ->
                     Text(
                         message,
-                        color = if (message == "Printed") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        color =
+                            if (message == "Printed") MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error,
                     )
                 }
             }
@@ -348,30 +454,36 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
             Button(
                 onClick = {
                     val printer = selected ?: return@Button
+                    val count = copyCount ?: return@Button
                     isPrinting = true
                     resultMessage = null
                     scope.launch {
-                        val result =
-                            runCatching {
-                                BrotherLabelRenderer.render(
+                        val result = runCatching {
+                            val text =
+                                if (longLabel) request.longLabelText ?: request.labelText
+                                else request.labelText
+                            BrotherLabelRenderer.render(
                                     request.objectUrl,
-                                    request.labelText,
+                                    text,
                                     invert = invertColors,
                                     vertical = verticalText,
+                                    qrSize = qrSize,
                                 )
-                            }.fold(
-                                onSuccess = { label -> BrotherPrinter.print(printer, label) },
-                                onFailure = { Result.failure(it) },
-                            )
-                        isPrinting = false
-                        resultMessage =
-                            result.fold(
-                                { "Printed" },
-                                { error -> printerFailureMessage(printer.name, error) },
-                            )
+                                .also { label ->
+                                    repeat(count) {
+                                        BrotherPrinter.print(printer, label).getOrThrow()
+                                    }
+                                }
+                        }
+                        result
+                            .onSuccess { onDismiss() }
+                            .onFailure { error ->
+                                isPrinting = false
+                                resultMessage = printerFailureMessage(printer.name, error)
+                            }
                     }
                 },
-                enabled = selected != null && !isPrinting && hasPermission,
+                enabled = selected != null && !isPrinting && hasPermission && copyCount != null,
             ) {
                 Icon(Icons.Default.Print, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -390,10 +502,13 @@ private fun bluetoothPermissions(): Array<String> =
 
 private fun hasBluetoothPermission(context: Context): Boolean =
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
+            PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) ==
+                PackageManager.PERMISSION_GRANTED
     } else {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
 private fun bluetoothAdapter(context: Context): BluetoothAdapter? =

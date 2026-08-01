@@ -11,5 +11,6 @@ interface DashboardStatDao {
     @Query("SELECT * FROM dashboard_stats ORDER BY label COLLATE NOCASE")
     fun observeAll(): Flow<List<DashboardStatEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertAll(stats: List<DashboardStatEntity>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(stats: List<DashboardStatEntity>)
 }

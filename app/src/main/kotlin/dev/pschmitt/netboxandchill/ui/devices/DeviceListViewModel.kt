@@ -46,8 +46,6 @@ constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    private val requestedDeviceTypeIds = mutableSetOf<Int>()
-
     val devices: StateFlow<List<DeviceEntity>> =
         _query
             .flatMapLatest { deviceRepository.observeDevices(it) }
@@ -60,24 +58,11 @@ constructor(
             .map { types -> types.associateBy { it.id } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    init {
-        refresh()
-    }
-
-    /** Backfill stock photos only for rows currently visible in the lazy list. */
-    fun ensureDeviceTypeImages(ids: Set<Int>) {
-        val newIds = synchronized(requestedDeviceTypeIds) {
-            ids.filter { requestedDeviceTypeIds.add(it) }
-        }
-        if (newIds.isNotEmpty()) syncScheduler.syncNow()
-    }
-
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
     }
 
     fun refresh() {
-        synchronized(requestedDeviceTypeIds) { requestedDeviceTypeIds.clear() }
         syncScheduler.syncNow()
     }
 

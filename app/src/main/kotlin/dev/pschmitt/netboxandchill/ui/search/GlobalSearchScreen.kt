@@ -11,8 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,7 +20,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -41,12 +40,13 @@ import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 /**
- * Cross-model search (NBC-13) - reachable from a search icon on the Devices/generic list top
- * bars, distinct from the sidebar's own search field (NBC-6/14), which only filters the list of
+ * Cross-model search (NBC-13) - reachable from a search icon on the Devices/generic list top bars,
+ * distinct from the sidebar's own search field (NBC-6/14), which only filters the list of
  * section/category names, not object data. Debounced in [GlobalSearchViewModel]; results come
  * straight from the offline cache, so they render even with no connectivity - [isRefreshing] is
  * just a best-effort background network pass, never a gate on showing what's already cached (see
@@ -60,6 +60,7 @@ fun GlobalSearchScreen(
     onDashboardClick: () -> Unit,
     onScanClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAddClick: () -> Unit,
     viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -82,7 +83,7 @@ fun GlobalSearchScreen(
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-    Scaffold(
+    NetBoxResponsiveScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NetBoxBottomBar(
@@ -90,6 +91,7 @@ fun GlobalSearchScreen(
                 onDashboardClick = onDashboardClick,
                 onSearchClick = {},
                 onScanClick = onScanClick,
+                onAddClick = onAddClick,
                 onSettingsClick = onSettingsClick,
             )
         },
@@ -126,13 +128,18 @@ fun GlobalSearchScreen(
                                     Icon(Icons.Default.History, contentDescription = null)
                                 },
                                 headlineContent = { Text("Recently visited") },
-                                supportingContent = { Text("Your latest devices and NetBox pages") },
+                                supportingContent = {
+                                    Text("Your latest devices and NetBox pages")
+                                },
                             )
                         }
-                        items(recentResults, key = { "recent-${it.endpointPath}-${it.id}" }) { hit ->
+                        items(recentResults, key = { "recent-${it.endpointPath}-${it.id}" }) { hit
+                            ->
                             val model = modelsByEndpointPath[hit.endpointPath]
-                            val appKey = model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
-                            val thumbnail = viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
+                            val appKey =
+                                model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
+                            val thumbnail =
+                                viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
                             SearchResultRow(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
@@ -143,16 +150,19 @@ fun GlobalSearchScreen(
                             )
                         }
                     }
-                query.isBlank() -> SearchEmptyState(
-                    title = "Search your NetBox",
-                    message = "Find devices, sites, racks, IPs, circuits, and more",
-                )
+                query.isBlank() ->
+                    SearchEmptyState(
+                        title = "Search your NetBox",
+                        message = "Find devices, sites, racks, IPs, circuits, and more",
+                    )
                 results.isNotEmpty() ->
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
                             val model = modelsByEndpointPath[hit.endpointPath]
-                            val appKey = model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
-                            val thumbnail = viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
+                            val appKey =
+                                model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
+                            val thumbnail =
+                                viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
                             SearchResultRow(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
@@ -191,7 +201,11 @@ private fun SearchEmptyState(title: String, message: String) {
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(52.dp),
             )
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(top = 16.dp),
+            )
             Text(
                 message,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

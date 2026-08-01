@@ -18,9 +18,7 @@ object BrotherPrinter {
 
     @SuppressLint("MissingPermission")
     fun pairedPrinters(adapterDevices: Set<BluetoothDevice>): List<PairedPrinter> =
-        adapterDevices
-            .mapNotNull(::pairedPrinter)
-            .sortedBy { it.name.lowercase() }
+        adapterDevices.mapNotNull(::pairedPrinter).sortedBy { it.name.lowercase() }
 
     @SuppressLint("MissingPermission")
     fun nearbyPrinter(device: BluetoothDevice): NearbyPrinter? =

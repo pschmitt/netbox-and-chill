@@ -7,6 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -28,6 +29,38 @@ class CustomFieldRepository
 @Inject
 constructor(private val api: GenericNetBoxApi, private val dao: CustomFieldDao) {
 
+    suspend fun choicesFor(definition: CustomFieldDefinition): List<CreateChoice> {
+        val url = definition.choiceSetUrl ?: return emptyList()
+        val response = runCatching { api.getObject(url) }.getOrNull() ?: return emptyList()
+        val choices = (response["choices"] ?: response["values"]) as? JsonArray
+        if (choices != null) {
+            return choices.mapNotNull { element ->
+                val choice = element as? JsonObject ?: return@mapNotNull null
+                val value =
+                    (choice["value"] as? JsonPrimitive)?.contentOrNull
+                        ?: (choice["name"] as? JsonPrimitive)?.contentOrNull
+                        ?: return@mapNotNull null
+                val label =
+                    (choice["label"] as? JsonPrimitive)?.contentOrNull
+                        ?: (choice["display"] as? JsonPrimitive)?.contentOrNull
+                        ?: value
+                CreateChoice(value, label)
+            }
+        }
+        return listOf("base_choices", "extra_choices")
+            .flatMap { key ->
+                (response[key] as? JsonArray).orEmpty().mapNotNull { pair ->
+                    val values = pair as? JsonArray ?: return@mapNotNull null
+                    val value =
+                        (values.getOrNull(0) as? JsonPrimitive)?.contentOrNull
+                            ?: return@mapNotNull null
+                    val label = (values.getOrNull(1) as? JsonPrimitive)?.contentOrNull ?: value
+                    CreateChoice(value, label)
+                }
+            }
+            .distinctBy { it.value }
+    }
+
     fun observeMarkdownNames(): Flow<Set<String>> = dao.observeMarkdownNames().map { it.toSet() }
 
     fun observeDefinitions(): Flow<List<CustomFieldDefinition>> =
@@ -39,7 +72,11 @@ constructor(private val api: GenericNetBoxApi, private val dao: CustomFieldDao) 
                     label = field.label,
                     group = field.groupName,
                     weight = field.weight,
-                    objectTypes = field.objectTypes.orEmpty().split(OBJECT_TYPE_SEPARATOR).filter(String::isNotBlank),
+                    objectTypes =
+                        field.objectTypes
+                            .orEmpty()
+                            .split(OBJECT_TYPE_SEPARATOR)
+                            .filter(String::isNotBlank),
                     choiceSetUrl = field.choiceSetUrl,
                 )
             }
@@ -65,8 +102,9 @@ constructor(private val api: GenericNetBoxApi, private val dao: CustomFieldDao) 
     }
 
     private fun JsonObject.toEntity(): CustomFieldEntity? {
-        val name = (this["name"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
-            ?: return null
+        val name =
+            (this["name"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+                ?: return null
         val type =
             when (val value = this["type"]) {
                 is JsonPrimitive -> value.contentOrNull

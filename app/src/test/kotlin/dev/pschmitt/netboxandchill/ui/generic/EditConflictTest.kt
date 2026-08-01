@@ -8,7 +8,8 @@ import org.junit.Test
 
 class EditConflictTest {
 
-    private fun parse(rawJson: String): JsonObject = Json.decodeFromString(JsonObject.serializer(), rawJson)
+    private fun parse(rawJson: String): JsonObject =
+        Json.decodeFromString(JsonObject.serializer(), rawJson)
 
     @Test
     fun `builds field level three way diff and skips metadata`() {

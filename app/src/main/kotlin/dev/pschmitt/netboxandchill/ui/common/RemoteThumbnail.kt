@@ -30,7 +30,10 @@ fun RemoteThumbnail(
 ) {
     if (imageUrl.isNullOrBlank() && localFile == null) {
         Box(
-            modifier = modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+            modifier =
+                modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

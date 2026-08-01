@@ -8,7 +8,8 @@ import org.junit.Test
 
 class ObjectChangeDiffTest {
 
-    private fun parse(rawJson: String): JsonObject = Json.decodeFromString(JsonObject.serializer(), rawJson)
+    private fun parse(rawJson: String): JsonObject =
+        Json.decodeFromString(JsonObject.serializer(), rawJson)
 
     @Test
     fun `only fields that actually changed appear as diff rows`() {
@@ -33,7 +34,10 @@ class ObjectChangeDiffTest {
     fun `null-to-empty-string is still reported as a change`() {
         val pre = parse("""{"description":null}""")
         val post = parse("""{"description":"now has a description"}""")
-        assertEquals(listOf(DiffRow("Description", null, "now has a description")), buildDiffRows(pre, post))
+        assertEquals(
+            listOf(DiffRow("Description", null, "now has a description")),
+            buildDiffRows(pre, post),
+        )
     }
 
     @Test

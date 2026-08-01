@@ -14,8 +14,10 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** Best-effort icon per NetBox app namespace - falls back to a generic icon for anything unknown
- * (custom plugins, apps NetBox adds after this list was written, etc). */
+/**
+ * Best-effort icon per NetBox app namespace - falls back to a generic icon for anything unknown
+ * (custom plugins, apps NetBox adds after this list was written, etc).
+ */
 object AppIcons {
     private val BY_APP_KEY: Map<String, ImageVector> =
         mapOf(
@@ -30,7 +32,9 @@ object AppIcons {
         )
 
     fun forAppKey(appKey: String): ImageVector =
-        BY_APP_KEY[appKey] ?: if (appKey.startsWith("plugins/")) Icons.Default.Extension else Icons.Outlined.Category
+        BY_APP_KEY[appKey]
+            ?: if (appKey.startsWith("plugins/")) Icons.Default.Extension
+            else Icons.Outlined.Category
 
     val Devices: ImageVector = Icons.Default.Hub
 }

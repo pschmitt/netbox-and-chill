@@ -64,7 +64,9 @@ constructor(
         return try {
             val server = api.getObject("$endpointPath$id/")
             if (hasChanged(decode(effectiveBase), server)) {
-                pendingEditDao.upsert(edit.copy(state = PendingEditEntity.CONFLICT, serverJson = encode(server)))
+                pendingEditDao.upsert(
+                    edit.copy(state = PendingEditEntity.CONFLICT, serverJson = encode(server))
+                )
                 genericObjectRepository.cacheLocalObject(endpointPath, effectiveLocal)
                 Result.success(EditSubmission.ConflictDetected)
             } else {
@@ -90,10 +92,13 @@ constructor(
             try {
                 val server = api.getObject("${edit.endpointPath}${edit.id}/")
                 if (hasChanged(decode(edit.baseJson), server)) {
-                    pendingEditDao.upsert(edit.copy(state = PendingEditEntity.CONFLICT, serverJson = encode(server)))
+                    pendingEditDao.upsert(
+                        edit.copy(state = PendingEditEntity.CONFLICT, serverJson = encode(server))
+                    )
                     continue
                 }
-                val updated = api.patchObject("${edit.endpointPath}${edit.id}/", decode(edit.patchJson))
+                val updated =
+                    api.patchObject("${edit.endpointPath}${edit.id}/", decode(edit.patchJson))
                 genericObjectRepository.cacheLocalObject(edit.endpointPath, updated)
                 pendingEditDao.delete(edit.endpointPath, edit.id)
             } catch (cancelled: CancellationException) {
@@ -107,9 +112,14 @@ constructor(
         }
     }
 
-    /** Applies the selected local fields, after confirming the conflict's server snapshot is current. */
+    /**
+     * Applies the selected local fields, after confirming the conflict's server snapshot is
+     * current.
+     */
     suspend fun resolveConflict(edit: PendingEditEntity, keepLocalKeys: Set<String>): Result<Unit> {
-        val savedServer = edit.serverJson ?: return Result.failure(IllegalStateException("Conflict has no server snapshot"))
+        val savedServer =
+            edit.serverJson
+                ?: return Result.failure(IllegalStateException("Conflict has no server snapshot"))
         return try {
             val currentServer = api.getObject("${edit.endpointPath}${edit.id}/")
             if (hasChanged(decode(savedServer), currentServer)) {
@@ -119,9 +129,11 @@ constructor(
             val local = decode(edit.localJson)
             val patch =
                 JsonObject(
-                    keepLocalKeys.mapNotNull { key ->
-                        local[key]?.let { key to it }
-                    }.toMap()
+                    keepLocalKeys
+                        .mapNotNull { key ->
+                            local[key]?.let { key to it }
+                        }
+                        .toMap()
                 )
             if (patch.isNotEmpty()) {
                 val updated = api.patchObject("${edit.endpointPath}${edit.id}/", patch)
@@ -145,10 +157,12 @@ constructor(
         json.encodeToString(JsonObject.serializer(), value)
 
     private fun merge(base: JsonObject, patch: JsonObject): JsonObject =
-        JsonObject(buildMap {
-            putAll(base)
-            putAll(patch)
-        })
+        JsonObject(
+            buildMap {
+                putAll(base)
+                putAll(patch)
+            }
+        )
 
     private fun hasChanged(base: JsonObject, server: JsonObject): Boolean {
         val baseVersion = version(base)

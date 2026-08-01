@@ -30,7 +30,10 @@ fun FieldActionDialog(
         title = { Text(fieldLabel) },
         text = {
             Column {
-                Text("Choose what to do with this field.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Choose what to do with this field.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Button(
                     onClick = onEdit,
                     enabled = canEdit,

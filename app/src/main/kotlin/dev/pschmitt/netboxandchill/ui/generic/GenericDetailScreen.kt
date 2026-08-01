@@ -5,22 +5,25 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
@@ -31,16 +34,17 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
@@ -59,7 +63,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,37 +74,39 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
+import dev.pschmitt.netboxandchill.data.repository.RackFace
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
+import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
-import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
-import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
-import dev.pschmitt.netboxandchill.ui.common.shareIntent
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
+import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
-import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
-import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
-import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
-import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
-import dev.pschmitt.netboxandchill.data.repository.RackFace
-import dev.pschmitt.netboxandchill.ui.generic.RackDevicePreview
-import androidx.core.content.getSystemService
+import dev.pschmitt.netboxandchill.ui.common.shareIntent
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun GenericDetailScreen(
     onBack: () -> Unit,
-    onNavigateToReference: (endpointPath: String, id: Int) -> Unit,
+    onNavigateToReference: (endpointPath: String, id: Int, breadcrumb: String?) -> Unit,
     viewModel: GenericDetailViewModel = hiltViewModel(),
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
@@ -133,6 +141,10 @@ fun GenericDetailScreen(
     var actionMenuExpanded by remember { mutableStateOf(false) }
     var showHiddenFields by remember { mutableStateOf(false) }
     var fieldActionLabel by remember { mutableStateOf<String?>(null) }
+    var pendingEdits by remember { mutableStateOf<Map<String, Pair<EditFieldKind, String>>?>(null) }
+    var pendingEditFieldKey by remember { mutableStateOf<String?>(null) }
+    var focusedEditFieldKey by remember { mutableStateOf<String?>(null) }
+    var focusedEditValue by remember { mutableStateOf("") }
     val hiddenObjectKey = hiddenFieldObjectKey(viewModel.route.endpointPath)
     val hiddenFieldsForObject = hiddenFieldKeys.filter { it.startsWith("$hiddenObjectKey/") }
     val visibleFields =
@@ -142,8 +154,25 @@ fun GenericDetailScreen(
             hiddenFieldKeys,
             showHiddenFields,
         )
+    val modelLabel = endpointModelLabel(viewModel.route.endpointPath)
+    val detailAccent = MaterialTheme.colorScheme.detailAccentFor(viewModel.route.endpointPath)
+    val focusedEditField = focusedEditFieldKey?.let { key ->
+        editableFields.firstOrNull { it.key == key }
+    }
     LaunchedEffect(isEditing) {
         if (isEditing) editValues = editableFields.associate { it.key to it.value }
+    }
+    LaunchedEffect(viewModel.route.focusFieldKey, editableFields) {
+        val fieldKey = viewModel.route.focusFieldKey ?: return@LaunchedEffect
+        if (focusedEditFieldKey == null) {
+            editableFields
+                .firstOrNull { it.key == fieldKey }
+                ?.let { field ->
+                    focusedEditFieldKey = field.key
+                    focusedEditValue = field.value
+                    viewModel.startFieldEditing(field.key)
+                }
+        }
     }
 
     LaunchedEffect(errorMessage) {
@@ -174,7 +203,9 @@ fun GenericDetailScreen(
     }
 
     val onCopyValue: (String, String) -> Unit = { label, value ->
-        context.getSystemService<ClipboardManager>()?.setPrimaryClip(ClipData.newPlainText(label, value))
+        context
+            .getSystemService<ClipboardManager>()
+            ?.setPrimaryClip(ClipData.newPlainText(label, value))
         copiedMessage = "Copied $label"
     }
 
@@ -189,7 +220,25 @@ fun GenericDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Details") },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = detailAccent.copy(alpha = 0.12f),
+                        navigationIconContentColor = detailAccent,
+                        actionIconContentColor = detailAccent,
+                    ),
+                title = {
+                    Column {
+                        Text(modelLabel, maxLines = 1)
+                        if (viewModel.route.breadcrumb != null) {
+                            Text(
+                                "from ${viewModel.route.breadcrumb}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = if (isEditing) viewModel::cancelEditing else onBack) {
                         Icon(
@@ -218,12 +267,22 @@ fun GenericDetailScreen(
                                     // change log, this can outright break the save: a field NetBox
                                     // computes itself (e.g. an absolute media URL) may reject being
                                     // resent as-is even when nothing about it changed.
-                                    val edits = editValues.mapNotNull { (key, value) ->
-                                        kindByKey[key]?.let { field ->
-                                            if (value != field.value) key to (field.kind to value) else null
-                                        }
+                                    val edits =
+                                        editValues
+                                            .mapNotNull { (key, value) ->
+                                                kindByKey[key]?.let { field ->
+                                                    if (value != field.value)
+                                                        key to (field.kind to value)
+                                                    else null
+                                                }
+                                            }
+                                            .toMap()
+                                    if (edits.isEmpty()) {
+                                        viewModel.save(emptyMap())
+                                    } else {
+                                        pendingEdits = edits
+                                        pendingEditFieldKey = null
                                     }
-                                    viewModel.save(edits.toMap())
                                 }
                             ) {
                                 Icon(Icons.Default.Check, contentDescription = "Save")
@@ -240,7 +299,9 @@ fun GenericDetailScreen(
                             ) {
                                 DropdownMenuItem(
                                     text = { Text("Refresh") },
-                                    leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Refresh, contentDescription = null)
+                                    },
                                     enabled = !isRefreshing,
                                     onClick = {
                                         viewModel.refresh(showConfirmation = true)
@@ -250,7 +311,9 @@ fun GenericDetailScreen(
                                 if (viewModel.isPrintableDevice) {
                                     DropdownMenuItem(
                                         text = { Text("Print label") },
-                                        leadingIcon = { Icon(Icons.Default.Print, contentDescription = null) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Print, contentDescription = null)
+                                        },
                                         enabled = webUrl != null,
                                         onClick = {
                                             webUrl?.let { url ->
@@ -258,6 +321,40 @@ fun GenericDetailScreen(
                                                     PrintLabelRequest(
                                                         objectUrl = url,
                                                         labelText = title.orEmpty(),
+                                                        longLabelText =
+                                                            buildList {
+                                                                    title
+                                                                        ?.takeIf { it.isNotBlank() }
+                                                                        ?.let(::add)
+                                                                    fields
+                                                                        .filterIsInstance<
+                                                                            FieldRow.PlainText
+                                                                        >()
+                                                                        .firstOrNull {
+                                                                            it.label.equals(
+                                                                                "Asset tag",
+                                                                                ignoreCase = true,
+                                                                            )
+                                                                        }
+                                                                        ?.value
+                                                                        ?.takeIf { it.isNotBlank() }
+                                                                        ?.let(::add)
+                                                                    fields
+                                                                        .filterIsInstance<
+                                                                            FieldRow.PlainText
+                                                                        >()
+                                                                        .firstOrNull {
+                                                                            it.label.equals(
+                                                                                "Serial",
+                                                                                ignoreCase = true,
+                                                                            )
+                                                                        }
+                                                                        ?.value
+                                                                        ?.takeIf { it.isNotBlank() }
+                                                                        ?.let(::add)
+                                                                }
+                                                                .joinToString("\n")
+                                                                .takeIf { it.isNotBlank() },
                                                     )
                                             }
                                             actionMenuExpanded = false
@@ -267,7 +364,9 @@ fun GenericDetailScreen(
                                 if (editableFields.isNotEmpty()) {
                                     DropdownMenuItem(
                                         text = { Text("Edit") },
-                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Edit, contentDescription = null)
+                                        },
                                         onClick = {
                                             viewModel.startEditing()
                                             actionMenuExpanded = false
@@ -277,15 +376,24 @@ fun GenericDetailScreen(
                                 webUrl?.let { url ->
                                     DropdownMenuItem(
                                         text = { Text("Open in browser") },
-                                        leadingIcon = { Icon(Icons.Default.OpenInBrowser, contentDescription = null) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.OpenInBrowser,
+                                                contentDescription = null,
+                                            )
+                                        },
                                         onClick = {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            )
                                             actionMenuExpanded = false
                                         },
                                     )
                                     DropdownMenuItem(
                                         text = { Text("Share") },
-                                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Share, contentDescription = null)
+                                        },
                                         onClick = {
                                             context.startActivity(shareIntent(url))
                                             actionMenuExpanded = false
@@ -295,7 +403,12 @@ fun GenericDetailScreen(
                                 if (hiddenFieldsForObject.isNotEmpty()) {
                                     DropdownMenuItem(
                                         text = { Text("Show hidden fields") },
-                                        leadingIcon = { Icon(Icons.Default.Visibility, contentDescription = null) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Visibility,
+                                                contentDescription = null,
+                                            )
+                                        },
                                         onClick = {
                                             showHiddenFields = true
                                             actionMenuExpanded = false
@@ -310,15 +423,15 @@ fun GenericDetailScreen(
         },
     ) { padding ->
         if (isEditing) {
-                EditForm(
-                    fields = editableFields,
-                    values = editValues,
-                    referenceOptions = referenceOptions,
-                    choiceOptions = choiceOptions,
-                    onValueChange = { key, value -> editValues = editValues + (key to value) },
-                    errorMessage = errorMessage,
-                    modifier = Modifier.padding(padding).fillMaxSize(),
-                )
+            EditForm(
+                fields = editableFields,
+                values = editValues,
+                referenceOptions = referenceOptions,
+                choiceOptions = choiceOptions,
+                onValueChange = { key, value -> editValues = editValues + (key to value) },
+                errorMessage = errorMessage,
+                modifier = Modifier.padding(padding).fillMaxSize(),
+            )
         } else {
             PullToRefreshBox(
                 // Sync has a global progress bar and Android notification; avoid the large
@@ -331,119 +444,164 @@ fun GenericDetailScreen(
                     title == null ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
+                                if (isRefreshing) "Loading…"
+                                else "Not cached yet - connect and refresh",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     else -> {
-                var selectedTab by remember { mutableStateOf(0) }
-                Column(Modifier.fillMaxSize()) {
-                    ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.size(52.dp),
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Outlined.Category,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(28.dp),
-                                    )
-                                }
-                            }
-                            Column(Modifier.padding(start = 14.dp)) {
-                                Text(
-                                    title ?: "Object #${viewModel.route.id}",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                )
-                                Text(
-                                    "ID #${viewModel.route.id}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                    TabRow(selectedTabIndex = selectedTab) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text("Details") },
-                            icon = {
-                                Icon(Icons.Default.Description, contentDescription = null)
-                            },
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text("Journal (${journalEntries.size})") },
-                            icon = { Icon(Icons.Default.History, contentDescription = null) },
-                        )
-                    }
-                    if (selectedTab == 0) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                        ) {
-                            if (viewModel.isRack) {
-                                item {
-                                    RackElevationOverview(
-                                        front = frontElevation,
-                                        rear = rearElevation,
-                                        previews = rackDevicePreviews,
-                                        localImageFile = viewModel::localAttachmentFile,
-                                        onDeviceClick = { id ->
-                                            onNavigateToReference("api/dcim/devices/", id)
-                                        },
-                                    )
-                                }
-                            }
-                            visibleFields.forEach { row ->
-                                fieldRow(
-                                    row,
-                                    onNavigateToReference,
-                                    viewModel::showRelatedItems,
-                                    onOpenUrl = { url ->
-                                        context.startActivity(
-                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        var selectedTab by remember { mutableStateOf(0) }
+                        Column(Modifier.fillMaxSize()) {
+                            ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Surface(
+                                        color = detailAccent.copy(alpha = 0.18f),
+                                        shape = RoundedCornerShape(14.dp),
+                                        modifier = Modifier.size(52.dp),
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Outlined.Category,
+                                                contentDescription = null,
+                                                tint = detailAccent,
+                                                modifier = Modifier.size(28.dp),
+                                            )
+                                        }
+                                    }
+                                    Column(Modifier.padding(start = 14.dp)) {
+                                        Text(
+                                            title ?: "Object #${viewModel.route.id}",
+                                            style = MaterialTheme.typography.headlineSmall,
                                         )
+                                        Text(
+                                            "ID #${viewModel.route.id}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                            TabRow(selectedTabIndex = selectedTab) {
+                                Tab(
+                                    selected = selectedTab == 0,
+                                    onClick = { selectedTab = 0 },
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Default.Description,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Details")
+                                        }
                                     },
-                                    onDownloadAttachment = viewModel::downloadAttachment,
-                                    localAttachmentFile = viewModel::localAttachmentFile,
-                                    onImageClick = { imageViewerItem = it },
-                                    isDownloading = isDownloading,
-                                    onCopyValue = onCopyValue,
-                                    onFieldLongPress = { fieldActionLabel = it },
+                                )
+                                Tab(
+                                    selected = selectedTab == 1,
+                                    onClick = { selectedTab = 1 },
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                Icons.Default.History,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Journal (${journalEntries.size})")
+                                        }
+                                    },
                                 )
                             }
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                        ) {
-                            if (journalEntries.isEmpty()) {
-                                item {
-                                    Text(
-                                        "No journal entries found for this item.",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(vertical = 16.dp),
-                                    )
+                            if (selectedTab == 0) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(16.dp),
+                                ) {
+                                    if (viewModel.isRack) {
+                                        item {
+                                            RackElevationOverview(
+                                                front = frontElevation,
+                                                rear = rearElevation,
+                                                previews = rackDevicePreviews,
+                                                localImageFile = viewModel::localAttachmentFile,
+                                                onDeviceClick = { id ->
+                                                    onNavigateToReference(
+                                                        "api/dcim/devices/",
+                                                        id,
+                                                        title ?: modelLabel,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    }
+                                    item {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(bottom = 6.dp),
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Description,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                "Details",
+                                                style = MaterialTheme.typography.titleLarge,
+                                            )
+                                        }
+                                    }
+                                    visibleFields.forEach { row ->
+                                        fieldRow(
+                                            row,
+                                            onNavigateToReference = { endpointPath, id ->
+                                                onNavigateToReference(
+                                                    endpointPath,
+                                                    id,
+                                                    title ?: modelLabel,
+                                                )
+                                            },
+                                            viewModel::showRelatedItems,
+                                            onOpenUrl = { url ->
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                )
+                                            },
+                                            onDownloadAttachment = viewModel::downloadAttachment,
+                                            localAttachmentFile = viewModel::localAttachmentFile,
+                                            onImageClick = { imageViewerItem = it },
+                                            isDownloading = isDownloading,
+                                            onCopyValue = onCopyValue,
+                                            onFieldLongPress = { fieldActionLabel = it },
+                                        )
+                                    }
                                 }
                             } else {
-                                items(journalEntries, key = { it.id }) { entry ->
-                                    JournalEntryItem(entry)
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(16.dp),
+                                ) {
+                                    if (journalEntries.isEmpty()) {
+                                        item {
+                                            Text(
+                                                "No journal entries found for this item.",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(vertical = 16.dp),
+                                            )
+                                        }
+                                    } else {
+                                        items(journalEntries, key = { it.id }) { entry ->
+                                            JournalEntryItem(entry)
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
                     }
                 }
             }
@@ -453,21 +611,69 @@ fun GenericDetailScreen(
         PrintLabelDialog(request = request, onDismiss = { printRequest = null })
     }
     imageViewerItem?.let { item ->
-        ImageViewerDialog(items = listOf(item), initialIndex = 0, onDismiss = { imageViewerItem = null })
+        ImageViewerDialog(
+            items = listOf(item),
+            initialIndex = 0,
+            onDismiss = { imageViewerItem = null },
+        )
     }
     fieldActionLabel?.let { label ->
         FieldActionDialog(
             fieldLabel = label,
             canEdit = editableFields.any { it.label == label },
             onEdit = {
+                val field = editableFields.firstOrNull { it.label == label }
                 fieldActionLabel = null
-                viewModel.startEditing()
+                if (field != null) {
+                    focusedEditFieldKey = field.key
+                    focusedEditValue = field.value
+                    viewModel.startFieldEditing(field.key)
+                }
             },
             onHide = {
                 viewModel.hideField(label)
                 fieldActionLabel = null
             },
             onDismiss = { fieldActionLabel = null },
+        )
+    }
+    focusedEditField?.let { field ->
+        FocusedEditFieldDialog(
+            field = field,
+            value = focusedEditValue,
+            referenceOptions = referenceOptions,
+            choiceOptions = choiceOptions,
+            onValueChange = { focusedEditValue = it },
+            onDismiss = {
+                viewModel.cancelFieldEditing()
+                focusedEditFieldKey = null
+            },
+            onReview = { editedValue ->
+                if (editedValue == field.value) {
+                    viewModel.cancelFieldEditing()
+                    focusedEditFieldKey = null
+                } else {
+                    pendingEdits = mapOf(field.key to (field.kind to editedValue))
+                    pendingEditFieldKey = field.key
+                    focusedEditFieldKey = null
+                }
+            },
+        )
+    }
+    pendingEdits?.let { edits ->
+        EditDiffDialog(
+            fields = editableFields,
+            edits = edits,
+            onDismiss = {
+                pendingEdits = null
+                if (pendingEditFieldKey != null) viewModel.cancelFieldEditing()
+                pendingEditFieldKey = null
+            },
+            onConfirm = {
+                viewModel.save(edits)
+                pendingEdits = null
+                pendingEditFieldKey = null
+            },
         )
     }
     relatedTarget?.let { target ->
@@ -478,12 +684,69 @@ fun GenericDetailScreen(
             isRefreshing = isRelatedRefreshing,
             onObjectClick = { id ->
                 viewModel.dismissRelatedItems()
-                onNavigateToReference(target.endpointPath, id)
+                onNavigateToReference(target.endpointPath, id, title ?: modelLabel)
             },
             onDismiss = viewModel::dismissRelatedItems,
         )
     }
 }
+
+@Composable
+private fun EditDiffDialog(
+    fields: List<EditableField>,
+    edits: Map<String, Pair<EditFieldKind, String>>,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val fieldsByKey = fields.associateBy { it.key }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Edit, contentDescription = null) },
+        title = { Text("Review changes") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                edits.forEach { (key, valueWithKind) ->
+                    val field = fieldsByKey[key]
+                    Column {
+                        Text(
+                            field?.label ?: key,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            "Before: ${displayDiffValue(field?.value)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "After: ${displayDiffValue(valueWithKind.second)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Revert")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Icon(Icons.Default.Check, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Confirm changes")
+            }
+        },
+    )
+}
+
+private fun displayDiffValue(value: String?): String =
+    value?.takeIf { it.isNotBlank() } ?: "(empty)"
 
 @Composable
 private fun RackElevationOverview(
@@ -570,11 +833,11 @@ private fun RackFaceOverview(
                                 else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(4.dp),
                             modifier =
-                                Modifier.weight(1f)
-                                    .fillMaxHeight()
-                                    .clickable(enabled = deviceId != null) {
-                                        deviceId?.let(onDeviceClick)
-                                    },
+                                Modifier.weight(1f).fillMaxHeight().clickable(
+                                    enabled = deviceId != null
+                                ) {
+                                    deviceId?.let(onDeviceClick)
+                                },
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -586,7 +849,9 @@ private fun RackFaceOverview(
                                         contentDescription = firstSlot.deviceDisplay,
                                         localFile =
                                             imageUrl?.let { url ->
-                                                imageFilename?.let { filename -> localImageFile(url, filename) }
+                                                imageFilename?.let { filename ->
+                                                    localImageFile(url, filename)
+                                                }
                                             },
                                         modifier = Modifier.size(44.dp),
                                         contentScale = ContentScale.Fit,
@@ -652,9 +917,7 @@ private fun RelatedItemsBottomSheet(
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Text(
                 target.listLabel,
                 style = MaterialTheme.typography.headlineSmall,
@@ -675,9 +938,7 @@ private fun RelatedItemsBottomSheet(
                         modifier = Modifier.padding(24.dp),
                     )
                 else ->
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
-                    ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                         items(objects, key = { it.id }) { objectEntity ->
                             ListItem(
                                 leadingContent = {
@@ -735,87 +996,163 @@ private fun EditForm(
         }
         items(fields, key = { it.key }) { field ->
             val value = values[field.key] ?: field.value
-            when (field.kind) {
-                EditFieldKind.BOOLEAN ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(field.label, style = MaterialTheme.typography.bodyLarge)
-                        Switch(
-                            checked = value.toBooleanStrictOrNull() ?: false,
-                            onCheckedChange = { onValueChange(field.key, it.toString()) },
-                        )
-                    }
-                EditFieldKind.NUMBER ->
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = { onValueChange(field.key, it) },
-                        label = { Text(field.label) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                EditFieldKind.INTEGER ->
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = { onValueChange(field.key, it) },
-                        label = { Text(field.label) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                EditFieldKind.LONG_TEXT ->
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = { onValueChange(field.key, it) },
-                        label = { Text(field.label) },
-                        minLines = 3,
-                        maxLines = 8,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                EditFieldKind.STRING ->
-                    OutlinedTextField(
-                        value = value,
-                        onValueChange = { onValueChange(field.key, it) },
-                        label = { Text(field.label) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                EditFieldKind.REFERENCE ->
-                    EditPickerField(
-                        field = field,
-                        value = value,
-                        options = referenceOptions[field.key].orEmpty(),
-                        onValueChange = onValueChange,
-                        allowClear = true,
-                    )
-                EditFieldKind.CHOICE ->
-                    EditPickerField(
-                        field = field,
-                        value = value,
-                        options = choiceOptions[field.key].orEmpty(),
-                        onValueChange = onValueChange,
-                        allowClear = field.customFieldName != null,
-                    )
-                EditFieldKind.MULTI_REFERENCE,
-                EditFieldKind.MULTI_CHOICE ->
-                    EditMultiPickerField(
-                        field = field,
-                        value = value,
-                        options =
-                            if (field.kind == EditFieldKind.MULTI_REFERENCE) {
-                                referenceOptions[field.key].orEmpty()
+            val changed = value != field.value
+            Box(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .then(
+                            if (changed) {
+                                Modifier.border(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.primary,
+                                        RoundedCornerShape(12.dp),
+                                    )
+                                    .padding(6.dp)
                             } else {
-                                choiceOptions[field.key].orEmpty()
-                            },
-                        onValueChange = onValueChange,
-                    )
+                                Modifier
+                            }
+                        )
+            ) {
+                EditFieldControl(
+                    field = field,
+                    value = value,
+                    referenceOptions = referenceOptions,
+                    choiceOptions = choiceOptions,
+                    onValueChange = { onValueChange(field.key, it) },
+                )
             }
         }
     }
 }
 
+@Composable
+private fun EditFieldControl(
+    field: EditableField,
+    value: String,
+    referenceOptions: Map<String, List<EditOption>>,
+    choiceOptions: Map<String, List<EditOption>>,
+    onValueChange: (String) -> Unit,
+) {
+    when (field.kind) {
+        EditFieldKind.BOOLEAN ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(field.label, style = MaterialTheme.typography.bodyLarge)
+                Switch(
+                    checked = value.toBooleanStrictOrNull() ?: false,
+                    onCheckedChange = { onValueChange(it.toString()) },
+                )
+            }
+        EditFieldKind.NUMBER,
+        EditFieldKind.INTEGER ->
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                label = { Text(field.label) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        EditFieldKind.LONG_TEXT ->
+            if (field.markdown) {
+                MarkdownEditor(
+                    value = value,
+                    label = field.label,
+                    onValueChange = onValueChange,
+                )
+            } else {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    label = { Text(field.label) },
+                    minLines = 3,
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        EditFieldKind.STRING ->
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                label = { Text(field.label) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        EditFieldKind.REFERENCE ->
+            EditPickerField(
+                field = field,
+                value = value,
+                options = referenceOptions[field.key].orEmpty(),
+                onValueChange = { _, next -> onValueChange(next) },
+                allowClear = true,
+            )
+        EditFieldKind.CHOICE ->
+            EditPickerField(
+                field = field,
+                value = value,
+                options = choiceOptions[field.key].orEmpty(),
+                onValueChange = { _, next -> onValueChange(next) },
+                allowClear = field.customFieldName != null,
+            )
+        EditFieldKind.MULTI_REFERENCE,
+        EditFieldKind.MULTI_CHOICE ->
+            EditMultiPickerField(
+                field = field,
+                value = value,
+                options =
+                    if (field.kind == EditFieldKind.MULTI_REFERENCE) {
+                        referenceOptions[field.key].orEmpty()
+                    } else {
+                        choiceOptions[field.key].orEmpty()
+                    },
+                onValueChange = { _, next -> onValueChange(next) },
+            )
+    }
+}
+
+@Composable
+private fun FocusedEditFieldDialog(
+    field: EditableField,
+    value: String,
+    referenceOptions: Map<String, List<EditOption>>,
+    choiceOptions: Map<String, List<EditOption>>,
+    onValueChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onReview: (String) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Edit, contentDescription = null) },
+        title = { Text("Edit ${field.label}") },
+        text = {
+            EditFieldControl(
+                field = field,
+                value = value,
+                referenceOptions = referenceOptions,
+                choiceOptions = choiceOptions,
+                onValueChange = onValueChange,
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Revert")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onReview(value) }) {
+                Icon(Icons.Default.Check, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Review")
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditMultiPickerField(
     field: EditableField,
@@ -824,9 +1161,13 @@ private fun EditMultiPickerField(
     onValueChange: (key: String, value: String) -> Unit,
 ) {
     var expanded by remember(field.key) { mutableStateOf(false) }
+    var query by remember(field.key) { mutableStateOf("") }
     val selected = selectedValuesFromJson(value).toSet()
+    val filteredOptions = filterEditOptions(options, query)
     val selectedLabel =
-        options.filter { it.value in selected }.joinToString(", ") { it.label }
+        options
+            .filter { it.value in selected }
+            .joinToString(", ") { it.label }
             .takeIf { it.isNotBlank() }
             ?: field.currentDisplay?.takeIf { it.isNotBlank() }
             ?: "None"
@@ -837,54 +1178,80 @@ private fun EditMultiPickerField(
             readOnly = true,
             label = { Text(field.label) },
             trailingIcon = {
-                IconButton(onClick = { expanded = true }) {
+                IconButton(
+                    onClick = {
+                        query = ""
+                        expanded = true
+                    }
+                ) {
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
                 }
             },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(0.9f),
-        ) {
-            DropdownMenuItem(
-                text = { Text("Clear all") },
-                leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
-                onClick = {
-                    onValueChange(field.key, selectedValuesToJson(emptyList()))
-                    expanded = false
+            modifier =
+                Modifier.fillMaxWidth().clickable {
+                    query = ""
+                    expanded = true
                 },
-            )
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    leadingIcon = {
-                        Checkbox(
-                            checked = option.value in selected,
-                            onCheckedChange = null,
-                        )
-                    },
-                    onClick = {
-                        val next =
-                            if (option.value in selected) selected - option.value
-                            else selected + option.value
-                        onValueChange(field.key, selectedValuesToJson(next))
-                    },
-                )
-            }
-            if (options.isEmpty()) {
-                DropdownMenuItem(
-                    text = { Text("No choices available") },
-                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
-                    enabled = false,
-                    onClick = {},
-                )
+        )
+        if (expanded) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    expanded = false
+                    query = ""
+                }
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Text(field.label, style = MaterialTheme.typography.headlineSmall)
+                    EditOptionSearchField(
+                        query = query,
+                        onQueryChange = { query = it },
+                        label = "Search ${field.label}",
+                    )
+                    ListItem(
+                        headlineContent = { Text("Clear all") },
+                        leadingContent = { Icon(Icons.Default.Clear, contentDescription = null) },
+                        modifier =
+                            Modifier.clickable {
+                                onValueChange(field.key, selectedValuesToJson(emptyList()))
+                            },
+                    )
+                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+                        items(filteredOptions, key = { it.value }) { option ->
+                            ListItem(
+                                headlineContent = { Text(option.label) },
+                                leadingContent = { EditOptionPreview(option) },
+                                trailingContent = {
+                                    Checkbox(
+                                        checked = option.value in selected,
+                                        onCheckedChange = null,
+                                    )
+                                },
+                                modifier =
+                                    Modifier.clickable {
+                                        val next =
+                                            if (option.value in selected) selected - option.value
+                                            else selected + option.value
+                                        onValueChange(field.key, selectedValuesToJson(next))
+                                    },
+                            )
+                        }
+                        if (filteredOptions.isEmpty()) {
+                            item {
+                                Text(
+                                    if (options.isEmpty()) "No choices available" else "No matches",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(24.dp),
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditPickerField(
     field: EditableField,
@@ -894,6 +1261,7 @@ private fun EditPickerField(
     allowClear: Boolean,
 ) {
     var expanded by remember(field.key) { mutableStateOf(false) }
+    var query by remember(field.key) { mutableStateOf("") }
     val selectedLabel =
         options.firstOrNull { it.value == value }?.label
             ?: field.currentDisplay
@@ -906,45 +1274,133 @@ private fun EditPickerField(
             readOnly = true,
             label = { Text(field.label) },
             trailingIcon = {
-                IconButton(onClick = { expanded = true }) {
+                IconButton(
+                    onClick = {
+                        query = ""
+                        expanded = true
+                    }
+                ) {
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
                 }
             },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+            modifier =
+                Modifier.fillMaxWidth().clickable {
+                    query = ""
+                    expanded = true
+                },
         )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(0.9f),
-        ) {
-            if (allowClear) {
-                DropdownMenuItem(
-                    text = { Text("None") },
-                    leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
-                    onClick = {
-                        onValueChange(field.key, "")
-                        expanded = false
-                    },
-                )
+        if (expanded) {
+            val filteredOptions = filterEditOptions(options, query)
+            ModalBottomSheet(
+                onDismissRequest = {
+                    expanded = false
+                    query = ""
+                }
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Text(field.label, style = MaterialTheme.typography.headlineSmall)
+                    EditOptionSearchField(
+                        query = query,
+                        onQueryChange = { query = it },
+                        label = "Search ${field.label}",
+                    )
+                    if (allowClear) {
+                        ListItem(
+                            headlineContent = { Text("None") },
+                            leadingContent = {
+                                Icon(Icons.Default.Clear, contentDescription = null)
+                            },
+                            modifier =
+                                Modifier.clickable {
+                                    onValueChange(field.key, "")
+                                    expanded = false
+                                },
+                        )
+                    }
+                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+                        items(filteredOptions, key = { it.value }) { option ->
+                            ListItem(
+                                headlineContent = { Text(option.label) },
+                                leadingContent = { EditOptionPreview(option) },
+                                modifier =
+                                    Modifier.clickable {
+                                        onValueChange(field.key, option.value)
+                                        expanded = false
+                                    },
+                            )
+                        }
+                        if (filteredOptions.isEmpty()) {
+                            item {
+                                Text(
+                                    if (options.isEmpty()) "No choices available" else "No matches",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(24.dp),
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
-                    onClick = {
-                        onValueChange(field.key, option.value)
-                        expanded = false
-                    },
-                )
+        }
+    }
+}
+
+@Composable
+private fun EditOptionSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    label: String,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = { Text(label) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                }
             }
-            if (options.isEmpty()) {
-                DropdownMenuItem(
-                    text = { Text("No choices available") },
-                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
-                    enabled = false,
-                    onClick = {},
-                )
-            }
+        },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+    )
+}
+
+private fun filterEditOptions(options: List<EditOption>, query: String): List<EditOption> {
+    val normalized = query.trim().lowercase()
+    if (normalized.isEmpty()) return options
+    return options.filter {
+        it.label.lowercase().contains(normalized) || it.value.contains(normalized)
+    }
+}
+
+@Composable
+private fun EditOptionPreview(option: EditOption) {
+    val hasImages = !option.frontImageUrl.isNullOrBlank() || !option.rearImageUrl.isNullOrBlank()
+    if (!hasImages) {
+        Icon(Icons.Default.Link, contentDescription = null)
+        return
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.width(76.dp),
+    ) {
+        option.frontImageUrl?.let {
+            RemoteThumbnail(
+                imageUrl = it,
+                contentDescription = "Front image",
+                modifier = Modifier.size(34.dp),
+            )
+        }
+        option.rearImageUrl?.let {
+            RemoteThumbnail(
+                imageUrl = it,
+                contentDescription = "Rear image",
+                modifier = Modifier.size(34.dp),
+            )
         }
     }
 }
@@ -956,27 +1412,60 @@ private fun visibleFieldRows(
     showHiddenFields: Boolean,
 ): List<FieldRow> {
     if (showHiddenFields) return rows
-    val filtered =
-        rows.filterNot { row ->
-            row !is FieldRow.CustomGroup && hiddenFieldPreferenceKey(endpointPath, row.label) in hiddenFieldKeys
-        }
+    val filtered = rows.filterNot { row ->
+        row !is FieldRow.Section &&
+            row !is FieldRow.CustomGroup &&
+            hiddenFieldPreferenceKey(endpointPath, row.label) in hiddenFieldKeys
+    }
     return buildList {
-        var pendingGroup: FieldRow.CustomGroup? = null
+        val pendingHeaders = mutableListOf<FieldRow>()
         filtered.forEach { row ->
-            if (row is FieldRow.CustomGroup) {
-                pendingGroup = row
+            if (row is FieldRow.Section || row is FieldRow.CustomGroup) {
+                pendingHeaders += row
             } else {
-                pendingGroup?.let {
-                    add(it)
-                    pendingGroup = null
-                }
+                addAll(pendingHeaders)
+                pendingHeaders.clear()
                 add(row)
             }
         }
     }
 }
 
-private fun LazyListScope.fieldRow(
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.detailCard(
+    onLongPress: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    item {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        ) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .then(
+                        onLongPress?.let {
+                            Modifier.combinedClickable(onClick = {}, onLongClick = it)
+                        } ?: Modifier
+                    )
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+private fun endpointModelLabel(endpointPath: String): String =
+    endpointPath
+        .trimEnd('/')
+        .substringAfterLast('/')
+        .takeIf { it.isNotBlank() }
+        ?.let(Humanize::label) ?: "Details"
+
+internal fun LazyListScope.fieldRow(
     row: FieldRow,
     onNavigateToReference: (String, Int) -> Unit,
     onRelatedItems: (CountTarget) -> Unit,
@@ -989,6 +1478,26 @@ private fun LazyListScope.fieldRow(
     onFieldLongPress: (label: String) -> Unit,
 ) {
     when (row) {
+        is FieldRow.Section ->
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 20.dp, bottom = 6.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Storage,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        row.label,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         is FieldRow.CustomGroup ->
             item {
                 Row(
@@ -1010,21 +1519,72 @@ private fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.PlainText ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Text(row.value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            row.value,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
                         if (row.copyable) {
-                            IconButton(onClick = { onCopyValue(row.label, row.value) }) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy ${row.label}")
-                            }
+                            DetailTrailingActions(
+                                copyLabel = row.label,
+                                onCopy = { onCopyValue(row.label, row.value) },
+                            )
+                        }
+                    }
+                }
+            }
+        is FieldRow.BooleanValue ->
+            item {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color =
+                        if (row.value) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 1.dp,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClick = { onFieldLongPress(row.label) },
+                            ),
+                ) {
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            if (row.value) Icons.Default.CheckCircle else Icons.Default.Close,
+                            contentDescription = if (row.value) "Enabled" else "Disabled",
+                            tint =
+                                if (row.value) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            FieldLabel(row.label) { onFieldLongPress(row.label) }
+                            Text(
+                                if (row.value) "Enabled" else "Disabled",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color =
+                                    if (row.value) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface,
+                            )
                         }
                     }
                 }
             }
         is FieldRow.Count ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(
@@ -1045,35 +1605,45 @@ private fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.Markdown ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     CommentCard(content = row.content, modifier = Modifier.fillMaxWidth())
                 }
             }
         is FieldRow.Reference ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(
                             row.target.display,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f).clickable {
+                            modifier =
+                                Modifier.weight(1f).clickable {
+                                    onNavigateToReference(row.target.endpointPath, row.target.id)
+                                },
+                        )
+                        DetailTrailingActions(
+                            copyLabel = row.label.takeIf { row.copyable },
+                            onCopy =
+                                { onCopyValue(row.label, row.target.display) }.takeIf {
+                                    row.copyable
+                                },
+                            openLabel = row.label,
+                            onOpen = {
                                 onNavigateToReference(row.target.endpointPath, row.target.id)
                             },
                         )
-                        if (row.copyable) {
-                            IconButton(onClick = { onCopyValue(row.label, row.target.display) }) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy ${row.label}")
-                            }
-                        }
                     }
                 }
             }
         is FieldRow.Image ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     RemoteThumbnail(
@@ -1086,7 +1656,11 @@ private fun LazyListScope.fieldRow(
                                     ImageViewerItem(
                                         url = row.url,
                                         title = row.label,
-                                        localFile = localAttachmentFile(row.url, row.url.attachmentFilename()),
+                                        localFile =
+                                            localAttachmentFile(
+                                                row.url,
+                                                row.url.attachmentFilename(),
+                                            ),
                                     )
                                 )
                             },
@@ -1095,7 +1669,7 @@ private fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.ReferenceList ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     row.targets.forEach { target ->
@@ -1113,14 +1687,14 @@ private fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.ChipList ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Text(row.values.joinToString(", "), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         is FieldRow.ExternalLink ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(
@@ -1143,7 +1717,7 @@ private fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.FileAttachment ->
-            item {
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(

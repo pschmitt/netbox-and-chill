@@ -8,7 +8,8 @@ import javax.inject.Singleton
 class SyncIssueReporter @Inject constructor() {
     private val warnings = linkedSetOf<String>()
 
-    @Synchronized fun report(message: String) {
+    @Synchronized
+    fun report(message: String) {
         if (message.isNotBlank()) warnings += message
     }
 

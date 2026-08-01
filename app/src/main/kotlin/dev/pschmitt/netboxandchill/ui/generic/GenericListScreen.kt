@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -14,7 +14,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -32,8 +31,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
-import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,6 +46,7 @@ fun GenericListScreen(
     onOpenDrawer: () -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAddClick: () -> Unit,
     viewModel: GenericListViewModel = hiltViewModel(),
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
@@ -62,7 +63,7 @@ fun GenericListScreen(
         }
     }
 
-    Scaffold(
+    NetBoxResponsiveScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -74,7 +75,10 @@ fun GenericListScreen(
                 },
                 actions = {
                     IconButton(onClick = onCreateClick) {
-                        Icon(Icons.Default.Add, contentDescription = "Create ${viewModel.route.label}")
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Create ${viewModel.route.label}",
+                        )
                     }
                     IconButton(onClick = onSearchClick) {
                         Icon(Icons.Default.Search, contentDescription = "Search all NetBox objects")
@@ -90,6 +94,7 @@ fun GenericListScreen(
                 onDashboardClick = onDashboardClick,
                 onSearchClick = onSearchClick,
                 onScanClick = onScanClick,
+                onAddClick = onAddClick,
                 onSettingsClick = onSettingsClick,
             )
         },
@@ -116,7 +121,10 @@ fun GenericListScreen(
                         )
                     }
                 } else {
-                    val rowIcon = AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(viewModel.route.endpointPath))
+                    val rowIcon =
+                        AppIcons.forAppKey(
+                            NetBoxRef.appKeyFromEndpointPath(viewModel.route.endpointPath)
+                        )
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(objects, key = { it.id }) { obj ->
                             ObjectRow(

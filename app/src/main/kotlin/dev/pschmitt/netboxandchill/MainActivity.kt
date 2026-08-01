@@ -30,6 +30,7 @@ import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
+import dev.pschmitt.netboxandchill.sync.SyncNotifier
 import dev.pschmitt.netboxandchill.ui.directory.Sidebar
 import dev.pschmitt.netboxandchill.ui.gestures.twoFingerSwipeDown
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 class MainActivity : FragmentActivity() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var syncNotifier: SyncNotifier
 
     private var pendingTarget by mutableStateOf<NetBoxTarget?>(null)
     private var pendingSetup by mutableStateOf<NetBoxTarget.Setup?>(null)
@@ -136,13 +138,17 @@ class MainActivity : FragmentActivity() {
                     },
                 ) {
                     val gestureModifier =
-                        if (!settingsRepository.isConfigured || gestureAction == GestureAction.Off) {
+                        if (
+                            !settingsRepository.isConfigured || gestureAction == GestureAction.Off
+                        ) {
                             Modifier
                         } else {
                             Modifier.twoFingerSwipeDown {
                                 when (gestureAction) {
                                     GestureAction.GlobalSearch ->
-                                        navController.navigate(Route.GlobalSearch) { launchSingleTop = true }
+                                        navController.navigate(Route.GlobalSearch) {
+                                            launchSingleTop = true
+                                        }
                                     GestureAction.Scanner -> navController.navigate(Route.Scanner())
                                     GestureAction.Off -> Unit
                                 }
@@ -169,6 +175,16 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingTarget = extractTarget(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        syncNotifier.onAppForeground()
+    }
+
+    override fun onStop() {
+        syncNotifier.onAppBackground()
+        super.onStop()
     }
 
     private fun extractTarget(intent: Intent?): NetBoxTarget? {

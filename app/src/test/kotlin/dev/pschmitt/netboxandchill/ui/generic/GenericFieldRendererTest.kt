@@ -10,13 +10,16 @@ import org.junit.Test
 
 class GenericFieldRendererTest {
 
-    private fun parse(rawJson: String): JsonObject = Json.decodeFromString(JsonObject.serializer(), rawJson)
+    private fun parse(rawJson: String): JsonObject =
+        Json.decodeFromString(JsonObject.serializer(), rawJson)
 
     @Test
     fun `shortens displayed absolute urls to their path and suffix`() {
         assertEquals(
             "/dcim/device-types/244/?tab=details#photos",
-            shortenDisplayedUrl("https://netbox.brkn.lol/dcim/device-types/244/?tab=details#photos"),
+            shortenDisplayedUrl(
+                "https://netbox.brkn.lol/dcim/device-types/244/?tab=details#photos"
+            ),
         )
     }
 
@@ -37,7 +40,11 @@ class GenericFieldRendererTest {
         // only asserting the FileAttachment row we actually care about here.
         assertTrue(
             rows.contains(
-                FieldRow.FileAttachment("Document", "https://netbox.brkn.lol/media/netbox-documents/188_x.pdf", "x.pdf")
+                FieldRow.FileAttachment(
+                    "Document",
+                    "https://netbox.brkn.lol/media/netbox-documents/188_x.pdf",
+                    "x.pdf",
+                )
             )
         )
     }
@@ -78,9 +85,16 @@ class GenericFieldRendererTest {
 
     @Test
     fun `falls back to the URL's last path segment when there is no filename field`() {
-        val rows = buildFieldRows(parse("""{"image":"https://x/media/image-attachments/foo.png"}"""))
+        val rows =
+            buildFieldRows(parse("""{"image":"https://x/media/image-attachments/foo.png"}"""))
         assertEquals(
-            listOf(FieldRow.FileAttachment("Image", "https://x/media/image-attachments/foo.png", "foo.png")),
+            listOf(
+                FieldRow.FileAttachment(
+                    "Image",
+                    "https://x/media/image-attachments/foo.png",
+                    "foo.png",
+                )
+            ),
             rows,
         )
     }
@@ -104,15 +118,27 @@ class GenericFieldRendererTest {
 
     @Test
     fun `a plain http url field becomes an ExternalLink, not PlainText`() {
-        val rows = buildFieldRows(parse("""{"external_url":"https://vendor.example.com/support"}"""))
-        assertEquals(listOf(FieldRow.ExternalLink("External URL", "https://vendor.example.com/support")), rows)
+        val rows =
+            buildFieldRows(parse("""{"external_url":"https://vendor.example.com/support"}"""))
+        assertEquals(
+            listOf(FieldRow.ExternalLink("External URL", "https://vendor.example.com/support")),
+            rows,
+        )
     }
 
     @Test
     fun `a url-shaped custom field also becomes an ExternalLink`() {
         val rows =
-            buildFieldRows(parse("""{"custom_fields":{"vendor_support_url":"https://vendor.example.com/x"}}"""))
-        assertEquals(listOf(FieldRow.ExternalLink("Vendor Support URL", "https://vendor.example.com/x")), rows)
+            buildFieldRows(
+                parse("""{"custom_fields":{"vendor_support_url":"https://vendor.example.com/x"}}""")
+            )
+        assertEquals(
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.ExternalLink("Vendor Support URL", "https://vendor.example.com/x"),
+            ),
+            rows,
+        )
     }
 
     @Test
@@ -149,6 +175,7 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.PlainText("Name", "x"),
+                FieldRow.Section("Custom fields"),
                 FieldRow.PlainText("Warranty Expires", "2027-01-01"),
                 FieldRow.PlainText("Internal Owner", "NetOps"),
             ),
@@ -171,7 +198,10 @@ class GenericFieldRendererTest {
             )
 
         assertEquals(
-            listOf(FieldRow.Markdown("Purchase Store", "[Store](https://store.example)")),
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.Markdown("Purchase Store", "[Store](https://store.example)"),
+            ),
             rows,
         )
     }
@@ -184,13 +214,26 @@ class GenericFieldRendererTest {
                     """{"custom_fields":{"purchase_store":"[Store](https://store.example)","purchase_date":"2026-01-01"}}"""
                 ),
                 listOf(
-                    CustomFieldDefinition("purchase_store", "markdown", "Store", "Purchase info", 20),
-                    CustomFieldDefinition("purchase_date", "text", "Purchase date", "Purchase info", 10),
+                    CustomFieldDefinition(
+                        "purchase_store",
+                        "markdown",
+                        "Store",
+                        "Purchase info",
+                        20,
+                    ),
+                    CustomFieldDefinition(
+                        "purchase_date",
+                        "text",
+                        "Purchase date",
+                        "Purchase info",
+                        10,
+                    ),
                 ),
             )
 
         assertEquals(
             listOf(
+                FieldRow.Section("Custom fields"),
                 FieldRow.CustomGroup("Purchase info"),
                 FieldRow.Markdown("Purchase date", "2026-01-01"),
                 FieldRow.Markdown("Store", "[Store](https://store.example)"),
@@ -214,6 +257,7 @@ class GenericFieldRendererTest {
 
         assertEquals(
             listOf(
+                FieldRow.Section("Custom fields"),
                 FieldRow.Markdown("Store", "[Store](https://store.example)"),
                 FieldRow.Markdown("Notes", "**Received**"),
             ),
@@ -229,7 +273,13 @@ class GenericFieldRendererTest {
                     """{"custom_fields":{"owner_contact":{"id":9,"url":"https://x/api/tenancy/contacts/9/","display":"Jane"}}}"""
                 )
             )
-        assertEquals(listOf(FieldRow.Reference("Owner Contact", RefTarget("Jane", "api/tenancy/contacts/", 9))), rows)
+        assertEquals(
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.Reference("Owner Contact", RefTarget("Jane", "api/tenancy/contacts/", 9)),
+            ),
+            rows,
+        )
     }
 
     @Test
@@ -277,8 +327,16 @@ class GenericFieldRendererTest {
 
         assertEquals(
             listOf(
-                FieldRow.Count("Rack Count", "1", CountTarget("api/dcim/racks/", "Racks", "location", 17)),
-                FieldRow.Count("Device Count", "136", CountTarget("api/dcim/devices/", "Devices", "location", 17)),
+                FieldRow.Count(
+                    "Rack Count",
+                    "1",
+                    CountTarget("api/dcim/racks/", "Racks", "location", 17),
+                ),
+                FieldRow.Count(
+                    "Device Count",
+                    "136",
+                    CountTarget("api/dcim/devices/", "Devices", "location", 17),
+                ),
             ),
             rows,
         )
@@ -298,7 +356,11 @@ class GenericFieldRendererTest {
             )
 
         assertEquals(
-            FieldRow.Count("Device Count", "6", CountTarget("api/dcim/devices/", "Devices", "rack", 1)),
+            FieldRow.Count(
+                "Device Count",
+                "6",
+                CountTarget("api/dcim/devices/", "Devices", "rack", 1),
+            ),
             rackRows.single(),
         )
         assertEquals(
@@ -313,7 +375,10 @@ class GenericFieldRendererTest {
 
     @Test
     fun `identifier fields are copyable`() {
-        val rows = buildFieldRows(parse("""{"serial":"ABC123","asset_tag":"AT-001","primary_ip4":"10.0.0.5/24"}"""))
+        val rows =
+            buildFieldRows(
+                parse("""{"serial":"ABC123","asset_tag":"AT-001","primary_ip4":"10.0.0.5/24"}""")
+            )
         assertEquals(
             listOf(
                 FieldRow.PlainText("Serial", "ABC123", copyable = true),
@@ -334,19 +399,17 @@ class GenericFieldRendererTest {
             )
         val site =
             buildFieldRows(
-                parse(
-                    """{"site":{"id":3,"url":"https://x/api/dcim/sites/3/","display":"HQ"}}"""
-                )
+                parse("""{"site":{"id":3,"url":"https://x/api/dcim/sites/3/","display":"HQ"}}""")
             )
         assertEquals(true, (primaryIp.single() as FieldRow.Reference).copyable)
         assertEquals(false, (site.single() as FieldRow.Reference).copyable)
     }
 
     @Test
-    fun `renders booleans as Yes or No`() {
+    fun `renders booleans as semantic state rows`() {
         val rows = buildFieldRows(parse("""{"is_full_depth":true,"airflow":false}"""))
-        assertTrue(rows.contains(FieldRow.PlainText("Is Full Depth", "Yes")))
-        assertTrue(rows.contains(FieldRow.PlainText("Airflow", "No")))
+        assertTrue(rows.contains(FieldRow.BooleanValue("Is Full Depth", true)))
+        assertTrue(rows.contains(FieldRow.BooleanValue("Airflow", false)))
     }
 
     @Test
@@ -387,7 +450,10 @@ class GenericFieldRendererTest {
             listOf(
                 FieldRow.ReferenceList(
                     "Tags",
-                    listOf(RefTarget("prod", "api/extras/tags/", 1), RefTarget("edge", "api/extras/tags/", 2)),
+                    listOf(
+                        RefTarget("prod", "api/extras/tags/", 1),
+                        RefTarget("edge", "api/extras/tags/", 2),
+                    ),
                 )
             ),
             rows,

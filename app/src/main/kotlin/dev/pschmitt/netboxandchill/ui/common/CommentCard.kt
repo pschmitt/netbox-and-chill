@@ -11,9 +11,10 @@ import androidx.compose.ui.unit.dp
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownTypography
 
-/** A NetBox "comments" field (Markdown), styled like a social post/comment card rather than a
- * plain inline text row - its own tonal background sets it apart from the surrounding key/value
- * fields. */
+/**
+ * A NetBox "comments" field (Markdown), styled like a social post/comment card rather than a plain
+ * inline text row - its own tonal background sets it apart from the surrounding key/value fields.
+ */
 @Composable
 fun CommentCard(content: String, modifier: Modifier = Modifier) {
     Surface(

@@ -37,7 +37,9 @@ class QrConfigCodecTest {
         val encoded = payload.substringAfter("?p=")
         assertFalse(encoded.contains('+'))
         assertFalse(encoded.contains('/'))
-        assertFalse(QrConfigCodec.looksLikeQrConfigUri("https://netbox.example.test/dcim/devices/1/"))
+        assertFalse(
+            QrConfigCodec.looksLikeQrConfigUri("https://netbox.example.test/dcim/devices/1/")
+        )
     }
 
     @Test(expected = QrConfigCodec.InvalidPayloadException::class)

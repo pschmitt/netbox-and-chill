@@ -14,10 +14,10 @@ import okhttp3.Request
 
 /**
  * Downloads a NetBox attachment (document, image, ...) to the app's cache dir, ready to be opened
- * via FileProvider. Uses [DownloadClient] (auth only, no base-URL rewriting - the media URL
- * NetBox returned is already complete/correct) - NetBox media URLs commonly require the API
- * token too, not just the REST API itself (confirmed against a real instance: unauthenticated
- * media requests 302 to the login page).
+ * via FileProvider. Uses [DownloadClient] (auth only, no base-URL rewriting - the media URL NetBox
+ * returned is already complete/correct) - NetBox media URLs commonly require the API token too, not
+ * just the REST API itself (confirmed against a real instance: unauthenticated media requests 302
+ * to the login page).
  */
 @Singleton
 class FileDownloadRepository
@@ -30,7 +30,8 @@ constructor(
     data class PersistentStats(val fileCount: Int, val bytes: Long)
 
     fun persistentStats(): PersistentStats {
-        val files = File(context.filesDir, "offline-attachments").listFiles().orEmpty().filter { it.isFile }
+        val files =
+            File(context.filesDir, "offline-attachments").listFiles().orEmpty().filter { it.isFile }
         return PersistentStats(files.size, files.sumOf { it.length() })
     }
 
@@ -77,10 +78,10 @@ constructor(
         val digest = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
         val hash = digest.joinToString("") { "%02x".format(it) }
         val extension =
-            filename.substringAfterLast('.', "")
+            filename
+                .substringAfterLast('.', "")
                 .takeIf { it.length in 1..10 && it.all(Char::isLetterOrDigit) }
-                ?.let { ".${it.lowercase()}" }
-                ?: ""
+                ?.let { ".${it.lowercase()}" } ?: ""
         return File(File(context.filesDir, "offline-attachments"), "$hash$extension")
     }
 }

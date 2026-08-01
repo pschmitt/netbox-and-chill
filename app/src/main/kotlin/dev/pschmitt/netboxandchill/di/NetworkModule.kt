@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.di
 import android.content.Context
 import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,15 +21,16 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.Retrofit
 
-/** OkHttpClient for requests against URLs NetBox itself already returned in full (media/document
+/**
+ * OkHttpClient for requests against URLs NetBox itself already returned in full (media/document
  * URLs) - skips [DynamicBaseUrlInterceptor], which would otherwise re-prepend the configured base
- * URL's path onto an already-complete, already-correct URL (double-prefixing it if the instance
- * is reverse-proxied under a subpath). Still carries [AuthInterceptor] - NetBox media commonly
- * requires the API token too, confirmed against a real instance (unauthenticated media requests
- * 302 to the login page). */
+ * URL's path onto an already-complete, already-correct URL (double-prefixing it if the instance is
+ * reverse-proxied under a subpath). Still carries [AuthInterceptor] - NetBox media commonly
+ * requires the API token too, confirmed against a real instance (unauthenticated media requests 302
+ * to the login page).
+ */
 @Qualifier @Retention(AnnotationRetention.BINARY) annotation class DownloadClient
 
 @Module
@@ -73,7 +75,9 @@ object NetworkModule {
     ): OkHttpClient {
         val logging =
             HttpLoggingInterceptor().apply {
-                level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+                level =
+                    if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
+                    else HttpLoggingInterceptor.Level.NONE
             }
         return OkHttpClient.Builder()
             .addInterceptor(offlineModeInterceptor)
@@ -103,7 +107,8 @@ object NetworkModule {
         retrofit.create(GenericNetBoxApi::class.java)
 
     // Device-type stock photos and image-attachment URLs are already-absolute NetBox media URLs,
-    // same category as the download client above - reuses it rather than the DynamicBaseUrlInterceptor-
+    // same category as the download client above - reuses it rather than the
+    // DynamicBaseUrlInterceptor-
     // wrapped API client, so a subpath-hosted instance doesn't get its media path double-prefixed.
     @Provides
     @Singleton

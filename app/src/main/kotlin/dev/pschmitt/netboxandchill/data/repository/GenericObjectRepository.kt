@@ -9,11 +9,11 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
@@ -31,6 +31,9 @@ data class CreateFieldDefinition(
     val defaultValue: JsonElement?,
     val choices: List<CreateChoice>,
     val referenceEndpointPath: String?,
+    val customFieldName: String? = null,
+    val markdown: Boolean = false,
+    val multiple: Boolean = false,
 )
 
 @Singleton
@@ -49,19 +52,23 @@ constructor(
         filterKey: String? = null,
         filterValue: Int? = null,
     ): Flow<List<NetBoxObjectEntity>> {
-        val source = if (query.isBlank()) dao.observeAll(endpointPath) else dao.search(endpointPath, query)
+        val source =
+            if (query.isBlank()) dao.observeAll(endpointPath) else dao.search(endpointPath, query)
         if (filterKey == null || filterValue == null) return source
-        return source.map { objects -> objects.filter { it.matchesRelation(json, filterKey, filterValue) } }
+        return source.map { objects ->
+            objects.filter { it.matchesRelation(json, filterKey, filterValue) }
+        }
     }
 
     fun observeObject(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
         dao.observeById(endpointPath, id)
 
-    suspend fun refreshObject(endpointPath: String, id: Int): Result<NetBoxObjectEntity> = runCatching {
-        val entity = api.getObject("$endpointPath$id/").toEntity(endpointPath)
-        dao.upsert(entity)
-        entity
-    }
+    suspend fun refreshObject(endpointPath: String, id: Int): Result<NetBoxObjectEntity> =
+        runCatching {
+            val entity = api.getObject("$endpointPath$id/").toEntity(endpointPath)
+            dao.upsert(entity)
+            entity
+        }
 
     suspend fun syncAll(
         endpointPath: String,
@@ -87,7 +94,11 @@ constructor(
                     runCatching { objectJson.toEntity(endpointPath) }
                         .onFailure { error ->
                             skippedCount++
-                            Timber.w(error, "Skipping non-object response from %s during sync", endpointPath)
+                            Timber.w(
+                                error,
+                                "Skipping non-object response from %s during sync",
+                                endpointPath,
+                            )
                         }
                         .getOrNull()
                 }
@@ -110,18 +121,22 @@ constructor(
 
     suspend fun cachedCount(endpointPath: String): Int = dao.count(endpointPath)
 
-    suspend fun cachedObjects(endpointPath: String): List<NetBoxObjectEntity> = dao.getAll(endpointPath)
+    suspend fun cachedObjects(endpointPath: String): List<NetBoxObjectEntity> =
+        dao.getAll(endpointPath)
 
     suspend fun cachedMediaAttachments(): List<OfflineAttachment> =
         dao.getAll().flatMap { entity ->
-            val objectJson = runCatching { json.decodeFromString(JsonObject.serializer(), entity.json) }.getOrNull()
-                ?: return@flatMap emptyList()
+            val objectJson =
+                runCatching { json.decodeFromString(JsonObject.serializer(), entity.json) }
+                    .getOrNull() ?: return@flatMap emptyList()
             objectJson.mediaAttachments()
         }
 
-    /** Upserts arbitrary already-fetched objects (e.g. [GlobalSearchRepository]'s `?q=` hits) into
+    /**
+     * Upserts arbitrary already-fetched objects (e.g. [GlobalSearchRepository]'s `?q=` hits) into
      * the same cache [observeObjects] reads from, so a live search result is also offline-findable
-     * from then on - reuses the same [toEntity] mapping [syncAll] uses, not a separate path. */
+     * from then on - reuses the same [toEntity] mapping [syncAll] uses, not a separate path.
+     */
     suspend fun cacheSearchResults(endpointPath: String, objects: List<JsonObject>) {
         if (objects.isEmpty()) return
         dao.upsertAll(objects.map { it.toEntity(endpointPath) })
@@ -132,17 +147,21 @@ constructor(
         dao.upsert(objectJson.toEntity(endpointPath))
     }
 
-    suspend fun createFieldDefinitions(endpointPath: String): Result<List<CreateFieldDefinition>> = runCatching {
-        val options = api.getObjectOptions(endpointPath)
-        parseCreateFieldDefinitions(options)
-    }
+    suspend fun createFieldDefinitions(endpointPath: String): Result<List<CreateFieldDefinition>> =
+        runCatching {
+            val options = api.getObjectOptions(endpointPath)
+            parseCreateFieldDefinitions(options)
+        }
 
-    suspend fun createObject(endpointPath: String, body: JsonObject): Result<JsonObject> = runCatching {
-        api.createObject(endpointPath, body).also { cacheLocalObject(endpointPath, it) }
-    }
+    suspend fun createObject(endpointPath: String, body: JsonObject): Result<JsonObject> =
+        runCatching {
+            api.createObject(endpointPath, body).also { cacheLocalObject(endpointPath, it) }
+        }
 
     private fun JsonObject.toEntity(endpointPath: String): NetBoxObjectEntity {
-        val id = this["id"]?.jsonPrimitive?.intOrNull ?: error("NetBox object at $endpointPath has no id")
+        val id =
+            this["id"]?.jsonPrimitive?.intOrNull
+                ?: error("NetBox object at $endpointPath has no id")
         val display =
             this["display"]?.jsonPrimitive?.contentOrNull
                 ?: this["name"]?.jsonPrimitive?.contentOrNull
@@ -172,7 +191,10 @@ internal fun parseCreateFieldDefinitions(response: JsonObject): List<CreateField
         val definition = element as? JsonObject ?: return@mapNotNull null
         val type = (definition["type"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
         val readOnly = (definition["read_only"] as? JsonPrimitive)?.booleanOrNull ?: false
-        if (readOnly || key in setOf("id", "url", "display", "display_url", "created", "last_updated")) {
+        if (
+            readOnly ||
+                key in setOf("id", "url", "display", "display_url", "created", "last_updated")
+        ) {
             return@mapNotNull null
         }
         val label = (definition["label"] as? JsonPrimitive)?.contentOrNull ?: key
@@ -180,7 +202,8 @@ internal fun parseCreateFieldDefinitions(response: JsonObject): List<CreateField
         val choices =
             (definition["choices"] as? JsonArray).orEmpty().mapNotNull { choice ->
                 val obj = choice as? JsonObject ?: return@mapNotNull null
-                val value = (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                val value =
+                    (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
                 val choiceLabel =
                     (obj["display_name"] as? JsonPrimitive)?.contentOrNull
                         ?: (obj["display"] as? JsonPrimitive)?.contentOrNull
@@ -199,26 +222,101 @@ internal fun parseCreateFieldDefinitions(response: JsonObject): List<CreateField
     }
 }
 
-/** Minimal first-class forms for the two typed workflows if a restrictive API token cannot read OPTIONS. */
+/**
+ * Minimal first-class forms for the two typed workflows if a restrictive API token cannot read
+ * OPTIONS.
+ */
 internal fun fallbackCreateFieldDefinitions(endpointPath: String): List<CreateFieldDefinition> =
     when (endpointPath) {
         "api/dcim/devices/" ->
             listOf(
                 CreateFieldDefinition("name", "Name", "string", false, null, emptyList(), null),
-                CreateFieldDefinition("device_type", "Device type", "nested object", true, null, emptyList(), "api/dcim/device-types/"),
-                CreateFieldDefinition("role", "Role", "nested object", true, null, emptyList(), "api/dcim/device-roles/"),
-                CreateFieldDefinition("site", "Site", "nested object", true, null, emptyList(), "api/dcim/sites/"),
-                CreateFieldDefinition("serial", "Serial number", "string", false, null, emptyList(), null),
-                CreateFieldDefinition("asset_tag", "Asset tag", "string", false, null, emptyList(), null),
-                CreateFieldDefinition("status", "Status", "field", false, JsonPrimitive("active"), emptyList(), null),
-                CreateFieldDefinition("comments", "Comments", "string", false, null, emptyList(), null),
+                CreateFieldDefinition(
+                    "device_type",
+                    "Device type",
+                    "nested object",
+                    true,
+                    null,
+                    emptyList(),
+                    "api/dcim/device-types/",
+                ),
+                CreateFieldDefinition(
+                    "role",
+                    "Role",
+                    "nested object",
+                    true,
+                    null,
+                    emptyList(),
+                    "api/dcim/device-roles/",
+                ),
+                CreateFieldDefinition(
+                    "site",
+                    "Site",
+                    "nested object",
+                    true,
+                    null,
+                    emptyList(),
+                    "api/dcim/sites/",
+                ),
+                CreateFieldDefinition(
+                    "serial",
+                    "Serial number",
+                    "string",
+                    false,
+                    null,
+                    emptyList(),
+                    null,
+                ),
+                CreateFieldDefinition(
+                    "asset_tag",
+                    "Asset tag",
+                    "string",
+                    false,
+                    null,
+                    emptyList(),
+                    null,
+                ),
+                CreateFieldDefinition(
+                    "status",
+                    "Status",
+                    "field",
+                    false,
+                    JsonPrimitive("active"),
+                    emptyList(),
+                    null,
+                ),
+                CreateFieldDefinition(
+                    "comments",
+                    "Comments",
+                    "string",
+                    false,
+                    null,
+                    emptyList(),
+                    null,
+                ),
             )
         "api/dcim/device-types/" ->
             listOf(
                 CreateFieldDefinition("model", "Model", "string", true, null, emptyList(), null),
-                CreateFieldDefinition("manufacturer", "Manufacturer", "nested object", true, null, emptyList(), "api/dcim/manufacturers/"),
+                CreateFieldDefinition(
+                    "manufacturer",
+                    "Manufacturer",
+                    "nested object",
+                    true,
+                    null,
+                    emptyList(),
+                    "api/dcim/manufacturers/",
+                ),
                 CreateFieldDefinition("slug", "Slug", "slug", true, null, emptyList(), null),
-                CreateFieldDefinition("description", "Description", "string", false, null, emptyList(), null),
+                CreateFieldDefinition(
+                    "description",
+                    "Description",
+                    "string",
+                    false,
+                    null,
+                    emptyList(),
+                    null,
+                ),
             )
         else -> emptyList()
     }
@@ -244,30 +342,60 @@ internal fun buildCreateBody(
     fields: List<CreateFieldDefinition>,
     values: Map<String, String>,
 ): Result<JsonObject> {
-    val missing = fields.filter { it.required && values[it.key].orEmpty().isBlank() }.map { it.label }
-    if (missing.isNotEmpty()) return Result.failure(IllegalArgumentException("Required: ${missing.joinToString(", ")}"))
+    val missing =
+        fields.filter { it.required && values[it.key].orEmpty().isBlank() }.map { it.label }
+    if (missing.isNotEmpty())
+        return Result.failure(IllegalArgumentException("Required: ${missing.joinToString(", ")}"))
     val body = linkedMapOf<String, JsonElement>()
     fields.forEach { field ->
         val value = values[field.key]?.trim().orEmpty()
         if (value.isEmpty()) return@forEach
         val jsonValue =
             when {
+                field.multiple ->
+                    runCatching { Json.decodeFromString(JsonArray.serializer(), value) }
+                        .getOrElse {
+                            JsonArray(
+                                value
+                                    .split(',')
+                                    .map { it.trim() }
+                                    .filter { it.isNotBlank() }
+                                    .map(::JsonPrimitive)
+                            )
+                        }
                 field.type == "boolean" -> JsonPrimitive(value.toBooleanStrictOrNull() ?: false)
-                field.type == "integer" -> value.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
-                field.type in setOf("decimal", "float") -> value.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
-                field.type == "nested object" -> value.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
+                field.type == "integer" ->
+                    value.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
+                field.type in setOf("decimal", "float") ->
+                    value.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
+                field.type in setOf("nested object", "object") ->
+                    value.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
                 else -> JsonPrimitive(value)
             }
-        body[field.key] = jsonValue
+        if (field.customFieldName != null) {
+            val customFields =
+                (body["custom_fields"] as? JsonObject)?.toMutableMap() ?: linkedMapOf()
+            customFields[field.customFieldName] = jsonValue
+            body["custom_fields"] = JsonObject(customFields)
+        } else {
+            body[field.key] = jsonValue
+        }
     }
     return Result.success(JsonObject(body))
 }
 
-private fun NetBoxObjectEntity.matchesRelation(parser: Json, relationKey: String, expectedId: Int): Boolean {
-    val objectJson = runCatching { parser.decodeFromString(JsonObject.serializer(), json) }.getOrNull() ?: return false
+private fun NetBoxObjectEntity.matchesRelation(
+    parser: Json,
+    relationKey: String,
+    expectedId: Int,
+): Boolean {
+    val objectJson =
+        runCatching { parser.decodeFromString(JsonObject.serializer(), json) }.getOrNull()
+            ?: return false
     return when (val relation = objectJson[relationKey]) {
         is JsonObject -> relation["id"]?.jsonPrimitive?.intOrNull == expectedId
-        is JsonArray -> relation.any { (it as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull == expectedId }
+        is JsonArray ->
+            relation.any { (it as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull == expectedId }
         is JsonPrimitive -> relation.intOrNull == expectedId
         else -> false
     }
@@ -286,7 +414,10 @@ internal fun JsonObject.mediaAttachments(): List<OfflineAttachment> {
                     val filename =
                         fallbackName?.takeIf { '.' in it && '/' !in it }
                             ?: value.substringAfterLast('/').substringBefore('?')
-                    attachments.putIfAbsent(value, OfflineAttachment(value, filename.ifBlank { "attachment" }))
+                    attachments.putIfAbsent(
+                        value,
+                        OfflineAttachment(value, filename.ifBlank { "attachment" }),
+                    )
                 }
             }
             is JsonObject ->

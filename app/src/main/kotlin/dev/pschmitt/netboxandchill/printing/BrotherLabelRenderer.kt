@@ -5,12 +5,18 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.Typeface
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import kotlin.math.ceil
 
 data class BrotherLabelRaster(val bytes: ByteArray, val rasterLines: Int)
+
+private data class LabelTextLayout(
+    val lines: List<String>,
+    val width: Int,
+    val height: Int,
+    val lineHeight: Int,
+)
 
 /** Renders the same QR + asset-tag shape used by printlabel for a 128-dot P-touch head. */
 object BrotherLabelRenderer {
@@ -26,33 +32,37 @@ object BrotherLabelRenderer {
         labelText: String,
         invert: Boolean = true,
         vertical: Boolean = false,
+        qrSize: Int = QR_SIZE,
     ): BrotherLabelRaster {
         require(objectUrl.isNotBlank()) { "A device URL is required for the label QR code" }
-        val text = labelText.replace(Regex("[\\r\\n\\t]+"), " ").trim()
-        val textPaint = labelTextPaint(text, fitWidth = vertical)
-        val textBounds =
-            Rect().also {
-                textPaint.getTextBounds(text, 0, text.length, it)
-                it.right = it.left + ceil(textPaint.measureText(text)).toInt().coerceAtLeast(1)
-            }
-        val qr = QrBitmap.encode(objectUrl, QR_SIZE)
+        require(qrSize in 16..LABEL_HEIGHT) {
+            "QR size must be between 16 and $LABEL_HEIGHT pixels"
+        }
+        val textPaint = labelTextPaint(labelText, fitWidth = vertical)
+        val textLayout = measureText(textPaint, labelText)
+        val qr = QrBitmap.encode(objectUrl, qrSize)
         val source =
             if (vertical) {
-                renderVerticalSource(qr, text, textPaint, textBounds)
+                renderVerticalSource(qr, textPaint, textLayout)
             } else {
-                renderHorizontalSource(qr, text, textPaint, textBounds)
+                renderHorizontalSource(qr, textPaint, textLayout)
             }
         qr.recycle()
 
         // Match printlabel's rotate(-90) + mirror operation without bitmap filtering. The
         // printer's 1-bit head cannot represent anti-aliased interpolation; filtering makes
         // small glyphs lose their stems and produces the garbled right-side text seen on paper.
-        val padded = Bitmap.createBitmap(BrotherPtcBp.RASTER_WIDTH, source.width, Bitmap.Config.ARGB_8888)
+        val padded =
+            Bitmap.createBitmap(BrotherPtcBp.RASTER_WIDTH, source.width, Bitmap.Config.ARGB_8888)
         Canvas(padded).drawColor(Color.WHITE)
         val horizontalPadding = (BrotherPtcBp.RASTER_WIDTH - source.height) / 2
         for (sourceY in 0 until source.height) {
             for (sourceX in 0 until source.width) {
-                padded.setPixel(horizontalPadding + sourceY, sourceX, source.getPixel(sourceX, sourceY))
+                padded.setPixel(
+                    horizontalPadding + sourceY,
+                    sourceX,
+                    source.getPixel(sourceX, sourceY),
+                )
             }
         }
         source.recycle()
@@ -63,8 +73,9 @@ object BrotherLabelRenderer {
             for (x in 0 until BrotherPtcBp.RASTER_WIDTH) {
                 val pixel = padded.getPixel(x, y)
                 val sourcePixelIsWhite = Color.red(pixel) > 127
-                if (printerWhiteBit(sourcePixelIsWhite, invert)) raster[y * bytesPerLine + x / 8] =
-                    (raster[y * bytesPerLine + x / 8].toInt() or (0x80 shr (x % 8))).toByte()
+                if (printerWhiteBit(sourcePixelIsWhite, invert))
+                    raster[y * bytesPerLine + x / 8] =
+                        (raster[y * bytesPerLine + x / 8].toInt() or (0x80 shr (x % 8))).toByte()
             }
         }
         padded.recycle()
@@ -82,73 +93,102 @@ object BrotherLabelRenderer {
                 isSubpixelText = false
                 isLinearText = false
             }
-        val bounds = Rect()
         var textSize = 20f
         while (textSize >= 8f) {
             paint.textSize = textSize
-            paint.getTextBounds(text, 0, text.length, bounds)
-            val fitsHeight = bounds.height() <= LABEL_HEIGHT - TEXT_PADDING * 2
-            val fitsWidth = !fitWidth || bounds.width() <= LABEL_HEIGHT - TEXT_PADDING * 2
-            if (fitsHeight && fitsWidth) break
+            val layout = measureText(paint, text)
+            if (
+                layout.height <= LABEL_HEIGHT - TEXT_PADDING * 2 &&
+                    (!fitWidth || layout.width <= LABEL_HEIGHT - TEXT_PADDING * 2)
+            )
+                break
             textSize -= 1f
         }
         return paint
     }
 
+    private fun measureText(paint: Paint, text: String): LabelTextLayout {
+        val lines =
+            text
+                .lines()
+                .map { it.replace(Regex("[\\r\\t]+"), " ").trim() }
+                .filter(String::isNotEmpty)
+                .ifEmpty { listOf("") }
+        val lineHeight =
+            ceil(paint.fontMetrics.descent - paint.fontMetrics.ascent).toInt().coerceAtLeast(1)
+        val width = lines.maxOf { ceil(paint.measureText(it)).toInt() }.coerceAtLeast(1)
+        return LabelTextLayout(lines, width, lineHeight * lines.size, lineHeight)
+    }
+
+    private fun drawTextBlock(
+        canvas: Canvas,
+        paint: Paint,
+        layout: LabelTextLayout,
+        centerX: Float,
+        centerY: Float,
+    ) {
+        val firstBaseline = centerY - layout.height / 2f - paint.ascent()
+        layout.lines.forEachIndexed { index, line ->
+            canvas.drawText(line, centerX, firstBaseline + index * layout.lineHeight, paint)
+        }
+    }
+
     private fun renderHorizontalSource(
         qr: Bitmap,
-        text: String,
         paint: Paint,
-        bounds: Rect,
+        layout: LabelTextLayout,
     ): Bitmap {
-        val textWidth = bounds.width().coerceAtLeast(1)
-        val textStart = LABEL_END_PADDING + QR_SIZE + QR_TEXT_GAP
-        val sourceWidth = textStart + textWidth + TEXT_PADDING
-        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap ->
+        val textStart = LABEL_END_PADDING + qr.width + QR_TEXT_GAP
+        val sourceWidth = textStart + layout.width + TEXT_PADDING
+        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap
+            ->
             Canvas(bitmap).apply {
                 drawColor(Color.WHITE)
-                drawBitmap(qr, LABEL_END_PADDING.toFloat(), 0f, null)
-                val x = textStart + textWidth / 2f
-                val y = LABEL_HEIGHT / 2f - (paint.ascent() + paint.descent()) / 2f
-                drawText(text, x, y, paint)
+                drawBitmap(qr, LABEL_END_PADDING.toFloat(), (LABEL_HEIGHT - qr.height) / 2f, null)
+                drawTextBlock(this, paint, layout, textStart + layout.width / 2f, LABEL_HEIGHT / 2f)
             }
         }
     }
 
     private fun renderVerticalSource(
         qr: Bitmap,
-        text: String,
         paint: Paint,
-        bounds: Rect,
+        layout: LabelTextLayout,
     ): Bitmap {
-        val textSourceWidth = bounds.width().coerceAtLeast(1) + TEXT_PADDING * 2
-        val textSourceHeight = bounds.height().coerceAtLeast(1) + TEXT_PADDING * 2
-        val textSource = Bitmap.createBitmap(textSourceWidth, textSourceHeight, Bitmap.Config.ARGB_8888)
+        val textSourceWidth = layout.width + TEXT_PADDING * 2
+        val textSourceHeight = layout.height + TEXT_PADDING * 2
+        val textSource =
+            Bitmap.createBitmap(textSourceWidth, textSourceHeight, Bitmap.Config.ARGB_8888)
         Canvas(textSource).apply {
             drawColor(Color.WHITE)
-            val x = textSourceWidth / 2f
-            val y = textSourceHeight / 2f - (paint.ascent() + paint.descent()) / 2f
-            drawText(text, x, y, paint)
+            drawTextBlock(this, paint, layout, textSourceWidth / 2f, textSourceHeight / 2f)
         }
         val rotation = Matrix().apply { setRotate(-90f) }
-        val textColumn = Bitmap.createBitmap(
-            textSource,
-            0,
-            0,
-            textSource.width,
-            textSource.height,
-            rotation,
-            false,
-        )
+        val textColumn =
+            Bitmap.createBitmap(
+                textSource,
+                0,
+                0,
+                textSource.width,
+                textSource.height,
+                rotation,
+                false,
+            )
         textSource.recycle()
 
-        val textStart = LABEL_END_PADDING + QR_SIZE + QR_TEXT_GAP
+        val textStart = LABEL_END_PADDING + qr.width + QR_TEXT_GAP
         val sourceWidth = textStart + textColumn.width + TEXT_PADDING
-        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap ->
+        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap
+            ->
             Canvas(bitmap).apply {
                 drawColor(Color.WHITE)
-                drawBitmap(qr, LABEL_END_PADDING.toFloat(), 0f, null)
-                drawBitmap(textColumn, textStart.toFloat(), (LABEL_HEIGHT - textColumn.height) / 2f, null)
+                drawBitmap(qr, LABEL_END_PADDING.toFloat(), (LABEL_HEIGHT - qr.height) / 2f, null)
+                drawBitmap(
+                    textColumn,
+                    textStart.toFloat(),
+                    (LABEL_HEIGHT - textColumn.height) / 2f,
+                    null,
+                )
             }
             textColumn.recycle()
         }

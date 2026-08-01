@@ -20,28 +20,25 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -67,11 +64,12 @@ import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.scanner.BarcodeAnalyzer
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
-import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.delay
@@ -84,6 +82,7 @@ fun ScannerScreen(
     onDashboardClick: () -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAddClick: () -> Unit,
     showBottomBar: Boolean = true,
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
@@ -114,14 +113,16 @@ fun ScannerScreen(
             hasCameraPermission = granted
         }
 
-    LaunchedEffect(Unit) { if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA) }
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
 
     LaunchedEffect(state) {
         val found = state as? ScanResultState.Found ?: return@LaunchedEffect
         onTargetFound(found.target)
     }
 
-    Scaffold(
+    NetBoxResponsiveScaffold(
         bottomBar = {
             if (showBottomBar) {
                 NetBoxBottomBar(
@@ -129,6 +130,7 @@ fun ScannerScreen(
                     onDashboardClick = onDashboardClick,
                     onSearchClick = onSearchClick,
                     onScanClick = {},
+                    onAddClick = onAddClick,
                     onSettingsClick = onSettingsClick,
                 )
             }
@@ -142,7 +144,7 @@ fun ScannerScreen(
                     }
                 },
             )
-        }
+        },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (hasCameraPermission) {
@@ -152,8 +154,12 @@ fun ScannerScreen(
                     onCodeScanned = viewModel::onCodeScanned,
                     onAvailableCameras = { options ->
                         availableCameras = options
-                        if (selectedRearCameraId !in options.filter { it.lens == ScannerLens.Back }.map { it.id }) {
-                            selectedRearCameraId = options.firstOrNull { it.lens == ScannerLens.Back }?.id
+                        if (
+                            selectedRearCameraId !in
+                                options.filter { it.lens == ScannerLens.Back }.map { it.id }
+                        ) {
+                            selectedRearCameraId =
+                                options.firstOrNull { it.lens == ScannerLens.Back }?.id
                         }
                     },
                     onCameraReady = { camera = it },
@@ -211,7 +217,8 @@ fun ScannerScreen(
                     showingFront = scannerLens == ScannerLens.Front,
                     onFacingSwitchClick = {
                         val nextLens =
-                            if (scannerLens == ScannerLens.Front) ScannerLens.Back else ScannerLens.Front
+                            if (scannerLens == ScannerLens.Front) ScannerLens.Back
+                            else ScannerLens.Front
                         viewModel.setScannerLens(nextLens)
                         camera?.cameraControl?.enableTorch(false)
                         torchOn = false
@@ -273,7 +280,9 @@ private fun RearLensSelector(
                 FilterChip(
                     selected = selected,
                     onClick = { onCameraSelected(camera) },
-                    label = { Text(if (selected) camera.label else camera.label.removeSuffix("×")) },
+                    label = {
+                        Text(if (selected) camera.label else camera.label.removeSuffix("×"))
+                    },
                 )
             }
         }
@@ -306,7 +315,8 @@ private fun ScannerControls(
                 IconButton(onClick = onTorchClick) {
                     Icon(
                         if (torchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                        contentDescription = if (torchOn) "Turn flashlight off" else "Turn flashlight on",
+                        contentDescription =
+                            if (torchOn) "Turn flashlight off" else "Turn flashlight on",
                     )
                 }
             }
@@ -314,7 +324,8 @@ private fun ScannerControls(
                 IconButton(onClick = onFacingSwitchClick) {
                     Icon(
                         Icons.Default.Cameraswitch,
-                        contentDescription = if (showingFront) "Use rear camera" else "Use front camera",
+                        contentDescription =
+                            if (showingFront) "Use rear camera" else "Use front camera",
                     )
                 }
             }
@@ -322,8 +333,10 @@ private fun ScannerControls(
     }
 }
 
-/** A dimmed frame around a centered square cutout, like most QR scanner apps - purely cosmetic,
- * the analyzer scans the whole camera frame regardless of what's inside the square. */
+/**
+ * A dimmed frame around a centered square cutout, like most QR scanner apps - purely cosmetic, the
+ * analyzer scans the whole camera frame regardless of what's inside the square.
+ */
 @Composable
 private fun ScannerViewfinder(modifier: Modifier = Modifier) {
     val dim = Color.Black.copy(alpha = 0.55f)
@@ -335,9 +348,17 @@ private fun ScannerViewfinder(modifier: Modifier = Modifier) {
         val bottom = top + squareSize
 
         drawRect(color = dim, topLeft = Offset(0f, 0f), size = Size(size.width, top))
-        drawRect(color = dim, topLeft = Offset(0f, bottom), size = Size(size.width, size.height - bottom))
+        drawRect(
+            color = dim,
+            topLeft = Offset(0f, bottom),
+            size = Size(size.width, size.height - bottom),
+        )
         drawRect(color = dim, topLeft = Offset(0f, top), size = Size(left, squareSize))
-        drawRect(color = dim, topLeft = Offset(right, top), size = Size(size.width - right, squareSize))
+        drawRect(
+            color = dim,
+            topLeft = Offset(right, top),
+            size = Size(size.width - right, squareSize),
+        )
 
         drawRoundRect(
             color = Color.White,
@@ -351,7 +372,10 @@ private fun ScannerViewfinder(modifier: Modifier = Modifier) {
 
 @Composable
 private fun ScanOverlay(content: @Composable () -> Unit) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+    ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
     }
 }
@@ -392,7 +416,7 @@ private fun CameraPreview(
         val provider = cameraProvider
         val view = previewView
         if (provider == null || view == null) {
-            onDispose { }
+            onDispose {}
         } else {
             onCameraReady(null)
             boundCamera.value = null
@@ -415,29 +439,37 @@ private fun CameraPreview(
                     Camera2Interop.Extender(previewBuilder).setPhysicalCameraId(physicalCameraId)
                     Camera2Interop.Extender(analysisBuilder).setPhysicalCameraId(physicalCameraId)
                 }
-                val preview = previewBuilder.build().also { it.surfaceProvider = view.surfaceProvider }
+                val preview =
+                    previewBuilder.build().also { it.surfaceProvider = view.surfaceProvider }
                 val analysis =
-                    analysisBuilder
-                        .build()
-                        .also { it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned)) }
+                    analysisBuilder.build().also {
+                        it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onCodeScanned))
+                    }
                 runCatching {
-                    // CameraX must be fully unbound before a different physical or facing
-                    // camera can be selected. Keeping this in one synchronous effect avoids
-                    // an old async listener rebinding the previous lens after a user switch.
-                    provider.unbindAll()
-                    provider
-                        .bindToLifecycle(lifecycleOwner, activeCamera.selector, preview, analysis)
-                        .also {
-                            // Physical rear-lens selection chooses the sensor; this zoom is a
-                            // separate digital crop applied to whichever sensor is active.
-                            it.cameraControl.setZoomRatio(zoomRatio)
-                        }
-                }.onSuccess {
-                    boundCamera.value = it
-                    onCameraReady(it)
-                }.onFailure {
-                    Log.e("ScannerCamera", "Unable to bind ${activeCamera.id}", it)
-                }
+                        // CameraX must be fully unbound before a different physical or facing
+                        // camera can be selected. Keeping this in one synchronous effect avoids
+                        // an old async listener rebinding the previous lens after a user switch.
+                        provider.unbindAll()
+                        provider
+                            .bindToLifecycle(
+                                lifecycleOwner,
+                                activeCamera.selector,
+                                preview,
+                                analysis,
+                            )
+                            .also {
+                                // Physical rear-lens selection chooses the sensor; this zoom is a
+                                // separate digital crop applied to whichever sensor is active.
+                                it.cameraControl.setZoomRatio(zoomRatio)
+                            }
+                    }
+                    .onSuccess {
+                        boundCamera.value = it
+                        onCameraReady(it)
+                    }
+                    .onFailure {
+                        Log.e("ScannerCamera", "Unable to bind ${activeCamera.id}", it)
+                    }
             } else {
                 Log.w("ScannerCamera", "No camera available for lens $desiredLens")
             }
@@ -497,7 +529,10 @@ private fun CameraPreview(
                     boundCamera.value?.cameraControl?.startFocusAndMetering(action)
                     view.performClick()
                 }
-                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                if (
+                    event.actionMasked == MotionEvent.ACTION_UP ||
+                        event.actionMasked == MotionEvent.ACTION_CANCEL
+                ) {
                     scalingGesture = false
                 }
                 true
@@ -523,52 +558,61 @@ private data class ScannerCameraOption(
 
 private fun availableCameraOptions(provider: ProcessCameraProvider): List<ScannerCameraOption> {
     val options =
-        provider.availableCameraInfos.flatMap { info ->
-            val camera2Info = runCatching { Camera2CameraInfo.from(info) }.getOrNull() ?: return@flatMap emptyList()
-            val facing = camera2Info.getCameraCharacteristic(CameraCharacteristics.LENS_FACING)
-                ?: return@flatMap emptyList()
-            val lens =
-                when (facing) {
-                    CameraCharacteristics.LENS_FACING_FRONT -> ScannerLens.Front
-                    CameraCharacteristics.LENS_FACING_BACK -> ScannerLens.Back
-                    else -> return@flatMap emptyList()
-                }
-            val physicalInfos = if (lens == ScannerLens.Back) info.physicalCameraInfos else emptySet()
-            if (physicalInfos.isNotEmpty()) {
-                physicalInfos.mapNotNull { physicalInfo ->
-                    val physicalCamera2Info = runCatching { Camera2CameraInfo.from(physicalInfo) }.getOrNull()
-                        ?: return@mapNotNull null
-                    val cameraId = physicalCamera2Info.cameraId
-                    val focalLength =
-                        physicalCamera2Info
-                            .getCameraCharacteristic(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
-                            ?.firstOrNull()
-                    ScannerCameraOption(
-                        id = "physical:$cameraId",
-                        lens = ScannerLens.Back,
-                        label = "Rear lens",
-                        selector =
-                            // Pixel devices expose the ultrawide and wide sensors as physical
-                            // cameras behind one logical camera. CameraX applies this ID to the
-                            // Preview and ImageAnalysis output configurations, forcing the
-                            // requested physical sensor instead of clamping a logical zoom.
-                            info.selector(physicalCameraId = cameraId),
-                        physicalCameraId = cameraId,
-                        focalLength = focalLength,
+        provider.availableCameraInfos
+            .flatMap { info ->
+                val camera2Info =
+                    runCatching { Camera2CameraInfo.from(info) }.getOrNull()
+                        ?: return@flatMap emptyList()
+                val facing =
+                    camera2Info.getCameraCharacteristic(CameraCharacteristics.LENS_FACING)
+                        ?: return@flatMap emptyList()
+                val lens =
+                    when (facing) {
+                        CameraCharacteristics.LENS_FACING_FRONT -> ScannerLens.Front
+                        CameraCharacteristics.LENS_FACING_BACK -> ScannerLens.Back
+                        else -> return@flatMap emptyList()
+                    }
+                val physicalInfos =
+                    if (lens == ScannerLens.Back) info.physicalCameraInfos else emptySet()
+                if (physicalInfos.isNotEmpty()) {
+                    physicalInfos.mapNotNull { physicalInfo ->
+                        val physicalCamera2Info =
+                            runCatching { Camera2CameraInfo.from(physicalInfo) }.getOrNull()
+                                ?: return@mapNotNull null
+                        val cameraId = physicalCamera2Info.cameraId
+                        val focalLength =
+                            physicalCamera2Info
+                                .getCameraCharacteristic(
+                                    CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+                                )
+                                ?.firstOrNull()
+                        ScannerCameraOption(
+                            id = "physical:$cameraId",
+                            lens = ScannerLens.Back,
+                            label = "Rear lens",
+                            selector =
+                                // Pixel devices expose the ultrawide and wide sensors as physical
+                                // cameras behind one logical camera. CameraX applies this ID to the
+                                // Preview and ImageAnalysis output configurations, forcing the
+                                // requested physical sensor instead of clamping a logical zoom.
+                                info.selector(physicalCameraId = cameraId),
+                            physicalCameraId = cameraId,
+                            focalLength = focalLength,
+                        )
+                    }
+                } else {
+                    listOf(
+                        ScannerCameraOption(
+                            id = "logical:${camera2Info.cameraId}",
+                            lens = lens,
+                            label =
+                                if (lens == ScannerLens.Front) "Front camera" else "Back camera",
+                            selector = info.selector(),
+                        )
                     )
                 }
-            } else {
-                listOf(
-                    ScannerCameraOption(
-                        id = "logical:${camera2Info.cameraId}",
-                        lens = lens,
-                        label = if (lens == ScannerLens.Front) "Front camera" else "Back camera",
-                        selector = info.selector(),
-                    )
-                )
             }
-        }
-        .distinctBy { it.id }
+            .distinctBy { it.id }
 
     return labelRearCameraOptions(options)
 }
@@ -578,7 +622,8 @@ private fun CameraInfo.selector(physicalCameraId: String? = null): CameraSelecto
     return CameraSelector.Builder()
         .addCameraFilter { infos ->
             infos.filter { info ->
-                runCatching { Camera2CameraInfo.from(info).cameraId == cameraId }.getOrDefault(false)
+                runCatching { Camera2CameraInfo.from(info).cameraId == cameraId }
+                    .getOrDefault(false)
             }
         }
         .apply { physicalCameraId?.let(::setPhysicalCameraId) }
@@ -592,27 +637,28 @@ private fun labelRearCameraOptions(options: List<ScannerCameraOption>): List<Sca
     val sorted = rear.sortedWith(compareBy(nullsLast()) { it.focalLength })
     val referenceFocal = sorted[sorted.size / 2].focalLength
     val labelsById =
-        sorted.mapIndexed { index, option ->
-            val label =
-                if (option.focalLength != null && referenceFocal != null) {
-                    val ratio = option.focalLength / referenceFocal
-                    when {
-                        ratio <= 0.75f -> "0.6×"
-                        ratio >= 1.6f -> "2×"
-                        else -> "1×"
+        sorted
+            .mapIndexed { index, option ->
+                val label =
+                    if (option.focalLength != null && referenceFocal != null) {
+                        val ratio = option.focalLength / referenceFocal
+                        when {
+                            ratio <= 0.75f -> "0.6×"
+                            ratio >= 1.6f -> "2×"
+                            else -> "1×"
+                        }
+                    } else {
+                        "Rear ${index + 1}"
                     }
-                } else {
-                    "Rear ${index + 1}"
-                }
-            val zoomRatio =
-                if (option.focalLength != null && referenceFocal != null) {
-                    (option.focalLength / referenceFocal).coerceIn(0.5f, 8f)
-                } else {
-                    1f
-                }
-            option.id to (label to zoomRatio)
-        }
-        .toMap()
+                val zoomRatio =
+                    if (option.focalLength != null && referenceFocal != null) {
+                        (option.focalLength / referenceFocal).coerceIn(0.5f, 8f)
+                    } else {
+                        1f
+                    }
+                option.id to (label to zoomRatio)
+            }
+            .toMap()
 
     return options.map { option ->
         val (label, zoomRatio) = labelsById[option.id] ?: (option.label to option.zoomRatio)

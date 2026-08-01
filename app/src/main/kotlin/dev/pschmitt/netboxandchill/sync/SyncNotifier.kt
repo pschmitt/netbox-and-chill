@@ -23,6 +23,10 @@ import javax.inject.Singleton
 @Singleton
 class SyncNotifier @Inject constructor(@ApplicationContext private val context: Context) {
 
+    @Volatile private var appInForeground = false
+    @Volatile private var syncActive = false
+    @Volatile private var lastProgress: SyncProgress? = null
+
     /**
      * Creates the notification channel once, ahead of time - required on API 26+, cheap/no-op if it
      * already exists. Call from [dev.pschmitt.netboxandchill.NetBoxAndChillApp.onCreate].
@@ -32,14 +36,42 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
             NotificationChannel(
                     CHANNEL_ID,
                     "Background sync",
-                    NotificationManager.IMPORTANCE_DEFAULT,
+                    NotificationManager.IMPORTANCE_LOW,
                 )
-                .apply { description = "Shows background NetBox sync progress and failures" }
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+                .apply {
+                    description = "Shows background NetBox sync progress and failures"
+                    setSound(null, null)
+                    enableVibration(false)
+                    enableLights(false)
+                    setShowBadge(false)
+                }
+        context.getSystemService(NotificationManager::class.java).apply {
+            // The old channel was created at IMPORTANCE_DEFAULT in earlier builds. Remove it so
+            // an upgrade cannot leave the noisy channel behind in the user's notification list.
+            deleteNotificationChannel(LEGACY_CHANNEL_ID)
+            createNotificationChannel(channel)
+        }
+    }
+
+    /** Called by the single app activity when its UI becomes visible. */
+    fun onAppForeground() {
+        appInForeground = true
+        if (syncActive) NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+    }
+
+    /** Whether the app UI is currently visible to the user. */
+    fun isAppInForeground(): Boolean = appInForeground
+
+    /** Called when the app leaves the foreground so active sync progress becomes visible again. */
+    fun onAppBackground() {
+        appInForeground = false
+        if (syncActive) lastProgress?.let(::postProgress)
     }
 
     /** Builds the foreground notification required for long-running WorkManager syncs. */
     fun foregroundInfo(message: String = "Syncing NetBox data…"): ForegroundInfo {
+        syncActive = true
+        lastProgress = SyncProgress(message, step = 0, totalSteps = 1)
         val notification = progressNotification(message, step = 0, totalSteps = 1)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ForegroundInfo(
@@ -57,6 +89,11 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
      * is a nice-to-have surface, not something worth crashing the worker over.
      */
     fun notifySyncFailed(message: String?) {
+        syncActive = false
+        if (appInForeground) {
+            NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+            return
+        }
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(
@@ -102,27 +139,33 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
     }
 
     fun notifySyncProgress(progress: SyncProgress) {
+        syncActive = true
+        lastProgress = progress
+        if (!appInForeground) postProgress(progress)
+        else NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+    }
+
+    /** Keeps the ongoing notification visible while WorkManager waits before retrying. */
+    fun notifySyncRetry(attempt: Int) {
+        notifySyncProgress(
+            SyncProgress("Retrying sync (attempt $attempt)…", step = 0, totalSteps = 1)
+        )
+    }
+
+    /** Removes the progress notification after a successful sync. */
+    fun notifySyncSucceeded() {
+        syncActive = false
+        lastProgress = null
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+    }
+
+    private fun postProgress(progress: SyncProgress) {
         if (!notificationsAllowed()) return
         NotificationManagerCompat.from(context)
             .notify(
                 NOTIFICATION_ID,
                 progressNotification(progress.message, progress.step, progress.totalSteps),
             )
-    }
-
-    /** Keeps the ongoing notification visible while WorkManager waits before retrying. */
-    fun notifySyncRetry(attempt: Int) {
-        if (!notificationsAllowed()) return
-        NotificationManagerCompat.from(context)
-            .notify(
-                NOTIFICATION_ID,
-                progressNotification("Retrying sync (attempt $attempt)…"),
-            )
-    }
-
-    /** Removes the progress notification after a successful sync. */
-    fun notifySyncSucceeded() {
-        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
     }
 
     private fun notificationsAllowed(): Boolean =
@@ -158,7 +201,8 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
             .build()
 
     companion object {
-        const val CHANNEL_ID = "background_sync"
+        const val CHANNEL_ID = "background_sync_silent"
+        private const val LEGACY_CHANNEL_ID = "background_sync"
         private const val NOTIFICATION_ID = 1001
     }
 }

@@ -8,7 +8,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
-/** Cache-first, like [DeviceRepository] - `objectType` is a NetBox `app_label.model` string (e.g. `dcim.device`). */
+/**
+ * Cache-first, like [DeviceRepository] - `objectType` is a NetBox `app_label.model` string (e.g.
+ * `dcim.device`).
+ */
 @Singleton
 class ImageAttachmentRepository
 @Inject
@@ -19,16 +22,22 @@ constructor(private val api: NetBoxApi, private val dao: ImageAttachmentDao) {
 
     suspend fun cachedAll(): List<ImageAttachmentEntity> = dao.getAll()
 
-    suspend fun refresh(objectType: String, objectId: Int): Result<List<ImageAttachmentEntity>> = runCatching {
-        val entities =
-            api.listImageAttachments(objectType, objectId).results.map { it.toEntity(objectType, objectId) }
-        dao.clearFor(objectType, objectId)
-        dao.upsertAll(entities)
-        entities
-    }
+    suspend fun refresh(objectType: String, objectId: Int): Result<List<ImageAttachmentEntity>> =
+        runCatching {
+            val entities =
+                api.listImageAttachments(objectType, objectId).results.map {
+                    it.toEntity(objectType, objectId)
+                }
+            dao.clearFor(objectType, objectId)
+            dao.upsertAll(entities)
+            entities
+        }
 }
 
-private fun ImageAttachmentDto.toEntity(fallbackObjectType: String, fallbackObjectId: Int): ImageAttachmentEntity =
+private fun ImageAttachmentDto.toEntity(
+    fallbackObjectType: String,
+    fallbackObjectId: Int,
+): ImageAttachmentEntity =
     ImageAttachmentEntity(
         id = id,
         objectType = objectType ?: fallbackObjectType,

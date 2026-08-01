@@ -17,10 +17,10 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Cache-first data for the dashboard/home screen (NBC-9): NetBox's changelog, the signed-in
- * user's bookmarks, and a handful of simple object-count stat tiles. Mirrors
- * [GenericObjectRepository]'s cache-first shape (Room-backed Flow reads, refresh as a best-effort
- * background update) rather than a network-only screen.
+ * Cache-first data for the dashboard/home screen (NBC-9): NetBox's changelog, the signed-in user's
+ * bookmarks, and a handful of simple object-count stat tiles. Mirrors [GenericObjectRepository]'s
+ * cache-first shape (Room-backed Flow reads, refresh as a best-effort background update) rather
+ * than a network-only screen.
  *
  * "NetBox news" (also asked for in the original NBC-9 ask) is deliberately out of scope - no API
  * source for it was found, see TODO.md.
@@ -40,16 +40,20 @@ constructor(
 
     fun observeStats(): Flow<List<DashboardStatEntity>> = statDao.observeAll()
 
-    /** Not cached (unlike the rest of this repository) - the changelog list only stores the
-     * summary fields [ObjectChangeEntity] needs; `prechange_data`/`postchange_data` are only
-     * fetched on demand when the user actually opens the diff view for one entry (NBC-42). */
+    /**
+     * Not cached (unlike the rest of this repository) - the changelog list only stores the summary
+     * fields [ObjectChangeEntity] needs; `prechange_data`/`postchange_data` are only fetched on
+     * demand when the user actually opens the diff view for one entry (NBC-42).
+     */
     suspend fun fetchObjectChange(id: Int): Result<JsonObject> = runCatching {
         api.getObject("api/core/object-changes/$id/")
     }
 
-    /** Refreshes all three widgets independently - one being unreachable (e.g. bookmarks on a
+    /**
+     * Refreshes all three widgets independently - one being unreachable (e.g. bookmarks on a
      * pre-3.5 NetBox instance) shouldn't blank out the others; the first failure encountered (if
-     * any) is surfaced so the UI can still show a "sync failed" message. */
+     * any) is surfaced so the UI can still show a "sync failed" message.
+     */
     suspend fun refresh(): Result<Unit> {
         val failures =
             listOfNotNull(
@@ -62,7 +66,10 @@ constructor(
 
     suspend fun refreshBookmarks(): Result<Int> = runCatching {
         val page =
-            api.listObjects("api/extras/bookmarks/", mapOf("limit" to "50", "ordering" to "-created"))
+            api.listObjects(
+                "api/extras/bookmarks/",
+                mapOf("limit" to "50", "ordering" to "-created"),
+            )
         val entities = page.results.mapNotNull { it.toBookmarkEntity() }
         bookmarkDao.replaceAll(entities)
         entities.size
@@ -70,19 +77,23 @@ constructor(
 
     suspend fun refreshChangelog(): Result<Int> = runCatching {
         val page =
-            api.listObjects("api/core/object-changes/", mapOf("limit" to "25", "ordering" to "-time"))
+            api.listObjects(
+                "api/core/object-changes/",
+                mapOf("limit" to "25", "ordering" to "-time"),
+            )
         val entities = page.results.mapNotNull { it.toObjectChangeEntity() }
         objectChangeDao.replaceAll(entities)
         entities.size
     }
 
     suspend fun refreshStats(): Result<Int> = runCatching {
-        val entities =
-            STAT_ENDPOINTS.mapNotNull { (endpointPath, label) ->
-                runCatching { api.listObjects(endpointPath, mapOf("limit" to "1")).count }
-                    .getOrNull()
-                    ?.let { count -> DashboardStatEntity(endpointPath, label, count, System.currentTimeMillis()) }
-            }
+        val entities = STAT_ENDPOINTS.mapNotNull { (endpointPath, label) ->
+            runCatching { api.listObjects(endpointPath, mapOf("limit" to "1")).count }
+                .getOrNull()
+                ?.let { count ->
+                    DashboardStatEntity(endpointPath, label, count, System.currentTimeMillis())
+                }
+        }
         statDao.upsertAll(entities)
         entities.size
     }
