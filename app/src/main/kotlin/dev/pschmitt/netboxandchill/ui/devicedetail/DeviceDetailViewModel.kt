@@ -8,15 +8,18 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import java.io.File
 import dev.pschmitt.netboxandchill.ui.navigation.Route
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +40,19 @@ import timber.log.Timber
 
 private const val DEVICE_OBJECT_TYPE = "dcim.device"
 
+data class DeviceRelatedTab(val label: String, val endpointPath: String)
+
+val DEVICE_RELATED_TABS =
+    listOf(
+        DeviceRelatedTab("Interfaces", "api/dcim/interfaces/"),
+        DeviceRelatedTab("Front ports", "api/dcim/front-ports/"),
+        DeviceRelatedTab("Rear ports", "api/dcim/rear-ports/"),
+        DeviceRelatedTab("Power ports", "api/dcim/power-ports/"),
+        DeviceRelatedTab("Console ports", "api/dcim/console-ports/"),
+        DeviceRelatedTab("Power outlets", "api/dcim/power-outlets/"),
+        DeviceRelatedTab("Module bays", "api/dcim/module-bays/"),
+    )
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class DeviceDetailViewModel
@@ -47,8 +63,10 @@ constructor(
     private val deviceTypeRepository: DeviceTypeRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    private val genericObjectRepository: GenericObjectRepository,
     private val recentVisitRepository: RecentVisitRepository,
     private val settingsRepository: SettingsRepository,
+    private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
 
     private val deviceId: Int = savedStateHandle.toRoute<Route.DeviceDetail>().deviceId
@@ -98,6 +116,14 @@ constructor(
             .observeFor(DEVICE_OBJECT_TYPE, deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val relatedObjects: Map<String, StateFlow<List<NetBoxObjectEntity>>> =
+        DEVICE_RELATED_TABS.associate { tab ->
+            tab.endpointPath to
+                genericObjectRepository
+                    .observeObjects(tab.endpointPath, "", "device", deviceId)
+                    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        }
+
     init {
         refresh()
         viewModelScope.launch {
@@ -131,6 +157,10 @@ constructor(
                 .onFailure { _errorMessage.value = it.message ?: "Couldn't refresh - showing cached data" }
             _isRefreshing.value = false
         }
+    }
+
+    fun refreshRelated() {
+        if (!settingsRepository.offlineMode.value) syncScheduler.syncNow()
     }
 
     fun errorShown() {

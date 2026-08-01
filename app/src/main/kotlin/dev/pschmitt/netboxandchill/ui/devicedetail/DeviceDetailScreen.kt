@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -36,12 +37,16 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -89,6 +94,14 @@ fun DeviceDetailScreen(
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableStateOf(-1) }
+    val selectedRelatedObjects =
+        if (selectedTab >= 0) {
+            val endpointPath = DEVICE_RELATED_TABS[selectedTab].endpointPath
+            viewModel.relatedObjects[endpointPath]?.collectAsStateWithLifecycle()?.value.orEmpty()
+        } else {
+            emptyList()
+        }
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
@@ -240,38 +253,71 @@ fun DeviceDetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                 ) {
-                item {
-                    Text(current.name, style = MaterialTheme.typography.headlineSmall)
-                    Spacer(Modifier.height(12.dp))
-                }
-                item {
-                    if (isFieldVisible("status")) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            StatusChip(label = current.statusLabel, value = current.statusValue)
+                    item {
+                        Text(current.name, style = MaterialTheme.typography.headlineSmall)
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    item {
+                        ScrollableTabRow(
+                            selectedTabIndex = selectedTab + 1,
+                            edgePadding = 0.dp,
+                        ) {
+                            Tab(
+                                selected = selectedTab == -1,
+                                onClick = { selectedTab = -1 },
+                                text = { Text("Overview") },
+                            )
+                            DEVICE_RELATED_TABS.forEachIndexed { index, tab ->
+                                Tab(
+                                    selected = selectedTab == index,
+                                    onClick = {
+                                        selectedTab = index
+                                        viewModel.refreshRelated()
+                                    },
+                                    text = { Text(tab.label) },
+                                )
+                            }
                         }
                     }
-                    Spacer(Modifier.height(16.dp))
-                }
-                deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index -> imageViewer = items to index }
-                imageAttachmentRow(imageAttachments, viewModel::localImageFile) { items, index -> imageViewer = items to index }
-                if (isFieldVisible("site")) detailField("Site", current.siteName, onClick = current.siteId?.let { id -> { onReferenceClick("api/dcim/sites/", id) } }, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("rack")) detailField("Rack", current.rackName, onClick = current.rackId?.let { id -> { onReferenceClick("api/dcim/racks/", id) } }, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("position")) detailField("Position", current.position?.toString(), onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("role")) detailField("Role", current.roleName, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("manufacturer")) detailField("Manufacturer", current.manufacturerName, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("model")) detailField("Model", current.deviceTypeModel, onClick = deviceType?.id?.let { id -> { onDeviceTypeClick(id) } }, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("serial")) detailField("Serial", current.serial, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("asset_tag")) detailField("Asset tag", current.assetTag, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("primary_ip")) detailField("Primary IP", current.primaryIp, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
-                if (isFieldVisible("comments")) detailMarkdownField("Comments", current.comments, onFieldLongPress = { fieldActionLabel = it })
-                item {
-                    Spacer(Modifier.height(24.dp))
-                    Text(
-                        "Last synced ${DateFormat.getDateTimeInstance().format(Date(current.syncedAt))}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                    if (selectedTab == -1) {
+                        item {
+                            if (isFieldVisible("status")) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    StatusChip(label = current.statusLabel, value = current.statusValue)
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index -> imageViewer = items to index }
+                        imageAttachmentRow(imageAttachments, viewModel::localImageFile) { items, index -> imageViewer = items to index }
+                        if (isFieldVisible("site")) detailField("Site", current.siteName, onClick = current.siteId?.let { id -> { onReferenceClick("api/dcim/sites/", id) } }, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("rack")) detailField("Rack", current.rackName, onClick = current.rackId?.let { id -> { onReferenceClick("api/dcim/racks/", id) } }, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("position")) detailField("Position", current.position?.toString(), onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("role")) detailField("Role", current.roleName, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("manufacturer")) detailField("Manufacturer", current.manufacturerName, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("model")) detailField("Model", current.deviceTypeModel, onClick = deviceType?.id?.let { id -> { onDeviceTypeClick(id) } }, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("serial")) detailField("Serial", current.serial, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("asset_tag")) detailField("Asset tag", current.assetTag, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("primary_ip")) detailField("Primary IP", current.primaryIp, copyable = true, onCopyValue = onCopyValue, onFieldLongPress = { fieldActionLabel = it })
+                        if (isFieldVisible("comments")) detailMarkdownField("Comments", current.comments, onFieldLongPress = { fieldActionLabel = it })
+                        item {
+                            Spacer(Modifier.height(24.dp))
+                            Text(
+                                "Last synced ${DateFormat.getDateTimeInstance().format(Date(current.syncedAt))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        val tab = DEVICE_RELATED_TABS[selectedTab]
+                        item {
+                            DeviceRelatedObjects(
+                                tab = tab,
+                                objects = selectedRelatedObjects,
+                                onObjectClick = { objectId -> onReferenceClick(tab.endpointPath, objectId) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -297,6 +343,31 @@ fun DeviceDetailScreen(
             },
             onDismiss = { fieldActionLabel = null },
         )
+    }
+}
+
+@Composable
+private fun DeviceRelatedObjects(
+    tab: DeviceRelatedTab,
+    objects: List<dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity>,
+    onObjectClick: (Int) -> Unit,
+) {
+    if (objects.isEmpty()) {
+        Text(
+            "No cached ${tab.label.lowercase()} for this device. Refresh while online to load them.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
+        return
+    }
+    objects.forEach { objectEntity ->
+        ListItem(
+            leadingContent = { Icon(Icons.Default.Cable, contentDescription = null) },
+            headlineContent = { Text(objectEntity.display) },
+            supportingContent = { objectEntity.secondaryLine?.let { Text(it) } },
+            modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
+        )
+        HorizontalDivider()
     }
 }
 

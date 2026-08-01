@@ -2024,12 +2024,14 @@ outbox with conflict handling and background cache refresh.
 The device view should organize secondary sections into tabs, including interfaces, power ports,
 rear ports, and other related device components.
 
-- [ ] Add tabs for the device's secondary sections and related objects.
-- [ ] Keep counts, previews, and existing navigation available within the relevant tab.
-- [ ] Preserve hidden-field handling and cache-first refresh behavior across tabs.
-- [ ] Verify the tab layout and navigation on a physical device.
+- [x] Add tabs for the device's secondary sections and related objects.
+- [x] Keep counts, previews, and existing navigation available within the relevant tab.
+- [x] Preserve hidden-field handling and cache-first refresh behavior across tabs.
+- [x] Verify the tab layout and navigation on a physical device.
 
-Status: not started, 2026-08-01 - backlog item captured.
+Status: **done**, 2026-08-01 - remote lint/tests passed; deployed to Zenfone 10, Mi Pad 4, and
+PX5. Mi Pad 4 showed the tab strip, populated Interfaces from cache, and showed the friendly
+cache-empty state for Rear ports.
 
 ## NBC-83: expand global search matching
 
