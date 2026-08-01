@@ -2623,9 +2623,9 @@ should dismiss the dialog while a failed print should leave it open with the err
 - [x] Keep the dialog open and show the printer error after failure.
 - [x] Verify the behavior in the print flow on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - remote checks pass; Mi Pad 4 showed the fixed print controls,
-kept the dialog open with a clear Bluetooth error, and retained the preview after the failed
-attempt. A successful physical print still needs a reachable printer connection.
+Status: mostly done, 2026-08-02 - remote checks pass; Mi Pad 4 found the paired PT-P300BT4590,
+kept the dialog open with the retryable Bluetooth error when the printer was not discoverable, and
+retained the preview. A successful physical print still needs a reachable printer connection.
 
 ## NBC-128: expose more printlabel settings
 
