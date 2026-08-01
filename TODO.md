@@ -1845,11 +1845,13 @@ On logical multi-camera devices, selecting a rear-lens chip must bind the select
 stream rather than merely changing UI state or requesting an unsupported logical zoom ratio.
 
 - [x] Bind physical rear-camera options with CameraX's physical-camera selector support.
-- [ ] Verify the active physical camera ID and visible field of view on Pixel 5 and Zenfone 10.
+- [x] Verify the active physical camera ID and visible field of view on Pixel 5 and Zenfone 10.
 - [x] Keep the fallback safe on devices exposing only one rear lens.
 
-Status: in progress, 2026-08-01 - PX5 physical ID and field-of-view verification passed; Zenfone
-10 still needs the same physical-lens check.
+Status: **done**, 2026-08-01 - PX5 and Zenfone 10 both exposed distinct rear-lens choices; Zenfone
+10 visibly changed framing between `0.6×`, `1×`, and `Rear 3`, and camera-service inspection showed
+the selected rear streams switching between camera 0 and camera 2. The front toggle also switched
+to camera 1 and back.
 
 ## NBC-67: discover and pair nearby Brother label printers
 
