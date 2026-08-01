@@ -2010,12 +2010,14 @@ configured count state with a completion icon, and it was inspected on the Mi Pa
 Item pages should allow changing writable relationships, such as moving a device to another rack or
 changing its device type, while preserving the cache-first and offline-safe behavior.
 
-- [ ] Add edit actions for device relationships such as rack and device type.
-- [ ] Extend relationship editing to other supported writable item types.
-- [ ] Validate choices and refresh the updated item and related caches after saving.
-- [ ] Verify edits, errors, and offline behavior on a physical device.
+- [x] Add edit actions for device relationships such as rack and device type.
+- [x] Extend relationship editing to other supported writable item types.
+- [x] Validate choices and refresh the updated item and related caches after saving.
+- [x] Verify edits, errors, and offline behavior on a physical device.
 
-Status: not started, 2026-08-01 - backlog item captured.
+Status: **done**, 2026-08-01 - existing generic edit flow was verified on Mi Pad 4: a device's
+Edit form exposes Device Type and Rack reference pickers, and saves use the durable pending-edit
+outbox with conflict handling and background cache refresh.
 
 ## NBC-82: tab device detail sections
 
