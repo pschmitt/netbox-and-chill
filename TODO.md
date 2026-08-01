@@ -2511,10 +2511,10 @@ confirm the exact update that will be sent.
 - [x] Show original and edited values in a confirmation dialog.
 - [x] Allow canceling the review without making a network mutation.
 - [x] Submit only after explicit confirmation.
-- [ ] Verify the review flow on the Mi Pad 4 without submitting.
+- [x] Verify the review flow on the Mi Pad 4 without submitting.
 
-Status: mostly done, 2026-08-01 - Save now opens an explicit before/after review and only the
-confirmation action invokes the existing save path; physical verification remains.
+Status: **done**, 2026-08-01 - the Mi Pad 4 showed Review changes with Before/After values and
+Revert/Confirm changes actions; Revert closed the review without a network mutation.
 
 ## NBC-121: searchable reference pickers with device-type previews
 
