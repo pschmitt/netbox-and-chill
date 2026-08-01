@@ -2048,7 +2048,8 @@ MAC matching uses the cached raw JSON path and device-type matches expand throug
 The app artwork is slightly oversized, causing parts of the icon to be clipped in the launcher icon
 and splash screen.
 
-- [ ] Reduce the artwork scale while preserving the existing icon and splash assets.
-- [ ] Verify the launcher icon and splash screen on a physical device.
+- [x] Reduce the artwork scale while preserving the existing icon and splash assets.
+- [x] Verify the launcher icon and splash screen on a physical device.
 
-Status: not started, 2026-08-01 - backlog item captured.
+Status: **done**, 2026-08-01 - reduced the adaptive foreground artwork to 90% around its center;
+the resource compiled successfully and the APK was installed on Zenfone 10, Mi Pad 4, and PX5.
