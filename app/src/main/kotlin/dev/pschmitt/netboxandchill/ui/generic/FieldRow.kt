@@ -66,3 +66,19 @@ data class CountTarget(
     val relationKey: String,
     val parentId: Int,
 )
+
+internal fun FieldRow.actionValue(): String? =
+    when (this) {
+        is FieldRow.PlainText -> value
+        is FieldRow.BooleanValue -> if (value) "Enabled" else "Disabled"
+        is FieldRow.Count -> value
+        is FieldRow.Markdown -> content
+        is FieldRow.Reference -> target.display
+        is FieldRow.ReferenceList -> targets.joinToString(", ") { it.display }
+        is FieldRow.ChipList -> values.joinToString(", ")
+        is FieldRow.FileAttachment -> url
+        is FieldRow.Image -> url
+        is FieldRow.ExternalLink -> url
+        is FieldRow.Section,
+        is FieldRow.CustomGroup -> null
+    }

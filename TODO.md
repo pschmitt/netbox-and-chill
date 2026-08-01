@@ -3223,11 +3223,13 @@ PX5.
 Long-pressing an item-view row should reveal the row value and offer a Copy action in the existing
 field-action menu.
 
-- [ ] Show the complete row value in the long-press menu or dialog.
-- [ ] Add a Copy-to-clipboard action for the selected row value.
-- [ ] Preserve existing Edit and Hide actions and verify long-pressing any part of the row.
+- [x] Show the complete row value in the long-press menu or dialog.
+- [x] Add a Copy-to-clipboard action for the selected row value.
+- [x] Preserve existing Edit and Hide actions and verify long-pressing any part of the row.
 
-Status: not started.
+Status: **done**, 2026-08-01 - long-press field dialogs now show the resolved row value and offer
+Copy value alongside Edit and Hide for generic and typed device pages. Remote ktfmt/unit tests and
+a clean debug build passed; APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-172: swipe between item-view tabs
 

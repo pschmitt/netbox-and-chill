@@ -93,6 +93,7 @@ import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import dev.pschmitt.netboxandchill.ui.generic.FieldRow
 import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
+import dev.pschmitt.netboxandchill.ui.generic.actionValue
 import dev.pschmitt.netboxandchill.ui.generic.fieldRow
 import java.io.File
 import java.text.DateFormat
@@ -661,7 +662,14 @@ fun DeviceDetailScreen(
     fieldActionLabel?.let { label ->
         FieldActionDialog(
             fieldLabel = label,
+            fieldValue = deviceFieldActionValue(device, customFieldRows, label),
             canEdit = true,
+            onCopy = {
+                deviceFieldActionValue(device, customFieldRows, label)?.let {
+                    onCopyValue(label, it)
+                }
+                fieldActionLabel = null
+            },
             onEdit = {
                 fieldActionLabel = null
                 onEditFieldClick(deviceEditFieldKey(label))
@@ -672,6 +680,29 @@ fun DeviceDetailScreen(
             },
             onDismiss = { fieldActionLabel = null },
         )
+    }
+}
+
+private fun deviceFieldActionValue(
+    device: dev.pschmitt.netboxandchill.data.db.DeviceEntity?,
+    customFieldRows: List<FieldRow>,
+    label: String,
+): String? {
+    val current = device
+    if (current == null) return customFieldRows.firstOrNull { it.label == label }?.actionValue()
+    return when (label) {
+        "Status" -> current.statusLabel ?: current.statusValue
+        "Site" -> current.siteName
+        "Rack" -> current.rackName
+        "Position" -> current.position?.toString()
+        "Role" -> current.roleName
+        "Manufacturer" -> current.manufacturerName
+        "Model" -> current.deviceTypeModel
+        "Serial" -> current.serial
+        "Asset tag" -> current.assetTag
+        "Primary IP" -> current.primaryIp
+        "Comments" -> current.comments
+        else -> customFieldRows.firstOrNull { it.label == label }?.actionValue()
     }
 }
 

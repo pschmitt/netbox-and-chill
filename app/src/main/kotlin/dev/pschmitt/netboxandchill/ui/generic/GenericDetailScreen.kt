@@ -747,7 +747,14 @@ fun GenericDetailScreen(
     fieldActionLabel?.let { label ->
         FieldActionDialog(
             fieldLabel = label,
+            fieldValue = fields.firstOrNull { it.label == label }?.actionValue(),
             canEdit = editableFields.any { it.label == label },
+            onCopy = {
+                fields.firstOrNull { it.label == label }?.actionValue()?.let {
+                    onCopyValue(label, it)
+                }
+                fieldActionLabel = null
+            },
             onEdit = {
                 val field = editableFields.firstOrNull { it.label == label }
                 fieldActionLabel = null
