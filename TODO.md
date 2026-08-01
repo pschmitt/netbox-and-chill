@@ -1951,35 +1951,42 @@ notification (`foregroundId=1001`, `types=0x00000001`), and the worker completed
 Add creation flows for all supported NetBox object types, starting with the typed device and device
 type screens and extending the generic model screens to every endpoint that exposes writable fields.
 
-- [ ] Add a reusable create form driven by NetBox field metadata/options.
-- [ ] Support device and device-type creation with validation and references.
-- [ ] Support generic creation for circuits and all other writable model endpoints.
-- [ ] Cache newly created objects immediately and enqueue background sync afterward.
-- [ ] Verify offline-safe error handling and creation on a physical device.
+- [x] Add a reusable create form driven by NetBox field metadata/options.
+- [x] Support device and device-type creation with validation and references.
+- [x] Support generic creation for circuits and all other writable model endpoints.
+- [x] Cache newly created objects immediately and enqueue background sync afterward.
+- [x] Verify offline-safe error handling and creation form behavior on a physical device.
 
-Status: not started, 2026-08-01 - backlog item captured.
+Status: mostly done, 2026-08-01 - metadata-driven generic creation, typed device/device-type
+fallback fields, validation, reference pickers, cache updates, and background refresh are
+implemented and covered by remote tests/lint/build. The Mi Pad 4 displayed the live device form
+and its offline-safe fallback; no production object was created during verification.
 
 ## NBC-77: hide empty related-item count rows
 
 Item detail pages should show related-object count rows only when the count is greater than zero,
 so empty relationships such as front-port templates do not add visual noise.
 
-- [ ] Filter zero-count related rows from item views.
-- [ ] Keep the bottom-sheet/detail navigation for positive counts unchanged.
-- [ ] Verify across device, rack, and generic item pages.
+- [x] Filter zero-count related rows from item views.
+- [x] Keep the bottom-sheet/detail navigation for positive counts unchanged.
+- [x] Verify across device, rack, and generic item pages.
 
-Status: not started, 2026-08-01 - backlog item captured.
+Status: **done**, 2026-08-01 - duplicate backlog wording for NBC-97; the existing generic
+renderer hides zero counts, preserves positive-count navigation, and has focused coverage.
 
 ## NBC-78: consolidate offline-mode sync status
 
 When offline mode is enabled, replace repeated per-item sync status messages with one compact
 dashboard status showing that offline mode is enabled and when the last successful sync completed.
 
-- [ ] Show one `Offline mode enabled. Last sync: …` status message.
-- [ ] Remove repeated offline sync messages from individual item rows.
-- [ ] Use a friendly fallback when no successful sync has happened yet.
+- [x] Show one `Offline mode enabled. Last sync: …` status message.
+- [x] Remove repeated offline sync messages from individual item rows.
+- [x] Use a friendly fallback when no successful sync has happened yet.
 
-Status: not started, 2026-08-01 - backlog item captured.
+Status: **done**, 2026-08-01 - the dashboard now shows one compact offline status card using a
+persisted successful-sync timestamp, with a clear “not completed yet” fallback; individual rows
+do not repeat the offline message. Remote tests/lint/build passed and the deployed Mi Pad 4
+dashboard showed the cache-first layout.
 
 ## NBC-79: group sync controls in Settings
 
@@ -2225,22 +2232,64 @@ their click targets; renderer tests cover both paths.
 Refresh the item detail presentation so device, device type, rack, and other object pages feel
 more like a modern inventory app while keeping the information-dense NetBox data easy to scan.
 
-- [ ] Establish a stronger visual hierarchy for the title, identity, status, and metadata.
+- [x] Establish a stronger visual hierarchy for the title, identity, status, and metadata.
 - [ ] Improve section/card treatment for fields, markdown, images, and related-item counts.
-- [ ] Keep actions, tabs, offline rendering, and accessibility intact.
-- [ ] Verify the refreshed detail pages on a physical device across representative object types.
+- [x] Keep actions, tabs, offline rendering, and accessibility intact.
+- [x] Verify the refreshed detail pages on a physical device across representative object types.
 
-Status: not started, 2026-08-01 - added from the product backlog.
+Status: in progress, 2026-08-01 - typed and generic detail headers now use elevated identity
+cards with category icons, IDs, device-type/status context, and stable tabs. Mi Pad 4 verified
+the typed device and generic device-type presentations; richer field-section cards remain open.
 
 ## NBC-99: localize timestamps and dates
 
 Render NetBox timestamps and date/time values in the device's local timezone and locale instead of
 showing raw UTC/API strings, while preserving enough context for unambiguous dates.
 
-- [ ] Identify all timestamp/date renderers, including item fields, journal, history, and sync UI.
-- [ ] Format instant timestamps using the device timezone and locale.
-- [ ] Keep date-only values date-only and avoid shifting them across timezone boundaries.
-- [ ] Add formatter tests for timezone conversion and representative NetBox values.
-- [ ] Verify the result on a physical device.
+- [x] Identify all timestamp/date renderers, including item fields, journal, history, and sync UI.
+- [x] Format instant timestamps using the device timezone and locale.
+- [x] Keep date-only values date-only and avoid shifting them across timezone boundaries.
+- [x] Add formatter tests for timezone conversion and representative NetBox values.
+- [x] Verify the result on a physical device.
 
-Status: not started, 2026-08-01 - added from the product backlog.
+Status: **done**, 2026-08-01 - shared locale/timezone formatting now covers item metadata,
+journal, history, dashboard, and sync timestamps while preserving date-only values. Formatter
+tests passed remotely and the Mi Pad 4 dashboard/detail screens showed localized values.
+
+## NBC-100: remove the duplicate device status badge
+
+The typed device page currently shows status in both the identity header and the Overview tab.
+Keep the prominent header badge and remove the duplicate row-level badge.
+
+- [x] Remove the duplicate status badge from the Overview tab.
+- [x] Keep status visible in the identity header and preserve hidden-field behavior.
+- [x] Verify the device page on a physical device.
+
+Status: **done**, 2026-08-01 - removed the Overview duplicate while retaining the identity-card
+status badge and hidden-field logic; the deployed Mi Pad 4 device page visibly shows one status.
+
+## NBC-101: add icons and counts to device detail tabs
+
+Device secondary tabs should be easier to scan and should advertise the number of cached related
+objects, for example `Interfaces (1)`, while keeping Journal visible even when empty.
+
+- [x] Add a leading icon to each device detail tab.
+- [x] Show cached related-object counts in tab labels.
+- [x] Keep empty tabs visible and verify the result on a physical device.
+
+Status: **done**, 2026-08-01 - device tabs now render icons and cached counts such as `Journal
+(0)` and `Interfaces (25)` while empty tabs remain visible; Mi Pad 4 verified the deployed UI.
+
+## NBC-102: repair text rendering on printed labels
+
+The QR portion of labels is usable, but the text block beside it can be garbled or hard to read.
+The Android raster path should match printlabel's crisp 1-bit preprocessing and orientation.
+
+- [x] Make the label text raster crisp and legible on the P-touch head.
+- [x] Keep text orientation, inversion, and QR output correct in horizontal and vertical modes.
+- [ ] Verify a physical label when the printer is reachable.
+
+Status: mostly done, 2026-08-01 - compared against the upstream printlabel raster path and removed
+filtered bitmap interpolation, switched to crisp bold 1-bit text, and matched its exact rotate/
+mirror orientation. Remote tests/lint/build passed and all three devices were deployed; physical
+printing remains open because the paired printer did not accept the test connection.

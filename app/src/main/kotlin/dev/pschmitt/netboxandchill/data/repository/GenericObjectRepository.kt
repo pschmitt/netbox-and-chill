@@ -13,12 +13,26 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
 /** Cache-first list/detail access for any NetBox object type, keyed by its endpoint path. */
+data class CreateChoice(val value: String, val label: String)
+
+data class CreateFieldDefinition(
+    val key: String,
+    val label: String,
+    val type: String,
+    val required: Boolean,
+    val defaultValue: JsonElement?,
+    val choices: List<CreateChoice>,
+    val referenceEndpointPath: String?,
+)
+
 @Singleton
 class GenericObjectRepository
 @Inject
@@ -118,6 +132,15 @@ constructor(
         dao.upsert(objectJson.toEntity(endpointPath))
     }
 
+    suspend fun createFieldDefinitions(endpointPath: String): Result<List<CreateFieldDefinition>> = runCatching {
+        val options = api.getObjectOptions(endpointPath)
+        parseCreateFieldDefinitions(options)
+    }
+
+    suspend fun createObject(endpointPath: String, body: JsonObject): Result<JsonObject> = runCatching {
+        api.createObject(endpointPath, body).also { cacheLocalObject(endpointPath, it) }
+    }
+
     private fun JsonObject.toEntity(endpointPath: String): NetBoxObjectEntity {
         val id = this["id"]?.jsonPrimitive?.intOrNull ?: error("NetBox object at $endpointPath has no id")
         val display =
@@ -136,6 +159,108 @@ constructor(
             syncedAt = System.currentTimeMillis(),
         )
     }
+}
+
+internal fun parseCreateFieldDefinitions(response: JsonObject): List<CreateFieldDefinition> {
+    val actions = response["actions"] as? JsonObject ?: return emptyList()
+    // NetBox normally exposes POST on a collection OPTIONS response. A few deployments/proxies
+    // only advertise the equivalent PUT serializer, however; its writable field metadata is still
+    // useful for building the form, and the eventual POST will surface any actual permission
+    // restriction instead of presenting a misleading empty screen.
+    val postFields = (actions["POST"] ?: actions["PUT"]) as? JsonObject ?: return emptyList()
+    return postFields.mapNotNull { (key, element) ->
+        val definition = element as? JsonObject ?: return@mapNotNull null
+        val type = (definition["type"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+        val readOnly = (definition["read_only"] as? JsonPrimitive)?.booleanOrNull ?: false
+        if (readOnly || key in setOf("id", "url", "display", "display_url", "created", "last_updated")) {
+            return@mapNotNull null
+        }
+        val label = (definition["label"] as? JsonPrimitive)?.contentOrNull ?: key
+        val required = (definition["required"] as? JsonPrimitive)?.booleanOrNull ?: false
+        val choices =
+            (definition["choices"] as? JsonArray).orEmpty().mapNotNull { choice ->
+                val obj = choice as? JsonObject ?: return@mapNotNull null
+                val value = (obj["value"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                val choiceLabel =
+                    (obj["display_name"] as? JsonPrimitive)?.contentOrNull
+                        ?: (obj["display"] as? JsonPrimitive)?.contentOrNull
+                        ?: value
+                CreateChoice(value, choiceLabel)
+            }
+        CreateFieldDefinition(
+            key = key,
+            label = label,
+            type = type,
+            required = required,
+            defaultValue = definition["default"]?.takeUnless { it is JsonNull },
+            choices = choices,
+            referenceEndpointPath = createReferenceEndpoint(key, type),
+        )
+    }
+}
+
+/** Minimal first-class forms for the two typed workflows if a restrictive API token cannot read OPTIONS. */
+internal fun fallbackCreateFieldDefinitions(endpointPath: String): List<CreateFieldDefinition> =
+    when (endpointPath) {
+        "api/dcim/devices/" ->
+            listOf(
+                CreateFieldDefinition("name", "Name", "string", false, null, emptyList(), null),
+                CreateFieldDefinition("device_type", "Device type", "nested object", true, null, emptyList(), "api/dcim/device-types/"),
+                CreateFieldDefinition("role", "Role", "nested object", true, null, emptyList(), "api/dcim/device-roles/"),
+                CreateFieldDefinition("site", "Site", "nested object", true, null, emptyList(), "api/dcim/sites/"),
+                CreateFieldDefinition("serial", "Serial number", "string", false, null, emptyList(), null),
+                CreateFieldDefinition("asset_tag", "Asset tag", "string", false, null, emptyList(), null),
+                CreateFieldDefinition("status", "Status", "field", false, JsonPrimitive("active"), emptyList(), null),
+                CreateFieldDefinition("comments", "Comments", "string", false, null, emptyList(), null),
+            )
+        "api/dcim/device-types/" ->
+            listOf(
+                CreateFieldDefinition("model", "Model", "string", true, null, emptyList(), null),
+                CreateFieldDefinition("manufacturer", "Manufacturer", "nested object", true, null, emptyList(), "api/dcim/manufacturers/"),
+                CreateFieldDefinition("slug", "Slug", "slug", true, null, emptyList(), null),
+                CreateFieldDefinition("description", "Description", "string", false, null, emptyList(), null),
+            )
+        else -> emptyList()
+    }
+
+private fun createReferenceEndpoint(key: String, type: String): String? {
+    if (type != "nested object") return null
+    return mapOf(
+        "device_type" to "api/dcim/device-types/",
+        "manufacturer" to "api/dcim/manufacturers/",
+        "site" to "api/dcim/sites/",
+        "location" to "api/dcim/locations/",
+        "rack" to "api/dcim/racks/",
+        "role" to "api/dcim/device-roles/",
+        "device_role" to "api/dcim/device-roles/",
+        "platform" to "api/dcim/platforms/",
+        "tenant" to "api/tenancy/tenants/",
+        "cluster" to "api/virtualization/clusters/",
+        "owner" to "api/tenancy/contacts/",
+    )[key]
+}
+
+internal fun buildCreateBody(
+    fields: List<CreateFieldDefinition>,
+    values: Map<String, String>,
+): Result<JsonObject> {
+    val missing = fields.filter { it.required && values[it.key].orEmpty().isBlank() }.map { it.label }
+    if (missing.isNotEmpty()) return Result.failure(IllegalArgumentException("Required: ${missing.joinToString(", ")}"))
+    val body = linkedMapOf<String, JsonElement>()
+    fields.forEach { field ->
+        val value = values[field.key]?.trim().orEmpty()
+        if (value.isEmpty()) return@forEach
+        val jsonValue =
+            when {
+                field.type == "boolean" -> JsonPrimitive(value.toBooleanStrictOrNull() ?: false)
+                field.type == "integer" -> value.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
+                field.type in setOf("decimal", "float") -> value.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
+                field.type == "nested object" -> value.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(value)
+                else -> JsonPrimitive(value)
+            }
+        body[field.key] = jsonValue
+    }
+    return Result.success(JsonObject(body))
 }
 
 private fun NetBoxObjectEntity.matchesRelation(parser: Json, relationKey: String, expectedId: Int): Boolean {

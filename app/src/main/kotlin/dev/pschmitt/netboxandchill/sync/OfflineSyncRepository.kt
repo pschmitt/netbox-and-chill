@@ -142,7 +142,10 @@ constructor(
                     }
                 )
             warnings.isNotEmpty() -> settingsRepository.recordSyncIssue(warnings.joinToString("\n"))
-            else -> settingsRepository.clearSyncIssue()
+            else -> {
+                settingsRepository.clearSyncIssue()
+                settingsRepository.recordSuccessfulSync()
+            }
         }
         return result
     }

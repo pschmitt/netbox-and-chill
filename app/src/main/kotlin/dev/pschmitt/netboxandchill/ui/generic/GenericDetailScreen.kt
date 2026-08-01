@@ -43,6 +43,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,6 +85,7 @@ import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
+import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
@@ -336,30 +338,55 @@ fun GenericDetailScreen(
                     else -> {
                 var selectedTab by remember { mutableStateOf(0) }
                 Column(Modifier.fillMaxSize()) {
-                    Text(
-                        title ?: "Object #${viewModel.route.id}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    )
-                    if (journalEntries.isNotEmpty()) {
-                        TabRow(selectedTabIndex = selectedTab) {
-                            Tab(
-                                selected = selectedTab == 0,
-                                onClick = { selectedTab = 0 },
-                                text = { Text("Details") },
-                                icon = {
-                                    Icon(Icons.Default.Description, contentDescription = null)
-                                },
-                            )
-                            Tab(
-                                selected = selectedTab == 1,
-                                onClick = { selectedTab = 1 },
-                                text = { Text("Journal") },
-                                icon = { Icon(Icons.Default.History, contentDescription = null) },
-                            )
+                    ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.size(52.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Outlined.Category,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(28.dp),
+                                    )
+                                }
+                            }
+                            Column(Modifier.padding(start = 14.dp)) {
+                                Text(
+                                    title ?: "Object #${viewModel.route.id}",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                )
+                                Text(
+                                    "ID #${viewModel.route.id}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
-                    if (selectedTab == 0 || journalEntries.isEmpty()) {
+                    TabRow(selectedTabIndex = selectedTab) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Details") },
+                            icon = {
+                                Icon(Icons.Default.Description, contentDescription = null)
+                            },
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Journal (${journalEntries.size})") },
+                            icon = { Icon(Icons.Default.History, contentDescription = null) },
+                        )
+                    }
+                    if (selectedTab == 0) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
@@ -401,8 +428,18 @@ fun GenericDetailScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
                         ) {
-                            items(journalEntries, key = { it.id }) { entry ->
-                                JournalEntryItem(entry)
+                            if (journalEntries.isEmpty()) {
+                                item {
+                                    Text(
+                                        "No journal entries found for this item.",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = 16.dp),
+                                    )
+                                }
+                            } else {
+                                items(journalEntries, key = { it.id }) { entry ->
+                                    JournalEntryItem(entry)
+                                }
                             }
                         }
                     }
@@ -1159,7 +1196,7 @@ private fun JournalEntryItem(entry: JournalEntryUi) {
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                "${entry.kindLabel} · ${entry.created}",
+                "${entry.kindLabel} · ${formatNetBoxDateTime(entry.created)}",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

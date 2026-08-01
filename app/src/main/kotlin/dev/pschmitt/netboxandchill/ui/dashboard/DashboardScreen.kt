@@ -58,6 +58,7 @@ import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
@@ -82,6 +83,7 @@ fun DashboardScreen(
     val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
     val conflictCount by viewModel.conflictCount.collectAsStateWithLifecycle()
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
+    val lastSuccessfulSyncAt by viewModel.lastSuccessfulSyncAt.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
@@ -156,6 +158,13 @@ fun DashboardScreen(
                                     Text("Offline mode", style = MaterialTheme.typography.titleMedium)
                                     Text(
                                         "Showing cached data; network sync is paused",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        lastSuccessfulSyncAt?.let { timestamp ->
+                                            "Last sync: ${formatNetBoxDateTime(java.time.Instant.ofEpochMilli(timestamp).toString())}"
+                                        } ?: "Last sync: not completed yet",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -412,4 +421,4 @@ private fun EmptyHint(isRefreshing: Boolean, idleText: String) {
 /** "2026-07-25T16:33:05.946712Z" -> "2026-07-25 16:33" - a first-pass, good-enough human format;
  * no timezone conversion, matches how timestamps are shown elsewhere in the app (e.g. Journal
  * entries) - just raw-ish ISO trimmed to the minute. */
-private fun formatTimestamp(iso: String): String = iso.take(16).replace('T', ' ')
+private fun formatTimestamp(iso: String): String = formatNetBoxDateTime(iso)

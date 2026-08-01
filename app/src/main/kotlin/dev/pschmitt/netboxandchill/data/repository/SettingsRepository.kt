@@ -115,6 +115,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _syncIssue = MutableStateFlow(loadSyncIssue())
     val syncIssue: StateFlow<SyncIssue?> = _syncIssue.asStateFlow()
 
+    private val _lastSuccessfulSyncAt = MutableStateFlow(loadLastSuccessfulSyncAt())
+    val lastSuccessfulSyncAt: StateFlow<Long?> = _lastSuccessfulSyncAt.asStateFlow()
+
     private val _hiddenFieldKeys = MutableStateFlow(loadHiddenFieldKeys())
     val hiddenFieldKeys: StateFlow<Set<String>> = _hiddenFieldKeys.asStateFlow()
 
@@ -166,6 +169,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun clearSyncIssue() {
         prefs.edit().remove(KEY_SYNC_ISSUE_MESSAGE).remove(KEY_SYNC_ISSUE_TIME).apply()
         _syncIssue.value = null
+    }
+
+    fun recordSuccessfulSync() {
+        val timestamp = System.currentTimeMillis()
+        prefs.edit().putLong(KEY_LAST_SUCCESSFUL_SYNC, timestamp).apply()
+        _lastSuccessfulSyncAt.value = timestamp
     }
 
     fun addHiddenField(key: String) {
@@ -236,6 +245,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         return if (message != null && occurredAt > 0L) SyncIssue(message, occurredAt) else null
     }
 
+    private fun loadLastSuccessfulSyncAt(): Long? =
+        prefs.getLong(KEY_LAST_SUCCESSFUL_SYNC, 0L).takeIf { it > 0L }
+
     private fun loadGestureAction(): GestureAction =
         GestureAction.fromStorage(prefs.getString(KEY_GESTURE_ACTION, GestureAction.GlobalSearch.storageKey))
 
@@ -276,6 +288,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_OFFLINE_MODE = "offline_mode"
         const val KEY_SYNC_ISSUE_MESSAGE = "sync_issue_message"
         const val KEY_SYNC_ISSUE_TIME = "sync_issue_time"
+        const val KEY_LAST_SUCCESSFUL_SYNC = "last_successful_sync"
         const val MAX_SYNC_MESSAGE_LENGTH = 1000
         const val KEY_HIDDEN_FIELDS = "hidden_field_keys"
         const val KEY_SIDEBAR_APP_ORDER = "sidebar_app_order"

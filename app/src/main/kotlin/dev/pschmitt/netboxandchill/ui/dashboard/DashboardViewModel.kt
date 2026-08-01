@@ -44,6 +44,7 @@ constructor(
 
     val offlineMode: StateFlow<Boolean> = settingsRepository.offlineMode
     val syncIssue = settingsRepository.syncIssue
+    val lastSuccessfulSyncAt = settingsRepository.lastSuccessfulSyncAt
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(

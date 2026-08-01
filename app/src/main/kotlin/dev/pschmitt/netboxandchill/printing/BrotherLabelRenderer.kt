@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
+import kotlin.math.ceil
 
 data class BrotherLabelRaster(val bytes: ByteArray, val rasterLines: Int)
 
@@ -29,7 +30,11 @@ object BrotherLabelRenderer {
         require(objectUrl.isNotBlank()) { "A device URL is required for the label QR code" }
         val text = labelText.replace(Regex("[\\r\\n\\t]+"), " ").trim()
         val textPaint = labelTextPaint(text, fitWidth = vertical)
-        val textBounds = Rect().also { textPaint.getTextBounds(text, 0, text.length, it) }
+        val textBounds =
+            Rect().also {
+                textPaint.getTextBounds(text, 0, text.length, it)
+                it.right = it.left + ceil(textPaint.measureText(text)).toInt().coerceAtLeast(1)
+            }
         val qr = QrBitmap.encode(objectUrl, QR_SIZE)
         val source =
             if (vertical) {
@@ -39,20 +44,18 @@ object BrotherLabelRenderer {
             }
         qr.recycle()
 
-        // printlabel rotates the horizontal label -90 degrees, mirrors it, then pads the print
-        // head to 128 dots. PTCBP treats zero bits as printed dots and one bits as white space.
-        val transform = Matrix().apply {
-            setRotate(-90f)
-            postScale(-1f, 1f)
+        // Match printlabel's rotate(-90) + mirror operation without bitmap filtering. The
+        // printer's 1-bit head cannot represent anti-aliased interpolation; filtering makes
+        // small glyphs lose their stems and produces the garbled right-side text seen on paper.
+        val padded = Bitmap.createBitmap(BrotherPtcBp.RASTER_WIDTH, source.width, Bitmap.Config.ARGB_8888)
+        Canvas(padded).drawColor(Color.WHITE)
+        val horizontalPadding = (BrotherPtcBp.RASTER_WIDTH - source.height) / 2
+        for (sourceY in 0 until source.height) {
+            for (sourceX in 0 until source.width) {
+                padded.setPixel(horizontalPadding + sourceY, sourceX, source.getPixel(sourceX, sourceY))
+            }
         }
-        val rotated = Bitmap.createBitmap(source, 0, 0, source.width, source.height, transform, true)
         source.recycle()
-        val padded = Bitmap.createBitmap(BrotherPtcBp.RASTER_WIDTH, rotated.height, Bitmap.Config.ARGB_8888)
-        Canvas(padded).apply {
-            drawColor(Color.WHITE)
-            drawBitmap(rotated, (BrotherPtcBp.RASTER_WIDTH - rotated.width) / 2f, 0f, null)
-        }
-        rotated.recycle()
 
         val bytesPerLine = BrotherPtcBp.RASTER_WIDTH / 8
         val raster = ByteArray(padded.height * bytesPerLine)
@@ -72,9 +75,12 @@ object BrotherLabelRenderer {
         val paint =
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.BLACK
-                typeface = Typeface.DEFAULT
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                 textAlign = Paint.Align.CENTER
                 textScaleX = 1f
+                isAntiAlias = false
+                isSubpixelText = false
+                isLinearText = false
             }
         val bounds = Rect()
         var textSize = 20f
@@ -132,7 +138,7 @@ object BrotherLabelRenderer {
             textSource.width,
             textSource.height,
             rotation,
-            true,
+            false,
         )
         textSource.recycle()
 

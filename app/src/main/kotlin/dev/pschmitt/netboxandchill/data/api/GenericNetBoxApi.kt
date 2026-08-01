@@ -6,6 +6,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.HTTP
 import retrofit2.http.PATCH
+import retrofit2.http.POST
 import retrofit2.http.QueryMap
 import retrofit2.http.Url
 
@@ -37,6 +38,8 @@ interface GenericNetBoxApi {
     suspend fun getObjectOptions(@Url url: String): JsonObject
 
     @PATCH suspend fun patchObject(@Url url: String, @Body body: JsonObject): JsonObject
+
+    @POST suspend fun createObject(@Url url: String, @Body body: JsonObject): JsonObject
 
     /**
      * DRF's `OPTIONS` response for a ChoiceField enumerates its valid values - used to resolve the

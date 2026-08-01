@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,6 +52,7 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -70,12 +73,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
-import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
@@ -108,6 +111,14 @@ fun DeviceDetailScreen(
             viewModel.relatedObjects[endpointPath]?.collectAsStateWithLifecycle()?.value.orEmpty()
         } else {
             emptyList()
+        }
+    val relatedCounts =
+        DEVICE_RELATED_TABS.map { tab ->
+            if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+                journalEntries.size
+            } else {
+                viewModel.relatedObjects[tab.endpointPath]?.collectAsStateWithLifecycle()?.value?.size ?: 0
+            }
         }
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -263,7 +274,38 @@ fun DeviceDetailScreen(
                     contentPadding = PaddingValues(16.dp),
                 ) {
                     item {
-                        Text(current.name, style = MaterialTheme.typography.headlineSmall)
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                                    modifier = Modifier.size(52.dp),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.Cable,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.size(28.dp),
+                                        )
+                                    }
+                                }
+                                Column(Modifier.padding(start = 14.dp).weight(1f)) {
+                                    Text(current.name, style = MaterialTheme.typography.headlineSmall)
+                                    current.deviceTypeModel?.let {
+                                        Text(
+                                            it,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                                StatusChip(label = current.statusLabel, value = current.statusValue)
+                            }
+                        }
                         Spacer(Modifier.height(12.dp))
                     }
                     item {
@@ -287,18 +329,23 @@ fun DeviceDetailScreen(
                                             viewModel.refreshRelated()
                                         }
                                     },
-                                    text = { Text(tab.label) },
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                tabIcon(tab),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("${tab.label} (${relatedCounts[index]})")
+                                        }
+                                    },
                                 )
                             }
                         }
                     }
                     if (selectedTab == -1) {
                         item {
-                            if (isFieldVisible("status")) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    StatusChip(label = current.statusLabel, value = current.statusValue)
-                                }
-                            }
                             Spacer(Modifier.height(16.dp))
                         }
                         deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index -> imageViewer = items to index }
@@ -364,6 +411,10 @@ fun DeviceDetailScreen(
 }
 
 @Composable
+private fun tabIcon(tab: DeviceRelatedTab) =
+    if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) Icons.Default.History else Icons.Default.Cable
+
+@Composable
 private fun DeviceRelatedObjects(
     tab: DeviceRelatedTab,
     objects: List<dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity>,
@@ -412,7 +463,7 @@ private fun DeviceJournalEntries(entries: List<JournalEntryUi>) {
                     Icon(icon, contentDescription = entry.kindLabel, tint = tint, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "${entry.kindLabel} · ${entry.created}",
+                        "${entry.kindLabel} · ${formatNetBoxDateTime(entry.created)}",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -533,8 +584,8 @@ private fun ImageAttachmentEntity.toViewerItem(localImageFile: (String, String) 
     val metadata = buildList {
         if (!description.isNullOrBlank()) add("Description" to description)
         if (imageWidth != null && imageHeight != null) add("Dimensions" to "$imageWidth × $imageHeight")
-        created?.takeIf { it.isNotBlank() }?.let { add("Created" to formatIsoTimestamp(it)) }
-        lastUpdated?.takeIf { it.isNotBlank() && it != created }?.let { add("Last updated" to formatIsoTimestamp(it)) }
+        created?.takeIf { it.isNotBlank() }?.let { add("Created" to formatNetBoxDateTime(it)) }
+        lastUpdated?.takeIf { it.isNotBlank() && it != created }?.let { add("Last updated" to formatNetBoxDateTime(it)) }
     }
     val url = imageUrl.orEmpty()
     return ImageViewerItem(
@@ -549,11 +600,6 @@ private fun ImageAttachmentEntity.fileName(): String =
     name?.takeIf { it.isNotBlank() }
         ?: display?.takeIf { it.isNotBlank() }
         ?: "image-attachment-$id"
-
-/** "2026-07-25T16:33:05.946712Z" -> "2026-07-25 16:33" - same good-enough, no-timezone-conversion
- * format used elsewhere in the app (see `DashboardScreen.formatTimestamp`); not shared as a common
- * util to keep this change scoped to NBC-20. */
-private fun formatIsoTimestamp(iso: String): String = iso.take(16).replace('T', ' ')
 
 private fun LazyListScope.detailField(
     label: String,

@@ -11,6 +11,7 @@ import dev.pschmitt.netboxandchill.ui.conflicts.EditConflictsScreen
 import dev.pschmitt.netboxandchill.ui.devicedetail.DeviceDetailScreen
 import dev.pschmitt.netboxandchill.ui.devices.DeviceListScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericDetailScreen
+import dev.pschmitt.netboxandchill.ui.generic.GenericCreateScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericListScreen
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.ui.onboarding.OnboardingScreen
@@ -24,6 +25,14 @@ import dev.pschmitt.netboxandchill.ui.settings.SettingsScreen
 // of the generic list route the other stat tiles use (see NBC-9's TODO.md entry).
 private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
 private const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
+
+private fun NavHostController.navigateToObject(endpointPath: String, id: Int) {
+    if (endpointPath == DEVICES_ENDPOINT_PATH) {
+        navigate(Route.DeviceDetail(id))
+    } else {
+        navigate(Route.Generic(endpointPath, id))
+    }
+}
 
 @Composable
 fun NetBoxNavHost(
@@ -54,7 +63,7 @@ fun NetBoxNavHost(
                 onSearchClick = { navController.navigate(Route.GlobalSearch) { launchSingleTop = true } },
                 onSettingsClick = { navController.navigate(Route.Settings) { launchSingleTop = true } },
                 onNavigateToReference = { endpointPath, id ->
-                    navController.navigate(Route.Generic(endpointPath, id))
+                    navController.navigateToObject(endpointPath, id)
                 },
                 onStatClick = { endpointPath, label ->
                     if (endpointPath == DEVICES_ENDPOINT_PATH) {
@@ -75,6 +84,9 @@ fun NetBoxNavHost(
         composable<Route.DeviceList> {
             DeviceListScreen(
                 onDeviceClick = { id -> navController.navigate(Route.DeviceDetail(id)) },
+                onCreateClick = {
+                    navController.navigate(Route.GenericCreate(DEVICES_ENDPOINT_PATH, "device"))
+                },
                 onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
                 onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
@@ -97,7 +109,10 @@ fun NetBoxNavHost(
         composable<Route.GenericList> { backStackEntry ->
             val route: Route.GenericList = backStackEntry.toRoute()
             GenericListScreen(
-                onObjectClick = { id -> navController.navigate(Route.Generic(route.endpointPath, id)) },
+                onObjectClick = { id -> navController.navigateToObject(route.endpointPath, id) },
+                onCreateClick = {
+                    navController.navigate(Route.GenericCreate(route.endpointPath, route.label))
+                },
                 onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
                 onScanClick = { navController.navigate(Route.Scanner()) },
                 onOpenDrawer = onOpenDrawer,
@@ -107,7 +122,7 @@ fun NetBoxNavHost(
         }
         composable<Route.GlobalSearch> {
             GlobalSearchScreen(
-                onResultClick = { endpointPath, id -> navController.navigate(Route.Generic(endpointPath, id)) },
+                onResultClick = { endpointPath, id -> navController.navigateToObject(endpointPath, id) },
                 onBack = { navController.popBackStack() },
                 onDashboardClick = { navController.navigate(Route.Dashboard) { launchSingleTop = true } },
                 onScanClick = { navController.navigate(Route.Scanner()) },
@@ -118,7 +133,16 @@ fun NetBoxNavHost(
             GenericDetailScreen(
                 onBack = { navController.popBackStack() },
                 onNavigateToReference = { endpointPath, id ->
-                    navController.navigate(Route.Generic(endpointPath, id))
+                    navController.navigateToObject(endpointPath, id)
+                },
+            )
+        }
+        composable<Route.GenericCreate> {
+            GenericCreateScreen(
+                onBack = { navController.popBackStack() },
+                onCreated = { endpointPath, id ->
+                    navController.popBackStack()
+                    navController.navigateToObject(endpointPath, id)
                 },
             )
         }

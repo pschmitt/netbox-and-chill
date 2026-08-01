@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 @Composable
 fun GenericListScreen(
     onObjectClick: (Int) -> Unit,
+    onCreateClick: () -> Unit,
     onDashboardClick: () -> Unit,
     onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
@@ -71,6 +73,9 @@ fun GenericListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onCreateClick) {
+                        Icon(Icons.Default.Add, contentDescription = "Create ${viewModel.route.label}")
+                    }
                     IconButton(onClick = onSearchClick) {
                         Icon(Icons.Default.Search, contentDescription = "Search all NetBox objects")
                     }

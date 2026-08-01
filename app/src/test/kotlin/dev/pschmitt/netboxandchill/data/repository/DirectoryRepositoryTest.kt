@@ -87,6 +87,8 @@ private open class FakeDirectoryApi : GenericNetBoxApi {
 
     override suspend fun patchObject(url: String, body: JsonObject): JsonObject = error("unused")
 
+    override suspend fun createObject(url: String, body: JsonObject): JsonObject = error("unused")
+
     override suspend fun getJournalEntryOptions(): JsonObject = error("unused")
 }
 

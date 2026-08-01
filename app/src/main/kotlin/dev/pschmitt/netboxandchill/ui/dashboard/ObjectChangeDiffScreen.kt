@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,7 +88,7 @@ private fun DiffContent(diff: ObjectChangeDiffUi, modifier: Modifier = Modifier)
     LazyColumn(modifier = modifier, contentPadding = PaddingValues(16.dp)) {
         item {
             Text(
-                "${diff.actionLabel} by ${diff.userDisplay} · ${diff.time.take(16).replace('T', ' ')}",
+                "${diff.actionLabel} by ${diff.userDisplay} · ${formatNetBoxDateTime(diff.time)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 16.dp),

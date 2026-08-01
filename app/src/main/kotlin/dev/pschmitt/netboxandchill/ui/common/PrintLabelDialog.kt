@@ -202,6 +202,13 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
                     OutlinedButton(
                         onClick = {
                             context.startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                            // Some vendor stacks do not emit ACTION_STATE_CHANGED to an app-owned
+                            // receiver. Re-read the adapter after the system dialog returns so the
+                            // printer list does not remain stuck in the disabled state.
+                            scope.launch {
+                                delay(750)
+                                reloadPrinters()
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -236,7 +243,12 @@ fun PrintLabelDialog(request: PrintLabelRequest, onDismiss: () -> Unit) {
 
                     if (isDiscovering) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier.size(20.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            }
                             Spacer(Modifier.width(8.dp))
                             Text("Searching for nearby Brother printers…")
                         }
