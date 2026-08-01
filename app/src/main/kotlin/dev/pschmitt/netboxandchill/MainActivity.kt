@@ -186,6 +186,17 @@ class MainActivity : FragmentActivity() {
                                         Route.GenericList(target.endpointPath, target.label)
                                     )
                                 }
+                            GestureAction.DetailSpecific ->
+                                gestureTargets[shortcut]?.let { target ->
+                                    val id = target.id ?: return@let
+                                    val destination =
+                                        if (target.endpointPath == "api/dcim/devices/" && id > 0) {
+                                            Route.DeviceDetail(id)
+                                        } else {
+                                            Route.Generic(target.endpointPath, id, target.label)
+                                        }
+                                    navController.navigate(destination)
+                                }
                             GestureAction.Off -> Unit
                         }
                     }

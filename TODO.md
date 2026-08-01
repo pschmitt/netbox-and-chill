@@ -3139,10 +3139,13 @@ and navigating to configured list/detail destinations.
 - [x] Add actions for Settings, Scanner, Add, Sync, and offline-mode on/off.
 - [x] Allow a gesture to open a specific Add-item type.
 - [x] Allow a gesture to navigate to a specific cached item list.
-- [ ] Allow a gesture to navigate to a specific cached item detail view.
+- [x] Allow a gesture to navigate to a specific cached item detail view.
 - [x] Add configuration UI and preserve existing gesture assignments.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; gesture
+configuration now selects a cached object after its type, persists the endpoint/id target, and
+opens the typed or generic cache-first detail page. APK installed update-in-place on Zenfone 10,
+Mi Pad 4, and PX5.
 
 ## NBC-166: move the app icon to the sidebar header
 

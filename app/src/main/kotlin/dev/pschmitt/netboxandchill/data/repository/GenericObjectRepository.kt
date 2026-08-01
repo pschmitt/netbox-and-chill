@@ -69,6 +69,8 @@ constructor(
     fun observeObject(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
         dao.observeById(endpointPath, id)
 
+    fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> = dao.observeAllObjects()
+
     suspend fun refreshObject(endpointPath: String, id: Int): Result<NetBoxObjectEntity> =
         runCatching {
             val entity = api.getObject("$endpointPath$id/").toEntity(endpointPath)

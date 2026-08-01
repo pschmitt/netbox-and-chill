@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.AppDatabase
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.GestureTarget
@@ -40,6 +42,7 @@ constructor(
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
     private val directoryRepository: DirectoryRepository,
+    private val genericObjectRepository: GenericObjectRepository,
     private val appDatabase: AppDatabase,
     private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
@@ -60,6 +63,11 @@ constructor(
             .map { models ->
                 models.distinctBy { it.endpointPath }.sortedBy { it.modelLabel.lowercase() }
             }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val gestureObjects: StateFlow<List<NetBoxObjectEntity>> =
+        genericObjectRepository
+            .observeAllObjects()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isUpdatingBaseUrl = MutableStateFlow(false)
@@ -154,6 +162,13 @@ constructor(
         settingsRepository.setGestureTarget(
             shortcut,
             GestureTarget(endpointPath = model.endpointPath, label = model.modelLabel),
+        )
+    }
+
+    fun setGestureDetailTarget(shortcut: GestureShortcut, obj: NetBoxObjectEntity) {
+        settingsRepository.setGestureTarget(
+            shortcut,
+            GestureTarget(endpointPath = obj.endpointPath, id = obj.id, label = obj.display),
         )
     }
 

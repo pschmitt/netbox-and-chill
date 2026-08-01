@@ -102,6 +102,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
+import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
@@ -223,6 +224,7 @@ fun SettingsCategoryScreen(
         viewModel.settingsRepository.gestureActions.collectAsStateWithLifecycle()
     val gestureTargets by viewModel.gestureTargets.collectAsStateWithLifecycle()
     val gestureModels by viewModel.gestureModels.collectAsStateWithLifecycle()
+    val gestureObjects by viewModel.gestureObjects.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val scannerRearLens by
         viewModel.settingsRepository.scannerRearLens.collectAsStateWithLifecycle()
@@ -692,10 +694,14 @@ fun SettingsCategoryScreen(
                         action = gestureActions[shortcut] ?: GestureAction.Off,
                         target = gestureTargets[shortcut],
                         models = gestureModels,
+                        objects = gestureObjects,
                         onActionSelected = { action ->
                             viewModel.setGestureAction(shortcut, action)
                         },
                         onTargetSelected = { model -> viewModel.setGestureTarget(shortcut, model) },
+                        onDetailTargetSelected = { obj ->
+                            viewModel.setGestureDetailTarget(shortcut, obj)
+                        },
                     )
             }
             SettingsSubsectionHeader("Three-finger gestures")
@@ -705,10 +711,14 @@ fun SettingsCategoryScreen(
                         action = gestureActions[shortcut] ?: GestureAction.Off,
                         target = gestureTargets[shortcut],
                         models = gestureModels,
+                        objects = gestureObjects,
                         onActionSelected = { action ->
                             viewModel.setGestureAction(shortcut, action)
                         },
                         onTargetSelected = { model -> viewModel.setGestureTarget(shortcut, model) },
+                        onDetailTargetSelected = { obj ->
+                            viewModel.setGestureDetailTarget(shortcut, obj)
+                        },
                     )
                 }
                 }
@@ -1069,12 +1079,15 @@ private fun GestureShortcutRow(
     action: GestureAction,
     target: GestureTarget?,
     models: List<dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity>,
+    objects: List<NetBoxObjectEntity>,
     onActionSelected: (GestureAction) -> Unit,
     onTargetSelected: (dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity) -> Unit,
+    onDetailTargetSelected: (NetBoxObjectEntity) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var targetPickerVisible by remember { mutableStateOf(false) }
     var targetQuery by remember { mutableStateOf("") }
+    var detailModel by remember { mutableStateOf<dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity?>(null) }
     val actionLabel =
         target?.let { configured -> "${action.label}: ${configured.label}" } ?: action.label
     ListItem(
@@ -1106,7 +1119,8 @@ private fun GestureShortcutRow(
                                         GestureAction.OfflineOn,
                                         GestureAction.OfflineOff -> Icons.Default.CloudOff
                                         GestureAction.DeviceList,
-                                        GestureAction.ListSpecific -> Icons.Default.Storage
+                                        GestureAction.ListSpecific,
+                                        GestureAction.DetailSpecific -> Icons.Default.Storage
                                     },
                                     contentDescription = null,
                                 )
@@ -1116,9 +1130,11 @@ private fun GestureShortcutRow(
                                 expanded = false
                                 if (
                                     candidate == GestureAction.AddSpecific ||
-                                        candidate == GestureAction.ListSpecific
+                                        candidate == GestureAction.ListSpecific ||
+                                        candidate == GestureAction.DetailSpecific
                                 ) {
                                     targetQuery = ""
+                                    detailModel = null
                                     targetPickerVisible = true
                                 }
                             },
@@ -1135,35 +1151,102 @@ private fun GestureShortcutRow(
                     model.modelLabel.contains(targetQuery, ignoreCase = true) ||
                     model.appLabel.contains(targetQuery, ignoreCase = true)
             }
+        val filteredObjects =
+            detailModel?.let { selectedModel ->
+                objects
+                    .asSequence()
+                    .filter { it.endpointPath == selectedModel.endpointPath }
+                    .filter { obj ->
+                        targetQuery.isBlank() ||
+                            obj.display.contains(targetQuery, ignoreCase = true) ||
+                            obj.secondaryLine.orEmpty().contains(targetQuery, ignoreCase = true) ||
+                            obj.json.contains(targetQuery, ignoreCase = true)
+                    }
+                    .toList()
+            }.orEmpty()
         AlertDialog(
-            onDismissRequest = { targetPickerVisible = false },
-            title = { Text("Choose item type") },
+            onDismissRequest = {
+                targetPickerVisible = false
+                detailModel = null
+            },
+            title = {
+                Text(
+                    if (action == GestureAction.DetailSpecific && detailModel != null) {
+                        "Choose cached ${detailModel!!.modelLabel.lowercase()}"
+                    } else {
+                        "Choose item type"
+                    }
+                )
+            },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     OutlinedTextField(
                         value = targetQuery,
                         onValueChange = { targetQuery = it },
-                        label = { Text("Search item types") },
+                        label = {
+                            Text(
+                                if (action == GestureAction.DetailSpecific && detailModel != null) {
+                                    "Search cached items"
+                                } else {
+                                    "Search item types"
+                                }
+                            )
+                        },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    filteredModels.forEach { model ->
-                        ListItem(
-                            modifier =
-                                Modifier.clickable {
-                                    onTargetSelected(model)
-                                    targetPickerVisible = false
+                    if (action == GestureAction.DetailSpecific && detailModel != null) {
+                        if (filteredObjects.isEmpty()) {
+                            Text(
+                                "No matching cached items",
+                                modifier = Modifier.padding(top = 16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        filteredObjects.forEach { obj ->
+                            ListItem(
+                                modifier =
+                                    Modifier.clickable {
+                                        onDetailTargetSelected(obj)
+                                        targetPickerVisible = false
+                                        detailModel = null
+                                    },
+                                leadingContent = {
+                                    Icon(Icons.Default.Storage, contentDescription = null)
                                 },
-                            leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
-                            headlineContent = { Text(model.modelLabel) },
-                            supportingContent = { Text(model.appLabel) },
-                        )
+                                headlineContent = { Text(obj.display) },
+                                supportingContent = { obj.secondaryLine?.let { Text(it) } },
+                            )
+                        }
+                    } else {
+                        filteredModels.forEach { model ->
+                            ListItem(
+                                modifier =
+                                    Modifier.clickable {
+                                        if (action == GestureAction.DetailSpecific) {
+                                            detailModel = model
+                                            targetQuery = ""
+                                        } else {
+                                            onTargetSelected(model)
+                                            targetPickerVisible = false
+                                        }
+                                    },
+                                leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                                headlineContent = { Text(model.modelLabel) },
+                                supportingContent = { Text(model.appLabel) },
+                            )
+                        }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { targetPickerVisible = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = {
+                        targetPickerVisible = false
+                        detailModel = null
+                    }
+                ) { Text("Cancel") }
             },
         )
     }

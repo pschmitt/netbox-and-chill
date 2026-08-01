@@ -67,7 +67,7 @@ fun normalizeHiddenFieldPreferenceKey(value: String): String? {
     return normalized.takeIf { parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank() }
 }
 
-data class GestureTarget(val endpointPath: String, val label: String)
+data class GestureTarget(val endpointPath: String, val label: String, val id: Int? = null)
 
 enum class GestureAction(val storageKey: String, val label: String) {
     Off("off", "Off"),
@@ -80,7 +80,8 @@ enum class GestureAction(val storageKey: String, val label: String) {
     OfflineOn("offline_on", "Turn offline mode on"),
     OfflineOff("offline_off", "Turn offline mode off"),
     DeviceList("device_list", "Device list"),
-    ListSpecific("list_specific", "Specific item list");
+    ListSpecific("list_specific", "Specific item list"),
+    DetailSpecific("detail_specific", "Specific item detail");
 
     companion object {
         fun fromStorage(value: String?, fallback: GestureAction = GlobalSearch): GestureAction =
@@ -265,7 +266,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setGestureTarget(shortcut: GestureShortcut, target: GestureTarget) {
         prefs
             .edit()
-            .putString(gestureTargetKey(shortcut), target.endpointPath + TARGET_SEPARATOR + target.label)
+            .putString(gestureTargetKey(shortcut), encodeGestureTarget(target))
             .apply()
         _gestureTargets.value = _gestureTargets.value + (shortcut to target)
     }
@@ -439,11 +440,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun loadGestureTargets(): Map<GestureShortcut, GestureTarget> =
         GestureShortcut.entries.mapNotNull { shortcut ->
-            val parts = prefs.getString(gestureTargetKey(shortcut), null)?.split(TARGET_SEPARATOR, limit = 2)
-            if (parts?.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
-                shortcut to GestureTarget(parts[0], parts[1])
-            } else {
-                null
+            prefs.getString(gestureTargetKey(shortcut), null)?.let(::decodeGestureTarget)?.let {
+                shortcut to it
             }
         }.toMap()
 
@@ -456,6 +454,23 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun gestureTargetKey(shortcut: GestureShortcut): String =
         "gesture_target_${shortcut.storageKey}"
+
+    private fun encodeGestureTarget(target: GestureTarget): String =
+        buildString {
+            append(target.endpointPath)
+            append(TARGET_SEPARATOR)
+            append(target.label)
+            target.id?.let {
+                append(TARGET_SEPARATOR)
+                append(it)
+            }
+        }
+
+    private fun decodeGestureTarget(value: String): GestureTarget? {
+        val parts = value.split(TARGET_SEPARATOR, limit = 3)
+        if (parts.size < 2 || parts[0].isBlank() || parts[1].isBlank()) return null
+        return GestureTarget(parts[0], parts[1], parts.getOrNull(2)?.toIntOrNull())
+    }
 
     private fun loadScannerLens(): ScannerLens =
         ScannerLens.fromStorage(prefs.getString(KEY_SCANNER_LENS, ScannerLens.Back.storageKey))
