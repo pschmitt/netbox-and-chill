@@ -2922,11 +2922,13 @@ returned Aranet4 Home for cached MAC `F5:97:0D:6C:3C:BA` and turris for cached I
 
 Global-search results should visibly identify the matched NetBox object type with a compact badge.
 
-- [ ] Add an object-type badge to each global-search result.
-- [ ] Keep badges consistent with the directory/sidebar object-type icons and labels.
-- [ ] Verify badges do not disrupt result navigation or cached search behavior.
+- [x] Add an object-type badge to each global-search result.
+- [x] Keep badges consistent with the directory/sidebar object-type icons and labels.
+- [x] Verify badges do not disrupt result navigation or cached search behavior.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; Mi Pad 4
+showed cached recent results with `Devices`, `IP Addresses`, and `Device Types` badges, without
+disrupting navigation. APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-150: show asset-tag badges in search and device lists
 
@@ -3248,3 +3250,35 @@ Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build p
 plugin export rendered as 392 nodes and 231 connections on Mi Pad 4, then rendered again with the
 app in offline mode from the durable cache. APK installed update-in-place on Zenfone 10, Mi Pad 4,
 and PX5.
+
+## NBC-175: add a label-printer designer preview
+
+Add a label-printer designer to Settings > Printing, beginning with a live preview of the label
+produced by the current print settings.
+
+- [ ] Add a designer/preview entry to the Printing settings screen.
+- [ ] Render a preview using the current saved print options and representative label content.
+- [ ] Keep the preview available without a connected printer and preserve existing printing.
+
+Status: not started.
+
+## NBC-176: shorten the sidebar NetBox URL
+
+The sidebar should display only the configured NetBox hostname, without the URL scheme.
+
+- [ ] Remove the scheme from the NetBox URL shown beside the app name.
+- [ ] Preserve the full configured URL for navigation and connection behavior.
+- [ ] Verify the shortened display works for HTTP and HTTPS URLs.
+
+Status: not started.
+
+## NBC-177: improve the device-type picker when creating devices
+
+The device-type selector in the device creation flow should load quickly, support filtering, and
+show device-type imagery where available.
+
+- [ ] Replace the unfiltered, slow-loading device-type list with a searchable cached picker.
+- [ ] Show front/rear device-type images with a sensible fallback.
+- [ ] Keep selection responsive and preserve the existing create-device flow.
+
+Status: not started.
