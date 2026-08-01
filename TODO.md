@@ -3023,11 +3023,13 @@ Gestures heading. APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5
 The “Disconnect this NetBox instance” action should live in the Connection settings sub-screen,
 not in a separate Actions category.
 
-- [ ] Move the Disconnect action into Connection.
-- [ ] Remove the redundant Actions category.
-- [ ] Verify logout behavior remains unchanged.
+- [x] Move the Disconnect action into Connection.
+- [x] Remove the redundant Actions category.
+- [x] Verify logout behavior remains unchanged.
 
-Status: not started.
+Status: **done**, 2026-08-01 - Disconnect retains the existing logOut/onLoggedOut callback in the
+Connection screen; remote ktfmt/unit tests passed and the APK is being installed update-in-place
+on all three devices.
 
 ## NBC-158: synchronize changelog data for full offline use
 
@@ -3059,5 +3061,50 @@ for the default rear-camera lens.
 - [ ] Add a Camera Settings category/sub-screen.
 - [ ] Move the front/rear scanner camera preference there.
 - [ ] Add and persist the default rear-camera lens preference.
+
+Status: not started.
+
+## NBC-161: make Offline mode a top-level setting
+
+Offline mode should be directly accessible from the main Settings screen instead of being buried
+inside the Sync sub-screen.
+
+- [ ] Add Offline mode to the main Settings screen.
+- [ ] Remove the duplicate control from the Sync sub-screen.
+- [ ] Preserve the existing offline-mode behavior and preference.
+
+Status: not started.
+
+## NBC-162: remove the Battery Saver settings row
+
+The Sync settings screen should no longer display the Battery Saver row because battery-saver
+handling is automatic and the row provides no useful control.
+
+- [ ] Remove the Battery Saver row from Sync settings.
+- [ ] Preserve automatic battery-saver sync handling.
+- [ ] Verify the Sync screen no longer shows the row.
+
+Status: not started.
+
+## NBC-163: add project links to About settings
+
+The About screen should link to the project GitHub repository and the maintainer’s GitHub Sponsors
+page.
+
+- [ ] Add a link to the project GitHub repository.
+- [ ] Add a link to `https://github.com/sponsors/pschmitt`.
+- [ ] Verify both links open externally from About.
+
+Status: not started.
+
+## NBC-164: add printer settings
+
+Add a dedicated Printing settings sub-screen with a default printer preference and persisted
+default print options.
+
+- [ ] Add a Printing Settings category/sub-screen.
+- [ ] Allow selecting and persisting the default printer.
+- [ ] Allow configuring and persisting the default print options.
+- [ ] Verify the print dialog uses the saved defaults.
 
 Status: not started.

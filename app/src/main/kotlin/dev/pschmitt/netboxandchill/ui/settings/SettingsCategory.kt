@@ -1,7 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.settings
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
@@ -18,7 +17,6 @@ enum class SettingsCategory(val title: String, val subtitle: String) {
     Gestures("Gestures", "Scanner controls and gesture shortcuts"),
     Display("Display", "Fields and item types shown by default"),
     Notifications("Notifications", "NetBox change alerts"),
-    Actions("Actions", "Disconnect this NetBox instance"),
     About("About", "Application and build information");
 
     val icon: ImageVector
@@ -29,7 +27,6 @@ enum class SettingsCategory(val title: String, val subtitle: String) {
                 Gestures -> Icons.Default.TouchApp
                 Display -> Icons.Default.Visibility
                 Notifications -> Icons.Default.Notifications
-                Actions -> Icons.AutoMirrored.Filled.Logout
                 About -> Icons.Default.Info
             }
 }

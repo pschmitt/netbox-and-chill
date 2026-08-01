@@ -416,6 +416,23 @@ fun SettingsCategoryScreen(
                     }
                 },
             )
+            Column(Modifier.padding(16.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        viewModel.logOut()
+                        onLoggedOut()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Disconnect")
+                }
+            }
                 }
                 SettingsCategory.Sync -> {
             syncIssue?.let { issue ->
@@ -641,25 +658,6 @@ fun SettingsCategoryScreen(
                     Icon(Icons.Default.FilterList, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Choose change types")
-                }
-            }
-                }
-                SettingsCategory.Actions -> {
-            Column(Modifier.padding(16.dp)) {
-                OutlinedButton(
-                    onClick = {
-                        viewModel.logOut()
-                        onLoggedOut()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Disconnect")
                 }
             }
                 }
