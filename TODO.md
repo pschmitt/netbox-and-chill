@@ -2865,10 +2865,11 @@ including their edits. Verification should use dedicated disposable test items a
 the user's existing NetBox records. A clickable completion notification should summarize what was
 uploaded and reconciled.
 
-- [ ] Queue offline-created items and their subsequent edits for durable upload.
-- [ ] Reconcile queued creates and edits automatically after connectivity returns.
-- [ ] Add dedicated disposable test fixtures for offline create/edit reconciliation.
-- [ ] Show a clickable completion notification with a summary of reconciled changes.
-- [ ] Verify existing NetBox records are untouched by the dedicated reconciliation tests.
+- [x] Queue offline-created items and their subsequent edits for durable upload.
+- [x] Reconcile queued creates and edits automatically after connectivity returns.
+- [x] Add dedicated disposable test fixtures for offline create/edit reconciliation.
+- [x] Show a clickable completion notification with a summary of reconciled changes.
+- [x] Let users review and revert individual or all pending offline changes.
+- [x] Verify existing NetBox records are untouched by the dedicated reconciliation tests.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt, unit tests, and debug build passed; disposable API create/edit/delete verification used a dedicated NBC-145 fixture, and APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.

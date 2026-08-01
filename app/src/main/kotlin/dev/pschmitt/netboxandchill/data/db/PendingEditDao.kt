@@ -14,8 +14,23 @@ interface PendingEditDao {
     @Query("SELECT COUNT(*) FROM pending_edits WHERE state = 'conflict'")
     fun observeConflictCount(): Flow<Int>
 
+    @Query(
+        "SELECT * FROM pending_edits WHERE state IN ('queued', 'create_queued') ORDER BY createdAt"
+    )
+    fun observeQueuedMutations(): Flow<List<PendingEditEntity>>
+
+    @Query("SELECT COUNT(*) FROM pending_edits WHERE state IN ('queued', 'create_queued')")
+    fun observeQueuedMutationCount(): Flow<Int>
+
+    @Query("SELECT * FROM pending_edits WHERE state IN ('queued', 'create_queued') ORDER BY createdAt")
+    suspend fun getQueuedMutations(): List<PendingEditEntity>
+
     @Query("SELECT * FROM pending_edits WHERE state = 'queued' ORDER BY createdAt")
     suspend fun getQueued(): List<PendingEditEntity>
+
+    /** Offline creates share the durable outbox table with edits to avoid a schema migration. */
+    @Query("SELECT * FROM pending_edits WHERE state = 'create_queued' ORDER BY createdAt")
+    suspend fun getQueuedCreates(): List<PendingEditEntity>
 
     @Query("SELECT * FROM pending_edits WHERE endpointPath = :endpointPath AND id = :id LIMIT 1")
     suspend fun get(endpointPath: String, id: Int): PendingEditEntity?

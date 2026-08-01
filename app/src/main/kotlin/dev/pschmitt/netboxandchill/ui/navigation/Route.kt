@@ -25,6 +25,9 @@ sealed interface Route {
     /** Durable offline-edit conflict resolver (NBC-32). */
     @Serializable data object EditConflicts : Route
 
+    /** Review and revert queued offline creates and edits (NBC-145). */
+    @Serializable data object PendingChanges : Route
+
     /**
      * Cross-model search (NBC-13) - distinct from the sidebar's own section-name filter (NBC-6).
      */
@@ -55,4 +58,7 @@ sealed interface Route {
      * [Generic], which only ever shows the object's *current* state.
      */
     @Serializable data class ObjectChangeDiff(val changeId: Int) : Route
+
+    /** Human-readable summary opened from a completed offline reconciliation notification. */
+    @Serializable data class SyncSummary(val summary: String) : Route
 }

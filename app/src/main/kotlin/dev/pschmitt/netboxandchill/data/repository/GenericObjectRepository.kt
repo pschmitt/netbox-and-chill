@@ -147,6 +147,10 @@ constructor(
         dao.upsert(objectJson.toEntity(endpointPath))
     }
 
+    suspend fun removeCachedObject(endpointPath: String, id: Int) {
+        dao.delete(endpointPath, id)
+    }
+
     suspend fun createFieldDefinitions(endpointPath: String): Result<List<CreateFieldDefinition>> =
         runCatching {
             val options = api.getObjectOptions(endpointPath)

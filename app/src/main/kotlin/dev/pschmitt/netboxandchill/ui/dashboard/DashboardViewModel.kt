@@ -88,6 +88,11 @@ constructor(
             .observeConflictCount()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    val pendingChangeCount: StateFlow<Int> =
+        pendingEditRepository
+            .observeQueuedMutationCount()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     fun refresh() {
         if (!offlineMode.value) syncScheduler.syncNow()
     }

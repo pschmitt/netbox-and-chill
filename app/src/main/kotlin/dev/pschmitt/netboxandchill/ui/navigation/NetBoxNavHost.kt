@@ -16,9 +16,11 @@ import dev.pschmitt.netboxandchill.ui.generic.GenericCreateScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericDetailScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericListScreen
 import dev.pschmitt.netboxandchill.ui.onboarding.OnboardingScreen
+import dev.pschmitt.netboxandchill.ui.pending.PendingChangesScreen
 import dev.pschmitt.netboxandchill.ui.scanner.ScannerScreen
 import dev.pschmitt.netboxandchill.ui.search.GlobalSearchScreen
 import dev.pschmitt.netboxandchill.ui.settings.SettingsScreen
+import dev.pschmitt.netboxandchill.ui.sync.SyncSummaryScreen
 
 // The typed Device list/cache (NBC-1) is richer (thumbnails, status chips, already-synced) than
 // the generic object cache for the same endpoint, which may be empty until separately visited -
@@ -28,7 +30,10 @@ private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
 private const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
 
 private fun NavHostController.navigateToObject(endpointPath: String, id: Int) {
-    if (endpointPath == DEVICES_ENDPOINT_PATH) {
+    // Offline-created devices have a negative local cache ID until the POST is reconciled. The
+    // typed device screen only reads the server-backed DeviceDao, so keep those local objects on
+    // the generic cache-first detail screen instead of showing an empty typed page.
+    if (endpointPath == DEVICES_ENDPOINT_PATH && id > 0) {
         navigate(Route.DeviceDetail(id))
     } else {
         navigate(Route.Generic(endpointPath, id))
@@ -84,10 +89,18 @@ fun NetBoxNavHost(
                     navController.navigate(Route.ObjectChangeDiff(changeId))
                 },
                 onConflictsClick = { navController.navigate(Route.EditConflicts) },
+                onPendingChangesClick = { navController.navigate(Route.PendingChanges) },
             )
         }
         composable<Route.ObjectChangeDiff> {
             ObjectChangeDiffScreen(onBack = { navController.popBackStack() })
+        }
+        composable<Route.PendingChanges> {
+            PendingChangesScreen(onBack = { navController.popBackStack() })
+        }
+        composable<Route.SyncSummary> { backStackEntry ->
+            val route: Route.SyncSummary = backStackEntry.toRoute()
+            SyncSummaryScreen(summary = route.summary, onBack = { navController.popBackStack() })
         }
         composable<Route.DeviceList> {
             DeviceListScreen(

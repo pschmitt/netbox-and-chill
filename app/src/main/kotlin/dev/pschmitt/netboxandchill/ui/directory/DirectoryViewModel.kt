@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +23,7 @@ class DirectoryViewModel
 constructor(
     private val directoryRepository: DirectoryRepository,
     val settingsRepository: SettingsRepository,
+    private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
 
     val modelsByApp: StateFlow<Map<String, List<NetBoxModelEntity>>> =
@@ -58,5 +60,6 @@ constructor(
 
     fun setOfflineMode(enabled: Boolean) {
         settingsRepository.setOfflineMode(enabled)
+        if (!enabled) syncScheduler.syncNow()
     }
 }

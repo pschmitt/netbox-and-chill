@@ -47,6 +47,7 @@ class MainActivity : FragmentActivity() {
 
     private var pendingTarget by mutableStateOf<NetBoxTarget?>(null)
     private var pendingSetup by mutableStateOf<NetBoxTarget.Setup?>(null)
+    private var pendingReconciliationSummary by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -54,6 +55,8 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
 
         pendingTarget = extractTarget(intent)
+        pendingReconciliationSummary =
+            intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
 
         setContent {
             NetBoxAndChillTheme {
@@ -112,6 +115,14 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                     pendingTarget = null
+                }
+
+                LaunchedEffect(pendingReconciliationSummary) {
+                    val summary = pendingReconciliationSummary ?: return@LaunchedEffect
+                    if (settingsRepository.isConfigured) {
+                        navController.navigate(Route.SyncSummary(summary))
+                    }
+                    pendingReconciliationSummary = null
                 }
 
                 ModalNavigationDrawer(
@@ -175,6 +186,8 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingTarget = extractTarget(intent)
+        pendingReconciliationSummary =
+            intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
     }
 
     override fun onStart() {

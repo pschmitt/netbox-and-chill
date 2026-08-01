@@ -2,7 +2,7 @@ package dev.pschmitt.netboxandchill.data.db
 
 import androidx.room.Entity
 
-/** Durable generic-object edit outbox and conflict snapshot (NBC-32). */
+/** Durable generic-object mutation outbox and conflict snapshot (NBC-32/NBC-145). */
 @Entity(tableName = "pending_edits", primaryKeys = ["endpointPath", "id"])
 data class PendingEditEntity(
     val endpointPath: String,
@@ -17,5 +17,7 @@ data class PendingEditEntity(
     companion object {
         const val QUEUED = "queued"
         const val CONFLICT = "conflict"
+        /** A queued POST; [id] is a negative local-only cache ID until reconciliation. */
+        const val CREATE_QUEUED = "create_queued"
     }
 }

@@ -123,6 +123,7 @@ constructor(
 
     fun setOfflineMode(enabled: Boolean) {
         settingsRepository.setOfflineMode(enabled)
+        if (!enabled) syncScheduler.syncNow()
     }
 
     fun addHiddenField(key: String) {

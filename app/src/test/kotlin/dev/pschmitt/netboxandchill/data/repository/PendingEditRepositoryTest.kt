@@ -124,6 +124,64 @@ class PendingEditRepositoryTest {
     }
 
     @Test
+    fun `disposable offline create and later edit reconcile without touching existing item`() =
+        runTest {
+            val api = FakeApi(server("untouched-existing-fixture", "v1"))
+            val pending = FakePendingEditDao()
+            val objectDao = FakeNetBoxObjectDao()
+            val repository = repository(api, pending, objectDao)
+            val body =
+                JsonObject(
+                    mapOf(
+                        "name" to JsonPrimitive("NBC-145-disposable-offline-create"),
+                        "asset_tag" to JsonPrimitive("#NBC-145-TEST"),
+                    )
+                )
+
+            val queued =
+                repository.submitCreate("api/dcim/devices/", body, offline = true).getOrThrow()
+                    as CreateSubmission.Queued
+            val localId =
+                (queued.objectJson["id"] as JsonPrimitive).content.toInt()
+            assertTrue(localId < 0)
+            assertEquals(PendingEditEntity.CREATE_QUEUED, pending.get("api/dcim/devices/", localId)!!.state)
+
+            repository.submitEdit(
+                endpointPath = "api/dcim/devices/",
+                id = localId,
+                baseJson = queued.objectJson.toString(),
+                patch = patch("NBC-145-disposable-offline-edited"),
+            )
+            val sync = repository.syncPending()
+
+            assertEquals(1, sync.reconciliation.created.size)
+            assertEquals("NBC-145-disposable-offline-edited", api.lastCreate!!["name"]?.toString()?.trim('"'))
+            assertNull(pending.get("api/dcim/devices/", localId))
+            assertEquals("untouched-existing-fixture", api.server["name"]?.toString()?.trim('"'))
+            assertEquals(101, objectDao.last!!.id)
+        }
+
+    @Test
+    fun `reverting a queued disposable create removes only its local cache entry`() = runTest {
+        val api = FakeApi(server("untouched-existing-fixture", "v1"))
+        val pending = FakePendingEditDao()
+        val objectDao = FakeNetBoxObjectDao()
+        val repository = repository(api, pending, objectDao)
+
+        repository.submitCreate(
+            "api/dcim/devices/",
+            JsonObject(mapOf("name" to JsonPrimitive("NBC-145-disposable-to-revert"))),
+            offline = true,
+        )
+        val queued = pending.getQueuedCreates().single()
+        repository.revertPending(queued)
+
+        assertNull(pending.get("api/dcim/devices/", queued.id))
+        assertNull(objectDao.last)
+        assertEquals("untouched-existing-fixture", api.server["name"]?.toString()?.trim('"'))
+    }
+
+    @Test
     fun `resolution patches only fields selected from the local edit`() = runTest {
         val api = FakeApi(server("server", "v2"))
         val pending = FakePendingEditDao()
@@ -214,6 +272,8 @@ private class FakeApi(
     private val failGets: Boolean = false,
 ) : GenericNetBoxApi {
     var lastPatch: JsonObject? = null
+    var lastCreate: JsonObject? = null
+    private var nextCreatedId = 101
 
     override suspend fun getApiRoot(): Map<String, String> = error("unused")
 
@@ -243,7 +303,17 @@ private class FakeApi(
         return server
     }
 
-    override suspend fun createObject(url: String, body: JsonObject): JsonObject = error("unused")
+    override suspend fun createObject(url: String, body: JsonObject): JsonObject {
+        lastCreate = body
+        return JsonObject(
+            buildMap {
+                putAll(body)
+                put("id", JsonPrimitive(nextCreatedId++))
+                put("display", body["name"] ?: JsonPrimitive("Created item"))
+                put("last_updated", JsonPrimitive("created"))
+            }
+        )
+    }
 
     override suspend fun getJournalEntryOptions(): JsonObject = error("unused")
 }
@@ -257,8 +327,20 @@ private class FakePendingEditDao : PendingEditDao {
     override fun observeConflictCount(): Flow<Int> =
         flowOf(edits.values.count { it.state == PendingEditEntity.CONFLICT })
 
+    override fun observeQueuedMutations(): Flow<List<PendingEditEntity>> =
+        flowOf(edits.values.filter { it.state in setOf(PendingEditEntity.QUEUED, PendingEditEntity.CREATE_QUEUED) })
+
+    override fun observeQueuedMutationCount(): Flow<Int> =
+        flowOf(edits.values.count { it.state in setOf(PendingEditEntity.QUEUED, PendingEditEntity.CREATE_QUEUED) })
+
+    override suspend fun getQueuedMutations(): List<PendingEditEntity> =
+        edits.values.filter { it.state in setOf(PendingEditEntity.QUEUED, PendingEditEntity.CREATE_QUEUED) }
+
     override suspend fun getQueued(): List<PendingEditEntity> =
         edits.values.filter { it.state == PendingEditEntity.QUEUED }
+
+    override suspend fun getQueuedCreates(): List<PendingEditEntity> =
+        edits.values.filter { it.state == PendingEditEntity.CREATE_QUEUED }
 
     override suspend fun get(endpointPath: String, id: Int): PendingEditEntity? =
         edits[endpointPath to id]
@@ -293,6 +375,10 @@ private class FakeNetBoxObjectDao : NetBoxObjectDao {
 
     override suspend fun upsert(obj: NetBoxObjectEntity) {
         last = obj
+    }
+
+    override suspend fun delete(endpointPath: String, id: Int) {
+        if (last?.endpointPath == endpointPath && last?.id == id) last = null
     }
 
     override suspend fun count(endpointPath: String): Int =

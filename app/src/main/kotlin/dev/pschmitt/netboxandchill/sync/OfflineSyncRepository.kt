@@ -10,6 +10,7 @@ import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
 import dev.pschmitt.netboxandchill.data.repository.OfflineAttachment
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
+import dev.pschmitt.netboxandchill.data.repository.ReconciliationSummary
 import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
 import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
@@ -23,6 +24,7 @@ data class OfflineSyncSummary(
     val devices: Int,
     val genericObjects: Int,
     val durableAttachments: Int,
+    val reconciliation: ReconciliationSummary = ReconciliationSummary(),
 )
 
 data class SyncProgress(val message: String, val step: Int, val totalSteps: Int)
@@ -66,7 +68,10 @@ constructor(
         val result = runCatching {
             // Resolve queued edits before the normal cache refresh can replace their local view.
             reportProgress("Uploading queued edits…")
-            pendingEditRepository.syncPending()
+            val pendingResult = pendingEditRepository.syncPending()
+            pendingResult.retryableFailure?.let {
+                recordFailure("Queued mutation sync", it)
+            }
             reportProgress("Syncing dashboard data…")
             dashboardRepository.refresh().onFailure { recordFailure("Dashboard sync", it) }
             reportProgress("Syncing custom-field definitions…")
@@ -128,7 +133,12 @@ constructor(
                         }
                 } else 0
             retryableFailure?.let { throw it }
-            OfflineSyncSummary(devices, genericObjects, durableAttachments)
+            OfflineSyncSummary(
+                devices = devices,
+                genericObjects = genericObjects,
+                durableAttachments = durableAttachments,
+                reconciliation = pendingResult.reconciliation,
+            )
         }
         val warnings = syncIssueReporter.drain()
         when {

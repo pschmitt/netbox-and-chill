@@ -12,6 +12,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import retrofit2.HttpException
 import timber.log.Timber
 
 sealed interface EditSubmission {
@@ -21,6 +22,33 @@ sealed interface EditSubmission {
 
     data object ConflictDetected : EditSubmission
 }
+
+sealed interface CreateSubmission {
+    val objectJson: JsonObject
+
+    data class Created(override val objectJson: JsonObject) : CreateSubmission
+
+    data class Queued(override val objectJson: JsonObject) : CreateSubmission
+}
+
+data class ReconciledItem(
+    val endpointPath: String,
+    val id: Int,
+    val display: String,
+)
+
+data class ReconciliationSummary(
+    val created: List<ReconciledItem> = emptyList(),
+    val edited: List<ReconciledItem> = emptyList(),
+) {
+    val total: Int
+        get() = created.size + edited.size
+}
+
+data class PendingSyncResult(
+    val reconciliation: ReconciliationSummary = ReconciliationSummary(),
+    val retryableFailure: Throwable? = null,
+)
 
 class StaleConflictException : Exception("The server changed again; review the conflict once more")
 
@@ -38,6 +66,56 @@ constructor(
 
     fun observeConflictCount(): Flow<Int> = pendingEditDao.observeConflictCount()
 
+    fun observeQueuedMutations(): Flow<List<PendingEditEntity>> =
+        pendingEditDao.observeQueuedMutations()
+
+    fun observeQueuedMutationCount(): Flow<Int> = pendingEditDao.observeQueuedMutationCount()
+
+    /** Drops one local mutation and restores the last server-backed snapshot when it was an edit. */
+    suspend fun revertPending(edit: PendingEditEntity) {
+        if (edit.state == PendingEditEntity.CREATE_QUEUED) {
+            genericObjectRepository.removeCachedObject(edit.endpointPath, edit.id)
+        } else if (edit.state == PendingEditEntity.QUEUED) {
+            genericObjectRepository.cacheLocalObject(edit.endpointPath, decode(edit.baseJson))
+        }
+        pendingEditDao.delete(edit.endpointPath, edit.id)
+    }
+
+    suspend fun revertAllPending() {
+        pendingEditDao.getQueuedMutations().forEach { revertPending(it) }
+    }
+
+    /** Creates immediately when possible, or stores a local object and POST body in the outbox. */
+    suspend fun submitCreate(
+        endpointPath: String,
+        body: JsonObject,
+        offline: Boolean,
+    ): Result<CreateSubmission> {
+        if (!offline) {
+            try {
+                return Result.success(
+                    CreateSubmission.Created(
+                        api.createObject(endpointPath, body).also {
+                            genericObjectRepository.cacheLocalObject(endpointPath, it)
+                        }
+                    )
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: IOException) {
+                // A transient connectivity loss is exactly the same durable outbox case as
+                // explicitly enabled offline mode. Keep the form result usable immediately.
+            } catch (error: HttpException) {
+                if (error.code() < 500) return Result.failure(error)
+                // Treat a temporary server-side failure like a connectivity loss. The next
+                // scheduled run will retry the durable POST.
+            } catch (error: Exception) {
+                return Result.failure(error)
+            }
+        }
+        return Result.success(queueCreate(endpointPath, body))
+    }
+
     /** Checks the server version before PATCHing, or persists the edit when the network is down. */
     suspend fun submitEdit(
         endpointPath: String,
@@ -46,6 +124,15 @@ constructor(
         patch: JsonObject,
     ): Result<EditSubmission> {
         val existing = pendingEditDao.get(endpointPath, id)
+        if (existing?.state == PendingEditEntity.CREATE_QUEUED) {
+            val local = withDisplay(merge(decode(existing.localJson), patch))
+            val body = merge(decode(existing.patchJson), patch)
+            pendingEditDao.upsert(
+                existing.copy(localJson = encode(local), patchJson = encode(body))
+            )
+            genericObjectRepository.cacheLocalObject(endpointPath, local)
+            return Result.success(EditSubmission.Queued)
+        }
         val effectiveBase = existing?.baseJson ?: baseJson
         val effectiveLocal = merge(decode(existing?.localJson ?: baseJson), patch)
         val effectivePatch = merge(decode(existing?.patchJson ?: "{}"), patch)
@@ -86,8 +173,49 @@ constructor(
         }
     }
 
-    /** Retries queued edits before the normal cache sync can overwrite their local view. */
-    suspend fun syncPending() {
+    /** Retries queued creates and edits before the normal cache sync can overwrite local views. */
+    suspend fun syncPending(): PendingSyncResult {
+        val created = mutableListOf<ReconciledItem>()
+        for (edit in pendingEditDao.getQueuedCreates()) {
+            try {
+                val server = api.createObject(edit.endpointPath, decode(edit.patchJson))
+                genericObjectRepository.cacheLocalObject(edit.endpointPath, server)
+                // Replace the negative local-only cache row with the server-assigned ID. Without
+                // this removal, a successful reconciliation would leave a duplicate local item.
+                genericObjectRepository.removeCachedObject(edit.endpointPath, edit.id)
+                pendingEditDao.delete(edit.endpointPath, edit.id)
+                created += reconciledItem(edit.endpointPath, server, edit.localJson)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: IOException) {
+                return PendingSyncResult(
+                    reconciliation = ReconciliationSummary(created = created.toList()),
+                    retryableFailure = IOException("Offline create upload failed"),
+                )
+            } catch (error: HttpException) {
+                if (error.code() >= 500) {
+                    return PendingSyncResult(
+                        reconciliation = ReconciliationSummary(created = created.toList()),
+                        retryableFailure = error,
+                    )
+                }
+                Timber.w(
+                    error,
+                    "Offline create sync rejected by server for %s/%d",
+                    edit.endpointPath,
+                    edit.id,
+                )
+            } catch (error: Exception) {
+                Timber.w(
+                    error,
+                    "Offline create sync failed for %s/%d",
+                    edit.endpointPath,
+                    edit.id,
+                )
+            }
+        }
+
+        val edited = mutableListOf<ReconciledItem>()
         for (edit in pendingEditDao.getQueued()) {
             try {
                 val server = api.getObject("${edit.endpointPath}${edit.id}/")
@@ -101,15 +229,41 @@ constructor(
                     api.patchObject("${edit.endpointPath}${edit.id}/", decode(edit.patchJson))
                 genericObjectRepository.cacheLocalObject(edit.endpointPath, updated)
                 pendingEditDao.delete(edit.endpointPath, edit.id)
+                edited += reconciledItem(edit.endpointPath, updated, edit.localJson)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: IOException) {
                 // Leave the edit queued for the next scheduled/manual sync.
-                return
+                return PendingSyncResult(
+                    reconciliation =
+                        ReconciliationSummary(created = created.toList(), edited = edited.toList()),
+                    retryableFailure = IOException("Queued edit upload failed"),
+                )
+            } catch (error: HttpException) {
+                if (error.code() >= 500) {
+                    return PendingSyncResult(
+                        reconciliation =
+                            ReconciliationSummary(
+                                created = created.toList(),
+                                edited = edited.toList(),
+                            ),
+                        retryableFailure = error,
+                    )
+                }
+                Timber.w(
+                    error,
+                    "Pending edit sync rejected by server for %s/%d",
+                    edit.endpointPath,
+                    edit.id,
+                )
             } catch (error: Exception) {
                 Timber.w(error, "Pending edit sync failed for %s/%d", edit.endpointPath, edit.id)
             }
         }
+        return PendingSyncResult(
+            reconciliation =
+                ReconciliationSummary(created = created.toList(), edited = edited.toList())
+        )
     }
 
     /**
@@ -176,4 +330,65 @@ constructor(
 
     private fun version(value: JsonObject): String? =
         (value["last_updated"] as? JsonPrimitive)?.contentOrNull
+
+    private suspend fun queueCreate(
+        endpointPath: String,
+        body: JsonObject,
+    ): CreateSubmission.Queued {
+        var localId = nextLocalId()
+        while (pendingEditDao.get(endpointPath, localId) != null) localId = nextLocalId()
+        val local =
+            JsonObject(
+                buildMap {
+                    putAll(body)
+                    put("id", JsonPrimitive(localId))
+                    put("display", JsonPrimitive(displayFor(body)))
+                }
+            )
+        pendingEditDao.upsert(
+            PendingEditEntity(
+                endpointPath = endpointPath,
+                id = localId,
+                baseJson = "{}",
+                localJson = encode(local),
+                patchJson = encode(body),
+                state = PendingEditEntity.CREATE_QUEUED,
+                serverJson = null,
+                createdAt = System.currentTimeMillis(),
+            )
+        )
+        genericObjectRepository.cacheLocalObject(endpointPath, local)
+        return CreateSubmission.Queued(local)
+    }
+
+    private fun nextLocalId(): Int {
+        val positive = (System.nanoTime() and 0x7fffffffL).toInt().coerceAtLeast(1)
+        return -positive
+    }
+
+    private fun withDisplay(value: JsonObject): JsonObject =
+        JsonObject(buildMap {
+            putAll(value)
+            put("display", JsonPrimitive(displayFor(value)))
+        })
+
+    private fun displayFor(value: JsonObject): String =
+        sequenceOf("name", "model", "label", "serial", "asset_tag", "display")
+            .mapNotNull { key -> (value[key] as? JsonPrimitive)?.contentOrNull }
+            .firstOrNull { it.isNotBlank() }
+            ?: "Pending NetBox item"
+
+    private fun reconciledItem(
+        endpointPath: String,
+        server: JsonObject,
+        fallbackLocalJson: String,
+    ): ReconciledItem {
+        val fallback = runCatching { decode(fallbackLocalJson) }.getOrDefault(JsonObject(emptyMap()))
+        return ReconciledItem(
+            endpointPath = endpointPath,
+            id = (server["id"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0,
+            display = displayFor(server).takeUnless { it == "Pending NetBox item" }
+                ?: displayFor(fallback),
+        )
+    }
 }

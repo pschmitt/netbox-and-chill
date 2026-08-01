@@ -73,6 +73,7 @@ fun DashboardScreen(
     onStatClick: (endpointPath: String, label: String) -> Unit,
     onChangeDiffClick: (changeId: Int) -> Unit,
     onConflictsClick: () -> Unit,
+    onPendingChangesClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onAddClick: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -83,6 +84,7 @@ fun DashboardScreen(
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
     val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
     val conflictCount by viewModel.conflictCount.collectAsStateWithLifecycle()
+    val pendingChangeCount by viewModel.pendingChangeCount.collectAsStateWithLifecycle()
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
     val lastSuccessfulSyncAt by viewModel.lastSuccessfulSyncAt.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -153,7 +155,10 @@ fun DashboardScreen(
                 }
                 if (offlineMode) {
                     item {
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                        ElevatedCard(
+                            onClick = onPendingChangesClick,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -176,6 +181,15 @@ fun DashboardScreen(
                                         } ?: "Last sync: not completed yet",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        if (pendingChangeCount == 0) {
+                                            "No pending local changes"
+                                        } else {
+                                            "$pendingChangeCount pending change${if (pendingChangeCount == 1) "" else "s"} · Tap to review"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }

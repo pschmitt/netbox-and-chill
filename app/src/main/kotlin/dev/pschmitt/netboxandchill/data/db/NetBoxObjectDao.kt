@@ -51,6 +51,9 @@ interface NetBoxObjectDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(obj: NetBoxObjectEntity)
 
+    @Query("DELETE FROM netbox_objects WHERE endpointPath = :endpointPath AND id = :id")
+    suspend fun delete(endpointPath: String, id: Int)
+
     @Query("SELECT COUNT(*) FROM netbox_objects WHERE endpointPath = :endpointPath")
     suspend fun count(endpointPath: String): Int
 

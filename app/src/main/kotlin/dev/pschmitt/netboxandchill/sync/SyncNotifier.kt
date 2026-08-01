@@ -16,6 +16,7 @@ import androidx.work.ForegroundInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.pschmitt.netboxandchill.MainActivity
 import dev.pschmitt.netboxandchill.R
+import dev.pschmitt.netboxandchill.data.repository.ReconciliationSummary
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -152,11 +153,12 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
         )
     }
 
-    /** Removes the progress notification after a successful sync. */
-    fun notifySyncSucceeded() {
+    /** Removes progress after a successful sync and records any uploaded local changes. */
+    fun notifySyncSucceeded(reconciliation: ReconciliationSummary = ReconciliationSummary()) {
         syncActive = false
         lastProgress = null
         NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+        if (reconciliation.total > 0) postReconciliation(reconciliation)
     }
 
     private fun postProgress(progress: SyncProgress) {
@@ -166,6 +168,35 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
                 NOTIFICATION_ID,
                 progressNotification(progress.message, progress.step, progress.totalSteps),
             )
+    }
+
+    private fun postReconciliation(summary: ReconciliationSummary) {
+        if (!notificationsAllowed()) return
+        val details = summary.details()
+        val openAppIntent =
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_RECONCILIATION_SUMMARY, details)
+            }
+        val contentIntent =
+            PendingIntent.getActivity(
+                context,
+                RECONCILIATION_NOTIFICATION_ID,
+                openAppIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        val notification =
+            NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_sync_problem)
+                .setContentTitle("NetBox changes uploaded")
+                .setContentText(summary.shortText())
+                .setStyle(NotificationCompat.BigTextStyle().bigText(details))
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(true)
+                .setContentIntent(contentIntent)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
+        NotificationManagerCompat.from(context).notify(RECONCILIATION_NOTIFICATION_ID, notification)
     }
 
     private fun notificationsAllowed(): Boolean =
@@ -202,7 +233,23 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
 
     companion object {
         const val CHANNEL_ID = "background_sync_silent"
+        const val EXTRA_RECONCILIATION_SUMMARY = "extra_reconciliation_summary"
         private const val LEGACY_CHANNEL_ID = "background_sync"
         private const val NOTIFICATION_ID = 1001
+        private const val RECONCILIATION_NOTIFICATION_ID = 1002
     }
 }
+
+private fun ReconciliationSummary.shortText(): String =
+    buildList {
+            if (created.isNotEmpty()) add("${created.size} item(s) created")
+            if (edited.isNotEmpty()) add("${edited.size} item(s) updated")
+        }
+        .joinToString(", ")
+
+private fun ReconciliationSummary.details(): String =
+    buildList {
+            created.forEach { add("Created: ${it.display} (#${it.id})") }
+            edited.forEach { add("Updated: ${it.display} (#${it.id})") }
+        }
+        .joinToString("\n")

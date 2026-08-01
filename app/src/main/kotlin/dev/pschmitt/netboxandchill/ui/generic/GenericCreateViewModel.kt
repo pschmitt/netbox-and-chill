@@ -12,6 +12,8 @@ import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
+import dev.pschmitt.netboxandchill.data.repository.CreateSubmission
+import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.buildCreateBody
 import dev.pschmitt.netboxandchill.data.repository.fallbackCreateFieldDefinitions
@@ -36,6 +38,7 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val settingsRepository: SettingsRepository,
+    private val pendingEditRepository: PendingEditRepository,
     private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
     val route: Route.GenericCreate = savedStateHandle.toRoute()
@@ -94,30 +97,45 @@ constructor(
 
     fun create() {
         if (_isSaving.value) return
-        if (settingsRepository.offlineMode.value) {
-            _errorMessage.value = "Turn off offline mode before creating an item"
-            return
-        }
         buildCreateBody(_fields.value, _values.value)
             .onFailure { _errorMessage.value = it.message }
             .onSuccess { body ->
                 viewModelScope.launch {
                     _isSaving.value = true
-                    repository
-                        .createObject(route.endpointPath, body)
+                    pendingEditRepository
+                        .submitCreate(
+                            endpointPath = route.endpointPath,
+                            body = body,
+                            offline = settingsRepository.offlineMode.value,
+                        )
                         .onSuccess { objectJson ->
+                            val submission = objectJson
+                            val createdObject =
+                                when (submission) {
+                                    is CreateSubmission.Created -> submission.objectJson
+                                    is CreateSubmission.Queued -> submission.objectJson
+                                }
                             val id =
-                                (objectJson["id"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                                (createdObject["id"] as? JsonPrimitive)
+                                    ?.contentOrNull
+                                    ?.toIntOrNull()
                             if (id == null) {
                                 _errorMessage.value =
-                                    "NetBox created the item but returned no numeric ID"
+                                    "The created item has no numeric ID"
                             } else {
                                 _createdId.value = id
-                                when (route.endpointPath) {
-                                    "api/dcim/devices/" -> deviceRepository.refreshDevice(id)
-                                    "api/dcim/device-types/" -> deviceTypeRepository.refresh(id)
+                                if (submission is CreateSubmission.Created) {
+                                    when (route.endpointPath) {
+                                        "api/dcim/devices/" -> deviceRepository.refreshDevice(id)
+                                        "api/dcim/device-types/" -> deviceTypeRepository.refresh(id)
+                                    }
+                                    syncScheduler.syncNow()
+                                } else if (!settingsRepository.offlineMode.value) {
+                                    // A connection may have disappeared between the form and the
+                                    // POST. Keep a constrained one-shot worker waiting for it to
+                                    // return instead of relying only on the six-hour periodic run.
+                                    syncScheduler.syncNow()
                                 }
-                                syncScheduler.syncNow()
                             }
                         }
                         .onFailure {

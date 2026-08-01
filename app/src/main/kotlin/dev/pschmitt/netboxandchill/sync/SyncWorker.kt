@@ -21,6 +21,10 @@ constructor(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (!settingsRepository.isConfigured) return Result.success()
+        // Offline mode is an explicit user request to pause all network activity. WorkManager may
+        // still deliver a request that was queued before the toggle, so guard here as well as in
+        // the UI entry points and network interceptor.
+        if (settingsRepository.offlineMode.value) return Result.success()
         // WorkManager can express low battery but not Android's explicit Battery Saver mode. Do
         // this check immediately before starting the network/foreground work so a manual or
         // already-enqueued request cannot begin while the user has asked the system to conserve
@@ -45,7 +49,7 @@ constructor(
             .syncAll(onProgress = syncNotifier::notifySyncProgress)
             .fold(
                 onSuccess = {
-                    syncNotifier.notifySyncSucceeded()
+                    syncNotifier.notifySyncSucceeded(it.reconciliation)
                     Result.success()
                 },
                 onFailure = { error ->

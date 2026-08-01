@@ -194,6 +194,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setOfflineMode(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_OFFLINE_MODE, enabled).apply()
         _offlineMode.value = enabled
+        if (enabled) clearSyncIssue()
     }
 
     fun recordSyncIssue(error: Throwable) {
