@@ -1,5 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.dashboard
 
+import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
@@ -56,5 +57,36 @@ class ObjectChangeDiffTest {
         val pre = parse("""{"name":"same","serial":"same"}""")
         val post = parse("""{"name":"same","serial":"same"}""")
         assertEquals(emptyList<DiffRow>(), buildDiffRows(pre, post))
+    }
+
+    @Test
+    fun `custom fields become individually labeled and grouped markdown rows`() {
+        val pre =
+            parse(
+                """{"custom_fields":{"purchase_info":"old **details**","enabled":false}}"""
+            )
+        val post =
+            parse(
+                """{"custom_fields":{"purchase_info":"new **details**","enabled":true}}"""
+            )
+        val definitions =
+            listOf(
+                CustomFieldDefinition("purchase_info", "text", "Purchase info", "Purchase", 10),
+                CustomFieldDefinition("enabled", "boolean", "Enabled", "Purchase", 20),
+            )
+
+        assertEquals(
+            listOf(
+                DiffRow(
+                    "Purchase info",
+                    "old **details**",
+                    "new **details**",
+                    "Purchase",
+                    markdown = true,
+                ),
+                DiffRow("Enabled", "Disabled", "Enabled", "Purchase"),
+            ),
+            buildDiffRows(pre, post, definitions),
+        )
     }
 }

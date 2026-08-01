@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
+import dev.pschmitt.netboxandchill.ui.common.CommentCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +109,22 @@ private fun DiffContent(diff: ObjectChangeDiffUi, modifier: Modifier = Modifier)
                 )
             }
         } else {
-            items(diff.rows, key = { it.label }) { row -> DiffRowCard(row) }
+            itemsIndexed(
+                diff.rows,
+                key = { index, row -> "${row.section.orEmpty()}:${row.label}:$index" },
+            ) { index, row ->
+                if (row.section != null &&
+                    (index == 0 || diff.rows[index - 1].section != row.section)
+                ) {
+                    Text(
+                        row.section,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                    )
+                }
+                DiffRowCard(row)
+            }
         }
     }
 }
@@ -118,19 +135,46 @@ private fun DiffRowCard(row: DiffRow) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(row.label, style = MaterialTheme.typography.labelLarge)
             if (row.before != null) {
-                Text(
-                    "− ${row.before}",
-                    style = MaterialTheme.typography.bodyMedium,
+                DiffValue(
+                    prefix = "−",
+                    value = row.before,
                     color = MaterialTheme.colorScheme.error,
+                    markdown = row.markdown,
                 )
             }
             if (row.after != null) {
-                Text(
-                    "+ ${row.after}",
-                    style = MaterialTheme.typography.bodyMedium,
+                DiffValue(
+                    prefix = "+",
+                    value = row.after,
                     color = MaterialTheme.colorScheme.primary,
+                    markdown = row.markdown,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun DiffValue(prefix: String, value: String, color: androidx.compose.ui.graphics.Color, markdown: Boolean) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.Top,
+    ) {
+        Text(
+            prefix,
+            style = MaterialTheme.typography.titleMedium,
+            color = color,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        if (markdown) {
+            CommentCard(content = value, modifier = Modifier.weight(1f))
+        } else {
+            Text(
+                value.ifBlank { "(empty)" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = color,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

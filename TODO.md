@@ -2990,3 +2990,50 @@ Status: **done**, 2026-08-01 - Mi Pad 4 showed the category index, opened Gestur
 seven gesture preferences, preserved the existing two-finger-down Global search default, and
 persisted a temporary QR scanner selection before restoring the new two-finger-left preference to
 Off. Remote lint/unit tests/debug build passed; APK installed update-in-place on all three devices.
+
+## NBC-155: render custom-field changes as formatted diff rows
+
+Homepage change details should show individual custom fields as readable field rows, with labels,
+grouping, and Markdown formatting where the cached NetBox custom-field definition says the field is
+text/long text/Markdown, instead of showing one raw JSON blob for `custom_fields`.
+
+- [x] Expand custom-field changes into individual rows using cached definitions.
+- [x] Render custom-field values with readable formatting and Markdown support.
+- [x] Verify ordinary field diffs and cache-first change-detail loading remain intact.
+
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests/debug build passed; Mi Pad 4 opened a
+dashboard change and showed an individual Custom fields/Notes row with rendered Markdown content.
+APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
+
+## NBC-156: structure Settings gesture sections and headings
+
+Group gesture preferences under separate Two-finger and Three-finger sections, and remove the
+redundant repeated category heading from Gestures and the other Settings sub-screens.
+
+- [ ] Add Two-finger and Three-finger section headings in Gestures.
+- [ ] Remove redundant repeated headings from all Settings sub-screens.
+- [ ] Verify the revised Settings layout on the Mi Pad 4.
+
+Status: not started.
+
+## NBC-157: route disconnect from Actions to Connection
+
+The “Disconnect this NetBox instance” action should live in the Connection settings sub-screen,
+not in a separate Actions category.
+
+- [ ] Move the Disconnect action into Connection.
+- [ ] Remove the redundant Actions category.
+- [ ] Verify logout behavior remains unchanged.
+
+Status: not started.
+
+## NBC-158: synchronize changelog data for full offline use
+
+The app should retain NetBox object changes/changelog data in the offline cache so the dashboard
+and change details remain usable without connectivity.
+
+- [ ] Confirm what change data is currently synchronized and cached.
+- [ ] Cache complete change records needed by the dashboard and detail view.
+- [ ] Verify changelog and change details work with connectivity disabled.
+
+Status: not started.
