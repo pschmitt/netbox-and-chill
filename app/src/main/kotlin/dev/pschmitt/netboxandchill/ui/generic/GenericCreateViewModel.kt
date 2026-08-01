@@ -11,6 +11,7 @@ import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.CreateSubmission
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
@@ -37,6 +38,7 @@ constructor(
     private val customFieldRepository: CustomFieldRepository,
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
+    private val fileDownloadRepository: FileDownloadRepository,
     private val settingsRepository: SettingsRepository,
     private val pendingEditRepository: PendingEditRepository,
     private val syncScheduler: SyncScheduler,
@@ -159,19 +161,39 @@ constructor(
     }
 
     private suspend fun loadReferenceOptions(definitions: List<CreateFieldDefinition>) {
+        val deviceTypeImages =
+            if (definitions.any { it.referenceEndpointPath == "api/dcim/device-types/" }) {
+                deviceTypeRepository.cachedAll().associateBy { it.id }
+            } else {
+                emptyMap()
+            }
         val options = buildMap {
             definitions
                 .filter { it.referenceEndpointPath != null }
                 .forEach { field ->
                     val values =
-                        repository.cachedObjects(field.referenceEndpointPath!!).map {
-                            CreateChoice(it.id.toString(), it.display)
+                        repository.cachedObjects(field.referenceEndpointPath!!).map { objectEntity ->
+                            val images =
+                                if (field.referenceEndpointPath == "api/dcim/device-types/") {
+                                    deviceTypeImages[objectEntity.id]
+                                } else {
+                                    null
+                                }
+                            CreateChoice(
+                                value = objectEntity.id.toString(),
+                                label = objectEntity.display,
+                                frontImageUrl = images?.frontImageUrl,
+                                rearImageUrl = images?.rearImageUrl,
+                            )
                         }
                     if (values.isNotEmpty()) put(field.key, values)
                 }
         }
         _referenceOptions.value = options
     }
+
+    fun localImageFile(url: String, filename: String) =
+        fileDownloadRepository.persistentFile(url, filename)
 
     private fun initializeFields(definitions: List<CreateFieldDefinition>) {
         _fields.value = definitions

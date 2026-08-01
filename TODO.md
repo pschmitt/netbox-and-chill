@@ -3283,8 +3283,11 @@ the app remained connected to the configured full URL. APK installed update-in-p
 The device-type selector in the device creation flow should load quickly, support filtering, and
 show device-type imagery where available.
 
-- [ ] Replace the unfiltered, slow-loading device-type list with a searchable cached picker.
-- [ ] Show front/rear device-type images with a sensible fallback.
-- [ ] Keep selection responsive and preserve the existing create-device flow.
+- [x] Replace the unfiltered, slow-loading device-type list with a searchable cached picker.
+- [x] Show front/rear device-type images with a sensible fallback.
+- [x] Keep selection responsive and preserve the existing create-device flow.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; Mi Pad 4
+opened the cached device-type picker offline, filtered choices by text, and rendered cached
+front/rear imagery with a fallback icon. APK installed update-in-place on Zenfone 10, Mi Pad 4,
+and PX5.

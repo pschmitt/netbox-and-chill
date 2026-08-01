@@ -21,7 +21,12 @@ import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
 /** Cache-first list/detail access for any NetBox object type, keyed by its endpoint path. */
-data class CreateChoice(val value: String, val label: String)
+data class CreateChoice(
+    val value: String,
+    val label: String,
+    val frontImageUrl: String? = null,
+    val rearImageUrl: String? = null,
+)
 
 data class CreateFieldDefinition(
     val key: String,

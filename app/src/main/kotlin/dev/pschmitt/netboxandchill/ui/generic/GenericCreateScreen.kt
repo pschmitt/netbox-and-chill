@@ -1,5 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,7 +8,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,6 +21,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,7 +31,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -39,12 +47,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.repository.CreateChoice
 import dev.pschmitt.netboxandchill.data.repository.CreateFieldDefinition
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,6 +129,7 @@ fun GenericCreateScreen(
                             field = field,
                             value = values[field.key].orEmpty(),
                             options = options,
+                            localImageFile = viewModel::localImageFile,
                             onValueChange = viewModel::setValue,
                         )
                     }
@@ -143,6 +154,7 @@ private fun CreateFieldInput(
     field: CreateFieldDefinition,
     value: String,
     options: List<CreateChoice>,
+    localImageFile: (String, String) -> java.io.File?,
     onValueChange: (String, String) -> Unit,
 ) {
     val label = if (field.required) "${field.label} *" else field.label
@@ -182,8 +194,8 @@ private fun CreateFieldInput(
         }
         return
     }
-    if (options.isNotEmpty()) {
-        CreateChoiceInput(field, value, options, onValueChange)
+    if (options.isNotEmpty() || field.referenceEndpointPath != null) {
+        CreateChoiceInput(field, value, options, localImageFile, onValueChange)
         return
     }
     OutlinedTextField(
@@ -267,14 +279,18 @@ private fun CreateMultiChoiceInput(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun CreateChoiceInput(
     field: CreateFieldDefinition,
     value: String,
     options: List<CreateChoice>,
+    localImageFile: (String, String) -> java.io.File?,
     onValueChange: (String, String) -> Unit,
 ) {
     var expanded by remember(field.key) { mutableStateOf(false) }
+    var query by remember(field.key) { mutableStateOf("") }
     val label = if (field.required) "${field.label} *" else field.label
+    val filteredOptions = filterCreateChoices(options, query)
     Box {
         OutlinedTextField(
             value = options.firstOrNull { it.value == value }?.label ?: value,
@@ -282,31 +298,144 @@ private fun CreateChoiceInput(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = {
-                IconButton(onClick = { expanded = true }) {
+                IconButton(
+                    onClick = {
+                        query = ""
+                        expanded = true
+                    }
+                ) {
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            if (!field.required) {
-                DropdownMenuItem(
-                    text = { Text("Clear") },
-                    onClick = {
-                        onValueChange(field.key, "")
-                        expanded = false
-                    },
-                )
+        if (expanded) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    expanded = false
+                    query = ""
+                }
+            ) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Text(field.label, style = MaterialTheme.typography.headlineSmall)
+                    CreateChoiceSearchField(
+                        query = query,
+                        onQueryChange = { query = it },
+                        label = "Search ${field.label}",
+                    )
+                    if (!field.required) {
+                        DropdownMenuItem(
+                            text = { Text("Clear") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Clear, contentDescription = null)
+                            },
+                            onClick = {
+                                onValueChange(field.key, "")
+                                expanded = false
+                                query = ""
+                            },
+                        )
+                    }
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+                        items(filteredOptions, key = { it.value }) { option ->
+                            ListItem(
+                                headlineContent = { Text(option.label) },
+                                leadingContent = {
+                                    CreateChoicePreview(option, localImageFile)
+                                },
+                                modifier = Modifier.clickable {
+                                    onValueChange(field.key, option.value)
+                                    expanded = false
+                                    query = ""
+                                },
+                            )
+                        }
+                        if (filteredOptions.isEmpty()) {
+                            item {
+                                Text(
+                                    if (options.isEmpty()) {
+                                        "No cached choices available"
+                                    } else {
+                                        "No matches"
+                                    },
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(24.dp),
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    onClick = {
-                        onValueChange(field.key, option.value)
-                        expanded = false
-                    },
-                )
+        }
+    }
+}
+
+@Composable
+private fun CreateChoiceSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    label: String,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = { Text(label) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                }
             }
+        },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+    )
+}
+
+internal fun filterCreateChoices(
+    options: List<CreateChoice>,
+    query: String,
+): List<CreateChoice> {
+    val normalized = query.trim().lowercase()
+    if (normalized.isEmpty()) return options
+    return options.filter {
+        it.label.lowercase().contains(normalized) || it.value.contains(normalized)
+    }
+}
+
+@Composable
+private fun CreateChoicePreview(
+    option: CreateChoice,
+    localImageFile: (String, String) -> java.io.File?,
+) {
+    val hasImages = !option.frontImageUrl.isNullOrBlank() || !option.rearImageUrl.isNullOrBlank()
+    if (!hasImages) {
+        Icon(Icons.Default.Link, contentDescription = null)
+        return
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.width(76.dp),
+    ) {
+        option.frontImageUrl?.let { url ->
+            RemoteThumbnail(
+                imageUrl = url,
+                contentDescription = "Front image",
+                localFile = localImageFile(url, "device-type-${option.value}-front"),
+                modifier = Modifier.size(34.dp),
+                contentScale = ContentScale.Crop,
+            )
+        }
+        option.rearImageUrl?.let { url ->
+            RemoteThumbnail(
+                imageUrl = url,
+                contentDescription = "Rear image",
+                localFile = localImageFile(url, "device-type-${option.value}-rear"),
+                modifier = Modifier.size(34.dp),
+                contentScale = ContentScale.Crop,
+            )
         }
     }
 }
