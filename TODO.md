@@ -2473,10 +2473,10 @@ view, in addition to pinch-to-zoom.
 
 - [x] Zoom to a readable scale on double tap.
 - [x] Return to fit-to-screen on a second double tap.
-- [ ] Verify the gesture on the Mi Pad 4.
+- [x] Verify the gesture on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - the viewer's combined gesture detector now recognizes double taps
-without consuming ordinary pager/dismiss drags; physical verification remains.
+Status: **done**, 2026-08-01 - double-tapping the cached Shelly front image on the Mi Pad 4 zoomed
+into the image, and a second double tap returned it to the fitted view.
 
 ## NBC-118: show metadata for device-type images
 
