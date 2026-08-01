@@ -2448,10 +2448,10 @@ identify both the current item type and the parent item instead of displaying on
 - [x] Show the current object name and model type in generic detail headers.
 - [x] Carry the parent item's name into references opened from device and generic detail pages.
 - [x] Render the parent/type breadcrumb in the detail header.
-- [ ] Verify a device-to-interface navigation chain on the Mi Pad 4.
+- [x] Verify a device-to-interface navigation chain on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - typed and generic reference navigation now carries a parent label
-and generic headers render the current type; physical verification remains.
+Status: **done**, 2026-08-01 - opening wlan0 from the Shelly device's Interfaces tab on the Mi Pad
+4 showed the Interfaces title and “from Shelly 1PM Mini Gen4 (Spare 1)” breadcrumb.
 
 ## NBC-116: pin Add item types with a long press
 
