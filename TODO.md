@@ -3010,11 +3010,13 @@ APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 Group gesture preferences under separate Two-finger and Three-finger sections, and remove the
 redundant repeated category heading from Gestures and the other Settings sub-screens.
 
-- [ ] Add Two-finger and Three-finger section headings in Gestures.
-- [ ] Remove redundant repeated headings from all Settings sub-screens.
-- [ ] Verify the revised Settings layout on the Mi Pad 4.
+- [x] Add Two-finger and Three-finger section headings in Gestures.
+- [x] Remove redundant repeated headings from all Settings sub-screens.
+- [x] Verify the revised Settings layout on the Mi Pad 4.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests/debug build passed; Mi Pad 4 showed the
+Two-finger gestures and Three-finger gestures subsection headings without a redundant inner
+Gestures heading. APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-157: route disconnect from Actions to Connection
 
@@ -3035,5 +3037,27 @@ and change details remain usable without connectivity.
 - [ ] Confirm what change data is currently synchronized and cached.
 - [ ] Cache complete change records needed by the dashboard and detail view.
 - [ ] Verify changelog and change details work with connectivity disabled.
+
+Status: not started.
+
+## NBC-159: expose debug build metadata and developer-mode taps
+
+Settings > About should show the commit ID and build date for debug builds. Tapping the Build row
+seven times should show Android-style developer-mode progress toasts.
+
+- [ ] Include commit ID and build date in debug build metadata.
+- [ ] Display both values in Settings > About.
+- [ ] Add seven-tap progress toasts without disrupting normal row behavior.
+
+Status: not started.
+
+## NBC-160: separate scanner camera settings
+
+Move the scanner default camera preference into its own Camera settings screen and add a preference
+for the default rear-camera lens.
+
+- [ ] Add a Camera Settings category/sub-screen.
+- [ ] Move the front/rear scanner camera preference there.
+- [ ] Add and persist the default rear-camera lens preference.
 
 Status: not started.

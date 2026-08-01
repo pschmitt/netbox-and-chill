@@ -102,6 +102,21 @@ private fun formatBytes(bytes: Long): String =
         else -> "%.2f GiB".format(bytes / (1024.0 * 1024.0 * 1024.0))
     }
 
+private val TWO_FINGER_SHORTCUTS =
+    setOf(
+        GestureShortcut.TwoFingerDown,
+        GestureShortcut.TwoFingerLeft,
+        GestureShortcut.TwoFingerRight,
+    )
+
+private val THREE_FINGER_SHORTCUTS =
+    setOf(
+        GestureShortcut.ThreeFingerUp,
+        GestureShortcut.ThreeFingerDown,
+        GestureShortcut.ThreeFingerLeft,
+        GestureShortcut.ThreeFingerRight,
+    )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -121,10 +136,6 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            SettingsSectionHeader(
-                title = "Settings",
-                subtitle = "Choose a category to configure NetBox and Chill",
-            )
             SettingsCategory.entries.forEach { category ->
                 ListItem(
                     modifier = Modifier.clickable { onCategoryClick(category) },
@@ -322,10 +333,6 @@ fun SettingsCategoryScreen(
         Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
             when (category) {
                 SettingsCategory.Connection -> {
-            SettingsSectionHeader(
-                title = "Connection",
-                subtitle = "The NetBox server and credentials used by this app",
-            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
                 headlineContent = { Text("NetBox instance") },
@@ -411,10 +418,6 @@ fun SettingsCategoryScreen(
             )
                 }
                 SettingsCategory.Sync -> {
-            SettingsSectionHeader(
-                title = "Sync",
-                subtitle = "Refresh cached NetBox data and control offline storage",
-            )
             syncIssue?.let { issue ->
                 SyncIssueCard(
                     issue,
@@ -514,10 +517,6 @@ fun SettingsCategoryScreen(
             }
                 }
                 SettingsCategory.Display -> {
-            SettingsSectionHeader(
-                title = "Display",
-                subtitle = "Choose which fields are shown by default on item pages",
-            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
                 headlineContent = { Text("Hidden fields") },
@@ -558,20 +557,27 @@ fun SettingsCategoryScreen(
                 },
             )
                 }
-                SettingsCategory.Gestures -> {
-            SettingsSectionHeader(
-                title = "Gestures",
-                subtitle = "Set the camera and shortcut behavior for quick navigation",
-            )
-            GestureShortcut.entries.forEach { shortcut ->
-                GestureShortcutRow(
-                    shortcut = shortcut,
-                    action = gestureActions[shortcut] ?: GestureAction.Off,
-                    onActionSelected = { action ->
-                        viewModel.setGestureAction(shortcut, action)
-                    },
-                )
+            SettingsCategory.Gestures -> {
+            SettingsSubsectionHeader("Two-finger gestures")
+            GestureShortcut.entries.filter { it in TWO_FINGER_SHORTCUTS }.forEach { shortcut ->
+                    GestureShortcutRow(
+                        shortcut = shortcut,
+                        action = gestureActions[shortcut] ?: GestureAction.Off,
+                        onActionSelected = { action ->
+                            viewModel.setGestureAction(shortcut, action)
+                        },
+                    )
             }
+            SettingsSubsectionHeader("Three-finger gestures")
+            GestureShortcut.entries.filter { it in THREE_FINGER_SHORTCUTS }.forEach { shortcut ->
+                    GestureShortcutRow(
+                        shortcut = shortcut,
+                        action = gestureActions[shortcut] ?: GestureAction.Off,
+                        onActionSelected = { action ->
+                            viewModel.setGestureAction(shortcut, action)
+                        },
+                    )
+                }
             ListItem(
                 leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
                 headlineContent = { Text("Scanner default camera") },
@@ -608,10 +614,6 @@ fun SettingsCategoryScreen(
             )
                 }
                 SettingsCategory.Notifications -> {
-            SettingsSectionHeader(
-                title = "Notifications",
-                subtitle = "Choose which NetBox changes appear as alerts",
-            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
                 headlineContent = { Text("NetBox change notifications") },
@@ -643,10 +645,6 @@ fun SettingsCategoryScreen(
             }
                 }
                 SettingsCategory.Actions -> {
-            SettingsSectionHeader(
-                title = "Actions",
-                subtitle = "Disconnect this NetBox instance",
-            )
             Column(Modifier.padding(16.dp)) {
                 OutlinedButton(
                     onClick = {
@@ -666,10 +664,6 @@ fun SettingsCategoryScreen(
             }
                 }
                 SettingsCategory.About -> {
-            SettingsSectionHeader(
-                title = "About",
-                subtitle = "Application and build information",
-            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
                 headlineContent = { Text("NetBox and Chill") },
@@ -692,19 +686,13 @@ fun SettingsCategoryScreen(
 }
 
 @Composable
-private fun SettingsSectionHeader(title: String, subtitle: String) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun SettingsSubsectionHeader(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+    )
 }
 
 @Composable
