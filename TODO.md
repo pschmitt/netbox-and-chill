@@ -1959,10 +1959,10 @@ type screens and extending the generic model screens to every endpoint that expo
 - [x] Cache newly created objects immediately and enqueue background sync afterward.
 - [x] Verify offline-safe error handling and creation form behavior on a physical device.
 
-Status: mostly done, 2026-08-01 - metadata-driven generic creation, typed device/device-type
-fallback fields, validation, reference pickers, cache updates, and background refresh are
-implemented and covered by remote tests/lint/build. The Mi Pad 4 displayed the live device form
-and its offline-safe fallback; no production object was created during verification.
+Status: **done**, 2026-08-02 - metadata-driven generic creation, typed device/device-type fallback
+fields, validation, reference pickers, cache updates, and background refresh are covered by remote
+tests/lint/build. The Mi Pad 4 displayed the device form and offline-safe fallback; no production
+object was created during verification.
 
 ## NBC-77: hide empty related-item count rows
 
