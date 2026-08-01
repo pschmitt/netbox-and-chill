@@ -99,6 +99,7 @@ import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
+import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -598,7 +599,10 @@ fun GenericDetailScreen(
                             }
                             if (selectedTab == 0) {
                                 LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
+                                    modifier =
+                                        Modifier.fillMaxSize().itemTabSwipe(selectedTab, 2) {
+                                            selectedTab = it
+                                        },
                                     contentPadding = PaddingValues(16.dp),
                                 ) {
                                     if (viewModel.isRack) {
@@ -664,7 +668,10 @@ fun GenericDetailScreen(
                                 }
                             } else {
                                 LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
+                                    modifier =
+                                        Modifier.fillMaxSize().itemTabSwipe(selectedTab, 2) {
+                                            selectedTab = it
+                                        },
                                     contentPadding = PaddingValues(16.dp),
                                 ) {
                                     if (journalEntries.isEmpty()) {

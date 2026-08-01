@@ -3236,11 +3236,14 @@ a clean debug build passed; APK installed update-in-place on Zenfone 10, Mi Pad 
 Item view pages should support horizontal left/right gestures to switch to the adjacent tab, while
 preserving the existing tab-row controls.
 
-- [ ] Add left/right swipe handling to item-view tab content.
-- [ ] Clamp swipes at the first and last tab and preserve tab selection state.
-- [ ] Verify swipes do not interfere with vertical scrolling or horizontal child content.
+- [x] Add left/right swipe handling to item-view tab content.
+- [x] Clamp swipes at the first and last tab and preserve tab selection state.
+- [x] Verify swipes do not interfere with vertical scrolling or horizontal child content.
 
-Status: not started.
+Status: **done**, 2026-08-01 - shared initial-pass horizontal gesture handling advances or clamps
+the generic and device detail tabs without consuming vertical movement. Remote ktfmt/unit tests and
+a clean debug build passed; Mi Pad 4 swiped from Overview to Journal and displayed the journal
+content. APK installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-173: add delete to item-view overflow menus
 

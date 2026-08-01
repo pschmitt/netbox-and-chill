@@ -83,6 +83,7 @@ import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
+import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
@@ -362,7 +363,13 @@ fun DeviceDetailScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier =
+                        Modifier.fillMaxSize().itemTabSwipe(
+                            selectedTab + 1,
+                            DEVICE_RELATED_TABS.size + 1,
+                        ) { tabIndex ->
+                            selectedTab = tabIndex - 1
+                        },
                     contentPadding = PaddingValues(16.dp),
                 ) {
                     item {
