@@ -16,6 +16,8 @@ data class NetBoxCredentials(val baseUrl: String, val token: String) {
 }
 
 data class PrintSettings(
+    val defaultPrinterName: String? = null,
+    val defaultPrinterAddress: String? = null,
     val invertColors: Boolean = true,
     val verticalText: Boolean = false,
     val longLabel: Boolean = false,
@@ -24,6 +26,8 @@ data class PrintSettings(
 ) {
     fun normalized(): PrintSettings =
         copy(
+            defaultPrinterName = defaultPrinterName?.takeIf { it.isNotBlank() },
+            defaultPrinterAddress = defaultPrinterAddress?.takeIf { it.isNotBlank() },
             copies = copies.coerceIn(1, 9),
             qrSize = qrSize.takeIf { it == 48 || it == 56 || it == 64 } ?: 64,
         )
@@ -259,6 +263,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val normalized = settings.normalized()
         prefs
             .edit()
+            .putString(KEY_DEFAULT_PRINTER_NAME, normalized.defaultPrinterName)
+            .putString(KEY_DEFAULT_PRINTER_ADDRESS, normalized.defaultPrinterAddress)
             .putBoolean(KEY_PRINT_INVERT_COLORS, normalized.invertColors)
             .putBoolean(KEY_PRINT_VERTICAL_TEXT, normalized.verticalText)
             .putBoolean(KEY_PRINT_LONG_LABEL, normalized.longLabel)
@@ -421,6 +427,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun loadPrintSettings(): PrintSettings =
         PrintSettings(
+                defaultPrinterName = prefs.getString(KEY_DEFAULT_PRINTER_NAME, null),
+                defaultPrinterAddress = prefs.getString(KEY_DEFAULT_PRINTER_ADDRESS, null),
                 invertColors = prefs.getBoolean(KEY_PRINT_INVERT_COLORS, true),
                 verticalText = prefs.getBoolean(KEY_PRINT_VERTICAL_TEXT, false),
                 longLabel = prefs.getBoolean(KEY_PRINT_LONG_LABEL, false),
@@ -481,6 +489,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_GESTURE_ACTION = "two_finger_swipe_action"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
         const val KEY_SCANNER_REAR_LENS = "scanner_default_rear_lens"
+        const val KEY_DEFAULT_PRINTER_NAME = "default_printer_name"
+        const val KEY_DEFAULT_PRINTER_ADDRESS = "default_printer_address"
         const val KEY_PRINT_INVERT_COLORS = "print_invert_colors"
         const val KEY_PRINT_VERTICAL_TEXT = "print_vertical_text"
         const val KEY_PRINT_LONG_LABEL = "print_long_label"

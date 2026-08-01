@@ -181,6 +181,11 @@ fun PrintLabelDialog(
             hasPermission = hasBluetoothPermission(context)
         }
 
+    fun selectPrinter(printer: PairedPrinter) {
+        selected = printer
+        settingsViewModel.setDefaultPrinter(printer.name, printer.address)
+    }
+
     fun reloadPrinters() {
         if (!hasPermission) return
         val adapter = bluetoothAdapter(context)
@@ -193,7 +198,10 @@ fun PrintLabelDialog(
         }
         printers = adapter?.let { BrotherPrinter.pairedPrinters(it.bondedDevices) }.orEmpty()
         selected =
-            selected?.takeIf { current -> printers.any { it.address == current.address } }
+            printers.firstOrNull {
+                it.address == savedPrintSettings.defaultPrinterAddress
+            }
+                ?: selected?.takeIf { current -> printers.any { it.address == current.address } }
                 ?: printers.firstOrNull()
         nearbyPrinters = emptyList()
         isDiscovering =
@@ -252,7 +260,7 @@ fun PrintLabelDialog(
                                                         it.address == paired.address
                                                     } + paired)
                                                     .sortedBy { it.name.lowercase() }
-                                            selected = paired
+                                            selectPrinter(paired)
                                         }
                                     }
                                     BluetoothDevice.BOND_NONE ->
@@ -353,13 +361,13 @@ fun PrintLabelDialog(
                                     Row(
                                         modifier =
                                             Modifier.fillMaxWidth().clickable {
-                                                selected = pairedPrinter
+                                                selectPrinter(pairedPrinter)
                                             },
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         RadioButton(
                                             selected = selected?.address == option.address,
-                                            onClick = { selected = pairedPrinter },
+                                            onClick = { selectPrinter(pairedPrinter) },
                                         )
                                         Column {
                                             Text(option.name)

@@ -16,4 +16,12 @@ constructor(private val settingsRepository: SettingsRepository) : ViewModel() {
     fun update(transform: (PrintSettings) -> PrintSettings) {
         settingsRepository.updatePrintSettings(transform(settingsRepository.printSettings.value))
     }
+
+    fun setDefaultPrinter(name: String, address: String) {
+        update { it.copy(defaultPrinterName = name, defaultPrinterAddress = address) }
+    }
+
+    fun clearDefaultPrinter() {
+        update { it.copy(defaultPrinterName = null, defaultPrinterAddress = null) }
+    }
 }

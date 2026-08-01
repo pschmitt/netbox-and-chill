@@ -1,11 +1,18 @@
 package dev.pschmitt.netboxandchill.ui.settings
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
+import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.Image
@@ -19,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
@@ -43,6 +52,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
@@ -95,11 +105,15 @@ import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
+import dev.pschmitt.netboxandchill.data.repository.PrintSettings
 import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
+import dev.pschmitt.netboxandchill.printing.BrotherPrinter
+import dev.pschmitt.netboxandchill.printing.PairedPrinter
+import dev.pschmitt.netboxandchill.ui.common.PrintSettingsViewModel
 
 private fun formatBytes(bytes: Long): String =
     when {
@@ -182,6 +196,7 @@ fun SettingsCategoryScreen(
     onBack: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
+    printSettingsViewModel: PrintSettingsViewModel = hiltViewModel(),
 ) {
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
@@ -205,6 +220,7 @@ fun SettingsCategoryScreen(
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val scannerRearLens by
         viewModel.settingsRepository.scannerRearLens.collectAsStateWithLifecycle()
+    val printSettings by printSettingsViewModel.settings.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val hiddenFieldKeys by
         viewModel.settingsRepository.hiddenFieldKeys.collectAsStateWithLifecycle()
@@ -654,6 +670,14 @@ fun SettingsCategoryScreen(
                 },
             )
                 }
+                SettingsCategory.Printing -> {
+                    PrintingSettingsSection(
+                        settings = printSettings,
+                        onUpdate = printSettingsViewModel::update,
+                        onSetDefaultPrinter = printSettingsViewModel::setDefaultPrinter,
+                        onClearDefaultPrinter = printSettingsViewModel::clearDefaultPrinter,
+                    )
+                }
                 SettingsCategory.Gestures -> {
             SettingsSubsectionHeader("Two-finger gestures")
             GestureShortcut.entries.filter { it in TWO_FINGER_SHORTCUTS }.forEach { shortcut ->
@@ -786,6 +810,193 @@ private fun SettingsSubsectionHeader(title: String) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("MissingPermission")
+@Composable
+private fun PrintingSettingsSection(
+    settings: PrintSettings,
+    onUpdate: ((PrintSettings) -> PrintSettings) -> Unit,
+    onSetDefaultPrinter: (String, String) -> Unit,
+    onClearDefaultPrinter: () -> Unit,
+) {
+    val context = LocalContext.current
+    var hasBluetoothPermission by remember { mutableStateOf(canReadBluetooth(context)) }
+    var pairedPrinters by remember { mutableStateOf<List<PairedPrinter>>(emptyList()) }
+    var printerMenuExpanded by remember { mutableStateOf(false) }
+    var qrSizeMenuExpanded by remember { mutableStateOf(false) }
+    var copiesText by remember(settings.copies) { mutableStateOf(settings.copies.toString()) }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            hasBluetoothPermission = canReadBluetooth(context)
+        }
+
+    LaunchedEffect(hasBluetoothPermission) {
+        pairedPrinters =
+            if (hasBluetoothPermission) {
+                context
+                    .getSystemService<BluetoothManager>()
+                    ?.adapter
+                    ?.let { BrotherPrinter.pairedPrinters(it.bondedDevices) }
+                    .orEmpty()
+            } else {
+                emptyList()
+            }
+    }
+
+    val defaultPrinterLabel =
+        settings.defaultPrinterName
+            ?: settings.defaultPrinterAddress
+            ?: "No default printer selected"
+    ListItem(
+        modifier = Modifier.clickable { printerMenuExpanded = true },
+        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        headlineContent = { Text("Default printer") },
+        supportingContent = { Text(defaultPrinterLabel) },
+        trailingContent = {
+            Box {
+                IconButton(onClick = { printerMenuExpanded = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Choose default printer")
+                }
+                DropdownMenu(
+                    expanded = printerMenuExpanded,
+                    onDismissRequest = { printerMenuExpanded = false },
+                ) {
+                    pairedPrinters.forEach { printer ->
+                        DropdownMenuItem(
+                            text = { Text("${printer.name} (${printer.address})") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Bluetooth, contentDescription = null)
+                            },
+                            onClick = {
+                                onSetDefaultPrinter(printer.name, printer.address)
+                                printerMenuExpanded = false
+                            },
+                        )
+                    }
+                    if (settings.defaultPrinterAddress != null) {
+                        DropdownMenuItem(
+                            text = { Text("Clear default printer") },
+                            leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
+                            onClick = {
+                                onClearDefaultPrinter()
+                                printerMenuExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
+    if (!hasBluetoothPermission) {
+        OutlinedButton(
+            onClick = {
+                permissionLauncher.launch(settingsBluetoothPermissions())
+            },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        ) {
+            Icon(Icons.Default.Bluetooth, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Allow Bluetooth to choose a printer")
+        }
+    } else if (pairedPrinters.isEmpty()) {
+        Text(
+            "Pair a Brother P-touch printer in the print dialog before choosing it here.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    }
+    ListItem(
+        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        headlineContent = { Text("Invert print colors") },
+        supportingContent = { Text("Disable if printing on black tape") },
+        trailingContent = {
+            Switch(
+                checked = settings.invertColors,
+                onCheckedChange = { value -> onUpdate { it.copy(invertColors = value) } },
+            )
+        },
+    )
+    ListItem(
+        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        headlineContent = { Text("Vertical label text") },
+        supportingContent = { Text("Rotate text for narrow labels") },
+        trailingContent = {
+            Switch(
+                checked = settings.verticalText,
+                onCheckedChange = { value -> onUpdate { it.copy(verticalText = value) } },
+            )
+        },
+    )
+    ListItem(
+        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        headlineContent = { Text("Long label") },
+        supportingContent = { Text("Use the extended name, asset tag, and serial layout") },
+        trailingContent = {
+            Switch(
+                checked = settings.longLabel,
+                onCheckedChange = { value -> onUpdate { it.copy(longLabel = value) } },
+            )
+        },
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        OutlinedTextField(
+            value = copiesText,
+            onValueChange = { value ->
+                copiesText = value.filter(Char::isDigit).take(1)
+                copiesText.toIntOrNull()?.takeIf { it in 1..9 }?.let { copies ->
+                    onUpdate { it.copy(copies = copies) }
+                }
+            },
+            label = { Text("Copies") },
+            singleLine = true,
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                ),
+            modifier = Modifier.width(120.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Box {
+            OutlinedButton(onClick = { qrSizeMenuExpanded = true }) {
+                Icon(Icons.Default.Print, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("QR ${settings.qrSize}px")
+            }
+            DropdownMenu(
+                expanded = qrSizeMenuExpanded,
+                onDismissRequest = { qrSizeMenuExpanded = false },
+            ) {
+                listOf(48, 56, 64).forEach { size ->
+                    DropdownMenuItem(
+                        text = { Text("${size}px") },
+                        leadingIcon = { Icon(Icons.Default.Print, contentDescription = null) },
+                        onClick = {
+                            onUpdate { it.copy(qrSize = size) }
+                            qrSizeMenuExpanded = false
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun canReadBluetooth(context: android.content.Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
+            PackageManager.PERMISSION_GRANTED
+
+private fun settingsBluetoothPermissions(): Array<String> =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+    } else {
+        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
 @Composable
 private fun GestureShortcutRow(

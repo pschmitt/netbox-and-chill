@@ -3116,12 +3116,12 @@ update-in-place on Zenfone, PX5, and Mi Pad 4.
 Add a dedicated Printing settings sub-screen with a default printer preference and persisted
 default print options.
 
-- [ ] Add a Printing Settings category/sub-screen.
-- [ ] Allow selecting and persisting the default printer.
-- [ ] Allow configuring and persisting the default print options.
-- [ ] Verify the print dialog uses the saved defaults.
+- [x] Add a Printing Settings category/sub-screen.
+- [x] Allow selecting and persisting the default printer.
+- [x] Allow configuring and persisting the default print options.
+- [x] Verify the print dialog uses the saved defaults.
 
-Status: not started.
+Status: in progress.
 
 ## NBC-165: expand gesture actions and destinations
 

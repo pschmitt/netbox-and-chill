@@ -10,6 +10,7 @@ import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
+import dev.pschmitt.netboxandchill.data.repository.PrintSettings
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
@@ -138,6 +139,10 @@ constructor(
 
     fun setScannerRearLens(lens: ScannerRearLens) {
         settingsRepository.setScannerRearLens(lens)
+    }
+
+    fun updatePrintSettings(transform: (PrintSettings) -> PrintSettings) {
+        settingsRepository.updatePrintSettings(transform(settingsRepository.printSettings.value))
     }
 
     fun setOfflineMode(enabled: Boolean) {
