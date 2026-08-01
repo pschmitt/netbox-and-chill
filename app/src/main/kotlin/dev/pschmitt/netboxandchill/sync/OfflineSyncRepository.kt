@@ -28,7 +28,42 @@ data class OfflineSyncSummary(
     val reconciliation: ReconciliationSummary = ReconciliationSummary(),
 )
 
-data class SyncProgress(val message: String, val step: Int, val totalSteps: Int)
+data class SyncProgress(
+    val message: String,
+    val step: Int,
+    val totalSteps: Int,
+    val itemLabel: String? = null,
+    val itemCompleted: Int? = null,
+    val itemTotal: Int? = null,
+)
+
+internal fun SyncProgress.itemProgressText(): String? =
+    if (
+        itemLabel != null &&
+            itemCompleted != null &&
+            itemTotal != null &&
+            itemTotal >= 0
+    ) {
+        "$itemCompleted of $itemTotal $itemLabel"
+    } else {
+        null
+    }
+
+internal fun SyncProgress.notificationSubText(): String =
+    buildList {
+            add("Step ${step.coerceIn(0, totalSteps.coerceAtLeast(1))} of ${totalSteps.coerceAtLeast(1)}")
+            itemProgressText()?.let(::add)
+        }
+        .joinToString(" · ")
+
+internal fun SyncProgress.notificationText(): String =
+    buildString {
+        append(message)
+        itemProgressText()?.let {
+            append('\n')
+            append(it)
+        }
+    }
 
 /** Coordinates the complete cache-first sync used by manual and background refreshes. */
 @Singleton
@@ -55,9 +90,9 @@ constructor(
         var step = 0
         var totalSteps = 7 + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0
 
-        fun reportProgress(message: String) {
+        fun reportProgress(message: String): SyncProgress {
             step++
-            onProgress(SyncProgress(message, step, totalSteps))
+            return SyncProgress(message, step, totalSteps).also(onProgress)
         }
 
         fun recordFailure(scope: String, error: Throwable) {
@@ -139,8 +174,19 @@ constructor(
 
             val durableAttachments =
                 if (settingsRepository.syncAttachmentsToDisk.value) {
-                    reportProgress("Downloading cached images and documents…")
-                    runCatching { syncAttachments() }
+                    val attachmentProgress =
+                        reportProgress("Downloading cached images and documents…")
+                    runCatching {
+                        syncAttachments { completed, total ->
+                            onProgress(
+                                attachmentProgress.copy(
+                                    itemLabel = "images/documents",
+                                    itemCompleted = completed,
+                                    itemTotal = total,
+                                )
+                            )
+                        }
+                    }
                         .getOrElse {
                             recordFailure("Attachment sync", it)
                             0
@@ -181,7 +227,7 @@ constructor(
                 cause is IOException || cause is HttpException && cause.code() >= 500
             }
 
-    private suspend fun syncAttachments(): Int {
+    private suspend fun syncAttachments(onProgress: (completed: Int, total: Int) -> Unit): Int {
         imageAttachmentRepository.refreshAll("dcim.device").onFailure { error ->
             syncIssueReporter.report(
                 "Image attachments for devices failed: ${error.message ?: "failed"}"
@@ -215,10 +261,14 @@ constructor(
                 .distinctBy(OfflineAttachment::url)
 
         var downloaded = 0
+        onProgress(0, attachments.size)
         for (attachment in attachments) {
             fileDownloadRepository
                 .downloadToPersistent(attachment.url, attachment.filename)
-                .onSuccess { downloaded++ }
+                .onSuccess {
+                    downloaded++
+                    onProgress(downloaded, attachments.size)
+                }
                 .onFailure { error ->
                     Timber.w(error, "Couldn't persist offline attachment %s", attachment.url)
                     syncIssueReporter.report(

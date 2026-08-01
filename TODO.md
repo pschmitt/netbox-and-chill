@@ -2948,12 +2948,14 @@ recent global-search results. APK installed update-in-place on Zenfone 10, Mi Pa
 Make the background sync notification less redundant and surface useful progress for attachment
 and image/document downloads, including synced-versus-total counts where available.
 
-- [ ] Use the generic title “Syncing data”.
-- [ ] Keep the current stage in the subtitle/content.
-- [ ] Show useful attachment/image/document progress counts.
-- [ ] Verify the notification remains silent and readable.
+- [x] Use the generic title “Syncing data”.
+- [x] Keep the current stage in the subtitle/content.
+- [x] Show useful attachment/image/document progress counts.
+- [x] Verify the notification remains silent and readable.
 
-Status: not started.
+Status: **done**, 2026-08-01 - remote ktfmt, unit tests, and a clean debug build passed; notification
+formatting tests cover stage and image/document counts, the existing low-importance silent channel
+remains in place, and the APK was installed update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 
 ## NBC-152: move cached-data summary near Sync now
 

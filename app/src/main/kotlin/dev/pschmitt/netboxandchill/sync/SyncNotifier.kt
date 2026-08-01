@@ -74,7 +74,7 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
     fun foregroundInfo(message: String = "Syncing NetBox data…"): ForegroundInfo {
         syncActive = true
         lastProgress = SyncProgress(message, step = 0, totalSteps = 1)
-        val notification = progressNotification(message, step = 0, totalSteps = 1)
+        val notification = progressNotification(lastProgress!!)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ForegroundInfo(
                 NOTIFICATION_ID,
@@ -167,7 +167,7 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
         NotificationManagerCompat.from(context)
             .notify(
                 NOTIFICATION_ID,
-                progressNotification(progress.message, progress.step, progress.totalSteps),
+                progressNotification(progress),
             )
     }
 
@@ -246,25 +246,23 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
 
-    private fun progressNotification(message: String, step: Int? = null, totalSteps: Int? = null) =
+    private fun progressNotification(progress: SyncProgress) =
         NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_sync_problem)
-            // Keep the current stage in the title: Android may omit contentText in the collapsed
-            // foreground notification, which otherwise leaves only the unhelpful generic label.
-            .setContentTitle(message)
-            .setContentText("Syncing NetBox data…")
+            .setContentTitle("Syncing data")
+            .setContentText(progress.notificationText())
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText(message)
-                    .setSummaryText("Syncing NetBox data…")
+                    .bigText(progress.notificationText())
+                    .setSummaryText(progress.notificationSubText())
             )
             .apply {
-                if (step != null && totalSteps != null) {
-                    setProgress(totalSteps, step.coerceIn(0, totalSteps), false)
-                    setSubText("Step ${step.coerceIn(0, totalSteps)} of $totalSteps")
-                } else {
-                    setProgress(0, 0, true)
-                }
+                setProgress(
+                    progress.totalSteps.coerceAtLeast(1),
+                    progress.step.coerceIn(0, progress.totalSteps.coerceAtLeast(1)),
+                    false,
+                )
+                setSubText(progress.notificationSubText())
             }
             .setOngoing(true)
             .setOnlyAlertOnce(true)
