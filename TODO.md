@@ -3239,9 +3239,12 @@ update-in-place on Zenfone 10, Mi Pad 4, and PX5.
 If the `netbox-topology-views` plugin is installed, expose a native topology view and cache its
 read-only draw.io XML export so the graph remains available without connectivity.
 
-- [ ] Discover the plugin and expose a dedicated Topology entry in the sidebar.
-- [ ] Sync and durably cache a useful topology export through the normal background sync.
-- [ ] Parse and render the cached graph natively with zoom and pan support.
-- [ ] Keep absent-plugin, empty-result, and refresh failures non-blocking for the rest of the app.
+- [x] Discover the plugin and expose a dedicated Topology entry in the sidebar.
+- [x] Sync and durably cache a useful topology export through the normal background sync.
+- [x] Parse and render the cached graph natively with zoom and pan support.
+- [x] Keep absent-plugin, empty-result, and refresh failures non-blocking for the rest of the app.
 
-Status: in progress.
+Status: **done**, 2026-08-01 - remote ktfmt/unit tests and a clean debug build passed; the live
+plugin export rendered as 392 nodes and 231 connections on Mi Pad 4, then rendered again with the
+app in offline mode from the durable cache. APK installed update-in-place on Zenfone 10, Mi Pad 4,
+and PX5.
