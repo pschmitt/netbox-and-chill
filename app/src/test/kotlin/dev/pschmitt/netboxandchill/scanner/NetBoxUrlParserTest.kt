@@ -71,4 +71,17 @@ class NetBoxUrlParserTest {
     fun `returns null for unrelated text`() {
         assertNull(NetBoxUrlParser.parse("not a netbox url"))
     }
+
+    @Test
+    fun `recognizes a plain asset tag payload`() {
+        assertEquals("CZN-0001", NetBoxUrlParser.parseAssetTag(" CZN-0001\n"))
+        assertEquals("#CZN-0001", NetBoxUrlParser.parseAssetTag("#CZN-0001"))
+    }
+
+    @Test
+    fun `does not treat urls or numeric ids as asset tags`() {
+        assertNull(NetBoxUrlParser.parseAssetTag("https://netbox.brkn.lol/dcim/devices/393/"))
+        assertNull(NetBoxUrlParser.parseAssetTag("393"))
+        assertNull(NetBoxUrlParser.parseAssetTag("not a netbox url"))
+    }
 }

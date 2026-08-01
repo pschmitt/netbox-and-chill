@@ -2119,3 +2119,128 @@ current stage, even though the exact amount of work varies with the NetBox model
 
 Status: **done**, 2026-08-01 - sync stages now carry a dynamically estimated total that includes
 discovered models; Mi Pad 4 reported “Step 4 of 8” with a determinate progress bar.
+
+## NBC-90: show device-type images in the device-type list
+
+The device-type list should use each type's cached front image as its row thumbnail, falling back
+to the normal object-type icon when no image is available.
+
+- [x] Render cached front images in device-type list rows.
+- [x] Keep the generic icon as the null/blank-image fallback.
+- [x] Verify the list works offline with cached and uncached images.
+
+Status: **done**, 2026-08-01 - device-type rows now use cached front images with the existing
+object-type icon as fallback; Mi Pad 4 showed the imagery after deployment.
+
+## NBC-91: show device imagery in global search
+
+Global search results for devices and device types should use the relevant cached front image, with
+the existing generic icon retained as a fallback.
+
+- [x] Show device-type front images for device-type search hits.
+- [x] Show the assigned device-type front image for device search hits.
+- [x] Preserve recent-result and offline behavior with icon fallbacks.
+- [x] Verify imagery in global search on a physical device.
+
+Status: **done**, 2026-08-01 - search resolves device/device-type thumbnails from the typed Room
+cache and falls back to namespace icons; Mi Pad 4 showed both device and device-type results with
+images.
+
+## NBC-92: show imagery on dashboard object rows
+
+Dashboard bookmarks and recent-change rows should use the same device/device-type front thumbnails
+as lists and global search whenever their target is a device or device type.
+
+- [x] Show front images for device and device-type bookmarks.
+- [x] Show front images for device and device-type recent changes.
+- [x] Keep namespace icons as the fallback for missing images and other object types.
+- [x] Verify the dashboard rows on a physical device.
+
+Status: **done**, 2026-08-01 - dashboard bookmarks and recent changes now resolve the same typed
+front thumbnails with icon fallback; Mi Pad 4 showed device images in Bookmarks.
+
+## NBC-93: keep row thumbnail slots a constant width
+
+Rows that can show images should reserve the same leading width for placeholder icons, so Home and
+other mixed image/icon lists do not shift their text horizontally between items.
+
+- [x] Give dashboard image/icon rows a fixed leading slot.
+- [x] Apply the same alignment to global search and generic image-capable rows.
+- [x] Verify mixed photo and placeholder rows on a physical device.
+
+Status: **done**, 2026-08-01 - dashboard, search, and generic rows reserve a fixed leading slot;
+Mi Pad 4 verified mixed image and placeholder rows.
+
+## NBC-94: scan asset-tag QR codes and barcodes
+
+The scanner should resolve plain asset-tag values in QR codes and barcodes, in addition to NetBox
+URLs and bare numeric device IDs.
+
+- [x] Recognize common plain asset-tag barcode/QR payloads without changing URL parsing.
+- [x] Resolve asset tags from the offline device cache first, then refresh NetBox best-effort.
+- [x] Show a useful not-found state when a valid asset tag has no matching device.
+- [x] Verify an asset-tag scan path with parser tests and a physical device build.
+
+Status: **done**, 2026-08-01 - parser and asset-tag lookup tests pass; the scanner build was
+deployed with the cache-first/API fallback path.
+
+## NBC-95: add the Journal tab to device pages
+
+Device pages should have a web-like tabbed interface with a Journal tab that is always visible,
+alongside the existing interfaces, ports, and module sections.
+
+- [x] Always show a Journal tab on device pages.
+- [x] Load and render device journal entries in that tab.
+- [x] Keep the existing related-device tabs and cache-first detail behavior intact.
+- [x] Verify the tab on a physical device, including an empty journal.
+
+Status: **done**, 2026-08-01 - Journal is the always-visible second device tab and renders the
+existing journal cards; Mi Pad 4 verified the tab and empty state.
+
+## NBC-96: hide the display URL metadata field
+
+Generic item detail pages should omit NetBox's redundant `display_url` metadata field.
+
+- [x] Exclude `display_url` from rendered generic fields.
+- [x] Keep useful web/share actions available in the overflow menu.
+- [x] Verify generic detail pages no longer show the field.
+
+Status: **done**, 2026-08-01 - generic rendering now omits `display_url` while leaving detail
+actions available; renderer tests and the deployed build verified the change.
+
+## NBC-97: hide empty related-count rows
+
+Item detail pages should omit reverse-relation count rows when their count is zero, so the page
+only advertises relationships that actually contain items.
+
+- [x] Hide zero-valued related-count fields in generic detail pages.
+- [x] Keep positive counts clickable and unchanged.
+- [x] Verify device-type, rack, and site detail pages.
+
+Status: **done**, 2026-08-01 - recognized zero counts are omitted while positive counts retain
+their click targets; renderer tests cover both paths.
+
+## NBC-98: make item view pages more visually appealing
+
+Refresh the item detail presentation so device, device type, rack, and other object pages feel
+more like a modern inventory app while keeping the information-dense NetBox data easy to scan.
+
+- [ ] Establish a stronger visual hierarchy for the title, identity, status, and metadata.
+- [ ] Improve section/card treatment for fields, markdown, images, and related-item counts.
+- [ ] Keep actions, tabs, offline rendering, and accessibility intact.
+- [ ] Verify the refreshed detail pages on a physical device across representative object types.
+
+Status: not started, 2026-08-01 - added from the product backlog.
+
+## NBC-99: localize timestamps and dates
+
+Render NetBox timestamps and date/time values in the device's local timezone and locale instead of
+showing raw UTC/API strings, while preserving enough context for unambiguous dates.
+
+- [ ] Identify all timestamp/date renderers, including item fields, journal, history, and sync UI.
+- [ ] Format instant timestamps using the device timezone and locale.
+- [ ] Keep date-only values date-only and avoid shifting them across timezone boundaries.
+- [ ] Add formatter tests for timezone conversion and representative NetBox values.
+- [ ] Verify the result on a physical device.
+
+Status: not started, 2026-08-01 - added from the product backlog.

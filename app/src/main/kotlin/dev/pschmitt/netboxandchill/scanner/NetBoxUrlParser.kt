@@ -17,6 +17,7 @@ object NetBoxUrlParser {
     // just needs *a* two-or-more-segment/id tail to match, and NetBox web paths are always
     // <app>/<model>/<id>/, optionally with more segments in front for a reverse-proxy subpath).
     private val OBJECT_PATH_FINDER = Regex("""/([a-z0-9_-]+)/([a-z0-9_-]+)/(\d+)/?""")
+    private val ASSET_TAG_PATTERN = Regex("""#?[A-Za-z0-9][A-Za-z0-9._/-]{0,127}""")
 
     /** Extracts a NetBox device/object target from a scanned/opened URL, or a bare numeric id. */
     fun parse(text: String): NetBoxTarget? {
@@ -39,5 +40,12 @@ object NetBoxUrlParser {
         } else {
             NetBoxTarget.Object(endpointPath = "api/$app/$model/", id = id)
         }
+    }
+
+    /** Returns a barcode-friendly asset-tag candidate without changing URL/ID parsing semantics. */
+    fun parseAssetTag(text: String): String? {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty() || trimmed.toIntOrNull() != null || parse(trimmed) != null) return null
+        return trimmed.takeIf { ASSET_TAG_PATTERN.matches(it) }
     }
 }

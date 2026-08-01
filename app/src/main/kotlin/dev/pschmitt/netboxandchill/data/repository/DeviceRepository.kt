@@ -24,6 +24,21 @@ class DeviceRepository @Inject constructor(private val api: NetBoxApi, private v
         entity
     }
 
+    /** Resolves a scanner asset-tag payload from Room first, then performs a narrow best-effort API search. */
+    suspend fun findByAssetTag(assetTag: String): DeviceEntity? {
+        val trimmed = assetTag.trim()
+        val withoutPrefix = trimmed.removePrefix("#")
+        dao.getByAssetTag(trimmed, withoutPrefix)?.let { return it }
+        return runCatching {
+                api.listDevices(limit = 50, search = withoutPrefix)
+                    .results
+                    .firstOrNull { normalizeAssetTag(it.assetTag) == normalizeAssetTag(trimmed) }
+                    ?.toEntity()
+                    ?.also { dao.upsert(it) }
+            }
+            .getOrNull()
+    }
+
     /** Full paginated sync of every device NetBox knows about. */
     suspend fun syncAll(pageSize: Int = 200): Result<Int> = runCatching {
         var offset = 0
@@ -68,3 +83,6 @@ private fun DeviceDto.toEntity(): DeviceEntity =
         lastUpdated = lastUpdated,
         syncedAt = System.currentTimeMillis(),
     )
+
+private fun normalizeAssetTag(value: String?): String =
+    value.orEmpty().trim().removePrefix("#").lowercase()

@@ -3,8 +3,13 @@ package dev.pschmitt.netboxandchill.ui.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pschmitt.netboxandchill.data.db.DeviceEntity
+import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
+import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
+import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
@@ -27,6 +32,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import java.io.File
+
+data class SearchThumbnail(val url: String, val filename: String)
 
 /** Backs [GlobalSearchScreen] (NBC-13) - debounced free-text search, cache-first like every other
  * screen in this app (see [GlobalSearchRepository]'s doc comment). [results] reads straight from
@@ -38,6 +46,9 @@ class GlobalSearchViewModel
 @Inject
 constructor(
     private val searchRepository: GlobalSearchRepository,
+    private val deviceRepository: DeviceRepository,
+    private val deviceTypeRepository: DeviceTypeRepository,
+    private val fileDownloadRepository: FileDownloadRepository,
     directoryRepository: DirectoryRepository,
     private val settingsRepository: SettingsRepository,
     recentVisitRepository: RecentVisitRepository,
@@ -73,6 +84,18 @@ constructor(
             .observeRecent()
             .map(::recentVisitsToSearchHits)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val devicesById: StateFlow<Map<Int, DeviceEntity>> =
+        deviceRepository
+            .observeDevices("")
+            .map { devices -> devices.associateBy { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val deviceTypesById: StateFlow<Map<Int, DeviceTypeEntity>> =
+        deviceTypeRepository
+            .observeAll()
+            .map { types -> types.associateBy { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -122,4 +145,26 @@ constructor(
     fun errorShown() {
         _errorMessage.value = null
     }
+
+    fun thumbnailFor(
+        hit: SearchHit,
+        devicesById: Map<Int, DeviceEntity>,
+        deviceTypesById: Map<Int, DeviceTypeEntity>,
+    ): SearchThumbnail? =
+        when (hit.endpointPath) {
+            GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
+                deviceTypesById[hit.id]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
+                    SearchThumbnail(url, "device-type-${hit.id}-front")
+                }
+            GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
+                devicesById[hit.id]?.deviceTypeId?.let { deviceTypeId ->
+                    deviceTypesById[deviceTypeId]?.frontImageUrl
+                        ?.takeIf(String::isNotBlank)
+                        ?.let { url -> SearchThumbnail(url, "device-type-$deviceTypeId-front") }
+                }
+            else -> null
+        }
+
+    fun localImageFile(thumbnail: SearchThumbnail): File? =
+        fileDownloadRepository.persistentFile(thumbnail.url, thumbnail.filename)
 }

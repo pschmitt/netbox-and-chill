@@ -41,6 +41,7 @@ import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 /**
@@ -67,6 +68,8 @@ fun GlobalSearchScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val modelsByEndpointPath by viewModel.modelsByEndpointPath.collectAsStateWithLifecycle()
+    val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
+    val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusRequester = remember { FocusRequester() }
 
@@ -129,10 +132,13 @@ fun GlobalSearchScreen(
                         items(recentResults, key = { "recent-${it.endpointPath}-${it.id}" }) { hit ->
                             val model = modelsByEndpointPath[hit.endpointPath]
                             val appKey = model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
+                            val thumbnail = viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
                             SearchResultRow(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
                                 icon = AppIcons.forAppKey(appKey),
+                                thumbnail = thumbnail,
+                                localImageFile = viewModel::localImageFile,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
                         }
@@ -146,10 +152,13 @@ fun GlobalSearchScreen(
                         items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
                             val model = modelsByEndpointPath[hit.endpointPath]
                             val appKey = model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
+                            val thumbnail = viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
                             SearchResultRow(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
                                 icon = AppIcons.forAppKey(appKey),
+                                thumbnail = thumbnail,
+                                localImageFile = viewModel::localImageFile,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
                         }
@@ -193,9 +202,31 @@ private fun SearchEmptyState(title: String, message: String) {
 }
 
 @Composable
-private fun SearchResultRow(hit: SearchHit, modelLabel: String?, icon: ImageVector, onClick: () -> Unit) {
+private fun SearchResultRow(
+    hit: SearchHit,
+    modelLabel: String?,
+    icon: ImageVector,
+    thumbnail: SearchThumbnail?,
+    localImageFile: (SearchThumbnail) -> java.io.File?,
+    onClick: () -> Unit,
+) {
+    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
+
     ListItem(
-        leadingContent = { Icon(icon, contentDescription = null) },
+        leadingContent = {
+            if (thumbnail == null) {
+                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null)
+                }
+            } else {
+                RemoteThumbnail(
+                    imageUrl = thumbnail.url,
+                    contentDescription = hit.display,
+                    localFile = localFile,
+                    modifier = Modifier.size(56.dp),
+                )
+            }
+        },
         headlineContent = { Text(hit.display) },
         supportingContent = {
             val subtitle = listOfNotNull(modelLabel, hit.secondaryLine).joinToString(" · ")

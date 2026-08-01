@@ -126,8 +126,8 @@ constructor(
         SearchHit(endpointPath = DEVICES_ENDPOINT_PATH, id = id, display = name, secondaryLine = secondaryLine)
 
     companion object {
-        private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
-        private const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
+        const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+        const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
 
         // Baseline model set for the network refresh + result labeling - GlobalSearchViewModel
         // unions this with the user's pinned model paths so anything explicitly starred in the

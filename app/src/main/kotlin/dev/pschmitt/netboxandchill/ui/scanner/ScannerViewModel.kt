@@ -23,6 +23,8 @@ sealed interface ScanResultState {
     data class Found(val target: NetBoxTarget) : ScanResultState
 
     data class NotRecognized(val raw: String) : ScanResultState
+
+    data class NotFound(val assetTag: String) : ScanResultState
 }
 
 @HiltViewModel
@@ -45,7 +47,19 @@ constructor(
         if (handled) return
         val target = NetBoxUrlParser.parse(raw)
         if (target == null) {
-            _state.value = ScanResultState.NotRecognized(raw)
+            val assetTag = NetBoxUrlParser.parseAssetTag(raw)
+            if (assetTag == null) {
+                _state.value = ScanResultState.NotRecognized(raw)
+                return
+            }
+            handled = true
+            _state.value = ScanResultState.Resolving
+            viewModelScope.launch {
+                val device = deviceRepository.findByAssetTag(assetTag)
+                _state.value =
+                    device?.let { ScanResultState.Found(NetBoxTarget.Device(it.id)) }
+                        ?: ScanResultState.NotFound(assetTag)
+            }
             return
         }
         handled = true

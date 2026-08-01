@@ -5,8 +5,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.BookmarkEntity
 import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
+import dev.pschmitt.netboxandchill.data.db.DeviceEntity
+import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
+import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
+import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
@@ -16,13 +22,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import java.io.File
+
+data class DashboardThumbnail(val url: String, val filename: String)
 
 @HiltViewModel
 class DashboardViewModel
 @Inject
 constructor(
     private val repository: DashboardRepository,
+    private val deviceRepository: DeviceRepository,
+    private val deviceTypeRepository: DeviceTypeRepository,
+    private val fileDownloadRepository: FileDownloadRepository,
     pendingEditRepository: PendingEditRepository,
     settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
@@ -51,6 +64,18 @@ constructor(
     val changelog: StateFlow<List<ObjectChangeEntity>> =
         repository.observeChangelog().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val devicesById: StateFlow<Map<Int, DeviceEntity>> =
+        deviceRepository
+            .observeDevices("")
+            .map { devices -> devices.associateBy { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val deviceTypesById: StateFlow<Map<Int, DeviceTypeEntity>> =
+        deviceTypeRepository
+            .observeAll()
+            .map { types -> types.associateBy { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     val conflictCount: StateFlow<Int> =
         pendingEditRepository
             .observeConflictCount()
@@ -71,4 +96,27 @@ constructor(
     fun retrySync() {
         if (!offlineMode.value) syncScheduler.syncNow()
     }
+
+    fun thumbnailFor(
+        endpointPath: String,
+        id: Int,
+        devicesById: Map<Int, DeviceEntity>,
+        deviceTypesById: Map<Int, DeviceTypeEntity>,
+    ): DashboardThumbnail? =
+        when (endpointPath) {
+            GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
+                deviceTypesById[id]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
+                    DashboardThumbnail(url, "device-type-$id-front")
+                }
+            GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
+                devicesById[id]?.deviceTypeId?.let { deviceTypeId ->
+                    deviceTypesById[deviceTypeId]?.frontImageUrl
+                        ?.takeIf(String::isNotBlank)
+                        ?.let { url -> DashboardThumbnail(url, "device-type-$deviceTypeId-front") }
+                }
+            else -> null
+        }
+
+    fun localImageFile(thumbnail: DashboardThumbnail): File? =
+        fileDownloadRepository.persistentFile(thumbnail.url, thumbnail.filename)
 }

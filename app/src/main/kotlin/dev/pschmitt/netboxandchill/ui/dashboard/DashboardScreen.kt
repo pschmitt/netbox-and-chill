@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.dashboard
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -57,6 +58,7 @@ import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
@@ -76,6 +78,8 @@ fun DashboardScreen(
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
+    val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
+    val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
     val conflictCount by viewModel.conflictCount.collectAsStateWithLifecycle()
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -206,7 +210,17 @@ fun DashboardScreen(
                     item { EmptyHint(isRefreshing, "No bookmarks yet") }
                 } else {
                     items(bookmarks, key = { "bookmark-${it.id}" }) { bookmark ->
-                        BookmarkRow(bookmark) {
+                        val thumbnail =
+                            bookmark.targetEndpointPath?.let { path ->
+                                bookmark.targetId?.let { id ->
+                                    viewModel.thumbnailFor(path, id, devicesById, deviceTypesById)
+                                }
+                            }
+                        BookmarkRow(
+                            bookmark = bookmark,
+                            thumbnail = thumbnail,
+                            localImageFile = viewModel::localImageFile,
+                        ) {
                             bookmarkTargets[bookmark.id]?.let { (path, id) -> onNavigateToReference(path, id) }
                         }
                     }
@@ -218,8 +232,16 @@ fun DashboardScreen(
                     item { EmptyHint(isRefreshing, "No changes cached yet - pull to sync") }
                 } else {
                     items(changelog, key = { "change-${it.id}" }) { change ->
+                        val thumbnail =
+                            change.targetEndpointPath?.let { path ->
+                                change.targetId?.let { id ->
+                                    viewModel.thumbnailFor(path, id, devicesById, deviceTypesById)
+                                }
+                            }
                         ChangeRow(
                             change = change,
+                            thumbnail = thumbnail,
+                            localImageFile = viewModel::localImageFile,
                             onClick = {
                                 changeTargets[change.id]?.let { (path, id) -> onNavigateToReference(path, id) }
                             },
@@ -281,13 +303,32 @@ private fun GlobalSearchCard(onClick: () -> Unit) {
 }
 
 @Composable
-private fun BookmarkRow(bookmark: BookmarkEntity, onClick: () -> Unit) {
+private fun BookmarkRow(
+    bookmark: BookmarkEntity,
+    thumbnail: DashboardThumbnail?,
+    localImageFile: (DashboardThumbnail) -> java.io.File?,
+    onClick: () -> Unit,
+) {
     val hasTarget = bookmark.targetEndpointPath != null && bookmark.targetId != null
     val icon =
         bookmark.targetEndpointPath?.let { AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(it)) }
             ?: Icons.Default.Bookmark
+    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     ListItem(
-        leadingContent = { Icon(icon, contentDescription = null) },
+        leadingContent = {
+            if (thumbnail == null) {
+                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null)
+                }
+            } else {
+                RemoteThumbnail(
+                    imageUrl = thumbnail.url,
+                    contentDescription = bookmark.display,
+                    localFile = localFile,
+                    modifier = Modifier.size(56.dp),
+                )
+            }
+        },
         headlineContent = { Text(bookmark.display) },
         supportingContent = { Text(formatTimestamp(bookmark.created)) },
         modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
@@ -295,7 +336,13 @@ private fun BookmarkRow(bookmark: BookmarkEntity, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ChangeRow(change: ObjectChangeEntity, onClick: () -> Unit, onDiffClick: () -> Unit) {
+private fun ChangeRow(
+    change: ObjectChangeEntity,
+    thumbnail: DashboardThumbnail?,
+    localImageFile: (DashboardThumbnail) -> java.io.File?,
+    onClick: () -> Unit,
+    onDiffClick: () -> Unit,
+) {
     val hasTarget = change.targetEndpointPath != null && change.targetId != null
     val (icon, tint) =
         when (change.actionValue) {
@@ -304,8 +351,22 @@ private fun ChangeRow(change: ObjectChangeEntity, onClick: () -> Unit, onDiffCli
             "delete" -> Icons.Default.Delete to MaterialTheme.colorScheme.error
             else -> Icons.Default.History to MaterialTheme.colorScheme.onSurfaceVariant
         }
+    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     ListItem(
-        leadingContent = { Icon(icon, contentDescription = change.actionLabel, tint = tint) },
+        leadingContent = {
+            if (thumbnail == null) {
+                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = change.actionLabel, tint = tint)
+                }
+            } else {
+                RemoteThumbnail(
+                    imageUrl = thumbnail.url,
+                    contentDescription = change.objectRepr,
+                    localFile = localFile,
+                    modifier = Modifier.size(56.dp),
+                )
+            }
+        },
         headlineContent = { Text(change.objectRepr) },
         supportingContent = {
             Text("${change.actionLabel} by ${change.userDisplay} · ${formatTimestamp(change.time)}")

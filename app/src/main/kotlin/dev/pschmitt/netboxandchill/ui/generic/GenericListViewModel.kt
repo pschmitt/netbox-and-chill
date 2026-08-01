@@ -5,8 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
+import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
@@ -17,7 +21,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -26,6 +32,8 @@ class GenericListViewModel
 constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: GenericObjectRepository,
+    private val deviceTypeRepository: DeviceTypeRepository,
+    private val fileDownloadRepository: FileDownloadRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
 ) :
@@ -53,6 +61,18 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val deviceTypeImages: StateFlow<Map<Int, DeviceTypeEntity>> =
+        deviceTypeRepository
+            .observeAll()
+            .map { types ->
+                if (route.endpointPath == GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH) {
+                    types.associateBy { it.id }
+                } else {
+                    emptyMap()
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     init {
         refresh()
     }
@@ -68,4 +88,7 @@ constructor(
     fun errorShown() {
         _errorMessage.value = null
     }
+
+    fun localImageFile(url: String, filename: String): File? =
+        fileDownloadRepository.persistentFile(url, filename)
 }

@@ -14,9 +14,12 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
+import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
+import dev.pschmitt.netboxandchill.ui.generic.toJournalEntryUi
 import java.io.File
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
@@ -39,11 +42,13 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 
 private const val DEVICE_OBJECT_TYPE = "dcim.device"
+const val JOURNAL_TAB_ENDPOINT_PATH = "__journal__"
 
 data class DeviceRelatedTab(val label: String, val endpointPath: String)
 
 val DEVICE_RELATED_TABS =
     listOf(
+        DeviceRelatedTab("Journal", JOURNAL_TAB_ENDPOINT_PATH),
         DeviceRelatedTab("Interfaces", "api/dcim/interfaces/"),
         DeviceRelatedTab("Front ports", "api/dcim/front-ports/"),
         DeviceRelatedTab("Rear ports", "api/dcim/rear-ports/"),
@@ -62,6 +67,7 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
+    private val journalEntryRepository: JournalEntryRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val genericObjectRepository: GenericObjectRepository,
     private val recentVisitRepository: RecentVisitRepository,
@@ -116,16 +122,23 @@ constructor(
             .observeFor(DEVICE_OBJECT_TYPE, deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _journalEntries = MutableStateFlow<List<JournalEntryUi>>(emptyList())
+    val journalEntries: StateFlow<List<JournalEntryUi>> = _journalEntries.asStateFlow()
+
     val relatedObjects: Map<String, StateFlow<List<NetBoxObjectEntity>>> =
         DEVICE_RELATED_TABS.associate { tab ->
             tab.endpointPath to
-                genericObjectRepository
-                    .observeObjects(tab.endpointPath, "", "device", deviceId)
-                    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+                if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+                    flowOf(emptyList())
+                } else {
+                    genericObjectRepository
+                        .observeObjects(tab.endpointPath, "", "device", deviceId)
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         }
 
     init {
         refresh()
+        refreshJournal()
         viewModelScope.launch {
             imageAttachmentRepository
                 .refresh(DEVICE_OBJECT_TYPE, deviceId)
@@ -161,6 +174,14 @@ constructor(
 
     fun refreshRelated() {
         if (!settingsRepository.offlineMode.value) syncScheduler.syncNow()
+    }
+
+    fun refreshJournal() {
+        viewModelScope.launch {
+            journalEntryRepository
+                .fetchJournalEntries("api/dcim/devices/", deviceId)
+                .onSuccess { entries -> _journalEntries.value = entries.mapNotNull { it.toJournalEntryUi() } }
+        }
     }
 
     fun errorShown() {

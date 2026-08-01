@@ -27,13 +27,17 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Cable
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,12 +74,14 @@ import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
+import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
 import java.text.DateFormat
 import java.io.File
 import java.util.Date
@@ -94,6 +100,7 @@ fun DeviceDetailScreen(
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
+    val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(-1) }
     val selectedRelatedObjects =
         if (selectedTab >= 0) {
@@ -274,7 +281,11 @@ fun DeviceDetailScreen(
                                     selected = selectedTab == index,
                                     onClick = {
                                         selectedTab = index
-                                        viewModel.refreshRelated()
+                                        if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+                                            viewModel.refreshJournal()
+                                        } else {
+                                            viewModel.refreshRelated()
+                                        }
                                     },
                                     text = { Text(tab.label) },
                                 )
@@ -313,11 +324,15 @@ fun DeviceDetailScreen(
                     } else {
                         val tab = DEVICE_RELATED_TABS[selectedTab]
                         item {
-                            DeviceRelatedObjects(
-                                tab = tab,
-                                objects = selectedRelatedObjects,
-                                onObjectClick = { objectId -> onReferenceClick(tab.endpointPath, objectId) },
-                            )
+                            if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+                                DeviceJournalEntries(journalEntries)
+                            } else {
+                                DeviceRelatedObjects(
+                                    tab = tab,
+                                    objects = selectedRelatedObjects,
+                                    onObjectClick = { objectId -> onReferenceClick(tab.endpointPath, objectId) },
+                                )
+                            }
                         }
                     }
                 }
@@ -370,6 +385,42 @@ private fun DeviceRelatedObjects(
             modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
         )
         HorizontalDivider()
+    }
+}
+
+@Composable
+private fun DeviceJournalEntries(entries: List<JournalEntryUi>) {
+    if (entries.isEmpty()) {
+        Text(
+            "No journal entries found for this device.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
+        return
+    }
+    Column {
+        entries.forEach { entry ->
+            val (icon, tint) =
+                when (entry.kind) {
+                    "success" -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.primary
+                    "warning" -> Icons.Default.Warning to MaterialTheme.colorScheme.tertiary
+                    "danger" -> Icons.Default.Error to MaterialTheme.colorScheme.error
+                    else -> Icons.Default.Info to MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            Column(Modifier.padding(vertical = 6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(icon, contentDescription = entry.kindLabel, tint = tint, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "${entry.kindLabel} · ${entry.created}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                CommentCard(content = entry.comments, modifier = Modifier.fillMaxWidth())
+            }
+        }
     }
 }
 

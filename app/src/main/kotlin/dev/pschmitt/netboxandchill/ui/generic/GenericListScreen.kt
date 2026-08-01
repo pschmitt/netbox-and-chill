@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
@@ -46,6 +47,7 @@ fun GenericListScreen(
     viewModel: GenericListViewModel = hiltViewModel(),
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
+    val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -112,7 +114,13 @@ fun GenericListScreen(
                     val rowIcon = AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(viewModel.route.endpointPath))
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(objects, key = { it.id }) { obj ->
-                            ObjectRow(obj = obj, icon = rowIcon, onClick = { onObjectClick(obj.id) })
+                            ObjectRow(
+                                obj = obj,
+                                icon = rowIcon,
+                                frontImageUrl = deviceTypeImages[obj.id]?.frontImageUrl,
+                                localImageFile = viewModel::localImageFile,
+                                onClick = { onObjectClick(obj.id) },
+                            )
                         }
                     }
                 }
@@ -122,9 +130,33 @@ fun GenericListScreen(
 }
 
 @Composable
-private fun ObjectRow(obj: NetBoxObjectEntity, icon: ImageVector, onClick: () -> Unit) {
+private fun ObjectRow(
+    obj: NetBoxObjectEntity,
+    icon: ImageVector,
+    frontImageUrl: String?,
+    localImageFile: (String, String) -> java.io.File?,
+    onClick: () -> Unit,
+) {
+    val localFile =
+        remember(frontImageUrl, obj.id) {
+            frontImageUrl?.let { localImageFile(it, "device-type-${obj.id}-front") }
+        }
+
     ListItem(
-        leadingContent = { Icon(icon, contentDescription = null) },
+        leadingContent = {
+            if (frontImageUrl.isNullOrBlank()) {
+                Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null)
+                }
+            } else {
+                RemoteThumbnail(
+                    imageUrl = frontImageUrl,
+                    contentDescription = obj.display,
+                    localFile = localFile,
+                    modifier = Modifier.size(72.dp),
+                )
+            }
+        },
         headlineContent = { Text(obj.display) },
         supportingContent = obj.secondaryLine?.let { line -> { Text(line) } },
         modifier = Modifier.clickable(onClick = onClick),

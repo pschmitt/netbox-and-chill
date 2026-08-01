@@ -26,6 +26,16 @@ interface DeviceDao {
 
     @Query("SELECT * FROM devices WHERE id = :id") suspend fun getById(id: Int): DeviceEntity?
 
+    @Query(
+        """
+        SELECT * FROM devices
+        WHERE lower(assetTag) = lower(:assetTag)
+           OR lower(assetTag) = lower(:assetTagWithoutPrefix)
+        LIMIT 1
+        """
+    )
+    suspend fun getByAssetTag(assetTag: String, assetTagWithoutPrefix: String): DeviceEntity?
+
     @Query("SELECT * FROM devices") suspend fun getAll(): List<DeviceEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertAll(devices: List<DeviceEntity>)

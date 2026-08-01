@@ -15,7 +15,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-private val SKIPPED_KEYS = setOf("id", "url", "display", "custom_fields")
+private val SKIPPED_KEYS = setOf("id", "url", "display", "display_url", "custom_fields")
 
 // NetBox documents these specific fields as Markdown-enabled across (almost) every model -
 // "description" is deliberately not included, it's plain short text, not Markdown.
@@ -76,7 +76,7 @@ fun buildFieldRows(
                 val count = (value as? JsonPrimitive)?.intOrNull
                 val target = countTargetFor(key, obj, endpointPath)
                 if (count != null && target != null) {
-                    add(FieldRow.Count(Humanize.label(key), count.toString(), target))
+                    if (count > 0) add(FieldRow.Count(Humanize.label(key), count.toString(), target))
                 } else if (key in USER_REFERENCE_KEYS) {
                     val display =
                         (obj["${key}_display"] as? JsonPrimitive)?.contentOrNull

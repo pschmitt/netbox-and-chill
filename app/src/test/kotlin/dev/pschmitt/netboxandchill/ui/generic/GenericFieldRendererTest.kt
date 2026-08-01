@@ -116,8 +116,13 @@ class GenericFieldRendererTest {
     }
 
     @Test
-    fun `skips id, url and display`() {
-        val rows = buildFieldRows(parse("""{"id":1,"url":"https://x/api/dcim/racks/1/","display":"Rack 1"}"""))
+    fun `skips id, url, display and display url`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"id":1,"url":"https://x/api/dcim/racks/1/","display":"Rack 1","display_url":"https://netbox.brkn.lol/dcim/racks/1/"}"""
+                )
+            )
         assertTrue(rows.isEmpty())
     }
 
@@ -274,7 +279,6 @@ class GenericFieldRendererTest {
             listOf(
                 FieldRow.Count("Rack Count", "1", CountTarget("api/dcim/racks/", "Racks", "location", 17)),
                 FieldRow.Count("Device Count", "136", CountTarget("api/dcim/devices/", "Devices", "location", 17)),
-                FieldRow.Count("Prefix Count", "0", CountTarget("api/ipam/prefixes/", "Prefixes", "scope", 17)),
             ),
             rows,
         )

@@ -233,6 +233,18 @@ fun ScannerScreen(
                         viewModel.reset()
                     }
                 }
+                is ScanResultState.NotFound -> {
+                    ScanOverlay {
+                        Text(
+                            "No device found for asset tag ${current.assetTag}",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                    LaunchedEffect(current) {
+                        delay(1500)
+                        viewModel.reset()
+                    }
+                }
                 else -> Unit
             }
         }
