@@ -4081,3 +4081,29 @@ of leaving the user on a generic device view.
 
 Status: **done**, 2026-08-02; implemented in `935f9c8` and verified on the Mi Pad 4 with
 Device type → long-press → Edit → Cancel returning to the original typed device page.
+
+
+## NBC-230: enlarge image-attachment previews and add inline upload
+
+Item detail pages should make image attachments easier to inspect and provide a visible add action
+next to the attachment previews. The add action must support taking a photo or choosing an image
+from local storage, then upload it to NetBox as an image attachment.
+
+- [ ] Make image-attachment previews larger while keeping horizontal browsing and the image viewer.
+- [ ] Add a plus action in the attachment list with camera and local-file choices.
+- [ ] Refresh the cache after a successful upload and remain safe/offline when NetBox is unavailable.
+- [ ] Verify the empty and populated attachment states on a physical device.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-231: colorize delete actions in item overflow menus
+
+The destructive Delete action in item-view overflow menus should be visually distinct from normal
+actions by using the theme error color for its leading icon.
+
+- [x] Color the Delete icon red in dedicated and generic item-view overflow menus.
+- [x] Keep the existing confirmation dialog and deletion behavior unchanged.
+
+Status: **done**, 2026-08-02; both overflow-menu Delete icons now use the theme error color and
+the existing confirmation/deletion paths are unchanged.

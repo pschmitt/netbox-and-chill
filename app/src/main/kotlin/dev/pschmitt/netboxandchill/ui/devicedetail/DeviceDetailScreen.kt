@@ -282,7 +282,11 @@ fun DeviceDetailScreen(
                             DropdownMenuItem(
                                 text = { Text("Delete") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Delete, contentDescription = null)
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
                                 },
                                 enabled = device != null && !isDeleting,
                                 onClick = {

@@ -484,7 +484,11 @@ fun GenericDetailScreen(
                                 DropdownMenuItem(
                                     text = { Text("Delete") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Delete, contentDescription = null)
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
                                     },
                                     enabled = title != null && !isDeleting,
                                     onClick = {
