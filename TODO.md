@@ -2680,12 +2680,13 @@ navigation/copy behavior instead of being treated as an undifferentiated text va
 - [x] Verify IPv4 and prefix-length display on the Mi Pad 4.
 - [x] Add cache-path fixtures covering IPv6 addresses and prefix lengths for primary and interface
   IP values.
-- [ ] Verify IPv6 and prefix-length display on a device with a cached IPv6 assignment.
+- [x] Verify IPv6 and prefix-length display on a device with a cached IPv6 assignment.
 
-Status: mostly done, 2026-08-01 - remote lint/tests/debug build passed; the Mi Pad 4 displayed
-cached IPv4 prefixes as clickable/copyable interface entries and opened the cached IP detail page.
-The cache-path tests now preserve IPv6 prefixes for primary and interface IPs, but no IPv6 records
-are present in the current cache, so physical IPv6 verification remains open.
+Status: **done**, 2026-08-02 - remote lint/tests/debug build passed; the Mi Pad 4 displayed cached
+IPv4 prefixes as clickable/copyable interface entries and opened the cached IP detail page. A
+disposable NetBox device/interface/IP fixture rendered the cached IPv6 primary address
+`2001:db8:1234::42/64` with copy/navigation actions on the wired Zenfone; all fixture records were
+deleted afterward and no production inventory remains changed.
 
 ## NBC-132: use distinct accents on object detail pages
 
