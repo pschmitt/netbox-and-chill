@@ -4333,9 +4333,9 @@ obvious at a glance.
 
 - [x] Show a compact Cached badge on document previews with a real local file.
 - [x] Avoid claiming a document is cached when only its metadata is cached.
-- [ ] Verify the badge on a populated cached document section on the wired Zenfone.
+- [x] Verify the badge on a populated cached document section on the wired Zenfone.
 
-Status: in progress
+Status: **done** (2026-08-02; downloaded and reopened a real document on the wired Zenfone, verified its local preview and `Cached` badge)
 
 
 ## NBC-244: collapse very long item comments
