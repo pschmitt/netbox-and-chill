@@ -3811,3 +3811,49 @@ and NetBox Documents uploads must expose the document type (manual, purchase ord
 - [ ] Keep uploads explicit, cancellable, and safe when offline.
 
 Status: not started, 2026-08-02.
+
+
+## NBC-214: manage NetBox custom-field definitions
+
+The app already renders cached custom-field values and uses cached definitions in the generic
+create/edit forms. It does not yet provide a complete, type-aware administration workflow for the
+definitions themselves.
+
+- [ ] Add a cache-first custom-field management entry/list/detail workflow.
+- [ ] Support creating, editing, and deleting definitions with confirmation and offline-safe
+  reconciliation.
+- [ ] Model the NetBox field types and their relevant metadata (object types, required/default
+  values, weight/group, validation, and choice sets) with suitable controls and validation.
+- [ ] Keep custom-field definition cache updates and dependent item forms consistent after changes.
+- [ ] Add unit/UI coverage for each supported field type and destructive-action safeguards.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-215: present copyable runtime crash reports
+
+Unexpected runtime failures should be captured safely and shown to the user in a dedicated
+recovery dialog after the process restarts. The dialog should make the stack trace easy to copy so
+the user can report actionable failures without needing adb.
+
+- [ ] Capture uncaught exceptions without losing the existing crash cause or creating a crash loop.
+- [ ] Persist enough context to show the report after process death, including app/build metadata.
+- [ ] Add a readable dialog with copy-to-clipboard and dismiss/restart actions.
+- [ ] Avoid exposing credentials, API tokens, or other sensitive settings in the report.
+- [ ] Test the recovery path on a debug build and verify copying the full trace.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-216: allow disabling sync on app launch
+
+Add a persisted preference controlling whether the normal launch-time background synchronization
+is scheduled. Manual sync, connectivity-triggered sync, and an explicit refresh should remain
+available according to the other sync settings.
+
+- [ ] Add a persisted “Sync on app launch” preference, enabled by default.
+- [ ] Gate only the launch-triggered sync path; preserve manual and explicitly requested refreshes.
+- [ ] Keep the setting visible in the reorganized Sync settings screen with explanatory text.
+- [ ] Add tests for enabled/disabled launch behavior and offline mode interaction.
+
+Status: not started, 2026-08-02.
