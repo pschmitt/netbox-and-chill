@@ -3917,6 +3917,7 @@ requiring a Play Console account yet.
 - [x] Keep the existing debug/release APK workflow unchanged until Play publishing is deliberately
   enabled.
 
-Status: **done**, 2026-08-02; verified YAML parsing and a remote `bundleRelease` with overridden
-version code/name. Publishing remains disabled because no Play account or service-account secret
-exists.
+Status: **done**, 2026-08-02; verified YAML parsing, a remote `bundleRelease` with overridden
+version code/name, and a GitHub-hosted manual run (`publish=false`) that built and uploaded the AAB
+artifact without contacting Google Play. Publishing remains disabled because no Play account or
+service-account secret exists.
