@@ -4280,9 +4280,11 @@ external links must retain their full scheme and host.
 - [x] Compare displayed URLs against the configured NetBox scheme, host, and port.
 - [x] Keep external and unqualified URLs fully qualified while preserving click behavior.
 - [x] Add focused same-origin, external-origin, and unknown-origin tests.
-- [ ] Verify an external URL field on the wired Zenfone without changing production data.
+- [x] Verify an external URL field on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed the full Home Assistant URL on the cached
+Aqara Balcony climate sensor while same-origin URL shortening remained covered by tests; no
+production data was changed.
 
 
 ## NBC-240: improve the journal entry editor
