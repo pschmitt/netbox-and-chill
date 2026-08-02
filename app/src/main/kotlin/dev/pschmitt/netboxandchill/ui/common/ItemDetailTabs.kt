@@ -62,7 +62,12 @@ fun ItemDetailTabs(
                         Text(tab.label, maxLines = 1)
                         if (tab.count != null && tab.count > 0) {
                             Spacer(Modifier.width(6.dp))
-                            Badge { Text(tab.count.toString()) }
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ) {
+                                Text(tab.count.toString())
+                            }
                         }
                     }
                 },

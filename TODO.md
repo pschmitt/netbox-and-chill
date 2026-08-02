@@ -4625,3 +4625,14 @@ copy affordance for MAC addresses.
 - [ ] Verify the interface tab on the wired Zenfone without changing NetBox data.
 
 Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
+
+
+## NBC-269: use neutral item-tab count badges
+
+Item detail count badges should use a calm, neutral color rather than the current alarming pink/red
+appearance.
+
+- [ ] Use a neutral surface-variant badge treatment with readable contrast.
+- [ ] Verify the updated badge style on the wired Zenfone without changing NetBox data.
+
+Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
