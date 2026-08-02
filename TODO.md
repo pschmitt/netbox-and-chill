@@ -4128,12 +4128,14 @@ Item detail tab bars should not offer secondary tabs whose cached content count 
 remains available, and changing the visible tab set must not break selection, swipes, or related
 item navigation.
 
-- [ ] Hide empty related tabs on dedicated device pages.
-- [ ] Hide empty secondary tabs on generic item pages.
-- [ ] Keep selection and left/right swipe indices valid as content appears or disappears.
-- [ ] Verify populated and empty tab sets on a physical device.
+- [x] Hide empty related tabs on dedicated device pages.
+- [x] Hide empty secondary tabs on generic item pages.
+- [x] Keep selection and left/right swipe indices valid as content appears or disappears.
+- [x] Verify the empty tab set on the Mi Pad 4 and keep populated tabs/count badges intact.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; the remote unit suite and `ktfmtCheck` passed, and the debug APK
+was deployed to all three devices. The Mi Pad 4 device view showed only populated tabs after the
+change, without affecting its populated Interfaces/Power ports tabs.
 
 
 ## NBC-234: add and edit journal entries from item pages

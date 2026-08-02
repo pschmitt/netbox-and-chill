@@ -602,9 +602,15 @@ fun GenericDetailScreen(
                             )
                         }
                     else -> {
+                        val hasJournal = journalEntries.isNotEmpty()
                         var selectedTab by remember { mutableStateOf(0) }
+                        val tabCount = if (hasJournal) 2 else 1
+                        val visibleSelectedTab = selectedTab.coerceIn(0, tabCount - 1)
+                        LaunchedEffect(hasJournal) {
+                            selectedTab = visibleSelectedTab
+                        }
                         Column(
-                            Modifier.fillMaxSize().itemTabSwipe(selectedTab, 2) {
+                            Modifier.fillMaxSize().itemTabSwipe(visibleSelectedTab, tabCount) {
                                 selectedTab = it
                             }
                         ) {
@@ -644,16 +650,22 @@ fun GenericDetailScreen(
                                 tabs =
                                     listOf(
                                         ItemDetailTab("Overview", Icons.Default.Info),
-                                        ItemDetailTab(
-                                            "Journal",
-                                            Icons.Default.History,
-                                            journalEntries.size,
-                                        ),
-                                    ),
-                                selectedTab = selectedTab,
+                                    ) +
+                                        if (hasJournal) {
+                                            listOf(
+                                                ItemDetailTab(
+                                                    "Journal",
+                                                    Icons.Default.History,
+                                                    journalEntries.size,
+                                                )
+                                            )
+                                        } else {
+                                            emptyList()
+                                        },
+                                selectedTab = visibleSelectedTab,
                                 onTabSelected = { selectedTab = it },
                             )
-                            if (selectedTab == 0) {
+                            if (visibleSelectedTab == 0) {
                                 LazyColumn(
                                     modifier = Modifier.fillMaxSize(),
                                     contentPadding = PaddingValues(16.dp),

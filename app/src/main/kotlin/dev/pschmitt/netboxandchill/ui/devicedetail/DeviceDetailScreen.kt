@@ -137,13 +137,6 @@ fun DeviceDetailScreen(
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(0) }
-    val selectedRelatedObjects =
-        if (selectedTab > 0) {
-            val endpointPath = DEVICE_RELATED_TABS[selectedTab - 1].endpointPath
-            viewModel.relatedObjects[endpointPath]?.collectAsStateWithLifecycle()?.value.orEmpty()
-        } else {
-            emptyList()
-        }
     val relatedCounts = DEVICE_RELATED_TABS.map { tab ->
         if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
             journalEntries.size
@@ -152,6 +145,19 @@ fun DeviceDetailScreen(
                 ?: 0
         }
     }
+    val visibleRelatedTabs =
+        DEVICE_RELATED_TABS.filterIndexed { index, _ -> relatedCounts[index] > 0 }
+    val visibleSelectedTab = selectedTab.coerceIn(0, visibleRelatedTabs.size)
+    LaunchedEffect(visibleRelatedTabs) {
+        selectedTab = visibleSelectedTab
+    }
+    val selectedRelatedObjects =
+        if (visibleSelectedTab > 0) {
+            val endpointPath = visibleRelatedTabs[visibleSelectedTab - 1].endpointPath
+            viewModel.relatedObjects[endpointPath]?.collectAsStateWithLifecycle()?.value.orEmpty()
+        } else {
+            emptyList()
+        }
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isDeleting by viewModel.isDeleting.collectAsStateWithLifecycle()
     val deleteResult by viewModel.deleteResult.collectAsStateWithLifecycle()
@@ -408,8 +414,8 @@ fun DeviceDetailScreen(
                 LazyColumn(
                     modifier =
                         Modifier.fillMaxSize().itemTabSwipe(
-                            selectedTab,
-                            DEVICE_RELATED_TABS.size + 1,
+                            visibleSelectedTab,
+                            visibleRelatedTabs.size + 1,
                         ) { tabIndex -> selectedTab = tabIndex },
                     contentPadding = PaddingValues(16.dp),
                 ) {
@@ -467,24 +473,24 @@ fun DeviceDetailScreen(
                     }
                     item {
                         ItemDetailTabs(
-                            tabs =
-                                buildList {
-                                    add(ItemDetailTab("Overview", Icons.Default.Info))
-                                    DEVICE_RELATED_TABS.forEachIndexed { index, tab ->
+                                tabs =
+                                    buildList {
+                                        add(ItemDetailTab("Overview", Icons.Default.Info))
+                                    visibleRelatedTabs.forEach { tab ->
                                         add(
                                             ItemDetailTab(
                                                 label = tab.label,
                                                 icon = tabIcon(tab),
-                                                count = relatedCounts[index],
+                                                count = relatedCounts[DEVICE_RELATED_TABS.indexOf(tab)],
                                             )
                                         )
                                     }
                                 },
-                            selectedTab = selectedTab,
+                            selectedTab = visibleSelectedTab,
                             onTabSelected = { selectedTab = it },
                         )
                     }
-                    if (selectedTab == 0) {
+                    if (visibleSelectedTab == 0) {
                         item {
                             Spacer(Modifier.height(16.dp))
                         }
@@ -634,7 +640,7 @@ fun DeviceDetailScreen(
                             )
                         }
                     } else {
-                        val tab = DEVICE_RELATED_TABS[selectedTab - 1]
+                        val tab = visibleRelatedTabs[visibleSelectedTab - 1]
                         item {
                             if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
                                 DeviceJournalEntries(
