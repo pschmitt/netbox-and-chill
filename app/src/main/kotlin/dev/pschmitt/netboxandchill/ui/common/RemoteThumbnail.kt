@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
@@ -15,6 +16,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.transformations
+import dev.pschmitt.netboxandchill.image.TransparentPaddingTransformation
 import java.io.File
 
 /**
@@ -45,8 +50,16 @@ fun RemoteThumbnail(
             )
         }
     } else {
+        val context = LocalPlatformContext.current
+        val request =
+            remember(imageUrl, localFile) {
+                ImageRequest.Builder(context)
+                    .data(localFile ?: imageUrl)
+                    .transformations(TransparentPaddingTransformation())
+                    .build()
+            }
         AsyncImage(
-            model = localFile ?: imageUrl,
+            model = request,
             contentDescription = contentDescription,
             modifier = modifier.clip(RoundedCornerShape(8.dp)),
             contentScale = contentScale,

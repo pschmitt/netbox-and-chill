@@ -37,6 +37,7 @@ import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.SearchHighlightedText
 import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
@@ -134,6 +135,7 @@ fun GenericListScreen(
                                 icon = rowIcon,
                                 iconTint = rowColor,
                                 frontImageUrl = deviceTypeImages[obj.id]?.frontImageUrl,
+                                query = query,
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onObjectClick(obj.id) },
                             )
@@ -158,6 +160,7 @@ private fun ObjectRow(
     icon: ImageVector,
     iconTint: androidx.compose.ui.graphics.Color,
     frontImageUrl: String?,
+    query: String,
     localImageFile: (String, String) -> java.io.File?,
     onClick: () -> Unit,
 ) {
@@ -182,13 +185,15 @@ private fun ObjectRow(
                 )
             }
         },
-        headlineContent = { Text(obj.display) },
+        headlineContent = { SearchHighlightedText(obj.display, query) },
         supportingContent = {
             val subtitle = obj.secondaryLine?.takeIf(String::isNotBlank)
             if (subtitle != null || assetTag.hasField) {
                 Column {
-                    subtitle?.let { Text(it) }
-                    if (assetTag.value != null) AssetTagBadge(assetTag.value)
+                    subtitle?.let { SearchHighlightedText(it, query) }
+                    if (assetTag.value != null) {
+                        AssetTagBadge(assetTag.value, highlightQuery = query)
+                    }
                     else if (assetTag.hasField) MissingAssetTagBadge()
                 }
             }

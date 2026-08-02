@@ -21,6 +21,7 @@ fun AssetTagBadge(
     assetTag: String,
     modifier: Modifier = Modifier,
     missing: Boolean = false,
+    highlightQuery: String = "",
 ) {
     Surface(
         color =
@@ -38,8 +39,9 @@ fun AssetTagBadge(
         ) {
             Icon(Icons.Default.LocalOffer, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text(
-                assetTag,
+            SearchHighlightedText(
+                value = assetTag,
+                query = highlightQuery,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

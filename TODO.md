@@ -4738,11 +4738,12 @@ its adb connection is currently unavailable.
 
 Item list search fields should highlight the matching portions of result rows in a grep-like style.
 
-- [ ] Highlight matching text in list row titles and relevant secondary fields.
-- [ ] Preserve normal cached/offline list filtering and accessibility labels.
-- [ ] Verify the shared behavior across typed and generic list pages.
+- [x] Highlight matching text in list row titles and relevant secondary fields.
+- [x] Preserve normal cached/offline list filtering and accessibility labels.
+- [x] Verify the shared behavior across typed and generic list pages.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - shared case-insensitive highlighting is covered by unit tests and
+applied to typed/generic cached list rows; Mi Pad 4 smoke-tested without changing NetBox data.
 
 
 ## NBC-278: crop transparent padding from thumbnails
@@ -4750,11 +4751,14 @@ Status: not started, 2026-08-02.
 Device-type and related image thumbnails should use the visible artwork bounds so images with large
 transparent margins do not appear unnecessarily tiny.
 
-- [ ] Detect transparent padding for locally decoded thumbnails without damaging image content.
-- [ ] Apply a bounded crop/scale treatment consistently to device-type and related thumbnails.
-- [ ] Keep fallback rendering safe for formats without alpha and verify against device `#SNF-0004`.
+- [x] Detect transparent padding for locally decoded thumbnails without damaging image content.
+- [x] Apply a bounded crop/scale treatment consistently to device-type and related thumbnails.
+- [x] Keep fallback rendering safe for formats without alpha.
+- [ ] Visually verify the crop against device `#SNF-0004`.
 
-Status: not started, 2026-08-02.
+Status: mostly done, 2026-08-02 - thumbnail-only Coil transformation uses bounded alpha bounds
+with unit coverage; full-size viewer framing and non-alpha fallback remain unchanged. Visual
+verification against `#SNF-0004` remains pending.
 
 
 ## NBC-279: use acronym-aware global-search match labels

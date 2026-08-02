@@ -29,7 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun StatusChip(label: String?, value: String?) {
+fun StatusChip(label: String?, value: String?, highlightQuery: String = "") {
     if (label == null) return
     val color =
         when (value?.lowercase()) {
@@ -55,7 +55,11 @@ fun StatusChip(label: String?, value: String?) {
                 modifier = Modifier.size(16.dp),
             )
             Spacer(Modifier.width(5.dp))
-            Text(text = label, style = MaterialTheme.typography.labelMedium)
+            SearchHighlightedText(
+                value = label,
+                query = highlightQuery,
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }

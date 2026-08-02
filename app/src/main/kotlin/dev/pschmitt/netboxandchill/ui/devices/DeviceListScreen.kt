@@ -37,6 +37,7 @@ import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.SearchHighlightedText
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 
@@ -136,6 +137,7 @@ fun DeviceListScreen(
                                 frontImageUrl =
                                     deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
                                 fallbackTint = rowColor,
+                                query = query,
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onDeviceClick(device.id) },
                             )
@@ -160,6 +162,7 @@ private fun DeviceRow(
     frontImageUrl: String?,
     localImageFile: (String, String) -> java.io.File?,
     fallbackTint: androidx.compose.ui.graphics.Color,
+    query: String,
     onClick: () -> Unit,
 ) {
     val localFile =
@@ -177,7 +180,7 @@ private fun DeviceRow(
                 fallbackTint = fallbackTint,
             )
         },
-        headlineContent = { Text(device.name) },
+        headlineContent = { SearchHighlightedText(device.name, query) },
         supportingContent = {
             val subtitle =
                 listOfNotNull(device.siteName, device.deviceTypeModel).joinToString(" · ")
@@ -185,13 +188,26 @@ private fun DeviceRow(
             if (subtitle.isNotBlank() || assetTag != null || device.assetTag.isNullOrBlank()) {
                 Column {
                     if (subtitle.isNotBlank()) {
-                        Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        SearchHighlightedText(
+                            value = subtitle,
+                            query = query,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    if (assetTag != null) AssetTagBadge(assetTag) else MissingAssetTagBadge()
+                    if (assetTag != null) {
+                        AssetTagBadge(assetTag, highlightQuery = query)
+                    } else MissingAssetTagBadge()
                 }
             }
         },
-        trailingContent = { StatusChip(label = device.statusLabel, value = device.statusValue) },
+        trailingContent = {
+            StatusChip(
+                label = device.statusLabel,
+                value = device.statusValue,
+                highlightQuery = query,
+            )
+        },
         modifier = Modifier.clickable(onClick = onClick),
     )
 }
