@@ -4599,5 +4599,5 @@ tab bar uses less vertical space.
 - [x] Preserve tab badges and selection behavior.
 - [x] Verify the compact layout on the wired Zenfone without changing NetBox data.
 
-Status: in progress, 2026-08-02 - remote ktfmt/unit tests/lint passed; device verification is pending;
-no NetBox data was changed.
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the compact horizontal tab row and
+badge/tab selection behavior were verified on the wired Zenfone; no NetBox data was changed.
