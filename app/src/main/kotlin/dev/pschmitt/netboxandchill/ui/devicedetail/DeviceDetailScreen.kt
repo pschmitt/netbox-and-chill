@@ -71,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -434,33 +435,52 @@ fun DeviceDetailScreen(
                         Spacer(Modifier.height(12.dp))
                     }
                     item {
-                        ScrollableTabRow(
-                            selectedTabIndex = selectedTab + 1,
-                            edgePadding = 0.dp,
-                        ) {
-                            Tab(
-                                selected = selectedTab == -1,
-                                onClick = { selectedTab = -1 },
-                                text = { Text("Overview") },
-                            )
-                            DEVICE_RELATED_TABS.forEachIndexed { index, tab ->
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.width(168.dp)) {
                                 Tab(
-                                    selected = selectedTab == index,
-                                    onClick = {
-                                        selectedTab = index
-                                    },
+                                    selected = selectedTab == -1,
+                                    onClick = { selectedTab = -1 },
                                     text = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                tabIcon(tab),
+                                                Icons.Default.Info,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(18.dp),
                                             )
                                             Spacer(Modifier.width(6.dp))
-                                            Text("${tab.label} (${relatedCounts[index]})")
+                                            Text("Overview")
                                         }
                                     },
                                 )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                ScrollableTabRow(
+                                    selectedTabIndex = selectedTab.coerceAtLeast(0),
+                                    edgePadding = 0.dp,
+                                ) {
+                                    DEVICE_RELATED_TABS.forEachIndexed { index, tab ->
+                                        Tab(
+                                            selected = selectedTab == index,
+                                            onClick = {
+                                                selectedTab = index
+                                            },
+                                            text = {
+                                                Row(
+                                                    verticalAlignment =
+                                                        Alignment.CenterVertically
+                                                ) {
+                                                    Icon(
+                                                        tabIcon(tab),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(18.dp),
+                                                    )
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Text("${tab.label} (${relatedCounts[index]})")
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -844,6 +864,7 @@ private fun DeviceJournalEntries(entries: List<JournalEntryUi>) {
         Text(
             "No journal entries found for this device.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontStyle = FontStyle.Italic,
             modifier = Modifier.padding(vertical = 16.dp),
         )
         return

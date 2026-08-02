@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.dashboard
 
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
@@ -16,19 +17,28 @@ class ObjectChangeDiffTest {
     fun `only fields that actually changed appear as diff rows`() {
         val pre = parse("""{"name":"old-name","serial":"ABC123","status":"active"}""")
         val post = parse("""{"name":"new-name","serial":"ABC123","status":"active"}""")
-        assertEquals(listOf(DiffRow("Name", "old-name", "new-name")), buildDiffRows(pre, post))
+        assertEquals(
+            listOf(DiffRow("Name", "old-name", "new-name", fieldKey = "name")),
+            buildDiffRows(pre, post),
+        )
     }
 
     @Test
     fun `create has no before side`() {
         val post = parse("""{"name":"new-device"}""")
-        assertEquals(listOf(DiffRow("Name", null, "new-device")), buildDiffRows(null, post))
+        assertEquals(
+            listOf(DiffRow("Name", null, "new-device", fieldKey = "name")),
+            buildDiffRows(null, post),
+        )
     }
 
     @Test
     fun `delete has no after side`() {
         val pre = parse("""{"name":"gone-device"}""")
-        assertEquals(listOf(DiffRow("Name", "gone-device", null)), buildDiffRows(pre, null))
+        assertEquals(
+            listOf(DiffRow("Name", "gone-device", null, fieldKey = "name")),
+            buildDiffRows(pre, null),
+        )
     }
 
     @Test
@@ -36,7 +46,7 @@ class ObjectChangeDiffTest {
         val pre = parse("""{"description":null}""")
         val post = parse("""{"description":"now has a description"}""")
         assertEquals(
-            listOf(DiffRow("Description", null, "now has a description")),
+            listOf(DiffRow("Description", null, "now has a description", fieldKey = "description")),
             buildDiffRows(pre, post),
         )
     }
@@ -83,10 +93,87 @@ class ObjectChangeDiffTest {
                     "new **details**",
                     "Purchase",
                     markdown = true,
+                    fieldKey = "custom_fields.purchase_info",
                 ),
-                DiffRow("Enabled", "Disabled", "Enabled", "Purchase"),
+                DiffRow(
+                    "Enabled",
+                    "Disabled",
+                    "Enabled",
+                    "Purchase",
+                    fieldKey = "custom_fields.enabled",
+                ),
             ),
             buildDiffRows(pre, post, definitions),
         )
+    }
+
+    @Test
+    fun resolvesRoleIdsFromDeviceChangelogUsingCachedDisplays() = runBlocking {
+        val change =
+            parse(
+                """{
+                    "changed_object_type":"dcim.device",
+                    "prechange_data":{"role":30,"vc_position":1},
+                    "postchange_data":{"role":8,"vc_position":2}
+                }"""
+            )
+        val pre = change["prechange_data"] as JsonObject
+        val post = change["postchange_data"] as JsonObject
+        val rows = buildDiffRows(pre, post)
+
+        val resolved =
+            resolveLinkedDiffRows(change, rows) { endpoint, id ->
+                assertEquals("api/dcim/device-roles/", endpoint)
+                mapOf(30 to "Old role", 8 to "New role")[id]
+            }
+
+        assertEquals("Old role", resolved.first { it.fieldKey == "role" }.before)
+        assertEquals("New role", resolved.first { it.fieldKey == "role" }.after)
+        assertEquals("1", resolved.first { it.fieldKey == "vc_position" }.before)
+        assertEquals("2", resolved.first { it.fieldKey == "vc_position" }.after)
+    }
+
+    @Test
+    fun resolvesNestedReferencesFromTheirSnapshotUrl() = runBlocking {
+        val change =
+            parse(
+                """{
+                    "changed_object_type":"dcim.device",
+                    "prechange_data":{"role":{"id":30,"url":"https://netbox.test/api/dcim/device-roles/30/"}},
+                    "postchange_data":{"role":{"id":8,"url":"https://netbox.test/api/dcim/device-roles/8/"}}
+                }"""
+            )
+        val pre = change["prechange_data"] as JsonObject
+        val post = change["postchange_data"] as JsonObject
+        val rows = buildDiffRows(pre, post)
+        val resolved =
+            resolveLinkedDiffRows(change, rows) { endpoint, id ->
+                assertEquals("api/dcim/device-roles/", endpoint)
+                "Role $id"
+            }
+
+        assertEquals("Role 30", resolved.single().before)
+        assertEquals("Role 8", resolved.single().after)
+    }
+
+    @Test
+    fun keepsUnknownLinkedIdsAndNumericFieldsIntact() = runBlocking {
+        val change =
+            parse(
+                """{
+                    "changed_object_type":"dcim.device",
+                    "prechange_data":{"role":30,"position":1},
+                    "postchange_data":{"role":8,"position":2}
+                }"""
+            )
+        val pre = change["prechange_data"] as JsonObject
+        val post = change["postchange_data"] as JsonObject
+        val rows = buildDiffRows(pre, post)
+        val resolved = resolveLinkedDiffRows(change, rows) { _, _ -> null }
+
+        assertEquals("30", resolved.first { it.fieldKey == "role" }.before)
+        assertEquals("8", resolved.first { it.fieldKey == "role" }.after)
+        assertEquals("1", resolved.first { it.fieldKey == "position" }.before)
+        assertEquals("2", resolved.first { it.fieldKey == "position" }.after)
     }
 }

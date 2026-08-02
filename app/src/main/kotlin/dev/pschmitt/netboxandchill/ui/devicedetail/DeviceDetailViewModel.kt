@@ -27,6 +27,7 @@ import dev.pschmitt.netboxandchill.ui.generic.buildFieldRows
 import dev.pschmitt.netboxandchill.ui.generic.toJournalEntryUi
 import dev.pschmitt.netboxandchill.ui.common.REFRESH_QUEUED_TOAST
 import dev.pschmitt.netboxandchill.ui.common.refreshCompletionToast
+import dev.pschmitt.netboxandchill.ui.common.shouldShowRefreshQueuedToast
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import java.io.File
 import javax.inject.Inject
@@ -244,8 +245,11 @@ constructor(
     }
 
     fun refresh(showConfirmation: Boolean = false) {
+        if (settingsRepository.offlineMode.value) return
         viewModelScope.launch {
-            if (showConfirmation) _refreshToastMessage.value = REFRESH_QUEUED_TOAST
+            if (shouldShowRefreshQueuedToast(showConfirmation, offlineMode = false)) {
+                _refreshToastMessage.value = REFRESH_QUEUED_TOAST
+            }
             _isRefreshing.value = true
             deviceRepository
                 .refreshDevice(deviceId)

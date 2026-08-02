@@ -1,16 +1,19 @@
 package dev.pschmitt.netboxandchill.ui.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,11 +36,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ObjectChangeDiffScreen(
     onBack: () -> Unit,
+    onOpenChangedObject: (endpointPath: String, id: Int) -> Unit = { _, _ -> },
     viewModel: ObjectChangeDiffViewModel = hiltViewModel(),
 ) {
     val diff by viewModel.diff.collectAsStateWithLifecycle()
@@ -85,21 +90,86 @@ fun ObjectChangeDiffScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            else -> DiffContent(diff = diff!!, modifier = Modifier.padding(padding).fillMaxSize())
+            else ->
+                DiffContent(
+                    diff = diff!!,
+                    onOpenChangedObject = onOpenChangedObject,
+                    localImageFile = viewModel::localImageFile,
+                    modifier = Modifier.padding(padding).fillMaxSize(),
+                )
         }
     }
 }
 
 @Composable
-private fun DiffContent(diff: ObjectChangeDiffUi, modifier: Modifier = Modifier) {
+private fun DiffContent(
+    diff: ObjectChangeDiffUi,
+    onOpenChangedObject: (endpointPath: String, id: Int) -> Unit,
+    localImageFile: (ChangeImage) -> java.io.File?,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(modifier = modifier, contentPadding = PaddingValues(16.dp)) {
         item {
             Text(
-                "${diff.actionLabel} by ${diff.userDisplay} · ${formatNetBoxDateTime(diff.time)}",
+                "${diff.actionLabel} by ${diff.userDisplay}",
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                formatNetBoxDateTime(diff.time),
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 16.dp),
             )
+        }
+        val targetEndpointPath = diff.targetEndpointPath
+        val targetId = diff.targetId
+        if (targetEndpointPath != null && targetId != null) {
+            item {
+                Card(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                            .clickable { onOpenChangedObject(targetEndpointPath, targetId) },
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
+                            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                                Text("${diff.objectRepr}", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "Open changed item",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        if (diff.deviceTypeImages.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                diff.deviceTypeImages.forEach { image ->
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        RemoteThumbnail(
+                                            imageUrl = image.url,
+                                            contentDescription = "${diff.objectRepr} ${image.label.lowercase()} image",
+                                            localFile = localImageFile(image),
+                                            modifier = Modifier.size(96.dp),
+                                        )
+                                        Text(
+                                            "${image.label.lowercase()}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 4.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         if (diff.rows.isEmpty()) {
             item {

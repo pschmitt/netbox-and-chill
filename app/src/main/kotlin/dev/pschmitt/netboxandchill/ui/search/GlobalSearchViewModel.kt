@@ -39,6 +39,9 @@ import kotlinx.coroutines.launch
 
 data class SearchThumbnail(val url: String, val filename: String)
 
+internal fun shouldRefreshGlobalSearch(queryText: String, offlineMode: Boolean): Boolean =
+    queryText.isNotBlank() && !offlineMode
+
 /**
  * Backs [GlobalSearchScreen] (NBC-13) - debounced free-text search, cache-first like every other
  * screen in this app (see [GlobalSearchRepository]'s doc comment). [results] reads straight from
@@ -142,8 +145,11 @@ constructor(
         // ...) only gets a quiet message, never a blocking error - same "never gate on network"
         // rule NBC-18 established for the rest of the app.
         viewModelScope.launch {
-            debouncedQuery.collectLatest { text ->
-                if (text.isBlank()) return@collectLatest
+            combine(debouncedQuery, settingsRepository.offlineMode) { text, offline ->
+                    text to offline
+                }
+                .collectLatest { (text, offline) ->
+                if (!shouldRefreshGlobalSearch(text, offline)) return@collectLatest
                 _isRefreshing.value = true
                 val endpointPaths =
                     typeFilter.value?.endpointPath?.let(::listOf)
@@ -159,7 +165,7 @@ constructor(
                 } finally {
                     _isRefreshing.value = false
                 }
-            }
+                }
         }
     }
 

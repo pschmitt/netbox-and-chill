@@ -545,4 +545,57 @@ class GenericFieldRendererTest {
         // Falls through to the flatten fallback since it's not a usable reference.
         assertNull(rows.filterIsInstance<FieldRow.Reference>().firstOrNull())
     }
+
+    @Test
+    fun doesNotRenderAHeadingForAnEmptyCustomFieldGroup() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"custom_fields":{"empty_purchase_field":null,"asset_owner":"NetOps"}}"""
+                ),
+                listOf(
+                    CustomFieldDefinition(
+                        "empty_purchase_field",
+                        "text",
+                        "Purchase note",
+                        "Purchase Information",
+                        1,
+                    ),
+                    CustomFieldDefinition(
+                        "asset_owner",
+                        "text",
+                        "Asset owner",
+                        "Operations",
+                        1,
+                    ),
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Operations"),
+                FieldRow.Markdown("Asset owner", "NetOps"),
+            ),
+            rows,
+        )
+    }
+    @Test
+    fun renders_system_timestamps_as_metadata_rows() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"created":"2026-08-01T20:00:00Z","last_updated":"2026-08-02T20:00:00Z","name":"Router"}"""
+                )
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.Metadata("Created", "2026-08-01T20:00:00Z"),
+                FieldRow.Metadata("Last Updated", "2026-08-02T20:00:00Z"),
+                FieldRow.PlainText("Name", "Router"),
+            ),
+            rows,
+        )
+    }
 }

@@ -65,6 +65,7 @@ fun Sidebar(
     onModelClick: (NetBoxModelEntity) -> Unit,
     onTopologyClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAboutClick: () -> Unit,
     viewModel: DirectoryViewModel = hiltViewModel(),
 ) {
     val modelsByApp by viewModel.modelsByApp.collectAsStateWithLifecycle()
@@ -349,6 +350,7 @@ fun Sidebar(
                 appVersion = BuildConfig.VERSION_NAME,
                 netboxUrl = credentials.baseUrl,
                 onSettingsClick = onSettingsClick,
+                onAboutClick = onAboutClick,
             )
         }
     }
@@ -356,13 +358,22 @@ fun Sidebar(
 
 /** Static (non-scrolling) footer pinned to the bottom of the drawer. */
 @Composable
-private fun SidebarFooter(appVersion: String, netboxUrl: String, onSettingsClick: () -> Unit) {
+private fun SidebarFooter(
+    appVersion: String,
+    netboxUrl: String,
+    onSettingsClick: () -> Unit,
+    onAboutClick: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text("Version $appVersion", style = MaterialTheme.typography.labelMedium)
+        Column(Modifier.weight(1f).clickable(onClick = onAboutClick)) {
+            Text(
+                "version $appVersion",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             if (netboxUrl.isNotBlank()) {
                 Text(
                     displayNetBoxHostname(netboxUrl),

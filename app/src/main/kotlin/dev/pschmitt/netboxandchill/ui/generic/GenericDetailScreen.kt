@@ -20,8 +20,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
@@ -83,6 +84,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
@@ -592,12 +594,12 @@ fun GenericDetailScreen(
                                     text = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                Icons.Default.Description,
+                                                Icons.Default.Info,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(18.dp),
                                             )
                                             Spacer(Modifier.width(6.dp))
-                                            Text("Details")
+                                            Text("Overview")
                                         }
                                     },
                                 )
@@ -699,6 +701,7 @@ fun GenericDetailScreen(
                                             Text(
                                                 "No journal entries found for this item.",
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontStyle = FontStyle.Italic,
                                                 modifier = Modifier.padding(vertical = 16.dp),
                                             )
                                         }
@@ -1169,6 +1172,7 @@ private fun RelatedItemsBottomSheet(
                     Text(
                         "No related items cached yet",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontStyle = FontStyle.Italic,
                         modifier = Modifier.padding(24.dp),
                     )
                 else ->
@@ -1815,6 +1819,37 @@ internal fun LazyListScope.fieldRow(
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
+                }
+            }
+        is FieldRow.Metadata ->
+            item {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = RoundedCornerShape(12.dp),
+                    tonalElevation = 1.dp,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Default.AccessTime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Column(modifier = Modifier.padding(start = 10.dp)) {
+                            Text(
+                                row.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                formatNetBoxDateTime(row.value),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
                 }
             }
         is FieldRow.PlainText ->

@@ -16,14 +16,18 @@ fun Modifier.itemTabSwipe(
 ): Modifier =
     pointerInput(selectedTab, tabCount, onTabSelected) {
         awaitEachGesture {
-            val down = awaitFirstDown(pass = PointerEventPass.Initial)
+            // Observe after nested horizontal containers (such as the detail tab strip) have
+            // had a chance to consume the gesture. The page-level shortcut must not steal their
+            // scrolling gesture.
+            val down = awaitFirstDown(pass = PointerEventPass.Final)
             var previous = down.position
             var total = Offset.Zero
             var triggered = false
             while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val event = awaitPointerEvent(PointerEventPass.Final)
                 val change = event.changes.firstOrNull() ?: break
                 if (!change.pressed) break
+                if (change.isConsumed) break
                 val delta = change.position - previous
                 previous = change.position
                 total += delta

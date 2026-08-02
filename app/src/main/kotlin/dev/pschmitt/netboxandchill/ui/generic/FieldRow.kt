@@ -15,6 +15,9 @@ sealed interface FieldRow {
         val matterPairingCode: Boolean = false,
     ) : FieldRow
 
+    /** NetBox-managed timestamps shown in a compact metadata treatment. */
+    data class Metadata(override val label: String, val value: String) : FieldRow
+
     /** A real Boolean value, kept semantic so detail pages can show state instead of Yes/No. */
     data class BooleanValue(override val label: String, val value: Boolean) : FieldRow
 
@@ -70,6 +73,7 @@ data class CountTarget(
 internal fun FieldRow.actionValue(): String? =
     when (this) {
         is FieldRow.PlainText -> value
+        is FieldRow.Metadata -> value
         is FieldRow.BooleanValue -> if (value) "Enabled" else "Disabled"
         is FieldRow.Count -> value
         is FieldRow.Markdown -> content

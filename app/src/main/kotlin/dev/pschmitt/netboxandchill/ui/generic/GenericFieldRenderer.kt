@@ -30,6 +30,7 @@ private val COPYABLE_KEYS =
     setOf("serial", "asset_tag", "address", "primary_ip", "primary_ip4", "primary_ip6")
 
 private val USER_REFERENCE_KEYS = setOf("created_by", "last_updated_by")
+private val METADATA_KEYS = setOf("created", "last_updated")
 
 private val MATTER_PAIRING_CODE_PATTERN = Regex("^\\d{4}-\\d{3}-\\d{4}$")
 
@@ -70,6 +71,10 @@ fun buildFieldRows(
         when {
             key in SKIPPED_KEYS -> Unit
             key.endsWith("_display") && key.removeSuffix("_display") in USER_REFERENCE_KEYS -> Unit
+            key in METADATA_KEYS ->
+                text
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { add(FieldRow.Metadata(Humanize.label(key), it)) }
             key in MARKDOWN_KEYS ->
                 text
                     ?.takeIf { it.isNotBlank() }
@@ -137,16 +142,22 @@ fun buildFieldRows(
             for ((key, value) in sortedFields) {
                 val definition = definitions[key]
                 val group = definition?.group?.trim()?.takeIf { it.isNotBlank() }
-                if (group != null && group != activeGroup) add(FieldRow.CustomGroup(group))
-                activeGroup = group
                 val label = definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key)
                 val textValue = (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
-                if (textValue != null && isMatterPairingCode(textValue)) {
-                    add(FieldRow.PlainText(label, textValue, matterPairingCode = true))
-                } else if (definition?.type in setOf("markdown", "text", "longtext")) {
-                    textValue?.let { add(FieldRow.Markdown(label, it)) }
-                } else {
-                    renderField(key, label, value)?.let(::add)
+                val fieldRow =
+                    if (textValue != null && isMatterPairingCode(textValue)) {
+                        FieldRow.PlainText(label, textValue, matterPairingCode = true)
+                    } else if (definition?.type in setOf("markdown", "text", "longtext")) {
+                        textValue?.let { FieldRow.Markdown(label, it) }
+                    } else {
+                        renderField(key, label, value)
+                    }
+                // Add the heading only when this field produces a visible row. This prevents an
+                // empty/hidden field from leaving an orphaned group heading above the next group.
+                fieldRow?.let {
+                    if (group != null && group != activeGroup) add(FieldRow.CustomGroup(group))
+                    activeGroup = group
+                    add(it)
                 }
             }
         }

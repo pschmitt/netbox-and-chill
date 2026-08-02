@@ -73,13 +73,22 @@ constructor(
     init {
         viewModelScope.launch {
             val customDefinitions = customFieldRepository.observeDefinitions().first()
-            repository
-                .createFieldDefinitions(route.endpointPath)
+            val fieldDefinitions =
+                if (settingsRepository.offlineMode.value) {
+                    Result.success(emptyList())
+                } else {
+                    repository.createFieldDefinitions(route.endpointPath)
+                }
+            fieldDefinitions
                 .onSuccess { definitions ->
                     val fallback = fallbackCreateFieldDefinitions(route.endpointPath)
                     if (definitions.isEmpty() && fallback.isNotEmpty()) {
                         _errorMessage.value =
-                            "NetBox did not provide form metadata; using the core fields"
+                            if (settingsRepository.offlineMode.value) {
+                                "Offline mode: using the cached core fields"
+                            } else {
+                                "NetBox did not provide form metadata; using the core fields"
+                            }
                         initializeFields(withCustomFields(fallback, customDefinitions))
                     } else {
                         initializeFields(withCustomFields(definitions, customDefinitions))

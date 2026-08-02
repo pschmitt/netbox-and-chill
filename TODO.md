@@ -3427,3 +3427,372 @@ form for other built-in and plugin object types.
 Status: **done**, 2026-08-02 - 155 remote unit tests and remote ktfmt checks passed; the debug APK
 was installed on Zenfone 10, Mi Pad 4, and PX5. On the Mi Pad, both `nbxc://device/246` and
 `nbxc://device/asset_tag/%23SLY-3006` opened the cached Shelly 1 device while offline.
+
+## NBC-186: resolve linked IDs in changelog diffs
+
+The Recent changes diff view should resolve cached foreign-key IDs to useful names while preserving
+raw values when the related object is not cached.
+
+- [x] Resolve linked scalar IDs using the changed object's type and field name.
+- [x] Support nested reference snapshots and multi-value reference fields where possible.
+- [x] Keep numeric non-reference fields unchanged and preserve raw-ID fallbacks.
+- [x] Add focused tests using the Appbot Riley role change shape.
+- [x] Verify the diff view offline on a physical device and deploy all devices.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests passed; the Mi Pad showed role names, a
+changed-item card, and cached device-type imagery while offline. The debug APK was installed on
+Zenfone 10, Mi Pad 4, and PX5.
+
+## NBC-187: group custom fields by NetBox category on detail pages
+
+Custom fields such as the purchase fields belong to named NetBox groups. Detail pages should show
+those group names as headings above their values, consistently for typed and generic objects.
+
+- [x] Render non-empty custom-field groups as headings above their rows.
+- [x] Keep fields without a group in a sensible ungrouped section.
+- [x] Avoid orphaned headings when all fields in a group are hidden or empty.
+- [x] Add renderer coverage and verify cached purchase data on the Mi Pad 4.
+
+Status: **done**, 2026-08-02 - renderer tests passed and the Mi Pad displayed cached purchase data
+without a network dependency. Remote ktfmt/unit tests and the debug build passed.
+
+## NBC-188: put changelog dates on their own line
+
+Recent-change summaries should show the action/user line separately from the local change date so
+the timestamp is easier to scan.
+
+- [x] Render the action and user on one line and the formatted date on the next.
+- [x] Preserve local timezone-aware date formatting.
+- [x] Add focused UI formatting coverage and verify the Recent changes card.
+
+Status: **done**, 2026-08-02 - the Mi Pad UI dump showed the actor and local date as separate lines;
+remote ktfmt/unit tests and the debug build passed.
+
+## NBC-189: show changed items and device-type images in change details
+
+The change detail view should identify the changed NetBox item with a link above the individual
+diff rows. Device changes should also reuse the cached device-type front/rear images.
+
+- [x] Add a clickable changed-item card above the field-level diff.
+- [x] Show cached front/rear device-type images for device changes.
+- [x] Keep the card and images cache-first for offline use.
+- [x] Verify the Appbot Riley change on the Mi Pad 4.
+
+Status: **done**, 2026-08-02 - the cached Appbot Riley change showed its item card, resolved
+values, and front image offline; all three devices received the debug APK.
+
+## NBC-190: make offline mode prohibit live search
+
+Offline mode must be a hard cache-only boundary: global search and its type completions must not
+start a web search while it is enabled.
+
+- [x] Stop debounced global-search refreshes while offline mode is enabled.
+- [x] Keep type completions and linked-field suggestions cache-only.
+- [x] Add a regression test for the offline search boundary.
+- [x] Verify search behavior with offline mode enabled on a physical device.
+
+Status: **done**, 2026-08-02 - offline boundary tests passed; the Mi Pad returned cached Shelly
+matches with no searching/progress state while offline.
+
+## NBC-191: keep offline status on the dashboard and suppress refresh toasts
+
+Offline mode should have one useful dashboard card rather than repeated per-page status messages,
+and manual refresh actions in offline mode should not claim that a refresh was queued.
+
+- [x] Keep the offline status card on the dashboard with last-sync information.
+- [x] Suppress queued-refresh toasts when offline mode is enabled.
+- [x] Verify no offline screen shows a misleading queued-refresh message.
+
+Status: **done**, 2026-08-02 - the Mi Pad showed one dashboard offline card with last-sync status;
+refresh-toast regression tests passed and no destructive network operation was performed.
+
+## NBC-192: make the overview tab visible and identifiable
+
+Every item detail page should give the Overview tab an icon and keep it visible while the other
+tabs scroll or switch.
+
+- [x] Add an Overview icon to item detail tab bars.
+- [x] Keep Overview sticky while the remaining tabs can scroll.
+- [x] Verify the behavior on phone and tablet layouts.
+
+Status: **done**, 2026-08-02 - remote checks/build passed and the Mi Pad UI showed the fixed,
+icon-bearing Overview tab on the tablet detail layout.
+
+## NBC-193: present object metadata separately
+
+NetBox's created and last_updated fields are system metadata, not ordinary object properties.
+They should use a compact, visually distinct metadata treatment on detail pages.
+
+- [x] Render created/last-updated values in a dedicated metadata style.
+- [x] Keep them formatted in the device's local timezone.
+- [x] Add renderer coverage and verify a generic detail page.
+
+Status: **done**, 2026-08-02 - metadata renderer code and date-format tests passed in the remote
+checks; the debug build was installed on all three devices.
+
+## NBC-194: italicize empty-state messages
+
+Empty-state copy such as “No journal entries found for this item” should be visually distinct from
+actual content.
+
+- [x] Use italic styling for empty-state messages across detail and search views.
+- [x] Keep loading and error messages semantically distinct.
+- [x] Verify journal and related-item empty states on the Mi Pad 4.
+
+Status: **done**, 2026-08-02 - detail and search empty-state composables use italic styling while
+loading and error states remain distinct; remote checks/build passed.
+
+## NBC-195: reorder and hide dashboard/sidebar sections
+
+Dashboard categories and sidebar groups should be user-organizable through long-press editing,
+including reorder, hide, and a brief editing affordance instead of a permanent edit heading.
+
+- [ ] Long-press a dashboard category heading to enter reorder mode.
+- [ ] Allow dragging categories and hiding them through a user preference.
+- [ ] Apply the same long-press reorder/hide interaction to sidebar groups.
+- [ ] Remove the redundant Sidebar heading.
+- [ ] Verify persistence and touch feedback on phone and tablet layouts.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-196: make the sidebar version card open About
+
+The version and hostname shown in the sidebar footer should be a gray navigation affordance to
+Settings → About.
+
+- [x] Make the entire version/hostname card clickable.
+- [x] Use lowercase “version” and gray text for both values.
+- [x] Navigate to the About settings screen without changing the selected main destination.
+- [x] Verify the shortcut on phone and tablet layouts.
+
+Status: **done**, 2026-08-02 - the entire Mi Pad sidebar footer card opened Settings → About while
+the dashboard remained unchanged; the installed build includes the phone/tablet-safe navigation.
+
+
+## NBC-197: add theme preferences
+
+Settings should offer light, dark, and follow-system color schemes, with follow-system as the
+default, plus an optional user accent color.
+
+- [ ] Persist and apply the light/dark/follow-system choice.
+- [ ] Add a user-selectable accent color with a sensible default.
+- [ ] Expose both options in a dedicated Display/Theme settings area.
+- [ ] Verify changes immediately on phone and tablet layouts.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-198: style the dashboard global-search card
+
+The dashboard's Search NetBox card should have a clear background and stronger visual emphasis so it
+reads as a primary action.
+
+- [x] Give the card a distinct themed container/background.
+- [x] Preserve the existing global-search navigation and accessibility label.
+- [x] Verify the card on phone and tablet layouts.
+
+Status: **done**, 2026-08-02 - the Mi Pad tablet screenshot showed the themed Search NetBox card,
+which retained its navigation affordance and accessibility text.
+
+
+## NBC-199: run a non-destructive offline regression pass
+
+Run a broader physical regression pass over cached browsing, search, detail tabs, images, edits,
+refresh behavior, settings navigation, and sync boundaries without mutating existing production
+records. Any newly discovered issue gets its own backlog entry; destructive workflows use disposable
+test items only.
+
+- [x] Exercise the primary cached list/detail/search flows with offline mode enabled.
+- [x] Verify refresh and search boundaries do not make hidden network requests.
+- [x] Test the current build on Mi Pad 4; reserve wired-only checks for Zenfone 10.
+- [x] Record and fix any regressions found, then clean up disposable test records.
+
+Status: **done**, 2026-08-02 - cached dashboard, search, detail, changelog, image, tab, offline
+and settings paths were exercised on the Mi Pad with no production mutations or disposable records
+created. Offline refresh/search boundaries were covered by tests; no hidden request was observed.
+
+
+## NBC-200: run disposable NetBox Android E2E tests in CI
+
+CI should exercise the most important user journeys against a temporary NetBox instance, in addition
+to the existing JVM tests and APK build. The test environment must be disposable and isolated from
+the production NetBox.
+
+- [ ] Add an emulator-capable Android instrumentation test target with Compose UI assertions.
+- [ ] Start and seed a temporary NetBox service in CI with a throwaway API token.
+- [ ] Cover onboarding, cached dashboard/detail navigation, global search, offline mode, and
+  connection failure handling.
+- [ ] Upload useful failure diagnostics such as screenshots and logcat.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-201: make the offline topology view readable on mobile
+
+The cached netbox-topology graph is technically usable but opens too zoomed out on small screens.
+Improve the initial viewport and controls without making the graph less useful on tablets.
+
+- [ ] Choose a mobile-friendly initial scale and center the useful graph area.
+- [ ] Add explicit zoom controls/reset alongside pinch-to-zoom and pan.
+- [ ] Keep graph rendering cache-first and verify the Mi Pad phone/tablet layouts.
+- [ ] Add focused viewport/scale tests where the behavior is made deterministic.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-202: hide NetBox News by default
+
+The home dashboard should not show the NetBox News category by default, while still allowing it to
+be enabled later through dashboard customization.
+
+- [ ] Make NetBox News hidden on a fresh install.
+- [ ] Preserve an explicit user preference so it can be shown again.
+- [ ] Keep the dashboard ordering/customization behavior compatible with the setting.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-203: inspect and improve long-term maintainability
+
+The application is feature-rich but several cross-cutting areas have accumulated implementation
+size and duplication. Keep this as the maintainability audit umbrella and track concrete work in
+the focused tickets below.
+
+- [x] Inspect source size, repeated patterns, test structure, and CI coverage.
+- [x] Record only actionable refactoring findings as separate tickets.
+- [ ] Work through the focused refactoring tickets without changing behavior accidentally.
+
+Status: in progress, 2026-08-02 - inspection completed; focused follow-up tickets recorded.
+
+
+## NBC-204: split monolithic Compose screens
+
+GenericDetailScreen.kt (over 2,000 lines), SettingsScreen.kt (over 1,400 lines), and
+DeviceDetailScreen.kt (over 1,100 lines) combine route wiring, state management, dialogs,
+formatting, and many independent UI sections. This makes changes risky and slows review.
+
+- [ ] Extract reusable sections/dialogs into focused files with narrow parameter objects.
+- [ ] Move screen-specific state transitions into testable presentation models where practical.
+- [ ] Keep navigation and offline/cache behavior unchanged while splitting the files.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-205: consolidate cache-first refresh orchestration
+
+Repositories and view models repeat variations of runCatching, best-effort refreshes, error-string
+storage, and viewModelScope.launch plumbing. The behavior is correct in many places but the
+failure policy is easy to apply inconsistently when a new screen is added.
+
+- [ ] Define a shared cache-first refresh/result abstraction for read-through screens.
+- [ ] Standardize cancellation, retry, and user-visible error semantics.
+- [ ] Add tests proving cached data remains available when refresh fails or is cancelled.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-206: centralize NetBox endpoint and field metadata
+
+Raw endpoint strings and model-specific field rules are spread across navigation, repositories,
+search, thumbnails, diff resolution, and renderers. A single metadata registry would reduce string
+drift and make adding a NetBox model safer.
+
+- [ ] Introduce typed endpoint/model metadata for labels, icons, routes, and special fields.
+- [ ] Replace duplicated device/device-type path checks where behavior is equivalent.
+- [ ] Keep plugin and unknown-model fallback behavior intact.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-207: add static-analysis and UI-quality gates
+
+CI currently runs JVM tests and assembles the APK, but there is no dedicated static-analysis gate
+for Kotlin/Compose maintainability and no repeatable UI-quality check beyond manual device testing.
+
+- [ ] Add a maintained Kotlin static-analysis/lint task suitable for this project.
+- [ ] Run it in CI with actionable failure output and a documented baseline if needed.
+- [ ] Add lightweight Compose accessibility/state regression checks alongside the Android E2E work.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-208: replace ad-hoc UI state flags with explicit screen state
+
+Several complex screens keep many independent booleans, nullable callbacks, and error strings for
+dialogs and actions. This permits contradictory states and makes the workflows difficult to test.
+
+- [ ] Identify the highest-risk edit/sync/print flows and model their states explicitly.
+- [ ] Make transient events distinct from persistent screen state.
+- [ ] Add focused state-transition tests before changing UI behavior.
+
+Status: not started, 2026-08-02.
+## NBC-209: restore the related tabs on device detail pages
+
+After making Overview sticky, the device detail tab row no longer rendered the Journal, Interfaces,
+port, and bay tabs. Keep Overview fixed while rendering the related tabs in a horizontally
+scrollable container.
+
+- [x] Render all related tabs beside the sticky Overview tab.
+- [x] Keep tab selection and left/right swipes working.
+- [x] Verify a cached device with interfaces and ports on the Mi Pad 4.
+
+Status: **done**, 2026-08-02 - constrained the sticky Overview slot, restored Material's
+scrollable related-tab row, and prevented the page swipe recognizer from stealing tab-strip
+scrolling. On the Mi Pad, cached device 1 showed Interfaces (25), IP/MAC subtitles, and later
+port tabs after horizontal scrolling. The APK was installed on all three devices.
+
+
+## NBC-210: show rack position context from device pages
+
+For devices installed in a rack, the detail page should make the rack position actionable and show
+the relevant front/rear rack elevation with the selected device highlighted. The action belongs on
+the Position row, not on the Rack row.
+
+- [ ] Add a rack-position action to the Position row in the device overview.
+- [ ] Reuse the cached rack elevation data in a bottom sheet.
+- [ ] Highlight the selected device and keep the sheet available offline.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-211: link the manufacturer from device detail pages
+
+The device overview renders the manufacturer as plain text even though Rack and Model are
+navigable references. Make the manufacturer row open the cached manufacturer detail page.
+
+- [ ] Preserve the manufacturer ID in the typed device cache.
+- [ ] Make the manufacturer row navigate to its generic detail route.
+- [ ] Verify the link works from an offline cached device.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-212: dedicated per-type visual identity (color + icon), configurable in Settings
+
+Global search (NBC-13) result badges showing the object type (device, site, rack, ...) all render
+in the same color today. Scope has grown beyond just search badge color: every object type needs
+its own dedicated visual identity (color, paired with its icon) applied consistently everywhere the
+type appears, with the color customizable from Settings > Theme.
+
+**Why:** user request - distinct per-type colors make scanning mixed-type search results faster;
+making it configurable fits the existing Theme settings section rather than hardcoding a scheme.
+Follow-up user request - the same per-type identity should also show up on an object's own detail
+page and in the sidebar (NBC-6), not just on global search result badges. Further follow-up - this
+isn't just about search badges anymore, every item type across the app needs its own consistent
+visual identity (icon + color as a pair), not color alone.
+
+- [ ] Define a per-type visual identity (icon + color pair) for every object type/app key, keyed
+  the same way as `AppIcons.forAppKey`/`NetBoxRef.appKeyFromEndpointPath` so search, detail, and
+  sidebar all resolve the same identity for the same type.
+- [ ] Add a Settings > Theme section to customize the per-type color assignments (icon stays fixed
+  per type; color is the user-configurable part).
+- [ ] Persist the customized palette and apply it consistently across light/dark theme.
+- [ ] Reflect the per-type identity on global search result badges.
+- [ ] Reflect the per-type identity on the generic and typed detail screens (e.g. a type indicator/
+  accent near the title or icon).
+- [ ] Reflect the per-type identity in the sidebar's per-app-group sections/icons.
+- [ ] Audit remaining surfaces that show an object type (list screens, reference chips, etc.) and
+  apply the same identity there too, rather than limiting this to search/detail/sidebar.
+
+Status: not started, 2026-08-02.

@@ -98,7 +98,12 @@ fun NetBoxNavHost(
             )
         }
         composable<Route.ObjectChangeDiff> {
-            ObjectChangeDiffScreen(onBack = { navController.popBackStack() })
+            ObjectChangeDiffScreen(
+                onBack = { navController.popBackStack() },
+                onOpenChangedObject = { endpointPath, id ->
+                    navController.navigateToObject(endpointPath, id)
+                },
+            )
         }
         composable<Route.PendingChanges> {
             PendingChangesScreen(onBack = { navController.popBackStack() })

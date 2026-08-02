@@ -39,6 +39,7 @@ import dev.pschmitt.netboxandchill.ui.gestures.SwipeDirection
 import dev.pschmitt.netboxandchill.ui.gestures.multiFingerSwipe
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
 import dev.pschmitt.netboxandchill.ui.navigation.Route
+import dev.pschmitt.netboxandchill.ui.settings.SettingsCategory
 import dev.pschmitt.netboxandchill.ui.theme.NetBoxAndChillTheme
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -164,6 +165,10 @@ class MainActivity : FragmentActivity() {
                             onSettingsClick = {
                                 coroutineScope.launch { drawerState.close() }
                                 navController.navigate(Route.Settings)
+                            },
+                            onAboutClick = {
+                                coroutineScope.launch { drawerState.close() }
+                                navController.navigate(Route.SettingsCategory(SettingsCategory.About))
                             },
                         )
                     },

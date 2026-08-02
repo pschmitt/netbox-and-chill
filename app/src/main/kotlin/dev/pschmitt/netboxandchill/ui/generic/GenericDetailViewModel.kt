@@ -27,6 +27,7 @@ import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import dev.pschmitt.netboxandchill.ui.common.REFRESH_QUEUED_TOAST
 import dev.pschmitt.netboxandchill.ui.common.refreshCompletionToast
+import dev.pschmitt.netboxandchill.ui.common.shouldShowRefreshQueuedToast
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -300,7 +301,7 @@ constructor(
 
     fun refresh(showConfirmation: Boolean = false) {
         if (!settingsRepository.offlineMode.value) {
-            if (showConfirmation) {
+            if (shouldShowRefreshQueuedToast(showConfirmation, offlineMode = false)) {
                 awaitingRefreshCompletion = true
                 _refreshToastMessage.value = REFRESH_QUEUED_TOAST
             }

@@ -37,6 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -391,12 +392,31 @@ private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
 
 @Composable
 private fun GlobalSearchCard(onClick: () -> Unit) {
-    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(
+        onClick = onClick,
+        colors =
+            androidx.compose.material3.CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         ListItem(
+            colors =
+                ListItemDefaults.colors(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    headlineColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    supportingColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
             leadingContent = {
-                Icon(Icons.Default.Search, contentDescription = null)
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
             },
-            headlineContent = { Text("Search NetBox") },
+            headlineContent = {
+                Text("Search NetBox", style = MaterialTheme.typography.titleLarge)
+            },
             supportingContent = { Text("Find devices, IPs, sites, racks, and more") },
         )
     }
@@ -470,7 +490,14 @@ private fun ChangeRow(
         },
         headlineContent = { Text(change.objectRepr) },
         supportingContent = {
-            Text("${change.actionLabel} by ${change.userDisplay} · ${formatTimestamp(change.time)}")
+            Column {
+                Text("${change.actionLabel} by ${change.userDisplay}")
+                Text(
+                    formatTimestamp(change.time),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         },
         // A separate affordance from the row tap (which navigates to the object's *current*
         // state) - the diff view shows what this specific change actually did, which the user
