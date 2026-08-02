@@ -3630,20 +3630,20 @@ the production NetBox.
 - [x] Keep the emulator script invocation shell-safe so Gradle receives only the intended tasks
   and instrumentation properties.
 - [ ] Get a full GitHub-hosted emulator run through the instrumentation journey; fixture startup,
-  seeding, and local/remote instrumentation compilation already pass, but hosted API-35 emulator
-  boot has been inconsistent.
+  seeding, and local/remote instrumentation compilation already pass, but hosted emulator boot
+  has been inconsistent.
 
 Status: in progress, 2026-08-02; the Compose instrumentation APK compiled on rofl-14 and the pinned
 NetBox 4.6/netbox-docker 5.0.2 fixture was started, seeded, authenticated with a v2 token, and
 cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 7
 Pro API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on
 failure. The shell-safe invocation and permission handling are fixed; one hosted run reached the
-test but was interrupted by the notification permission dialog, while a later run failed before
-APK installation because the emulator's `settings` provider was not ready. The workflow now waits
-for both boot completion and system provisioning before Gradle starts. Its first execution exposed
-that the emulator runner uses POSIX `sh`, and the guard conditions are now portable; one green
-hosted journey is still required. The app sends NetBox `nbt_` tokens with Bearer auth while
-retaining legacy Token auth.
+test but was interrupted by the notification permission dialog, while later API-35 runs failed
+inside the hosted emulator before or during APK installation (including a broken-pipe failure in
+the runner's post-boot settings command). The workflow waits for boot completion and system
+provisioning, and now uses a smaller API-34 Pixel 2 profile with a software GPU; one green hosted
+journey is still required. The app sends NetBox `nbt_` tokens with Bearer auth while retaining
+legacy Token auth.
 
 
 ## NBC-201: make the offline topology view readable on mobile

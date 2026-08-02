@@ -43,19 +43,16 @@ jobs:
       - name: Run the Android journey in an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
           arch: x86_64
-          profile: pixel_7_pro
+          profile: pixel_2
           target: google_apis
           force-avd-creation: true
-          # GitHub-hosted software emulators are inconsistent: this API-35 image has taken
-          # more than twelve minutes to boot on a cold runner.
+          # GitHub-hosted software emulators are inconsistent; use a smaller API-34 profile and
+          # keep the generous timeout for cold runners.
           emulator-boot-timeout: 1800
-          # The runner's post-boot animation-setting commands can race a slow software
-          # emulator's adb service. The journey has explicit waits, so leave animations
-          # enabled and avoid making runner setup itself the test failure.
-          disable-animations: false
-          emulator-options: -no-window -no-audio -no-boot-anim
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           script: |
             adb wait-for-device
             for attempt in $(seq 1 60)
