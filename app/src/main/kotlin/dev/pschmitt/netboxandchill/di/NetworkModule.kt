@@ -14,6 +14,7 @@ import dev.pschmitt.netboxandchill.data.api.AuthInterceptor
 import dev.pschmitt.netboxandchill.data.api.DynamicBaseUrlInterceptor
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.NetBoxApi
+import dev.pschmitt.netboxandchill.data.api.MediaNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.OfflineModeInterceptor
 import dev.pschmitt.netboxandchill.data.api.TopologyApi
 import javax.inject.Qualifier
@@ -47,6 +48,10 @@ object NetworkModule {
         isLenient = true
         explicitNulls = false
     }
+
+    @Provides
+    @Singleton
+    fun provideMediaNetBoxApi(retrofit: Retrofit): MediaNetBoxApi = retrofit.create(MediaNetBoxApi::class.java)
 
     @Provides
     @Singleton
