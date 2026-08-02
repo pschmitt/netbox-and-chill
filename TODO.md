@@ -3641,7 +3641,8 @@ failure. The shell-safe invocation and permission handling are fixed; one hosted
 test but was interrupted by the notification permission dialog, while later API-35 runs failed
 inside the hosted emulator before or during APK installation (including a broken-pipe failure in
 the runner's post-boot settings command). The workflow waits for boot completion and system
-provisioning, and now uses a smaller API-34 Pixel 2 profile with a software GPU; one green hosted
+provisioning in a dedicated script because the emulator runner executes each script line
+individually, and now uses a smaller API-34 Pixel 2 profile with a software GPU; one green hosted
 journey is still required. The app sends NetBox `nbt_` tokens with Bearer auth while retaining
 legacy Token auth.
 
