@@ -3980,9 +3980,11 @@ types, without removing the other matching results.
 - [x] Add an explicit ranking policy for devices and device types.
 - [x] Preserve recursive matches, type badges, images, and the existing cache-first/offline path.
 - [x] Add tests covering mixed result sets and exact/partial device and device-type matches.
+- [x] Verify the default recent-visit list and prioritized device results in the installed UI.
 
-Status: in progress, 2026-08-02 - ranking policy and mixed-result unit coverage implemented;
-remote unit tests pass, with device/UI verification still pending.
+Status: **done**, 2026-08-02 - remote unit tests pass; the installed UI opened with recent visits
+before a query, ranked device results first for `NUC`, and showed recursive device-type/IP/MAC
+match hints while retaining type badges and cached thumbnails.
 
 
 ## NBC-222: use a regular tab bar for item detail pages
