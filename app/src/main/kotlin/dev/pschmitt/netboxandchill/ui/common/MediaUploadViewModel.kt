@@ -20,8 +20,13 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
-data class MediaDocumentTypeOption(val id: Int, val label: String)
+data class MediaDocumentTypeOption(val value: String, val label: String)
 
 enum class MediaUploadKind(val label: String) {
     ImageAttachment("Image attachment"),
@@ -63,10 +68,24 @@ constructor(
         documentModels
             .flatMapLatest { models ->
                 val typeModel = models.firstOrNull { it.modelKey.contains("type") }
-                typeModel?.let { genericObjectRepository.observeObjects(it.endpointPath, "") }
-                    ?: flowOf(emptyList())
+                val documentModel = models.firstOrNull { !it.modelKey.contains("type") }
+                when {
+                    typeModel != null ->
+                        genericObjectRepository
+                            .observeObjects(typeModel.endpointPath, "")
+                            .map { objects ->
+                                objects.map {
+                                    MediaDocumentTypeOption(it.id.toString(), it.display)
+                                }
+                            }
+                    documentModel != null ->
+                        genericObjectRepository
+                            .observeObjects(documentModel.endpointPath, "")
+                            .map(::documentTypeOptionsFromDocuments)
+                    else -> flowOf(emptyList())
+                }
             }
-            .map { objects -> objects.map { MediaDocumentTypeOption(it.id, it.display) } }
+            .map { options -> (options + DEFAULT_DOCUMENT_TYPES).distinctBy { it.value } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun upload(
@@ -76,7 +95,7 @@ constructor(
         uri: Uri,
         filename: String,
         documentEndpointPath: String?,
-        documentTypeId: Int?,
+        documentTypeValue: String?,
         onUploaded: () -> Unit,
     ) {
         if (_state.value.isUploading) return
@@ -104,7 +123,7 @@ constructor(
                         when {
                             documentEndpointPath == null ->
                                 Result.failure(IllegalStateException("NetBox Documents is not available in the cache"))
-                            documentTypeId == null ->
+                            documentTypeValue == null ->
                                 Result.failure(IllegalArgumentException("Choose a document type"))
                             else ->
                                 repository.uploadDocument(
@@ -113,7 +132,7 @@ constructor(
                                     objectId,
                                     uri,
                                     filename,
-                                    documentTypeId,
+                                    documentTypeValue,
                                 )
                         }
                     }
@@ -138,3 +157,49 @@ constructor(
         model.appKey.contains("document", ignoreCase = true) &&
             model.modelKey.contains("document", ignoreCase = true)
 }
+
+private val mediaJson = Json { ignoreUnknownKeys = true }
+
+private val DEFAULT_DOCUMENT_TYPES =
+    listOf(
+        MediaDocumentTypeOption("manual", "Manual"),
+        MediaDocumentTypeOption("purchaseorder", "Purchase order"),
+        MediaDocumentTypeOption("other", "Other"),
+    )
+
+private fun documentTypeOptionsFromDocuments(
+    objects: List<dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity>
+): List<MediaDocumentTypeOption> =
+    objects
+        .mapNotNull { entity ->
+            val raw =
+                runCatching {
+                        mediaJson
+                            .decodeFromString(JsonObject.serializer(), entity.json)["document_type"]
+                    }
+                    .getOrNull()
+            val value =
+                when (raw) {
+                    is JsonPrimitive -> raw.contentOrNull
+                    is JsonObject -> raw["value"]?.jsonPrimitive?.contentOrNull
+                    else -> null
+                }?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+            val label =
+                when (raw) {
+                    is JsonObject ->
+                        raw["label"]?.jsonPrimitive?.contentOrNull
+                            ?: raw["display"]?.jsonPrimitive?.contentOrNull
+                    else -> null
+                } ?: documentTypeLabel(value)
+            MediaDocumentTypeOption(value, label)
+        }
+        .distinctBy { it.value }
+
+private fun documentTypeLabel(value: String): String =
+    when (value.lowercase()) {
+        "purchaseorder" -> "Purchase order"
+        "floorplan" -> "Floor plan"
+        "manual" -> "Manual"
+        "other" -> "Other"
+        else -> value.replace('_', ' ').replaceFirstChar { it.uppercase() }
+    }

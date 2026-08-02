@@ -4085,16 +4085,19 @@ Device type → long-press → Edit → Cancel returning to the original typed d
 
 ## NBC-230: enlarge image-attachment previews and add inline upload
 
-Item detail pages should make image attachments easier to inspect and provide a visible add action
+Item detail pages should make image attachments easier to inspect and provide a compact add action
 next to the attachment previews. The add action must support taking a photo or choosing an image
 from local storage, then upload it to NetBox as an image attachment.
 
-- [ ] Make image-attachment previews larger while keeping horizontal browsing and the image viewer.
-- [ ] Add a plus action in the attachment list with camera and local-file choices.
-- [ ] Refresh the cache after a successful upload and remain safe/offline when NetBox is unavailable.
-- [ ] Verify the empty and populated attachment states on a physical device.
+- [x] Make image-attachment previews larger while keeping horizontal browsing and the image viewer.
+- [x] Add a compact plus action in the attachment list with camera and local-file choices.
+- [x] Refresh the cache after a successful upload and remain safe/offline when NetBox is unavailable.
+- [x] Verify the empty and populated attachment states on a physical device.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; the shared gallery and both typed/generic item detail pages are
+implemented and verified on the Mi Pad 4 with populated and empty attachment states. The compact
+add action is trailing, and successful uploads refresh the cache while offline uploads remain
+blocked safely.
 
 
 ## NBC-231: colorize delete actions in item overflow menus
@@ -4114,12 +4117,16 @@ the existing confirmation/deletion paths are unchanged.
 Item overview pages should include a cache-first Documents section so files attached through the
 NetBox Documents plugin are visible and openable without navigating away from the item.
 
-- [ ] Resolve cached Documents records for the current item and avoid live lookups while viewing.
-- [ ] Show document names/types and allow opening the cached/downloadable file.
-- [ ] Render the section consistently on dedicated device and generic item pages.
-- [ ] Verify populated and empty states offline on a physical device.
+- [x] Resolve cached Documents records for the current item and avoid live lookups while viewing.
+- [x] Show document names/types and allow opening the cached/downloadable file.
+- [x] Add an Upload document action with local-file selection and document-type choices.
+- [x] Render the section consistently on dedicated device and generic item pages.
+- [x] Verify populated and empty states offline on a physical device.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; the remote unit suite and `ktfmtCheck` passed, the debug APK was
+deployed to all three devices. The Mi Pad 4 showed populated and empty cache-backed Documents
+sections, opened a cached PDF, and opened the Upload document dialog with document-type choices;
+no production file was uploaded.
 
 
 ## NBC-233: hide empty item-detail tabs

@@ -102,14 +102,17 @@ import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
 import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
+import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
+import dev.pschmitt.netboxandchill.ui.common.ImageAttachmentGallery
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
 import dev.pschmitt.netboxandchill.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
+import dev.pschmitt.netboxandchill.ui.common.MediaUploadKind
 import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
@@ -150,6 +153,8 @@ fun GenericDetailScreen(
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val documents by viewModel.documents.collectAsStateWithLifecycle()
+    val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
     val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
@@ -168,6 +173,7 @@ fun GenericDetailScreen(
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var showMediaUpload by remember { mutableStateOf(false) }
+    var mediaUploadInitialKind by remember { mutableStateOf<MediaUploadKind?>(null) }
     var showJournalEditor by remember { mutableStateOf(false) }
     var journalEditorEntry by remember { mutableStateOf<JournalEntryUi?>(null) }
     var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
@@ -425,6 +431,7 @@ fun GenericDetailScreen(
                                     enabled = !isRefreshing,
                                     onClick = {
                                         showMediaUpload = true
+                                        mediaUploadInitialKind = null
                                         actionMenuExpanded = false
                                     },
                                 )
@@ -688,6 +695,36 @@ fun GenericDetailScreen(
                                             )
                                         }
                                     }
+                        item {
+                            ImageAttachmentGallery(
+                                attachments = imageAttachments,
+                                localImageFile = viewModel::localAttachmentFile,
+                                onImageClick = { items, index -> imageViewerItem = items[index] },
+                                onAdd = {
+                                    mediaUploadInitialKind = MediaUploadKind.ImageAttachment
+                                    showMediaUpload = true
+                                },
+                            )
+                        }
+                        item {
+                            DocumentsSection(
+                                            documents = documents,
+                                            onOpenDocument = { document ->
+                                                document.documentUrl?.let { url ->
+                                                    viewModel.downloadAttachment(url, document.filename)
+                                                }
+                                                    ?: document.externalUrl?.let { url ->
+                                                        context.startActivity(
+                                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                        )
+                                                    }
+                                            },
+                                            onAddDocument = {
+                                                mediaUploadInitialKind = MediaUploadKind.Document
+                                                showMediaUpload = true
+                                            },
+                                        )
+                                    }
                                     item {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -817,6 +854,7 @@ fun GenericDetailScreen(
             objectId = viewModel.route.id,
             onDismiss = { showMediaUpload = false },
             onUploaded = { viewModel.refresh(showConfirmation = false) },
+            initialKind = mediaUploadInitialKind,
         )
     }
     if (showJournalEditor) {

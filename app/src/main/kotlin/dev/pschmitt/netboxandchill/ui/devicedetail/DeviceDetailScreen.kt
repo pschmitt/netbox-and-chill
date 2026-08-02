@@ -77,6 +77,7 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
+import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
@@ -86,6 +87,7 @@ import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
 import dev.pschmitt.netboxandchill.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
+import dev.pschmitt.netboxandchill.ui.common.MediaUploadKind
 import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
@@ -132,6 +134,7 @@ fun DeviceDetailScreen(
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val interfaceIpAddresses by viewModel.interfaceIpAddresses.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val documents by viewModel.documents.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val customFieldRows by viewModel.customFieldRows.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
@@ -177,6 +180,7 @@ fun DeviceDetailScreen(
     var actionMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showMediaUpload by remember { mutableStateOf(false) }
+    var mediaUploadInitialKind by remember { mutableStateOf<MediaUploadKind?>(null) }
     var showJournalEditor by remember { mutableStateOf(false) }
     var journalEditorEntry by remember { mutableStateOf<JournalEntryUi?>(null) }
     var showHiddenFields by remember { mutableStateOf(false) }
@@ -502,7 +506,29 @@ fun DeviceDetailScreen(
                                 attachments = imageAttachments,
                                 localImageFile = viewModel::localImageFile,
                                 onImageClick = { items, index -> imageViewer = items to index },
-                                onAdd = { showMediaUpload = true },
+                                onAdd = {
+                                    mediaUploadInitialKind = MediaUploadKind.ImageAttachment
+                                    showMediaUpload = true
+                                },
+                            )
+                        }
+                        item {
+                            DocumentsSection(
+                                documents = documents,
+                                onOpenDocument = { document ->
+                                    document.documentUrl?.let { url ->
+                                        viewModel.downloadAttachment(url, document.filename)
+                                    }
+                                        ?: document.externalUrl?.let { url ->
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            )
+                                        }
+                                },
+                                onAddDocument = {
+                                    mediaUploadInitialKind = MediaUploadKind.Document
+                                    showMediaUpload = true
+                                },
                             )
                         }
                         if (isFieldVisible("site"))
@@ -734,8 +760,10 @@ fun DeviceDetailScreen(
             onDismiss = { showMediaUpload = false },
             onUploaded = {
                 showMediaUpload = false
+                mediaUploadInitialKind = null
                 viewModel.refresh(showConfirmation = false)
             },
+            initialKind = mediaUploadInitialKind,
         )
     }
     if (showJournalEditor) {

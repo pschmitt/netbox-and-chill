@@ -50,21 +50,24 @@ fun MediaUploadDialog(
     objectId: Int,
     onDismiss: () -> Unit,
     onUploaded: () -> Unit,
+    initialKind: MediaUploadKind? = null,
     viewModel: MediaUploadViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val documentEndpointPath by viewModel.documentEndpointPath.collectAsStateWithLifecycle()
     val documentTypeOptions by viewModel.documentTypeOptions.collectAsStateWithLifecycle()
-    val initialKind =
+    val defaultKind =
         if (endpointPath == "api/dcim/device-types/") MediaUploadKind.DeviceTypeFront
         else MediaUploadKind.ImageAttachment
-    var kind by remember(endpointPath) { mutableStateOf(initialKind) }
+    var kind by remember(endpointPath, initialKind) {
+        mutableStateOf(initialKind ?: defaultKind)
+    }
     var kindMenuExpanded by remember { mutableStateOf(false) }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
     var selectedFilename by remember { mutableStateOf<String?>(null) }
     var captureUri by remember { mutableStateOf<Uri?>(null) }
-    var documentTypeId by remember { mutableStateOf<Int?>(null) }
+    var documentTypeValue by remember { mutableStateOf<String?>(null) }
     var documentTypeMenuExpanded by remember { mutableStateOf(false) }
 
     fun setSelected(uri: Uri) {
@@ -115,7 +118,10 @@ fun MediaUploadDialog(
                 add(MediaUploadKind.DeviceTypeFront)
                 add(MediaUploadKind.DeviceTypeRear)
             }
-            if (documentEndpointPath != null && documentTypeOptions.isNotEmpty()) {
+            if (
+                initialKind == MediaUploadKind.Document ||
+                    documentEndpointPath != null && documentTypeOptions.isNotEmpty()
+            ) {
                 add(MediaUploadKind.Document)
             }
         }
@@ -124,7 +130,7 @@ fun MediaUploadDialog(
     val canUpload =
         selectedUri != null &&
             !state.isUploading &&
-            (kind != MediaUploadKind.Document || documentTypeId != null)
+            (kind != MediaUploadKind.Document || documentTypeValue != null)
 
     AlertDialog(
         onDismissRequest = { if (!state.isUploading) onDismiss() },
@@ -179,7 +185,7 @@ fun MediaUploadDialog(
                         Icon(Icons.Default.Description, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            documentTypeOptions.firstOrNull { it.id == documentTypeId }?.label
+                            documentTypeOptions.firstOrNull { it.value == documentTypeValue }?.label
                                 ?: "Choose document type"
                         )
                     }
@@ -191,7 +197,7 @@ fun MediaUploadDialog(
                             DropdownMenuItem(
                                 text = { Text(option.label) },
                                 onClick = {
-                                    documentTypeId = option.id
+                                    documentTypeValue = option.value
                                     documentTypeMenuExpanded = false
                                 },
                             )
@@ -248,7 +254,7 @@ fun MediaUploadDialog(
                         uri = uri,
                         filename = selectedFilename ?: "upload",
                         documentEndpointPath = documentEndpointPath,
-                        documentTypeId = documentTypeId,
+                        documentTypeValue = documentTypeValue,
                         onUploaded = onUploaded,
                     )
                 },

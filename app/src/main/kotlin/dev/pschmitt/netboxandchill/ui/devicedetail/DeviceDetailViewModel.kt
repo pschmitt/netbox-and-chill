@@ -10,9 +10,11 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.CachedDocument
 import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.DocumentRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
@@ -124,6 +126,7 @@ constructor(
     private val deviceTypeRepository: DeviceTypeRepository,
     private val customFieldRepository: CustomFieldRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
+    private val documentRepository: DocumentRepository,
     private val journalEntryRepository: JournalEntryRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val genericObjectRepository: GenericObjectRepository,
@@ -230,6 +233,11 @@ constructor(
     val imageAttachments: StateFlow<List<ImageAttachmentEntity>> =
         imageAttachmentRepository
             .observeFor(DEVICE_OBJECT_TYPE, deviceId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val documents: StateFlow<List<CachedDocument>> =
+        documentRepository
+            .observeFor("api/dcim/devices/", deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val journalEntries: StateFlow<List<JournalEntryUi>> =

@@ -31,6 +31,7 @@ import java.io.File
 
 private val AttachmentTileWidth = 176.dp
 private val AttachmentTileHeight = 140.dp
+private val AddAttachmentTileSize = 96.dp
 
 /** Inline, cache-first image attachments gallery shared by typed and generic item pages. */
 @Composable
@@ -65,30 +66,6 @@ fun ImageAttachmentGallery(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item(key = "add-image-attachment") {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier =
-                        Modifier.width(AttachmentTileWidth)
-                            .height(AttachmentTileHeight)
-                            .clickable(
-                                role = Role.Button,
-                                onClickLabel = "Add image attachment",
-                                onClick = onAdd,
-                            ),
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(36.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text("Add image", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-            }
             itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { index, attachment ->
                 RemoteThumbnail(
                     imageUrl = attachment.imageUrl,
@@ -105,6 +82,33 @@ fun ImageAttachmentGallery(
                             },
                     contentScale = ContentScale.Crop,
                 )
+            }
+            item(key = "add-image-attachment") {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier =
+                        Modifier.size(AddAttachmentTileSize)
+                            .clickable(
+                                role = Role.Button,
+                                onClickLabel = "Add image attachment",
+                                onClick = onAdd,
+                            ),
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text("Add image", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
         }
     }

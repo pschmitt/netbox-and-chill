@@ -74,7 +74,7 @@ constructor(
         objectId: Int,
         uri: Uri,
         filename: String,
-        documentTypeId: Int,
+        documentTypeValue: String,
     ): Result<MediaUploadReceipt> =
         upload(
             operation = {
@@ -83,7 +83,7 @@ constructor(
                     filePart("file", uri, filename),
                     fields(
                         "name" to filename,
-                        "document_type" to documentTypeId.toString(),
+                        "document_type" to documentTypeValue,
                         "object_type" to contentTypeForEndpoint(objectEndpointPath),
                         "object_id" to objectId.toString(),
                     ),

@@ -6,15 +6,20 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
+import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.CachedDocument
 import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.DocumentRepository
 import dev.pschmitt.netboxandchill.data.repository.EditSubmission
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
+import dev.pschmitt.netboxandchill.data.repository.ImageAttachmentRepository
+import dev.pschmitt.netboxandchill.data.repository.MediaUploadRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.RackElevationRepository
 import dev.pschmitt.netboxandchill.data.repository.RackFace
@@ -74,6 +79,8 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val settingsRepository: SettingsRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    private val imageAttachmentRepository: ImageAttachmentRepository,
+    private val documentRepository: DocumentRepository,
     private val journalEntryRepository: JournalEntryRepository,
     private val customFieldRepository: CustomFieldRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
@@ -142,6 +149,22 @@ constructor(
             .observeJournalEntries(route.endpointPath, route.id)
             .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val documents: StateFlow<List<CachedDocument>> =
+        documentRepository
+            .observeFor(route.endpointPath, route.id)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val imageAttachments: StateFlow<List<ImageAttachmentEntity>> =
+        runCatching { MediaUploadRepository.contentTypeForEndpoint(route.endpointPath) }
+            .getOrNull()
+            ?.let { objectType -> imageAttachmentRepository.observeFor(objectType, route.id) }
+            ?.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            ?: flowOf<List<ImageAttachmentEntity>>(emptyList()).stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList(),
+            )
 
     private val _journalMutationState = MutableStateFlow(JournalMutationUiState())
     val journalMutationState: StateFlow<JournalMutationUiState> =
