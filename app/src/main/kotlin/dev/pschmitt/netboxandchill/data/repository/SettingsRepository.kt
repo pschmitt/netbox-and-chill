@@ -189,6 +189,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _syncWhileRoaming = MutableStateFlow(prefs.getBoolean(KEY_SYNC_WHILE_ROAMING, true))
     val syncWhileRoaming: StateFlow<Boolean> = _syncWhileRoaming.asStateFlow()
 
+    // Preserve the existing behavior for existing installs; users can opt out when startup
+    // refreshes are undesirable on metered or otherwise constrained devices.
+    private val _syncOnAppLaunch = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ON_APP_LAUNCH, true))
+    val syncOnAppLaunch: StateFlow<Boolean> = _syncOnAppLaunch.asStateFlow()
+
     private val _changeNotificationsEnabled =
         MutableStateFlow(prefs.getBoolean(KEY_CHANGE_NOTIFICATIONS_ENABLED, false))
     val changeNotificationsEnabled: StateFlow<Boolean> = _changeNotificationsEnabled.asStateFlow()
@@ -267,6 +272,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setSyncWhileRoaming(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_WHILE_ROAMING, enabled).apply()
         _syncWhileRoaming.value = enabled
+    }
+
+    fun setSyncOnAppLaunch(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SYNC_ON_APP_LAUNCH, enabled).apply()
+        _syncOnAppLaunch.value = enabled
     }
 
     fun setChangeNotificationsEnabled(enabled: Boolean) {
@@ -644,6 +654,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"
         const val KEY_SYNC_WHILE_ROAMING = "sync_while_roaming"
+        const val KEY_SYNC_ON_APP_LAUNCH = "sync_on_app_launch"
         const val KEY_CHANGE_NOTIFICATIONS_ENABLED = "change_notifications_enabled"
         const val KEY_CHANGE_NOTIFICATION_FILTERS = "change_notification_filters"
         const val KEY_CHANGE_NOTIFICATION_CURSOR = "change_notification_cursor"

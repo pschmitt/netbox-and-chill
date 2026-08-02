@@ -55,6 +55,7 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -222,6 +223,8 @@ fun SettingsCategoryScreen(
     val syncOnlyOnWifi by viewModel.settingsRepository.syncOnlyOnWifi.collectAsStateWithLifecycle()
     val syncWhileRoaming by
         viewModel.settingsRepository.syncWhileRoaming.collectAsStateWithLifecycle()
+    val syncOnAppLaunch by
+        viewModel.settingsRepository.syncOnAppLaunch.collectAsStateWithLifecycle()
     val changeNotificationsEnabled by
         viewModel.settingsRepository.changeNotificationsEnabled.collectAsStateWithLifecycle()
     val changeNotificationFilters by
@@ -542,6 +545,19 @@ fun SettingsCategoryScreen(
                         checked = syncWhileRoaming,
                         onCheckedChange = viewModel::setSyncWhileRoaming,
                         enabled = !syncOnlyOnWifi,
+                    )
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                headlineContent = { Text("Sync on app launch") },
+                supportingContent = {
+                    Text("Refresh NetBox in the background when the app starts")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = syncOnAppLaunch,
+                        onCheckedChange = viewModel::setSyncOnAppLaunch,
                     )
                 },
             )

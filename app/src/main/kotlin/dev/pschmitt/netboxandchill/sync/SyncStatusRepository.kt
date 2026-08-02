@@ -26,8 +26,9 @@ class SyncStatusRepository @Inject constructor(private val workManager: WorkMana
         combine(
             workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.PERIODIC_WORK_NAME),
             workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.ONE_TIME_WORK_NAME),
-        ) { periodic, oneTime ->
-            (periodic + oneTime).any { it.state == WorkInfo.State.RUNNING }
+            workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.STARTUP_WORK_NAME),
+        ) { periodic, oneTime, startup ->
+            (periodic + oneTime + startup).any { it.state == WorkInfo.State.RUNNING }
         }
 
     /** The latest manual sync state, including terminal success/failure for refresh feedback. */

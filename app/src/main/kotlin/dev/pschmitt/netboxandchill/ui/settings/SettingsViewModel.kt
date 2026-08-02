@@ -139,6 +139,11 @@ constructor(
         syncScheduler.schedulePeriodic()
     }
 
+    fun setSyncOnAppLaunch(enabled: Boolean) {
+        settingsRepository.setSyncOnAppLaunch(enabled)
+        if (!enabled) syncScheduler.cancelStartup()
+    }
+
     fun setChangeNotificationsEnabled(enabled: Boolean) {
         settingsRepository.setChangeNotificationsEnabled(enabled)
     }

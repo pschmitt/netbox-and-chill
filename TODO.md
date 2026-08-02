@@ -3862,12 +3862,14 @@ Add a persisted preference controlling whether the normal launch-time background
 is scheduled. Manual sync, connectivity-triggered sync, and an explicit refresh should remain
 available according to the other sync settings.
 
-- [ ] Add a persisted “Sync on app launch” preference, enabled by default.
-- [ ] Gate only the launch-triggered sync path; preserve manual and explicitly requested refreshes.
-- [ ] Keep the setting visible in the reorganized Sync settings screen with explanatory text.
-- [ ] Add tests for enabled/disabled launch behavior and offline mode interaction.
+- [x] Add a persisted “Sync on app launch” preference, enabled by default.
+- [x] Gate only the launch-triggered sync path; preserve manual and explicitly requested refreshes.
+- [x] Keep the setting visible in the reorganized Sync settings screen with explanatory text.
+- [x] Add tests for enabled/disabled launch behavior and offline mode interaction.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - remote unit tests and ktfmt checks passed; startup sync now uses a
+separate WorkManager lane and is skipped when disabled or offline, while manual sync retains its
+existing lane.
 
 
 ## NBC-217: prepare an optional Google Play release pipeline

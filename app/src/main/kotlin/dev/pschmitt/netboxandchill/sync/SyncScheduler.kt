@@ -39,9 +39,21 @@ constructor(
 
     /** Queues the first refresh without making app startup wait for network or disk work. */
     fun scheduleStartup() {
+        if (
+            !shouldScheduleStartup(
+                syncOnAppLaunch = settingsRepository.syncOnAppLaunch.value,
+                offlineMode = settingsRepository.offlineMode.value,
+            )
+        ) {
+            return
+        }
         val request =
             OneTimeWorkRequestBuilder<SyncWorker>().setConstraints(syncConstraints()).build()
-        workManager.enqueueUniqueWork(ONE_TIME_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+        workManager.enqueueUniqueWork(STARTUP_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+    }
+
+    fun cancelStartup() {
+        workManager.cancelUniqueWork(STARTUP_WORK_NAME)
     }
 
     private fun syncConstraints(): Constraints =
@@ -63,5 +75,9 @@ constructor(
         // agree with whatever SyncScheduler actually enqueues under.
         const val PERIODIC_WORK_NAME = "netbox-periodic-sync"
         const val ONE_TIME_WORK_NAME = "netbox-manual-sync"
+        const val STARTUP_WORK_NAME = "netbox-startup-sync"
     }
 }
+
+internal fun shouldScheduleStartup(syncOnAppLaunch: Boolean, offlineMode: Boolean): Boolean =
+    syncOnAppLaunch && !offlineMode
