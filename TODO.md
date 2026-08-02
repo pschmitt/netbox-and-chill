@@ -4406,3 +4406,15 @@ while empty sections should stay compact and keep only the add action.
 - [x] Verify the empty and populated states in the installed UI on the wired Zenfone without changing production data.
 
 Status: **done**, 2026-08-02 - the wired Zenfone showed no zero badges, no empty document message, and both centered add tiles without uploading media.
+
+
+## NBC-254: replace item Cached badges with a downloaded indicator
+
+Item detail identity cards should use the compact downloaded icon in the card's top-right corner
+instead of taking a full row with a text-labelled Cached badge.
+
+- [x] Replace the Cached pill on dedicated device and generic item cards with a top-right downloaded icon.
+- [x] Keep the indicator accessible and leave status editing behavior unchanged.
+- [x] Verify both identity-card layouts on the wired Zenfone without changing production data.
+
+Status: **done**, 2026-08-02 - the wired Zenfone showed the downloaded icon in the top-right of both the cached device and generic device-type identity cards; no production data was changed.
