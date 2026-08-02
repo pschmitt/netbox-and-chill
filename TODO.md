@@ -4607,8 +4607,9 @@ badge/tab selection behavior were verified on the wired Zenfone; no NetBox data 
 
 Item detail count badges should not obscure their tab icons in the compact horizontal tab layout.
 
-- [ ] Place each count badge after the tab label instead of overlaying the icon.
-- [ ] Preserve badge visibility and tab selection behavior.
-- [ ] Verify the updated layout on the wired Zenfone without changing NetBox data.
+- [x] Place each count badge after the tab label instead of overlaying the icon.
+- [x] Preserve badge visibility and tab selection behavior.
+- [x] Verify the updated layout on the wired Zenfone without changing NetBox data.
 
-Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the badges now sit after their labels
+and were verified on the wired Zenfone without obscuring tab icons; no NetBox data was changed.
