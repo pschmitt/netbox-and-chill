@@ -1,9 +1,7 @@
 package dev.pschmitt.netboxandchill.di
 
 import android.content.Context
-import androidx.room.migration.Migration
 import androidx.room.Room
-import androidx.sqlite.db.SupportSQLiteDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,39 +21,46 @@ import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import dev.pschmitt.netboxandchill.data.db.PendingEditDao
 import dev.pschmitt.netboxandchill.data.db.RackElevationDao
 import dev.pschmitt.netboxandchill.data.db.RecentVisitDao
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_1_2
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_10_11
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_11_12
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_12_13
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_13_14
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_14_15
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_2_3
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_3_4
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_4_5
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_5_6
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_6_7
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_7_8
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_8_9
+import dev.pschmitt.netboxandchill.data.db.MIGRATION_9_10
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    private val MIGRATION_14_15 =
-        object : Migration(14, 15) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
-                    CREATE TABLE IF NOT EXISTS `news_items` (
-                        `guid` TEXT NOT NULL,
-                        `title` TEXT NOT NULL,
-                        `link` TEXT NOT NULL,
-                        `summary` TEXT,
-                        `publishedAt` INTEGER NOT NULL,
-                        `syncedAt` INTEGER NOT NULL,
-                        PRIMARY KEY(`guid`)
-                    )
-                    """.trimIndent()
-                )
-            }
-        }
-
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "netbox-and-chill.db")
-            // Keep the cache across known schema changes. The destructive fallback remains only
-            // for older/unrecognized pre-1.0 schemas that have no migration path yet.
-            .addMigrations(MIGRATION_14_15)
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+                MIGRATION_8_9,
+                MIGRATION_9_10,
+                MIGRATION_10_11,
+                MIGRATION_11_12,
+                MIGRATION_12_13,
+                MIGRATION_13_14,
+                MIGRATION_14_15,
+            )
             .build()
 
     @Provides fun provideDeviceDao(database: AppDatabase): DeviceDao = database.deviceDao()

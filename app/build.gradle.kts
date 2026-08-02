@@ -6,6 +6,11 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
+}
+
 // Android App Links are tied to a concrete host at build time. Keep the personal instance as the
 // default, while allowing other builds to use `-PnetboxAppLinkHost=netbox.example` or the
 // `NETBOX_APP_LINK_HOST` environment variable without editing the manifest.

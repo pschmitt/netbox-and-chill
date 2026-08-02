@@ -5011,14 +5011,14 @@ multiple unrelated lifecycle responsibilities.
 without a migration can silently erase the complete offline cache and pending outbox, which is an
 unacceptable failure mode for an offline-first app.
 
-- [ ] Enable Room schema export and keep migration JSON under version control.
-- [ ] Add explicit migrations for every supported version and migration tests that preserve cached
+- [x] Enable Room schema export and keep migration JSON under version control.
+- [x] Add explicit migrations for every supported version and migration tests that preserve cached
       objects, media metadata, and pending edits.
-- [ ] Remove destructive fallback from normal production construction; if a recovery reset is
+- [x] Remove destructive fallback from normal production construction; if a recovery reset is
       needed, make it explicit and user-visible.
 
-Status: not started, 2026-08-03 - static review of `data/db/AppDatabase.kt` and
-`di/DatabaseModule.kt`; no database was reset during the audit.
+Status: **done**, 2026-08-03 - added the 1→15 migration chain, Room schema export, and
+`DatabaseMigrationsTest`; the normal database builder no longer has a destructive fallback.
 
 
 ## NBC-296: simplify the pending-edit reconciliation state machine

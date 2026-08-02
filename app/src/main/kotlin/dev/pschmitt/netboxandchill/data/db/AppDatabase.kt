@@ -21,7 +21,7 @@ import androidx.room.RoomDatabase
             NewsItemEntity::class,
         ],
     version = 15,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun deviceDao(): DeviceDao
