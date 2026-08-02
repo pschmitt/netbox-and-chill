@@ -4391,9 +4391,9 @@ overview pages.
 - [x] Render ungrouped custom fields under an `Other` heading.
 - [x] Keep configured groups, ordering, and empty-field handling unchanged.
 - [x] Add focused renderer coverage for the fallback group.
-- [ ] Verify the heading in the installed UI on the wired Zenfone without changing production data.
+- [x] Verify the heading in the installed UI on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed the synthetic ungrouped custom field under the `Other` heading; the disposable fixture was removed afterward and production was untouched.
 
 
 ## NBC-253: add media section count badges
