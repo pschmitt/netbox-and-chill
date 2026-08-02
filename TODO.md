@@ -4398,11 +4398,11 @@ Status: in progress
 
 ## NBC-253: add media section count badges
 
-Image attachment and document section headings should show their current item counts, while empty
-document sections should stay compact and keep only the add action.
+Image attachment and document section headings should show their current item counts when present,
+while empty sections should stay compact and keep only the add action.
 
-- [x] Show count badges on both media section headings, including zero.
+- [x] Show count badges on both media section headings only when the count is greater than zero.
 - [x] Remove the empty “No documents attached” message.
 - [x] Verify the empty and populated states in the installed UI on the wired Zenfone without changing production data.
 
-Status: **done**, 2026-08-02 - the wired Zenfone showed zero badges, no empty document message, and both centered add tiles without uploading media.
+Status: **done**, 2026-08-02 - the wired Zenfone showed no zero badges, no empty document message, and both centered add tiles without uploading media.

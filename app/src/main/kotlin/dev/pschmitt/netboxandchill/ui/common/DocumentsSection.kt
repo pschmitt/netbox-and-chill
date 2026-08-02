@@ -53,7 +53,11 @@ fun DocumentsSection(
         NetBoxSectionHeader(
             Icons.Default.Description,
             "Documents",
-            trailingContent = { Badge { Text(documents.size.toString()) } },
+            trailingContent = {
+                if (documents.isNotEmpty()) {
+                    Badge { Text(documents.size.toString()) }
+                }
+            },
         )
         if (documents.isNotEmpty()) {
             documents.forEach { document ->
