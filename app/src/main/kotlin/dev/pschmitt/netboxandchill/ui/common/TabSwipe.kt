@@ -37,7 +37,11 @@ fun Modifier.itemTabSwipe(
                         abs(total.x) > abs(total.y) * 1.25f
                 ) {
                     val nextTab =
-                        (selectedTab + if (total.x < 0f) 1 else -1).coerceIn(0, tabCount - 1)
+                        itemTabTargetIndex(
+                            selectedTab = selectedTab,
+                            tabCount = tabCount,
+                            swipeLeft = total.x < 0f,
+                        )
                     if (nextTab != selectedTab) onTabSelected(nextTab)
                     triggered = true
                     change.consume()
@@ -45,5 +49,16 @@ fun Modifier.itemTabSwipe(
             }
         }
     }
+
+/** Returns the adjacent tab selected by a horizontal swipe, clamped to the available tabs. */
+internal fun itemTabTargetIndex(
+    selectedTab: Int,
+    tabCount: Int,
+    swipeLeft: Boolean,
+): Int {
+    if (tabCount <= 0) return 0
+    val currentTab = selectedTab.coerceIn(0, tabCount - 1)
+    return (currentTab + if (swipeLeft) 1 else -1).coerceIn(0, tabCount - 1)
+}
 
 private const val TAB_SWIPE_THRESHOLD_PX = 96f

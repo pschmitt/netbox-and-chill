@@ -3938,10 +3938,10 @@ the tab itself.
 
 - [x] Restore left/right gesture handling for all item-detail tab layouts.
 - [x] Keep swipes bounded to the available tabs and avoid stealing vertical scrolling gestures.
-- [ ] Add focused tests for previous/next tab selection and edge behavior.
+- [x] Add focused tests for previous/next tab selection and edge behavior.
 
-Status: in progress, 2026-08-02 - shared pointer handling now observes the initial gesture pass;
-remote ktfmt/unit checks pass, with device verification still pending.
+Status: **done**, 2026-08-02; shared pointer handling now observes the initial gesture pass and
+`TabSwipeTest` covers next/previous selection plus both edges and invalid/empty inputs.
 
 
 ## NBC-219: improve item-detail tabs on phones
