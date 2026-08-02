@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -32,6 +34,8 @@ fun StatusChip(label: String?, value: String?) {
     val color =
         when (value?.lowercase()) {
             "active" -> MaterialTheme.colorScheme.primaryContainer
+            "inventory" ->
+                if (isSystemInDarkTheme()) Color(0xFF7A1E52) else Color(0xFFFFC7E2)
             "offline",
             "decommissioning",
             "failed" -> MaterialTheme.colorScheme.errorContainer

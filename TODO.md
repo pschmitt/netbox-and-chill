@@ -4705,3 +4705,14 @@ Status: **done**, 2026-08-02 - cached and unresolved device/device-type referenc
 endpoint/id targets, both before and after values are independently clickable, and the behavior is
 covered by remote unit tests/lint plus a wired Zenfone change-detail smoke test; no NetBox data was
 changed.
+
+
+## NBC-275: use magenta for inventory status badges
+
+Inventory status badges should be visually distinct from Active status badges.
+
+- [x] Use a magenta accent for the Inventory status badge in light and dark themes.
+- [ ] Verify the updated badge on the wired Zenfone without changing NetBox data.
+
+Status: mostly done, 2026-08-02 - remote lint, unit tests, and debug APK assembly passed; Zenfone
+installation is pending because the wired device is currently not visible to adb.
