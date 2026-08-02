@@ -3687,11 +3687,13 @@ GenericDetailScreen.kt (over 2,000 lines), SettingsScreen.kt (over 1,400 lines),
 DeviceDetailScreen.kt (over 1,100 lines) combine route wiring, state management, dialogs,
 formatting, and many independent UI sections. This makes changes risky and slows review.
 
-- [ ] Extract reusable sections/dialogs into focused files with narrow parameter objects.
+- [x] Extract the linked-item search/preview controls into a focused component file with narrow
+  parameters.
 - [ ] Move screen-specific state transitions into testable presentation models where practical.
 - [ ] Keep navigation and offline/cache behavior unchanged while splitting the files.
 
-Status: not started, 2026-08-02.
+Status: in progress, 2026-08-02 - linked-item picker controls were extracted without behavior
+changes; larger edit/detail sections remain candidates for follow-up extraction.
 
 
 ## NBC-205: consolidate cache-first refresh orchestration

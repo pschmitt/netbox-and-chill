@@ -96,7 +96,6 @@ import dev.pschmitt.netboxandchill.data.repository.RackFace
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
-import dev.pschmitt.netboxandchill.data.repository.choiceSearchMatches
 import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
@@ -1701,65 +1700,6 @@ private fun EditPickerField(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun EditOptionSearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    label: String,
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        label = { Text(label) },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                }
-            }
-        },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-    )
-}
-
-private fun filterEditOptions(options: List<EditOption>, query: String): List<EditOption> {
-    if (query.isBlank()) return options
-    return options.filter {
-        choiceSearchMatches(it.label, it.value, it.searchFields, query).isNotEmpty()
-    }
-}
-
-@Composable
-private fun EditOptionPreview(option: EditOption) {
-    val hasImages = !option.frontImageUrl.isNullOrBlank() || !option.rearImageUrl.isNullOrBlank()
-    if (!hasImages) {
-        Icon(Icons.Default.Link, contentDescription = null)
-        return
-    }
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.width(76.dp),
-    ) {
-        option.frontImageUrl?.let {
-            RemoteThumbnail(
-                imageUrl = it,
-                contentDescription = "Front image",
-                modifier = Modifier.size(34.dp),
-            )
-        }
-        option.rearImageUrl?.let {
-            RemoteThumbnail(
-                imageUrl = it,
-                contentDescription = "Rear image",
-                modifier = Modifier.size(34.dp),
-            )
         }
     }
 }
