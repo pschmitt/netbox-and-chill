@@ -4307,9 +4307,10 @@ attachments.
 
 - [x] Share the compact add-tile component between image and document sections.
 - [x] Keep document upload and image upload actions at the end of their respective lists.
-- [ ] Verify both action tiles on the wired Zenfone without uploading production media.
+- [x] Verify both action tiles on the wired Zenfone without uploading production media.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed matching compact Add image and Add document
+tiles at the end of their sections; neither action was opened and no production media was uploaded.
 
 
 ## NBC-242: keep the dedicated device identity card sticky
