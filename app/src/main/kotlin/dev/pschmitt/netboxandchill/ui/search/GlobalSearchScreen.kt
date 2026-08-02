@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +55,7 @@ import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.visualColorForEndpointPath
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 /**
@@ -85,6 +87,7 @@ fun GlobalSearchScreen(
     val modelsByEndpointPath by viewModel.modelsByEndpointPath.collectAsStateWithLifecycle()
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
     val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
+    val objectTypeAccents by viewModel.objectTypeAccents.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusRequester = remember { FocusRequester() }
 
@@ -161,6 +164,12 @@ fun GlobalSearchScreen(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
                                 icon = AppIcons.forAppKey(appKey),
+                                typeColor =
+                                    visualColorForEndpointPath(
+                                        hit.endpointPath,
+                                        objectTypeAccents[hit.endpointPath.trim('/')],
+                                        MaterialTheme.colorScheme,
+                                    ),
                                 thumbnail = thumbnail,
                                 assetTag =
                                     hit.assetTag
@@ -228,6 +237,12 @@ fun GlobalSearchScreen(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
                                 icon = AppIcons.forAppKey(appKey),
+                                typeColor =
+                                    visualColorForEndpointPath(
+                                        hit.endpointPath,
+                                        objectTypeAccents[hit.endpointPath.trim('/')],
+                                        MaterialTheme.colorScheme,
+                                    ),
                                 thumbnail = thumbnail,
                                 assetTag =
                                     hit.assetTag
@@ -327,6 +342,7 @@ private fun SearchResultRow(
     hit: SearchHit,
     modelLabel: String?,
     icon: ImageVector,
+    typeColor: Color,
     thumbnail: SearchThumbnail?,
     assetTag: String?,
     hasAssetTagField: Boolean,
@@ -339,7 +355,7 @@ private fun SearchResultRow(
         leadingContent = {
             if (thumbnail == null) {
                 Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null)
+                    Icon(icon, contentDescription = null, tint = typeColor)
                 }
             } else {
                 RemoteThumbnail(
@@ -365,6 +381,7 @@ private fun SearchResultRow(
                 ObjectTypeBadge(
                     label = searchObjectTypeLabel(modelLabel, hit.endpointPath),
                     icon = icon,
+                    color = typeColor,
                 )
             }
         },
@@ -394,10 +411,10 @@ private fun SearchResultRow(
 }
 
 @Composable
-private fun ObjectTypeBadge(label: String, icon: ImageVector) {
+private fun ObjectTypeBadge(label: String, icon: ImageVector, color: Color) {
     Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = color.copy(alpha = 0.18f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.small,
     ) {
         Row(

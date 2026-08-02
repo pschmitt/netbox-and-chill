@@ -67,6 +67,7 @@ constructor(
 
     private val _typeFilter = MutableStateFlow<NetBoxModelEntity?>(null)
     val typeFilter: StateFlow<NetBoxModelEntity?> = _typeFilter.asStateFlow()
+    val objectTypeAccents = settingsRepository.objectTypeAccents
 
     private val debouncedQuery: StateFlow<String> =
         _query

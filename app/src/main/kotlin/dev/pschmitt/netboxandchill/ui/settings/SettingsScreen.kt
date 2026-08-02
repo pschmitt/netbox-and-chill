@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -85,6 +86,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -107,6 +109,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
+import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.repository.ChangeNotificationFilter
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
@@ -122,6 +125,8 @@ import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigEnvelope
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
+import dev.pschmitt.netboxandchill.ui.common.visualColorForEndpointPath
+import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 import dev.pschmitt.netboxandchill.printing.BrotherPrinter
 import dev.pschmitt.netboxandchill.printing.BrotherLabelRenderer
 import dev.pschmitt.netboxandchill.printing.PairedPrinter
@@ -245,6 +250,8 @@ fun SettingsCategoryScreen(
         viewModel.settingsRepository.pinnedModelPaths.collectAsStateWithLifecycle()
     val themeMode by viewModel.settingsRepository.themeMode.collectAsStateWithLifecycle()
     val themeAccent by viewModel.settingsRepository.themeAccent.collectAsStateWithLifecycle()
+    val objectTypeAccents by
+        viewModel.settingsRepository.objectTypeAccents.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.settingsRepository.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -262,6 +269,7 @@ fun SettingsCategoryScreen(
     var changeNotificationsDialogVisible by remember { mutableStateOf(false) }
     var themeModeMenuExpanded by remember { mutableStateOf(false) }
     var themeAccentMenuExpanded by remember { mutableStateOf(false) }
+    var objectTypeColorsDialogVisible by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
 
     val biometricPrompt =
@@ -375,6 +383,15 @@ fun SettingsCategoryScreen(
             filters = changeNotificationFilters,
             onFilterChanged = viewModel::setChangeNotificationFilter,
             onDismiss = { changeNotificationsDialogVisible = false },
+        )
+    }
+
+    if (objectTypeColorsDialogVisible) {
+        ObjectTypeColorsDialog(
+            models = gestureModels,
+            accents = objectTypeAccents,
+            onAccentChanged = viewModel.settingsRepository::setObjectTypeAccent,
+            onDismiss = { objectTypeColorsDialogVisible = false },
         )
     }
 
@@ -663,6 +680,21 @@ fun SettingsCategoryScreen(
                                 )
                             }
                         }
+                    }
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
+                headlineContent = { Text("Object type colors") },
+                supportingContent = {
+                    Text(
+                        if (objectTypeAccents.isEmpty()) "Automatic colors"
+                        else "${objectTypeAccents.size} customized object types"
+                    )
+                },
+                trailingContent = {
+                    IconButton(onClick = { objectTypeColorsDialogVisible = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Customize object type colors")
                     }
                 },
             )
@@ -1539,5 +1571,106 @@ private fun SetupQrDialog(bitmap: Bitmap, onDismiss: () -> Unit) {
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+@Composable
+private fun ObjectTypeColorsDialog(
+    models: List<NetBoxModelEntity>,
+    accents: Map<String, ThemeAccent>,
+    onAccentChanged: (String, ThemeAccent?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val distinctModels = models.distinctBy { it.endpointPath }.sortedBy { it.modelLabel.lowercase() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Object type colors") },
+        text = {
+            if (distinctModels.isEmpty()) {
+                Text("Object types will appear here after the directory has been synced.")
+            } else {
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        "Choose a color for each cached object type. Automatic uses the built-in palette.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    distinctModels.forEach { model ->
+                        val key = model.endpointPath.trim('/')
+                        var menuExpanded by remember(key) { mutableStateOf(false) }
+                        val selected = accents[key]
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = 12.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            Surface(
+                                color =
+                                    visualColorForEndpointPath(
+                                            model.endpointPath,
+                                            selected,
+                                            MaterialTheme.colorScheme,
+                                        )
+                                        .copy(alpha = 0.18f),
+                                shape = MaterialTheme.shapes.small,
+                            ) {
+                                Icon(
+                                    AppIcons.forAppKey(model.appKey),
+                                    contentDescription = null,
+                                    tint =
+                                        visualColorForEndpointPath(
+                                            model.endpointPath,
+                                            selected,
+                                            MaterialTheme.colorScheme,
+                                        ),
+                                    modifier = Modifier.padding(8.dp),
+                                )
+                            }
+                            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                                Text(model.modelLabel, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    selected?.label ?: ThemeAccent.System.label,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Box {
+                                IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Choose ${model.modelLabel} color")
+                                }
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(ThemeAccent.System.label) },
+                                        leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                        onClick = {
+                                            onAccentChanged(model.endpointPath, null)
+                                            menuExpanded = false
+                                        },
+                                    )
+                                    ThemeAccent.entries
+                                        .filter { it != ThemeAccent.System }
+                                        .forEach { accent ->
+                                            DropdownMenuItem(
+                                                text = { Text(accent.label) },
+                                                leadingIcon = {
+                                                    Icon(Icons.Default.Palette, contentDescription = null)
+                                                },
+                                                onClick = {
+                                                    onAccentChanged(model.endpointPath, accent)
+                                                    menuExpanded = false
+                                                },
+                                            )
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
     )
 }

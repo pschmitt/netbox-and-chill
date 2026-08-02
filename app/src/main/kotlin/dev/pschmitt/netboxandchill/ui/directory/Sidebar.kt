@@ -63,6 +63,7 @@ import dev.pschmitt.netboxandchill.ui.common.rememberReorderWiggle
 import dev.pschmitt.netboxandchill.ui.common.rememberSectionReorderState
 import dev.pschmitt.netboxandchill.ui.common.sectionDragOffset
 import dev.pschmitt.netboxandchill.ui.common.sectionReorderGesture
+import dev.pschmitt.netboxandchill.ui.common.visualColorForEndpointPath
 
 private const val DEVICES_PATH = "api/dcim/devices/"
 
@@ -91,6 +92,7 @@ fun Sidebar(
     val hiddenSidebarApps by viewModel.hiddenSidebarApps.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
+    val objectTypeAccents by viewModel.settingsRepository.objectTypeAccents.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
     // Collapsed by default, like the NetBox web UI's sidebar - matches app keys ("dcim",
     // "plugins/netbox-documents", ...), not the humanized labels.
@@ -192,7 +194,16 @@ fun Sidebar(
                         NavigationDrawerItem(
                             label = { Text(model.modelLabel) },
                             icon = {
-                                Icon(AppIcons.forAppKey(model.appKey), contentDescription = null)
+                                Icon(
+                                    AppIcons.forAppKey(model.appKey),
+                                    contentDescription = null,
+                                    tint =
+                                        visualColorForEndpointPath(
+                                            model.endpointPath,
+                                            objectTypeAccents[model.endpointPath.trim('/')],
+                                            MaterialTheme.colorScheme,
+                                        ),
+                                )
                             },
                             selected = false,
                             onClick = { onModelClick(model) },
@@ -209,6 +220,13 @@ fun Sidebar(
                             sidebarModelOrders[appKey].orEmpty(),
                         )
                     val appLabel = models.firstOrNull()?.appLabel ?: appKey
+                    val appColor =
+                        models.firstOrNull()?.let { model ->
+                            visualColorForEndpointPath(
+                                model.endpointPath,
+                                objectTypeAccents[model.endpointPath.trim('/')],
+                            )
+                        } ?: androidx.compose.ui.graphics.Color.Gray
                     // Searching implicitly expands every matching section - no point collapsing
                     // search results the user is actively looking for.
                     val isExpanded = searchQuery.isNotBlank() || appKey in expandedApps
@@ -245,7 +263,7 @@ fun Sidebar(
                             Icon(
                                 AppIcons.forAppKey(appKey),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = appColor,
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(8.dp))

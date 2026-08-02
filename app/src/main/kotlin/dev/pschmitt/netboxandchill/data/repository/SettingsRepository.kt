@@ -228,6 +228,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _themeAccent = MutableStateFlow(loadThemeAccent())
     val themeAccent: StateFlow<ThemeAccent> = _themeAccent.asStateFlow()
 
+    private val _objectTypeAccents = MutableStateFlow(loadObjectTypeAccents())
+    val objectTypeAccents: StateFlow<Map<String, ThemeAccent>> =
+        _objectTypeAccents.asStateFlow()
+
     private val _printSettings = MutableStateFlow(loadPrintSettings())
     val printSettings: StateFlow<PrintSettings> = _printSettings.asStateFlow()
 
@@ -346,6 +350,20 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setThemeAccent(accent: ThemeAccent) {
         prefs.edit().putString(KEY_THEME_ACCENT, accent.storageKey).apply()
         _themeAccent.value = accent
+    }
+
+    fun setObjectTypeAccent(endpointPath: String, accent: ThemeAccent?) {
+        val normalizedPath = endpointPath.trim('/')
+        val key = objectTypeAccentKey(normalizedPath)
+        val updated = _objectTypeAccents.value.toMutableMap()
+        if (accent == null || accent == ThemeAccent.System) {
+            prefs.edit().remove(key).apply()
+            updated.remove(normalizedPath)
+        } else {
+            prefs.edit().putString(key, accent.storageKey).apply()
+            updated[normalizedPath] = accent
+        }
+        _objectTypeAccents.value = updated
     }
 
     fun updatePrintSettings(settings: PrintSettings) {
@@ -487,6 +505,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _printSettings.value = PrintSettings()
         _themeMode.value = ThemeMode.FollowSystem
         _themeAccent.value = ThemeAccent.System
+        _objectTypeAccents.value = emptyMap()
         _gestureActions.value = defaultGestureActions()
         _gestureTargets.value = emptyMap()
         _hiddenFieldKeys.value = emptySet()
@@ -520,6 +539,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun loadThemeAccent(): ThemeAccent =
         ThemeAccent.fromStorage(prefs.getString(KEY_THEME_ACCENT, ThemeAccent.System.storageKey))
+
+    private fun loadObjectTypeAccents(): Map<String, ThemeAccent> =
+        prefs.all
+            .mapNotNull { (key, value) ->
+                if (!key.startsWith(KEY_OBJECT_TYPE_ACCENT_PREFIX) || value !is String) {
+                    return@mapNotNull null
+                }
+                val endpointPath = key.removePrefix(KEY_OBJECT_TYPE_ACCENT_PREFIX)
+                ThemeAccent.fromStorage(value)
+                    .takeIf { it != ThemeAccent.System }
+                    ?.let { endpointPath to it }
+            }
+            .toMap()
 
     private fun loadGestureActions(): Map<GestureShortcut, GestureAction> =
         GestureShortcut.entries.associateWith { shortcut ->
@@ -664,6 +696,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_SCANNER_REAR_LENS = "scanner_default_rear_lens"
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_THEME_ACCENT = "theme_accent"
+        const val KEY_OBJECT_TYPE_ACCENT_PREFIX = "object_type_accent:"
         const val KEY_DEFAULT_PRINTER_NAME = "default_printer_name"
         const val KEY_DEFAULT_PRINTER_ADDRESS = "default_printer_address"
         const val KEY_PRINT_INVERT_COLORS = "print_invert_colors"
@@ -687,4 +720,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val ITEM_SEPARATOR = "\u001E"
         const val MODEL_ENTRY_SEPARATOR = "\u001D"
     }
+
+    private fun objectTypeAccentKey(endpointPath: String): String =
+        KEY_OBJECT_TYPE_ACCENT_PREFIX + endpointPath
 }

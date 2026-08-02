@@ -145,6 +145,7 @@ fun GenericDetailScreen(
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
+    val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val frontElevation by viewModel.frontElevation.collectAsStateWithLifecycle()
     val rearElevation by viewModel.rearElevation.collectAsStateWithLifecycle()
     val rackDevicePreviews by viewModel.rackDevicePreviews.collectAsStateWithLifecycle()
@@ -181,7 +182,8 @@ fun GenericDetailScreen(
             showHiddenFields,
         )
     val modelLabel = endpointModelLabel(viewModel.route.endpointPath)
-    val detailAccent = MaterialTheme.colorScheme.detailAccentFor(viewModel.route.endpointPath)
+    val detailAccent =
+        MaterialTheme.colorScheme.detailAccentFor(viewModel.route.endpointPath, objectTypeAccent)
     val focusedEditField = focusedEditFieldKey?.let { key ->
         editableFields.firstOrNull { it.key == key }
     }

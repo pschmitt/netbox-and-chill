@@ -142,6 +142,11 @@ constructor(
 
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
 
+    val objectTypeAccent: StateFlow<dev.pschmitt.netboxandchill.data.repository.ThemeAccent?> =
+        settingsRepository.objectTypeAccents
+            .map { it["api/dcim/devices"] }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     fun hideField(label: String) {
         settingsRepository.addHiddenField(hiddenFieldPreferenceKey("api/dcim/devices/", label))
     }

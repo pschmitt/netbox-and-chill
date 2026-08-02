@@ -158,6 +158,7 @@ fun DeviceDetailScreen(
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
     val refreshToastMessage by viewModel.refreshToastMessage.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
+    val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     // Full-screen image viewer state (NBC-20) - which item list + which index within it is open,
@@ -176,7 +177,8 @@ fun DeviceDetailScreen(
     }
     val visibleCustomFieldRows =
         visibleDeviceCustomFieldRows(customFieldRows, hiddenFieldKeys, showHiddenFields)
-    val detailAccent = MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/")
+    val detailAccent =
+        MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/", objectTypeAccent)
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {

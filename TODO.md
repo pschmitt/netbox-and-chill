@@ -3796,20 +3796,22 @@ page and in the sidebar (NBC-6), not just on global search result badges. Furthe
 isn't just about search badges anymore, every item type across the app needs its own consistent
 visual identity (icon + color as a pair), not color alone.
 
-- [ ] Define a per-type visual identity (icon + color pair) for every object type/app key, keyed
+- [x] Define a per-type visual identity (icon + color pair) for every object type/app key, keyed
   the same way as `AppIcons.forAppKey`/`NetBoxRef.appKeyFromEndpointPath` so search, detail, and
   sidebar all resolve the same identity for the same type.
-- [ ] Add a Settings > Theme section to customize the per-type color assignments (icon stays fixed
+- [x] Add a Settings > Theme section to customize the per-type color assignments (icon stays fixed
   per type; color is the user-configurable part).
-- [ ] Persist the customized palette and apply it consistently across light/dark theme.
-- [ ] Reflect the per-type identity on global search result badges.
-- [ ] Reflect the per-type identity on the generic and typed detail screens (e.g. a type indicator/
+- [x] Persist the customized palette and apply it consistently across light/dark theme.
+- [x] Reflect the per-type identity on global search result badges.
+- [x] Reflect the per-type identity on the generic and typed detail screens (e.g. a type indicator/
   accent near the title or icon).
-- [ ] Reflect the per-type identity in the sidebar's per-app-group sections/icons.
+- [x] Reflect the per-type identity in the sidebar's per-app-group sections/icons.
 - [ ] Audit remaining surfaces that show an object type (list screens, reference chips, etc.) and
   apply the same identity there too, rather than limiting this to search/detail/sidebar.
 
-Status: not started, 2026-08-02.
+Status: in progress, 2026-08-02; deterministic endpoint colors, persisted Theme overrides, and
+search/detail/sidebar integration are implemented and remotely verified. A final audit of list,
+reference-chip, and remaining object-type surfaces is still open.
 
 ## NBC-213: add photos, image attachments, and typed NetBox documents
 

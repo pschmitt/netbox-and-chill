@@ -179,6 +179,11 @@ constructor(
 
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
 
+    val objectTypeAccent: StateFlow<dev.pschmitt.netboxandchill.data.repository.ThemeAccent?> =
+        settingsRepository.objectTypeAccents
+            .map { it[route.endpointPath.trim('/')] }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _relatedTarget = MutableStateFlow<CountTarget?>(null)
     val relatedTarget: StateFlow<CountTarget?> = _relatedTarget.asStateFlow()
 
