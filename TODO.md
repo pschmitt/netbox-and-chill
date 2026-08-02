@@ -1875,8 +1875,8 @@ layout controls.
 - [x] Add vertical label-text mode.
 - [x] Fix right-side label text raster legibility.
 
-Status: mostly done, 2026-08-01 - remote lint/tests/debug build and all-device deployment passed;
-physical verification of vertical and long-text labels remains.
+Status: **done**, 2026-08-02 - remote lint/tests/debug build passed; the wired Zenfone displayed the
+preview/settings, enabled long-label and vertical modes, and the bonded printer completed the job.
 
 ## NBC-69: add pull-to-refresh to item views
 
