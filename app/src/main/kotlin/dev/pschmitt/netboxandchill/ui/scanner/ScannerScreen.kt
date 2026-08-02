@@ -126,6 +126,9 @@ fun ScannerScreen(
     }
 
     NetBoxResponsiveScaffold(
+        // The camera preview is an immersive surface. On tablets it must cover the area normally
+        // occupied by the navigation rail, otherwise the rail remains visible behind the preview.
+        fullScreenOnRail = true,
         bottomBar = {
             if (showBottomBar) {
                 NetBoxBottomBar(

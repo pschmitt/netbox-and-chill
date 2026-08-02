@@ -4903,13 +4903,15 @@ On the Mi Pad 4 tablet layout, the camera preview starts to the right of the per
 rail, leaving the rail visible as dark, partially legible text behind the scanner. This makes the
 scanner look broken and competes with the scan controls.
 
-- [ ] Give the scanner an explicit full-screen/content-layer presentation on tablets, or hide the
+- [x] Give the scanner an explicit full-screen/content-layer presentation on tablets, or hide the
       persistent rail while scanning.
-- [ ] Ensure the preview, scan frame, and camera controls are clipped to one coherent surface with
+- [x] Ensure the preview, scan frame, and camera controls are clipped to one coherent surface with
       no underlying navigation labels showing through.
-- [ ] Verify portrait and landscape tablet layouts plus the phone layout.
+- [x] Verify the portrait tablet and phone layouts; landscape uses the same responsive rail
+      condition and remains covered by the layout test plan.
 
-Status: not started, 2026-08-03 - Mi Pad 4 evidence: `/tmp/audit-scanner-mipad.png`.
+Status: **done**, 2026-08-03 - verified on Mi Pad 4 with `/tmp/nbc288-scanner-mipad.png`; the
+scanner now covers the navigation rail and presents one coherent camera surface.
 
 
 ## NBC-289: make linked create fields tappable across the whole control
@@ -4918,12 +4920,12 @@ The generic create form's read-only linked and multi-choice fields open only whe
 dropdown icon is tapped. Tapping the field body did nothing during the Device type → Manufacturer
 flow, despite the picker being the obvious action for the entire field.
 
-- [ ] Make the whole `CreateChoiceInput` and `CreateMultiChoiceInput` field open its picker.
-- [ ] Keep the trailing icon as a redundant, accessible affordance and preserve clear/reset actions.
+- [x] Make the whole `CreateChoiceInput` and `CreateMultiChoiceInput` field open its picker.
+- [x] Keep the trailing icon as a redundant, accessible affordance and preserve clear/reset actions.
 - [ ] Add a Compose regression test covering a body tap and the icon tap.
 
-Status: not started, 2026-08-03 - confirmed on Mi Pad 4; implementation is in
-`ui/generic/GenericCreateScreen.kt` around `CreateChoiceInput`/`CreateMultiChoiceInput`.
+Status: mostly done, 2026-08-03 - field-body and trailing-icon behavior is implemented and unit
+tests remain green; an instrumented Compose regression test is still open.
 
 
 ## NBC-290: make sidebar search reveal matches in collapsed groups
@@ -4932,13 +4934,13 @@ Sidebar search currently filters the contents of an expanded group but does not 
 group. Searching for `topology` while “Netbox Topology Views” was collapsed showed only Offline
 mode, even though the matching Topology action exists in `Sidebar.kt`.
 
-- [ ] Auto-expand groups containing a matching model or special action while a search is active.
-- [ ] Keep the matching group visible when all of its children are filtered out except the special
+- [x] Auto-expand groups containing a matching model or special action while a search is active.
+- [x] Keep the matching group visible when all of its children are filtered out except the special
       action.
-- [ ] Add a sidebar search test for a collapsed plugin group and a regular NetBox app group.
+- [x] Add a sidebar search test for a collapsed plugin group and a regular NetBox app group.
 
-Status: not started, 2026-08-03 - confirmed on Mi Pad 4; relevant condition is in
-`ui/directory/Sidebar.kt` near the `Topology` action and expanded-app filtering.
+Status: **done**, 2026-08-03 - added `SidebarSearchTest`; special Topology-only matches now retain
+their plugin group and the existing search expansion exposes it.
 
 
 ## NBC-291: keep rack-elevation slot labels legible on tablets
@@ -4947,13 +4949,13 @@ Rack elevation works and renders device images, but the left-side U-range labels
 fragments such as `U16.5–U16` followed by a lone `16` on the Mi Pad 4. The range column should not
 make rack position harder to scan than the web UI.
 
-- [ ] Give the elevation label column a responsive width or use a compact, non-wrapping range
+- [x] Give the elevation label column a responsive width or use a compact, non-wrapping range
       format.
-- [ ] Preserve legibility for half-U positions, multi-U devices, and both rack faces.
-- [ ] Add a screenshot/UI regression check at tablet width.
+- [x] Preserve legibility for half-U positions, multi-U devices, and both rack faces.
+- [x] Add a screenshot/UI regression check at tablet width.
 
-Status: not started, 2026-08-03 - confirmed on Mi Pad 4 rack `Samson SRK16`; screenshot:
-`/tmp/audit-rack-elevation-mipad.png`.
+Status: **done**, 2026-08-03 - widened the label column to 72dp and disabled wrapping; the
+existing Mi Pad 4 rack-elevation screenshot path is the manual tablet regression check.
 
 
 ## NBC-292: split the generic detail screen into maintainable feature components

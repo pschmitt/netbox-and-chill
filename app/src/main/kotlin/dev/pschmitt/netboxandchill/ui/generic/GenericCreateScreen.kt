@@ -273,7 +273,7 @@ private fun CreateMultiChoiceInput(
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
         )
         DropdownMenu(
             expanded = expanded,
@@ -336,7 +336,11 @@ private fun CreateChoiceInput(
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier.fillMaxWidth().clickable {
+                    queryValue = TextFieldValue()
+                    expanded = true
+                },
         )
         if (expanded) {
             ModalBottomSheet(

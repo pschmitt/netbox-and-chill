@@ -26,6 +26,7 @@ fun NetBoxResponsiveScaffold(
     topBar: @Composable () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
+    fullScreenOnRail: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -37,7 +38,7 @@ fun NetBoxResponsiveScaffold(
                 bottomBar = { if (!useNavigationRail) bottomBar() },
             ) { padding ->
                 Row(Modifier.fillMaxSize()) {
-                    if (useNavigationRail) {
+                    if (useNavigationRail && !fullScreenOnRail) {
                         Box(Modifier.fillMaxHeight()) { bottomBar() }
                     }
                     Box(Modifier.weight(1f).fillMaxHeight()) { content(padding) }

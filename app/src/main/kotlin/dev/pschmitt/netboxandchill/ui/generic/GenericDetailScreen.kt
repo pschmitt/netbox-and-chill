@@ -1400,7 +1400,8 @@ private fun RackFaceOverview(
                             else "${firstSlot.slotName}–${lastSlot.slotName}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.width(48.dp),
+                            modifier = Modifier.width(72.dp),
+                            maxLines = 1,
                         )
                         Surface(
                             color =

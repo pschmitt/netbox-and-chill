@@ -68,6 +68,34 @@ import dev.pschmitt.netboxandchill.ui.common.visualColorForEndpointPath
 
 private const val DEVICES_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
 
+internal fun sidebarVisibleAppKeysForSearch(
+    modelsByApp: Map<String, List<NetBoxModelEntity>>,
+    query: String,
+    hiddenApps: Set<String>,
+): Set<String> {
+    val modelMatches =
+        if (query.isBlank()) {
+            modelsByApp.keys
+        } else {
+            modelsByApp
+                .filterValues { models ->
+                    models.any { it.modelLabel.contains(query, ignoreCase = true) }
+                }
+                .keys
+        }
+    val specialMatches =
+        if (
+            query.isNotBlank() &&
+                TopologyRepository.PLUGIN_APP_KEY !in hiddenApps &&
+                "Topology".contains(query, ignoreCase = true)
+        ) {
+            setOf(TopologyRepository.PLUGIN_APP_KEY)
+        } else {
+            emptySet()
+        }
+    return (modelMatches + specialMatches) - hiddenApps
+}
+
 private fun <T> moveItem(items: List<T>, item: T, offset: Int): List<T>? {
     val from = items.indexOf(item)
     val to = from + offset
@@ -119,8 +147,10 @@ fun Sidebar(
                 .filterValues { it.isNotEmpty() }
     val visibleFilteredModelsByApp =
         filteredModelsByApp.filterKeys { it !in hiddenSidebarApps }
+    val visibleSidebarAppKeysForSearch =
+        sidebarVisibleAppKeysForSearch(modelsByApp, searchQuery, hiddenSidebarApps)
     val visibleSidebarAppKeys =
-        orderSidebarAppKeys(visibleFilteredModelsByApp.keys, sidebarAppOrder)
+        orderSidebarAppKeys(visibleSidebarAppKeysForSearch, sidebarAppOrder)
     val allSidebarAppKeys = orderSidebarAppKeys(modelsByApp.keys, sidebarAppOrder)
 
     ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
@@ -225,14 +255,24 @@ fun Sidebar(
                             visibleFilteredModelsByApp[appKey].orEmpty(),
                             sidebarModelOrders[appKey].orEmpty(),
                         )
-                    val appLabel = models.firstOrNull()?.appLabel ?: appKey
+                    val appLabel =
+                        models.firstOrNull()?.appLabel
+                            ?: modelsByApp[appKey]?.firstOrNull()?.appLabel
+                            ?: appKey
                     val appColor =
                         models.firstOrNull()?.let { model ->
                             visualColorForEndpointPath(
                                 model.endpointPath,
                                 objectTypeAccents[model.endpointPath.trim('/')],
                             )
-                        } ?: androidx.compose.ui.graphics.Color.Gray
+                        }
+                            ?: modelsByApp[appKey]?.firstOrNull()?.let { model ->
+                                visualColorForEndpointPath(
+                                    model.endpointPath,
+                                    objectTypeAccents[model.endpointPath.trim('/')],
+                                )
+                            }
+                            ?: androidx.compose.ui.graphics.Color.Gray
                     // Searching implicitly expands every matching section - no point collapsing
                     // search results the user is actively looking for.
                     val isExpanded = searchQuery.isNotBlank() || appKey in expandedApps
