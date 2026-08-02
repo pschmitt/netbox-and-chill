@@ -55,13 +55,17 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           script: |
             bash ci/android-e2e-wait.sh
+            # Route the emulator's loopback to the runner's disposable NetBox port. This is more
+            # reliable on GitHub-hosted Linux runners than relying on the emulator's 10.0.2.2 host
+            # alias reaching Docker's published port.
+            adb reverse tcp:8000 tcp:8000
             ./gradlew installDebug
             adb shell pm clear dev.pschmitt.netboxandchill.debug || true
             # MainActivity requests POST_NOTIFICATIONS on API 33+ during startup. Grant it
             # before Compose launches so the permission dialog cannot interrupt the journey on a
             # slow software emulator after the first composition has already started.
             adb shell pm grant dev.pschmitt.netboxandchill.debug android.permission.POST_NOTIFICATIONS || true
-            ./gradlew connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://10.0.2.2:8000 -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN"
+            ./gradlew connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://127.0.0.1:8000 -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN"
 
       - name: Capture emulator diagnostics
         if: ${{ failure() }}
