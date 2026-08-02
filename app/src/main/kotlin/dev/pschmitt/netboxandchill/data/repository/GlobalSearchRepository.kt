@@ -357,11 +357,20 @@ fun rankSearchHits(queryText: String, hits: List<SearchHit>): List<SearchHit> {
         .distinctBy { it.endpointPath to it.id }
         .sortedWith(
             compareByDescending<SearchHit> { hit -> searchRelevance(query, hit) }
+                .thenByDescending { hit -> searchObjectTypePriority(hit) }
                 .thenBy { it.display.lowercase() }
                 .thenBy { it.endpointPath }
                 .thenBy { it.id }
         )
 }
+
+/** Prefer the two most frequently used inventory objects when match quality is otherwise equal. */
+private fun searchObjectTypePriority(hit: SearchHit): Int =
+    when (hit.endpointPath) {
+        GlobalSearchRepository.DEVICES_ENDPOINT_PATH -> 2
+        GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH -> 1
+        else -> 0
+    }
 
 private fun searchRelevance(query: String, hit: SearchHit): Int {
     val display = hit.display.trim().lowercase()

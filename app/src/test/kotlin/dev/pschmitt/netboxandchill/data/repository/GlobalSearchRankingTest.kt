@@ -47,6 +47,18 @@ class GlobalSearchRankingTest {
     }
 
     @Test
+    fun `prioritizes devices and device types when match quality is equal`() {
+        val hits =
+            listOf(
+                SearchHit("api/dcim/sites/", 3, "Router site", null),
+                SearchHit(GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH, 2, "Router type", null),
+                SearchHit(GlobalSearchRepository.DEVICES_ENDPOINT_PATH, 1, "Router device", null),
+            )
+
+        assertEquals(listOf(1, 2, 3), rankSearchHits("router", hits).map { it.id })
+    }
+
+    @Test
     fun typePrefixSuggestionsMatchLabelsAndPreserveRemainingQuery() {
         val suggestions =
             typeFilterSuggestions(

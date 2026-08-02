@@ -67,8 +67,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -103,6 +101,8 @@ import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
+import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
+import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
 import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
@@ -570,7 +570,11 @@ fun GenericDetailScreen(
                         }
                     else -> {
                         var selectedTab by remember { mutableStateOf(0) }
-                        Column(Modifier.fillMaxSize()) {
+                        Column(
+                            Modifier.fillMaxSize().itemTabSwipe(selectedTab, 2) {
+                                selectedTab = it
+                            }
+                        ) {
                             ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -603,44 +607,22 @@ fun GenericDetailScreen(
                                     }
                                 }
                             }
-                            TabRow(selectedTabIndex = selectedTab) {
-                                Tab(
-                                    selected = selectedTab == 0,
-                                    onClick = { selectedTab = 0 },
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.Default.Info,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("Overview")
-                                        }
-                                    },
-                                )
-                                Tab(
-                                    selected = selectedTab == 1,
-                                    onClick = { selectedTab = 1 },
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.Default.History,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("Journal (${journalEntries.size})")
-                                        }
-                                    },
-                                )
-                            }
+                            ItemDetailTabs(
+                                tabs =
+                                    listOf(
+                                        ItemDetailTab("Overview", Icons.Default.Info),
+                                        ItemDetailTab(
+                                            "Journal",
+                                            Icons.Default.History,
+                                            journalEntries.size,
+                                        ),
+                                    ),
+                                selectedTab = selectedTab,
+                                onTabSelected = { selectedTab = it },
+                            )
                             if (selectedTab == 0) {
                                 LazyColumn(
-                                    modifier =
-                                        Modifier.fillMaxSize().itemTabSwipe(selectedTab, 2) {
-                                            selectedTab = it
-                                        },
+                                    modifier = Modifier.fillMaxSize(),
                                     contentPadding = PaddingValues(16.dp),
                                 ) {
                                     if (viewModel.isRack) {
@@ -707,10 +689,7 @@ fun GenericDetailScreen(
                                 }
                             } else {
                                 LazyColumn(
-                                    modifier =
-                                        Modifier.fillMaxSize().itemTabSwipe(selectedTab, 2) {
-                                            selectedTab = it
-                                        },
+                                    modifier = Modifier.fillMaxSize(),
                                     contentPadding = PaddingValues(16.dp),
                                 ) {
                                     if (journalEntries.isEmpty()) {

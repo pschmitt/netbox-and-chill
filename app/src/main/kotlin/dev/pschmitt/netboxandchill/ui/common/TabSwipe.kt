@@ -16,15 +16,15 @@ fun Modifier.itemTabSwipe(
 ): Modifier =
     pointerInput(selectedTab, tabCount, onTabSelected) {
         awaitEachGesture {
-            // Observe after nested horizontal containers (such as the detail tab strip) have
-            // had a chance to consume the gesture. The page-level shortcut must not steal their
-            // scrolling gesture.
-            val down = awaitFirstDown(pass = PointerEventPass.Final)
+            // Observe during the initial pass so a LazyColumn's vertical scroll handling cannot
+            // swallow a horizontal detail-tab gesture before this detector sees it. We only
+            // consume a deliberate horizontal swipe after the direction is unambiguous.
+            val down = awaitFirstDown(pass = PointerEventPass.Initial)
             var previous = down.position
             var total = Offset.Zero
             var triggered = false
             while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Final)
+                val event = awaitPointerEvent(PointerEventPass.Initial)
                 val change = event.changes.firstOrNull() ?: break
                 if (!change.pressed) break
                 if (change.isConsumed) break

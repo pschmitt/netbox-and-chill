@@ -53,11 +53,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -85,6 +83,8 @@ import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
+import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
+import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
@@ -135,10 +135,10 @@ fun DeviceDetailScreen(
     val customFieldRows by viewModel.customFieldRows.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
-    var selectedTab by remember { mutableStateOf(-1) }
+    var selectedTab by remember { mutableStateOf(0) }
     val selectedRelatedObjects =
-        if (selectedTab >= 0) {
-            val endpointPath = DEVICE_RELATED_TABS[selectedTab].endpointPath
+        if (selectedTab > 0) {
+            val endpointPath = DEVICE_RELATED_TABS[selectedTab - 1].endpointPath
             viewModel.relatedObjects[endpointPath]?.collectAsStateWithLifecycle()?.value.orEmpty()
         } else {
             emptyList()
@@ -380,11 +380,9 @@ fun DeviceDetailScreen(
                 LazyColumn(
                     modifier =
                         Modifier.fillMaxSize().itemTabSwipe(
-                            selectedTab + 1,
+                            selectedTab,
                             DEVICE_RELATED_TABS.size + 1,
-                        ) { tabIndex ->
-                            selectedTab = tabIndex - 1
-                        },
+                        ) { tabIndex -> selectedTab = tabIndex },
                     contentPadding = PaddingValues(16.dp),
                 ) {
                     item {
@@ -440,56 +438,25 @@ fun DeviceDetailScreen(
                         Spacer(Modifier.height(12.dp))
                     }
                     item {
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            Box(modifier = Modifier.width(168.dp)) {
-                                Tab(
-                                    selected = selectedTab == -1,
-                                    onClick = { selectedTab = -1 },
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.Default.Info,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("Overview")
-                                        }
-                                    },
-                                )
-                            }
-                            Box(modifier = Modifier.weight(1f)) {
-                                ScrollableTabRow(
-                                    selectedTabIndex = selectedTab.coerceAtLeast(0),
-                                    edgePadding = 0.dp,
-                                ) {
+                        ItemDetailTabs(
+                            tabs =
+                                buildList {
+                                    add(ItemDetailTab("Overview", Icons.Default.Info))
                                     DEVICE_RELATED_TABS.forEachIndexed { index, tab ->
-                                        Tab(
-                                            selected = selectedTab == index,
-                                            onClick = {
-                                                selectedTab = index
-                                            },
-                                            text = {
-                                                Row(
-                                                    verticalAlignment =
-                                                        Alignment.CenterVertically
-                                                ) {
-                                                    Icon(
-                                                        tabIcon(tab),
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(18.dp),
-                                                    )
-                                                    Spacer(Modifier.width(6.dp))
-                                                    Text("${tab.label} (${relatedCounts[index]})")
-                                                }
-                                            },
+                                        add(
+                                            ItemDetailTab(
+                                                label = tab.label,
+                                                icon = tabIcon(tab),
+                                                count = relatedCounts[index],
+                                            )
                                         )
                                     }
-                                }
-                            }
-                        }
+                                },
+                            selectedTab = selectedTab,
+                            onTabSelected = { selectedTab = it },
+                        )
                     }
-                    if (selectedTab == -1) {
+                    if (selectedTab == 0) {
                         item {
                             Spacer(Modifier.height(16.dp))
                         }
@@ -636,7 +603,7 @@ fun DeviceDetailScreen(
                             )
                         }
                     } else {
-                        val tab = DEVICE_RELATED_TABS[selectedTab]
+                        val tab = DEVICE_RELATED_TABS[selectedTab - 1]
                         item {
                             if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
                                 DeviceJournalEntries(journalEntries)

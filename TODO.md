@@ -3929,3 +3929,56 @@ Status: **done**, 2026-08-02; verified YAML parsing, a remote `bundleRelease` wi
 version code/name, and a GitHub-hosted manual run (`publish=false`) that built and uploaded the AAB
 artifact without contacting Google Play. Publishing remains disabled because no Play account or
 service-account secret exists.
+
+
+## NBC-218: restore item-detail tab swipe navigation
+
+The left/right swipe gesture on item view pages should select the adjacent tab, just like tapping
+the tab itself.
+
+- [x] Restore left/right gesture handling for all item-detail tab layouts.
+- [x] Keep swipes bounded to the available tabs and avoid stealing vertical scrolling gestures.
+- [ ] Add focused tests for previous/next tab selection and edge behavior.
+
+Status: in progress, 2026-08-02 - shared pointer handling now observes the initial gesture pass;
+remote ktfmt/unit checks pass, with device verification still pending.
+
+
+## NBC-219: improve item-detail tabs on phones
+
+The sticky Overview tab currently consumes space needed by the remaining tabs, making the tab
+control cramped or unusable on narrow phone screens.
+
+- [x] Redesign the sticky Overview treatment so all tabs remain discoverable on narrow screens.
+- [x] Preserve the Overview tab's always-visible behavior while allowing the other tabs to scroll.
+- [ ] Verify the layout on both phones and tablets without reintroducing vertical tab layouts.
+
+Status: in progress, 2026-08-02 - shared fixed Overview plus horizontally scrolling related tabs
+implemented; remote ktfmt/unit checks pass, with device verification still pending.
+
+
+## NBC-220: unify item-detail tab presentation
+
+All item view pages should use the same tab component, interaction model, icons, and count badges;
+the device view currently diverges visibly from the other item views.
+
+- [x] Identify and consolidate the competing item-detail tab implementations.
+- [x] Apply one shared tab presentation to devices and every other tabbed item type.
+- [x] Keep per-type tab contents/counts while standardizing layout, selection, and gestures.
+- [ ] Add UI coverage that checks representative device and non-device views.
+
+Status: in progress, 2026-08-02 - device and generic detail pages now use the shared tab control;
+remote ktfmt/unit checks pass, with UI coverage/device verification still pending.
+
+
+## NBC-221: prioritize devices and device types in global search
+
+Global search should rank devices and device types ahead of less frequently searched NetBox object
+types, without removing the other matching results.
+
+- [x] Add an explicit ranking policy for devices and device types.
+- [x] Preserve recursive matches, type badges, images, and the existing cache-first/offline path.
+- [x] Add tests covering mixed result sets and exact/partial device and device-type matches.
+
+Status: in progress, 2026-08-02 - ranking policy and mixed-result unit coverage implemented;
+remote unit tests pass, with device/UI verification still pending.
