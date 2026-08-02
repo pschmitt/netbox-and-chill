@@ -435,8 +435,9 @@ continues to work from cached data while offline.
 - [x] Add protocol tests and pass remote unit tests, lint, and debug build.
 - [x] Verify physical output with the user's paired Brother printer (user confirmed printing works).
 
-Status: mostly done, 2026-07-31 - native implementation, remote validation, and an initial physical
-print passed; inversion/clipping changes still need a follow-up paper print.
+Status: **done**, 2026-08-02 - native implementation and remote validation passed; the wired
+Zenfone sent a fresh FNUC label through the bonded PT-P300BT4590 with the updated raster settings,
+and the printer completed the job successfully.
 
 ## NBC-12: Render markdown fields properly
 
