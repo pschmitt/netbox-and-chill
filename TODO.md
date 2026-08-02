@@ -5044,15 +5044,15 @@ Generic detail, dashboard diff, device interfaces, custom fields, media, and sea
 fallback logic is spread across repositories and UI files, so API shape changes can produce silent
 partial rendering.
 
-- [ ] Define shared lightweight DTO/presentation adapters for common references, timestamps, media,
+- [x] Define shared lightweight DTO/presentation adapters for common references, timestamps, media,
       statuses, and custom-field values.
-- [ ] Keep plugin-specific unknown fields dynamic while removing duplicate parsing of common fields.
-- [ ] Add fixture-based compatibility tests for representative NetBox list/detail payloads,
+- [x] Keep plugin-specific unknown fields dynamic while removing duplicate parsing of common fields.
+- [x] Add fixture-based compatibility tests for representative NetBox list/detail payloads,
       including missing/null/changed fields.
 
-Status: not started, 2026-08-03 - static review of `GenericObjectRepository`,
-`GlobalSearchRepository`, `DeviceDetailViewModel`, `ObjectChangeDiffViewModel`, and related UI
-parsers.
+Status: mostly done, 2026-08-03 - added the shared null-safe JSON projection in
+`data/schema/NetBoxJson.kt`, migrated generic cache/search reference parsing, and added fixture-style
+compatibility tests. Dashboard diff and device-specific parsers still have local specialized logic.
 
 
 ## NBC-298: expand route-level UI coverage and CI smoke coverage

@@ -3,6 +3,8 @@ package dev.pschmitt.netboxandchill.data.repository
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.schema.jsonInt
+import dev.pschmitt.netboxandchill.data.schema.jsonString
 import dev.pschmitt.netboxandchill.sync.SyncIssueReporter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -204,15 +206,15 @@ constructor(
 
     private fun JsonObject.toEntity(endpointPath: String): NetBoxObjectEntity {
         val id =
-            this["id"]?.jsonPrimitive?.intOrNull
+            jsonInt("id")
                 ?: error("NetBox object at $endpointPath has no id")
         val display =
-            this["display"]?.jsonPrimitive?.contentOrNull
-                ?: this["name"]?.jsonPrimitive?.contentOrNull
+            jsonString("display")
+                ?: jsonString("name")
                 ?: "#$id"
         val secondaryLine =
-            (this["status"] as? JsonObject)?.get("label")?.jsonPrimitive?.contentOrNull
-                ?: this["description"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+            (this["status"] as? JsonObject)?.jsonString("label")
+                ?: jsonString("description")?.takeIf { it.isNotBlank() }
         return NetBoxObjectEntity(
             endpointPath = endpointPath,
             id = id,

@@ -9,6 +9,9 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
 import dev.pschmitt.netboxandchill.data.schema.assetTagState
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.data.schema.jsonInt
+import dev.pschmitt.netboxandchill.data.schema.jsonReference
+import dev.pschmitt.netboxandchill.data.schema.jsonString
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -540,26 +543,24 @@ internal fun networkDeviceMatch(
     interfaceDeviceIds: Map<Int, Int>,
 ): NetworkDeviceMatch? {
     if (endpointPath == GlobalSearchRepository.INTERFACES_ENDPOINT_PATH) {
-        val deviceId = (objectJson["device"] as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
+        val deviceId = objectJson.jsonReference("device")?.id
         if (deviceId != null) {
             val macAddress =
-                objectJson["mac_address"]?.jsonPrimitive?.contentOrNull
-                    ?: objectJson["mac"]?.jsonPrimitive?.contentOrNull
+                objectJson.jsonString("mac_address") ?: objectJson.jsonString("mac")
             if (!macAddress.isNullOrBlank()) {
                 return NetworkDeviceMatch(deviceId, "MAC $macAddress")
             }
             val display =
-                objectJson["display"]?.jsonPrimitive?.contentOrNull
-                    ?: objectJson["name"]?.jsonPrimitive?.contentOrNull
+                objectJson.jsonString("display") ?: objectJson.jsonString("name")
                     ?: "interface"
             return NetworkDeviceMatch(deviceId, "Interface $display")
         }
     }
     if (endpointPath == GlobalSearchRepository.IP_ADDRESSES_ENDPOINT_PATH) {
         val assigned = objectJson["assigned_object"] as? JsonObject
-        val directDeviceId = (assigned?.get("device") as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
-        val assignedType = objectJson["assigned_object_type"]?.jsonPrimitive?.contentOrNull
-        val assignedId = objectJson["assigned_object_id"]?.jsonPrimitive?.intOrNull
+        val directDeviceId = assigned?.jsonReference("device")?.id
+        val assignedType = objectJson.jsonString("assigned_object_type")
+        val assignedId = objectJson.jsonInt("assigned_object_id")
         val deviceId =
             directDeviceId
                 ?: assignedId
@@ -567,8 +568,7 @@ internal fun networkDeviceMatch(
                     ?.let(interfaceDeviceIds::get)
         if (deviceId != null) {
             val display =
-                objectJson["address"]?.jsonPrimitive?.contentOrNull
-                    ?: objectJson["display"]?.jsonPrimitive?.contentOrNull
+                objectJson.jsonString("address") ?: objectJson.jsonString("display")
                     ?: "IP address"
             return NetworkDeviceMatch(deviceId, "IP $display")
         }
