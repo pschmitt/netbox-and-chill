@@ -3711,8 +3711,9 @@ failure policy is easy to apply inconsistently when a new screen is added.
 - [x] Add tests proving cached data remains available when refresh fails; cancellation is
   propagated for replacement queries.
 
-Status: in progress, 2026-08-02 - the shared helper is covered by unit tests and global search now
-uses it; remaining refresh callers can migrate incrementally without changing cache behavior.
+Status: **done**, 2026-08-02 - the shared helper is covered by unit tests and is used by global
+search and the cache-first topology refresh. Both callers preserve cached content on failure,
+propagate cancellation, and expose friendly retryable errors without changing their cache source.
 
 
 ## NBC-206: centralize NetBox endpoint and field metadata
