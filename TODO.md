@@ -3638,11 +3638,12 @@ NetBox 4.6/netbox-docker 5.0.2 fixture was started, seeded, authenticated with a
 cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 7
 Pro API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on
 failure. The shell-safe invocation and permission handling are fixed; one hosted run reached the
-test but was interrupted by the notification permission dialog, while the next run failed before
+test but was interrupted by the notification permission dialog, while a later run failed before
 APK installation because the emulator's `settings` provider was not ready. The workflow now waits
-for both boot completion and system provisioning before Gradle starts; one green hosted journey
-is still required. The app sends NetBox `nbt_` tokens with Bearer auth while retaining legacy Token
-auth.
+for both boot completion and system provisioning before Gradle starts. Its first execution exposed
+that the emulator runner uses POSIX `sh`, and the guard conditions are now portable; one green
+hosted journey is still required. The app sends NetBox `nbt_` tokens with Bearer auth while
+retaining legacy Token auth.
 
 
 ## NBC-201: make the offline topology view readable on mobile

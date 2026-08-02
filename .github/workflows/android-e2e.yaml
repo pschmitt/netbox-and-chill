@@ -62,11 +62,11 @@ jobs:
             do
               boot_completed="$(adb shell getprop sys.boot_completed | tr -d '\r')"
               device_provisioned="$(adb shell settings get global device_provisioned 2>/dev/null | tr -d '\r')"
-              if [[ "$boot_completed" == "1" && "$device_provisioned" == "1" ]]
+              if [ "$boot_completed" = "1" ] && [ "$device_provisioned" = "1" ]
               then
                 break
               fi
-              if [[ "$attempt" == "60" ]]
+              if [ "$attempt" = "60" ]
               then
                 printf 'Android system providers did not become ready\n' >&2
                 adb shell getprop sys.boot_completed
