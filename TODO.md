@@ -4160,3 +4160,18 @@ should expose an edit action with the same kind/comments form.
 Status: **done**, 2026-08-02; `just test rofl-14.brkn.lol` passed, the debug APK was deployed to
 all three devices, and the editor/menu were inspected on the Mi Pad 4 without saving production
 data.
+
+
+## NBC-235: preview attached documents
+
+Documents on item overview pages should provide a useful visual preview, especially for PDFs,
+while remaining cache-first and safe to use offline.
+
+- [x] Render the first page of locally cached PDFs as document thumbnails.
+- [x] Render locally cached image documents and provide a clear fallback for other formats.
+- [x] Keep preview generation free of implicit network requests and preserve the existing open action.
+- [x] Verify populated and empty document states offline on a physical device.
+
+Status: **done**, 2026-08-02; remote unit tests and `ktfmtCheck` passed, the debug APK was
+deployed to all three devices, and the Mi Pad 4 showed a cached PDF first-page thumbnail for
+`fnuc` while the empty `turris` document state retained its fallback and Upload document action.

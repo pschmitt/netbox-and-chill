@@ -416,7 +416,7 @@ constructor(
         viewModelScope.launch {
             _isDownloading.value = true
             fileDownloadRepository
-                .downloadToCache(url, filename)
+                .downloadToPersistent(url, filename)
                 .onSuccess { _fileToOpen.value = it }
                 .onFailure { _errorMessage.value = it.message ?: "Couldn't download $filename" }
             _isDownloading.value = false
@@ -428,6 +428,9 @@ constructor(
     }
 
     fun localImageFile(url: String, filename: String): File? =
+        fileDownloadRepository.persistentFile(url, filename)
+
+    fun localAttachmentFile(url: String, filename: String): File? =
         fileDownloadRepository.persistentFile(url, filename)
 
     private fun apiUrlToWebUrl(apiUrl: HttpUrl): String =

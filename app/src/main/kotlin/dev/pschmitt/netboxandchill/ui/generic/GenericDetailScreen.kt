@@ -723,6 +723,11 @@ fun GenericDetailScreen(
                                                 mediaUploadInitialKind = MediaUploadKind.Document
                                                 showMediaUpload = true
                                             },
+                                            localFileFor = { document ->
+                                                document.documentUrl?.let {
+                                                    viewModel.localAttachmentFile(it, document.filename)
+                                                }
+                                            },
                                         )
                                     }
                                     item {
