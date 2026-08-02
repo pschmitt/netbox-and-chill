@@ -98,6 +98,7 @@ constructor(
     // NBC-10: "Print label" only makes sense for devices (printlabel's --netbox mode prints a
     // device's QR/asset-tag sticker) - other object types don't have a label to (re)print.
     val isPrintableDevice: Boolean = route.endpointPath == DEVICES_ENDPOINT_PATH
+    val isDeviceType: Boolean = route.endpointPath == NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(

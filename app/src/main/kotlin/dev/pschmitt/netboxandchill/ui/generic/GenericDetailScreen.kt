@@ -207,6 +207,11 @@ fun GenericDetailScreen(
         visibleFields.firstOrNull { it.label.equals("Status", ignoreCase = true) }
             as? FieldRow.PlainText
     val visibleOverviewFields = visibleFields.filterNot { it == statusField }
+    val deviceTypePhotoRows =
+        if (viewModel.isDeviceType) visibleOverviewFields.filterIsInstance<FieldRow.Image>()
+        else emptyList()
+    val detailOverviewFields =
+        visibleOverviewFields.filterNot { viewModel.isDeviceType && it is FieldRow.Image }
     val modelLabel = endpointModelLabel(viewModel.route.endpointPath)
     val detailAccent =
         MaterialTheme.colorScheme.detailAccentFor(viewModel.route.endpointPath, objectTypeAccent)
@@ -677,6 +682,13 @@ fun GenericDetailScreen(
                                     )
                                 }
                                 item { Spacer(Modifier.height(8.dp)) }
+                                deviceTypePhotos(
+                                    rows = deviceTypePhotoRows,
+                                    title = title,
+                                    localImageFile = viewModel::localAttachmentFile,
+                                    onImageClick = { items, index -> imageViewer = items to index },
+                                    onLongPress = { fieldActionLabel = it },
+                                )
                                 item {
                                     ImageAttachmentGallery(
                                         attachments = imageAttachments,
@@ -729,7 +741,7 @@ fun GenericDetailScreen(
                                         Text("Details", style = MaterialTheme.typography.titleLarge)
                                     }
                                 }
-                                visibleOverviewFields.forEach { row ->
+                                detailOverviewFields.forEach { row ->
                                     fieldRow(
                                         row,
                                         onNavigateToReference = { endpointPath, id ->
@@ -919,7 +931,9 @@ fun GenericDetailScreen(
         FieldActionDialog(
             fieldLabel = label,
             fieldValue = fields.firstOrNull { it.label == label }?.actionValue(),
-            canEdit = editableFields.any { it.label == label },
+            canEdit =
+                deviceTypePhotoUploadKind(label) != null ||
+                    editableFields.any { it.label == label },
             onCopy = {
                 fields.firstOrNull { it.label == label }?.actionValue()?.let {
                     onCopyValue(label, it)
@@ -927,9 +941,13 @@ fun GenericDetailScreen(
                 fieldActionLabel = null
             },
             onEdit = {
+                val photoKind = deviceTypePhotoUploadKind(label)
                 val field = editableFields.firstOrNull { it.label == label }
                 fieldActionLabel = null
-                if (field != null) {
+                if (photoKind != null) {
+                    mediaUploadInitialKind = photoKind
+                    showMediaUpload = true
+                } else if (field != null) {
                     focusedEditFieldKey = field.key
                     focusedEditValue = field.value
                     viewModel.startFieldEditing(field.key)
@@ -1077,6 +1095,71 @@ private fun GenericDetailIdentityCard(
         }
     }
 }
+
+/**
+ * Device-type stock photos belong near the identity card, just as they do on the typed device
+ * detail screen. Keeping the rows out of the generic Details section also gives both faces the
+ * same side-by-side treatment and leaves their existing cached/local rendering intact.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.deviceTypePhotos(
+    rows: List<FieldRow.Image>,
+    title: String?,
+    localImageFile: (String, String) -> java.io.File?,
+    onImageClick: (List<ImageViewerItem>, Int) -> Unit,
+    onLongPress: (String) -> Unit,
+) {
+    val photoRows = rows.filter { deviceTypePhotoUploadKind(it.label) != null }
+    if (photoRows.isEmpty()) return
+    val itemTitle = title?.takeIf { it.isNotBlank() } ?: "Device type"
+    val viewerItems =
+        photoRows.map { row ->
+            ImageViewerItem(
+                url = row.url,
+                title = "${row.label} of $itemTitle",
+                metadata = listOf("View" to row.label),
+                localFile = localImageFile(row.url, row.url.attachmentFilename()),
+            )
+        }
+    item {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            photoRows.forEachIndexed { index, row ->
+                Column(
+                    modifier =
+                        Modifier.weight(1f).combinedClickable(
+                            onClick = { onImageClick(viewerItems, index) },
+                            onLongClick = { onLongPress(row.label) },
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    RemoteThumbnail(
+                        imageUrl = row.url,
+                        contentDescription = "${row.label} of $itemTitle",
+                        localFile = localImageFile(row.url, row.url.attachmentFilename()),
+                        modifier = Modifier.fillMaxWidth().height(140.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                    Text(
+                        row.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+internal fun deviceTypePhotoUploadKind(label: String): MediaUploadKind? =
+    when {
+        label.contains("front", ignoreCase = true) -> MediaUploadKind.DeviceTypeFront
+        label.contains("rear", ignoreCase = true) -> MediaUploadKind.DeviceTypeRear
+        else -> null
+    }
 
 @Composable
 private fun EditDiffDialog(

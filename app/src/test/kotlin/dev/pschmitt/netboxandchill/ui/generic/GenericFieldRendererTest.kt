@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldDefinition
+import dev.pschmitt.netboxandchill.ui.common.MediaUploadKind
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
@@ -12,6 +13,19 @@ class GenericFieldRendererTest {
 
     private fun parse(rawJson: String): JsonObject =
         Json.decodeFromString(JsonObject.serializer(), rawJson)
+
+    @Test
+    fun `device type photo labels select the matching replacement upload`() {
+        assertEquals(
+            MediaUploadKind.DeviceTypeFront,
+            deviceTypePhotoUploadKind("Front Image"),
+        )
+        assertEquals(
+            MediaUploadKind.DeviceTypeRear,
+            deviceTypePhotoUploadKind("Rear Image"),
+        )
+        assertNull(deviceTypePhotoUploadKind("Model"))
+    }
 
     @Test
     fun `shortens displayed urls from the configured netbox origin`() {

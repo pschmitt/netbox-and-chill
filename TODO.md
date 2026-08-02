@@ -4787,3 +4787,18 @@ colors and working links for resolved related objects.
 
 Status: **done**, 2026-08-02 - field/inline modes, bounded token-level coloring, related-item links,
 and Markdown fallback are implemented; unit tests, remote lint, and Mi Pad 4 UI verification passed.
+
+
+## NBC-281: move and replace device-type photos
+
+Device-type front/rear photos should be as easy to see and replace as they are on device detail
+pages.
+
+- [x] Show front/rear photos near the top of the device-type detail overview.
+- [x] Keep both photos clickable in the full-screen image viewer.
+- [x] Long-press a photo and use Edit to open the replacement upload workflow.
+- [x] Verify the display and edit affordance without mutating production NetBox data.
+
+Status: **done**, 2026-08-02 - remote unit tests, ktfmt, and debug APK build passed; Mi Pad 4
+verified the prominent cached photos plus long-press → Edit → front-photo replacement dialog,
+then dismissed it without changing NetBox data.
