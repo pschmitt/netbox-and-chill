@@ -102,6 +102,8 @@ import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
 import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckGreen
+import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckIcon
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.DownloadedIndicator
 import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
@@ -635,25 +637,21 @@ fun GenericDetailScreen(
                                     Column(
                                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Row(verticalAlignment = Alignment.Top) {
                                             Surface(
-                                                color = detailAccent.copy(alpha = 0.18f),
-                                                shape = RoundedCornerShape(14.dp),
-                                                modifier = Modifier.size(52.dp),
+                                                color = ContentSaveCheckGreen.copy(alpha = 0.16f),
+                                                shape = RoundedCornerShape(18.dp),
+                                                modifier = Modifier.size(72.dp),
                                             ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Icon(
-                                                        Icons.Outlined.Category,
-                                                        contentDescription = null,
-                                                        tint = detailAccent,
-                                                        modifier = Modifier.size(28.dp),
-                                                    )
-                                                }
+                                                ContentSaveCheckIcon(
+                                                    tint = ContentSaveCheckGreen,
+                                                    modifier = Modifier.fillMaxSize().padding(10.dp),
+                                                )
                                             }
                                             Column(
-                                                Modifier.padding(start = 14.dp)
-                                                    .padding(end = 30.dp)
-                                                    .weight(1f)
+                                                Modifier.padding(start = 16.dp)
+                                                    .padding(end = 32.dp)
+                                                    .weight(1f),
                                             ) {
                                                 Text(
                                                     title ?: "Object #${viewModel.route.id}",
@@ -664,24 +662,22 @@ fun GenericDetailScreen(
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 )
-                                            }
-                                        }
-                                        statusField?.let { status ->
-                                            Spacer(Modifier.height(10.dp))
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Box(
-                                                    modifier =
-                                                        Modifier.combinedClickable(
-                                                            onClick = {},
-                                                            onLongClick = {
-                                                                fieldActionLabel = status.label
-                                                            },
+                                                statusField?.let { status ->
+                                                    Spacer(Modifier.height(10.dp))
+                                                    Box(
+                                                        modifier =
+                                                            Modifier.combinedClickable(
+                                                                onClick = {},
+                                                                onLongClick = {
+                                                                    fieldActionLabel = status.label
+                                                                },
+                                                            )
+                                                    ) {
+                                                        StatusChip(
+                                                            label = status.value,
+                                                            value = status.value.lowercase(),
                                                         )
-                                                ) {
-                                                    StatusChip(
-                                                        label = status.value,
-                                                        value = status.value.lowercase(),
-                                                    )
+                                                    }
                                                 }
                                             }
                                         }

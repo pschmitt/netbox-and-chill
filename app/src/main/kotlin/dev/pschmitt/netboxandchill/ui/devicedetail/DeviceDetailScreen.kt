@@ -78,6 +78,8 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckGreen
+import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckIcon
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.DownloadedIndicator
 import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
@@ -439,34 +441,31 @@ fun DeviceDetailScreen(
                                         Column(
                                             modifier = Modifier.fillMaxWidth().padding(16.dp),
                                         ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Row(verticalAlignment = Alignment.Top) {
                                                 Surface(
-                                                    color = detailAccent.copy(alpha = 0.18f),
+                                                    color = ContentSaveCheckGreen.copy(alpha = 0.16f),
                                                     shape =
                                                         androidx.compose.foundation.shape.RoundedCornerShape(
-                                                            14.dp
+                                                            18.dp
                                                         ),
-                                                    modifier = Modifier.size(52.dp),
+                                                    modifier = Modifier.size(72.dp),
                                                 ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Icon(
-                                                            Icons.Default.Cable,
-                                                            contentDescription = null,
-                                                            tint = detailAccent,
-                                                            modifier = Modifier.size(28.dp),
-                                                        )
-                                                    }
+                                                    ContentSaveCheckIcon(
+                                                        tint = ContentSaveCheckGreen,
+                                                        modifier = Modifier.fillMaxSize().padding(10.dp),
+                                                    )
                                                 }
                                                 Column(
-                                                    Modifier.padding(start = 14.dp)
-                                                        .padding(end = 30.dp)
-                                                        .weight(1f)
+                                                    Modifier.padding(start = 16.dp)
+                                                        .padding(end = 32.dp)
+                                                        .weight(1f),
                                                 ) {
                                                     Text(
                                                         current.name,
                                                         style = MaterialTheme.typography.headlineSmall,
                                                     )
                                                     current.deviceTypeModel?.let {
+                                                        Spacer(Modifier.height(4.dp))
                                                         Text(
                                                             it,
                                                             style = MaterialTheme.typography.bodyMedium,
@@ -474,26 +473,22 @@ fun DeviceDetailScreen(
                                                                 MaterialTheme.colorScheme.onSurfaceVariant,
                                                         )
                                                     }
-                                                }
-                                            }
-                                            if (isFieldVisible("Status")) {
-                                                Spacer(Modifier.height(10.dp))
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                ) {
-                                                    Box(
-                                                        modifier =
-                                                            Modifier.combinedClickable(
-                                                                onClick = {},
-                                                                onLongClick = {
-                                                                    fieldActionLabel = "Status"
-                                                                },
+                                                    if (isFieldVisible("Status")) {
+                                                        Spacer(Modifier.height(10.dp))
+                                                        Box(
+                                                            modifier =
+                                                                Modifier.combinedClickable(
+                                                                    onClick = {},
+                                                                    onLongClick = {
+                                                                        fieldActionLabel = "Status"
+                                                                    },
+                                                                )
+                                                        ) {
+                                                            StatusChip(
+                                                                label = current.statusLabel,
+                                                                value = current.statusValue,
                                                             )
-                                                    ) {
-                                                        StatusChip(
-                                                            label = current.statusLabel,
-                                                            value = current.statusValue,
-                                                        )
+                                                        }
                                                     }
                                                 }
                                             }

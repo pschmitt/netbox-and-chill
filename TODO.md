@@ -4438,3 +4438,19 @@ plane. The Aqara Magic Cube currently renders with a solid green matte instead o
 Status: **done**, 2026-08-02 - libavif decoding and header coverage passed the remote unit/lint checks; the
 production Aqara Magic Cube rendered transparently on the wired Zenfone in both the detail view and
 image viewer, including after the media was downloaded locally; no NetBox data was changed.
+
+
+## NBC-256: improve item identity cards
+
+The top-level identity card on generic item and dedicated device detail pages should make the item
+identity read as one clear vertical stack beside a larger, distinctive icon.
+
+- [x] Use a larger green content-save-check-style icon on both card variants.
+- [x] Keep the item name, model/ID subtitle, and status badge in one right-hand column.
+- [x] Keep the downloaded indicator in the card's top-right corner.
+- [x] Verify the updated typed and generic cards on the wired Zenfone without changing production data.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests and a debug build passed; the wired Zenfone
+showed the larger green content-save-check-style icon with the name/model-or-ID/status stack to its
+right on both the typed device and generic device-type cards, while the downloaded indicator stayed
+in the card's top-right corner; no NetBox data was changed.
