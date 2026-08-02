@@ -218,8 +218,8 @@ fun NetBoxNavHost(
             GenericDetailScreen(
                 highlightDeviceId = route.highlightDeviceId,
                 onBack = { navController.popBackStack() },
-                onNavigateToReference = { endpointPath, id, breadcrumb ->
-                    navController.navigate(Route.Generic(endpointPath, id, breadcrumb))
+                onNavigateToReference = { endpointPath, id, _ ->
+                    navController.navigateToObject(endpointPath, id)
                 },
                 onCreateLinkedItem = { fieldKey, endpointPath, label, reopenFocusedEditor ->
                     navController.navigate(

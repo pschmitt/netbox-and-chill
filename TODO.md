@@ -4007,3 +4007,16 @@ longer with parenthesized count text.
 
 Status: **done**, 2026-08-02; implemented in `3afce12` and visually verified on the Mi Pad 4
 with positive and zero-count tabs.
+
+
+## NBC-224: open related devices in the dedicated device view
+
+Selecting a device from another item's related-device list (for example Device type → Devices)
+must open the same rich device page used by the device list and scanner, including device-type
+images and device-specific tabs.
+
+- [ ] Route cached positive device references from generic detail pages through DeviceDetailScreen.
+- [ ] Preserve generic detail navigation for every other object type.
+- [ ] Verify the Device type → Devices → device path on a physical device.
+
+Status: in progress, 2026-08-02 - implementation started.
