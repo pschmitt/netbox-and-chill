@@ -4588,3 +4588,16 @@ the selected tab's content scrolls.
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint and a debug build passed; device and generic
 item views on the wired Zenfone show tabs directly below the header and keep them pinned while content
 scrolls; no NetBox data was changed.
+
+
+## NBC-266: compact horizontal item detail tabs
+
+Use a compact horizontal treatment for item detail tabs so the icon and label share one row and the
+tab bar uses less vertical space.
+
+- [x] Render each tab's icon and label side-by-side while keeping the tab bar horizontally scrollable.
+- [x] Preserve tab badges and selection behavior.
+- [x] Verify the compact layout on the wired Zenfone without changing NetBox data.
+
+Status: in progress, 2026-08-02 - remote ktfmt/unit tests/lint passed; device verification is pending;
+no NetBox data was changed.

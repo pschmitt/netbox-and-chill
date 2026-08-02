@@ -1,6 +1,11 @@
 package dev.pschmitt.netboxandchill.ui.common
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Badge
@@ -12,6 +17,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
@@ -47,16 +53,22 @@ fun ItemDetailTabs(
             Tab(
                 selected = selectedTab == index,
                 onClick = { onTabSelected(index) },
-                icon = {
-                    if (tab.count != null && tab.count > 0) {
-                        BadgedBox(badge = { Badge { Text(tab.count.toString()) } }) {
-                            Icon(tab.icon, contentDescription = null)
+                text = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        if (tab.count != null && tab.count > 0) {
+                            BadgedBox(badge = { Badge { Text(tab.count.toString()) } }) {
+                                Icon(tab.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        } else {
+                            Icon(tab.icon, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
-                    } else {
-                        Icon(tab.icon, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(tab.label, maxLines = 1)
                     }
                 },
-                text = { Text(tab.label, maxLines = 1) },
             )
         }
     }
