@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.common
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,12 +26,14 @@ private val AttachmentTileWidth = 176.dp
 private val AttachmentTileHeight = 140.dp
 
 /** Inline, cache-first image attachments gallery shared by typed and generic item pages. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageAttachmentGallery(
     attachments: List<ImageAttachmentEntity>,
     localImageFile: (url: String, filename: String) -> File?,
     onImageClick: (items: List<ImageViewerItem>, index: Int) -> Unit,
     onAdd: () -> Unit,
+    onAttachmentLongPress: (ImageAttachmentEntity) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val viewerItems = attachments.map { it.toImageViewerItem(localImageFile) }
@@ -64,9 +67,10 @@ fun ImageAttachmentGallery(
                     modifier =
                         Modifier.width(AttachmentTileWidth)
                             .height(AttachmentTileHeight)
-                            .clickable {
-                                onImageClick(viewerItems, index)
-                            },
+                            .combinedClickable(
+                                onClick = { onImageClick(viewerItems, index) },
+                                onLongClick = { onAttachmentLongPress(attachment) },
+                            ),
                     contentScale = ContentScale.Crop,
                 )
             }
@@ -103,7 +107,7 @@ fun ImageAttachmentEntity.toImageViewerItem(
     )
 }
 
-private fun ImageAttachmentEntity.displayName(): String =
+fun ImageAttachmentEntity.displayName(): String =
     name?.takeIf { it.isNotBlank() }
         ?: display?.takeIf { it.isNotBlank() }
         ?: "Image attachment #$id"

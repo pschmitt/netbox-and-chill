@@ -29,6 +29,8 @@ fun FieldActionDialog(
     onHide: () -> Unit,
     onCopy: (() -> Unit)? = null,
     onDismiss: () -> Unit,
+    editLabel: String = "Edit field",
+    showHide: Boolean = true,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -62,14 +64,16 @@ fun FieldActionDialog(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 ) {
                     Icon(Icons.Default.Edit, contentDescription = null)
-                    Text("Edit field", modifier = Modifier.padding(start = 8.dp))
+                    Text(editLabel, modifier = Modifier.padding(start = 8.dp))
                 }
-                OutlinedButton(
-                    onClick = onHide,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                ) {
-                    Icon(Icons.Default.VisibilityOff, contentDescription = null)
-                    Text("Hide by default", modifier = Modifier.padding(start = 8.dp))
+                if (showHide) {
+                    OutlinedButton(
+                        onClick = onHide,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    ) {
+                        Icon(Icons.Default.VisibilityOff, contentDescription = null)
+                        Text("Hide by default", modifier = Modifier.padding(start = 8.dp))
+                    }
                 }
             }
         },

@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -52,6 +53,7 @@ fun MediaUploadDialog(
     onDismiss: () -> Unit,
     onUploaded: () -> Unit,
     initialKind: MediaUploadKind? = null,
+    imageAttachmentId: Int? = null,
     viewModel: MediaUploadViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -115,6 +117,7 @@ fun MediaUploadDialog(
     val isDocument = kind == MediaUploadKind.Document
     val isDeviceTypePhoto =
         kind == MediaUploadKind.DeviceTypeFront || kind == MediaUploadKind.DeviceTypeRear
+    val isReplacingImage = kind == MediaUploadKind.ImageAttachment && imageAttachmentId != null
     val canTakePhoto = !isDocument
     val canUpload =
         selectedUri != null &&
@@ -122,12 +125,14 @@ fun MediaUploadDialog(
             (!isDocument || documentTypeValue != null)
     val dialogTitle =
         when {
+            isReplacingImage -> "Replace image attachment"
             isDocument -> "Upload document"
             isDeviceTypePhoto -> "Upload device-type photo"
             else -> "Upload image attachment"
         }
     val dialogDescription =
         when {
+            isReplacingImage -> "Choose a replacement image or take a new photo."
             isDocument -> "Choose a document file and its NetBox document type."
             isDeviceTypePhoto -> "Choose or capture the device type's front or rear photo."
             else -> "Choose an image file or take a photo to attach to this item."
@@ -149,44 +154,48 @@ fun MediaUploadDialog(
             ) {
                 Text(dialogDescription, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
                 if (isDeviceTypePhoto) {
-                    OutlinedButton(
-                        onClick = { photoKindMenuExpanded = true },
-                        enabled = !state.isUploading,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.Default.Image, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (kind == MediaUploadKind.DeviceTypeFront) "Front photo"
-                            else "Rear photo"
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = photoKindMenuExpanded,
-                        onDismissRequest = { photoKindMenuExpanded = false },
-                    ) {
-                        listOf(
-                                MediaUploadKind.DeviceTypeFront,
-                                MediaUploadKind.DeviceTypeRear,
+                    // Anchor the popup to the face button rather than to the dialog's scrolling
+                    // column. This keeps it directly below the trigger on phones and tablets.
+                    Box(Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { photoKindMenuExpanded = true },
+                            enabled = !state.isUploading,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Default.Image, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (kind == MediaUploadKind.DeviceTypeFront) "Front photo"
+                                else "Rear photo"
                             )
-                            .forEach { option ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            if (option == MediaUploadKind.DeviceTypeFront) "Front photo"
-                                            else "Rear photo"
-                                        )
-                                    },
-                                    onClick = {
-                                        kind = option
-                                        photoKindMenuExpanded = false
-                                        selectedUri = null
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Image, contentDescription = null)
-                                    },
+                        }
+                        DropdownMenu(
+                            expanded = photoKindMenuExpanded,
+                            onDismissRequest = { photoKindMenuExpanded = false },
+                        ) {
+                            listOf(
+                                    MediaUploadKind.DeviceTypeFront,
+                                    MediaUploadKind.DeviceTypeRear,
                                 )
-                            }
+                                .forEach { option ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                if (option == MediaUploadKind.DeviceTypeFront) "Front photo"
+                                                else "Rear photo"
+                                            )
+                                        },
+                                        onClick = {
+                                            kind = option
+                                            photoKindMenuExpanded = false
+                                            selectedUri = null
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Image, contentDescription = null)
+                                        },
+                                    )
+                                }
+                        }
                     }
                 }
                 if (isDocument) {
@@ -268,6 +277,7 @@ fun MediaUploadDialog(
                         filename = selectedFilename ?: "upload",
                         documentEndpointPath = documentEndpointPath,
                         documentTypeValue = documentTypeValue,
+                        imageAttachmentId = imageAttachmentId,
                         onUploaded = onUploaded,
                     )
                 },
@@ -275,7 +285,13 @@ fun MediaUploadDialog(
             ) {
                 Icon(Icons.Default.UploadFile, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text(if (isDocument) "Upload document" else "Upload image")
+                Text(
+                    when {
+                        isDocument -> "Upload document"
+                        isReplacingImage -> "Replace image"
+                        else -> "Upload image"
+                    }
+                )
             }
         },
     )

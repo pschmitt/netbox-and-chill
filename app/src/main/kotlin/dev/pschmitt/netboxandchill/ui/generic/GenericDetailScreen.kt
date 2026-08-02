@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
 import dev.pschmitt.netboxandchill.data.repository.RackFace
@@ -108,6 +109,7 @@ import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.ImageAttachmentGallery
+import dev.pschmitt.netboxandchill.ui.common.displayName
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
 import dev.pschmitt.netboxandchill.ui.common.JournalEntryEditorDialog
@@ -179,6 +181,8 @@ fun GenericDetailScreen(
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var showMediaUpload by remember { mutableStateOf(false) }
     var mediaUploadInitialKind by remember { mutableStateOf<MediaUploadKind?>(null) }
+    var imageAttachmentAction by remember { mutableStateOf<ImageAttachmentEntity?>(null) }
+    var imageAttachmentToEdit by remember { mutableStateOf<ImageAttachmentEntity?>(null) }
     var showJournalEditor by remember { mutableStateOf(false) }
     var journalEditorEntry by remember { mutableStateOf<JournalEntryUi?>(null) }
     var imageViewer by remember { mutableStateOf<Pair<List<ImageViewerItem>, Int>?>(null) }
@@ -700,6 +704,7 @@ fun GenericDetailScreen(
                                             mediaUploadInitialKind = MediaUploadKind.ImageAttachment
                                             showMediaUpload = true
                                         },
+                                        onAttachmentLongPress = { imageAttachmentAction = it },
                                     )
                                 }
                                 item {
@@ -900,9 +905,19 @@ fun GenericDetailScreen(
         MediaUploadDialog(
             endpointPath = viewModel.route.endpointPath,
             objectId = viewModel.route.id,
-            onDismiss = { showMediaUpload = false },
-            onUploaded = { viewModel.refresh(showConfirmation = false) },
+            onDismiss = {
+                showMediaUpload = false
+                imageAttachmentToEdit = null
+                mediaUploadInitialKind = null
+            },
+            onUploaded = {
+                showMediaUpload = false
+                imageAttachmentToEdit = null
+                mediaUploadInitialKind = null
+                viewModel.refresh(showConfirmation = false)
+            },
             initialKind = mediaUploadInitialKind,
+            imageAttachmentId = imageAttachmentToEdit?.id,
         )
     }
     if (showJournalEditor) {
@@ -958,6 +973,27 @@ fun GenericDetailScreen(
                 fieldActionLabel = null
             },
             onDismiss = { fieldActionLabel = null },
+        )
+    }
+    imageAttachmentAction?.let { attachment ->
+        FieldActionDialog(
+            fieldLabel = attachment.displayName(),
+            fieldValue = attachment.imageUrl,
+            canEdit = true,
+            editLabel = "Edit image",
+            showHide = false,
+            onCopy = {
+                attachment.imageUrl?.let { onCopyValue(attachment.displayName(), it) }
+                imageAttachmentAction = null
+            },
+            onEdit = {
+                imageAttachmentAction = null
+                imageAttachmentToEdit = attachment
+                mediaUploadInitialKind = MediaUploadKind.ImageAttachment
+                showMediaUpload = true
+            },
+            onHide = { imageAttachmentAction = null },
+            onDismiss = { imageAttachmentAction = null },
         )
     }
     focusedEditField?.let { field ->

@@ -52,6 +52,25 @@ constructor(
             },
         )
 
+    suspend fun replaceImageAttachment(
+        endpointPath: String,
+        objectId: Int,
+        attachmentId: Int,
+        uri: Uri,
+        filename: String,
+    ): Result<MediaUploadReceipt> =
+        upload(
+            operation = {
+                api.patchFile(
+                    "${IMAGE_ATTACHMENTS_ENDPOINT_PATH}$attachmentId/",
+                    filePart("image", uri, filename),
+                )
+            },
+            afterUpload = {
+                imageAttachmentRepository.refresh(contentTypeForEndpoint(endpointPath), objectId)
+            },
+        )
+
     suspend fun uploadDeviceTypePhoto(
         deviceTypeId: Int,
         face: DeviceTypePhotoFace,
@@ -135,6 +154,8 @@ constructor(
         substringAfterLast('/').substringAfterLast('\\').ifBlank { "upload" }
 
     companion object {
+        private const val IMAGE_ATTACHMENTS_ENDPOINT_PATH = "api/extras/image-attachments/"
+
         fun contentTypeForEndpoint(endpointPath: String): String {
             val segments = endpointPath.trim('/').split('/')
             require(segments.size >= 3) { "Unsupported NetBox endpoint: $endpointPath" }

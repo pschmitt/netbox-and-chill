@@ -97,6 +97,7 @@ constructor(
         filename: String,
         documentEndpointPath: String?,
         documentTypeValue: String?,
+        imageAttachmentId: Int? = null,
         onUploaded: () -> Unit,
     ) {
         if (_state.value.isUploading) return
@@ -105,7 +106,21 @@ constructor(
             val result =
                 when (kind) {
                     MediaUploadKind.ImageAttachment ->
-                        repository.uploadImageAttachment(endpointPath, objectId, uri, filename)
+                        imageAttachmentId?.let {
+                            repository.replaceImageAttachment(
+                                endpointPath,
+                                objectId,
+                                it,
+                                uri,
+                                filename,
+                            )
+                        }
+                            ?: repository.uploadImageAttachment(
+                                endpointPath,
+                                objectId,
+                                uri,
+                                filename,
+                            )
                     MediaUploadKind.DeviceTypeFront,
                     MediaUploadKind.DeviceTypeRear -> {
                         if (endpointPath != "api/dcim/device-types/") {

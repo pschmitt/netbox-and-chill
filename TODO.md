@@ -4805,3 +4805,30 @@ pages.
 Status: **done**, 2026-08-02 - remote unit tests, ktfmt, and debug APK build passed; Mi Pad 4
 verified the prominent cached photos plus long-press → Edit → front-photo replacement dialog,
 then dismissed it without changing NetBox data.
+
+
+## NBC-282: edit image attachments
+
+Image attachments should support the same long-press action workflow as detail fields, including
+replacing the selected attachment in place.
+
+- [x] Long-press an image attachment to open the field action sheet.
+- [x] Offer Edit and open the existing image picker/camera upload dialog.
+- [x] PATCH the selected image attachment instead of creating a duplicate.
+- [x] Verify the action flow without uploading or changing production NetBox data.
+
+Status: **done**, 2026-08-02 - Mi Pad 4 verified long-press → Edit image → replacement picker;
+remote unit tests and ktfmt validation passed; no production upload was submitted.
+
+
+## NBC-283: anchor media upload face selector
+
+The Front photo/Rear photo selector in the media upload dialog should open directly below its
+trigger button instead of appearing elsewhere in the dialog.
+
+- [x] Anchor the device-type face selector popup to the face button.
+- [x] Keep the selector usable near the bottom edge of the dialog.
+- [x] Verify Front/Rear selection on a device without uploading media.
+
+Status: **done**, 2026-08-02 - Mi Pad 4 verified the selector opens directly below the
+trigger and exposes Front/Rear without selecting or uploading media.
