@@ -3629,24 +3629,15 @@ the production NetBox.
 - [x] Upload useful failure diagnostics such as screenshots and logcat.
 - [x] Keep the emulator script invocation shell-safe so Gradle receives only the intended tasks
   and instrumentation properties.
-- [ ] Get a full GitHub-hosted emulator run through the instrumentation journey; fixture startup,
-  seeding, and local/remote instrumentation compilation already pass, but hosted emulator boot
-  has been inconsistent.
+- [x] Get a full GitHub-hosted emulator run through the instrumentation journey; fixture startup,
+  seeding, and local/remote instrumentation compilation already pass.
 
-Status: in progress, 2026-08-02; the Compose instrumentation APK compiled on rofl-14 and the pinned
-NetBox 4.6/netbox-docker 5.0.2 fixture was started, seeded, authenticated with a v2 token, and
-cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 7
-Pro API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on
-failure. The shell-safe invocation and permission handling are fixed; one hosted run reached the
-test but was interrupted by the notification permission dialog, while later API-35 runs failed
-inside the hosted emulator before or during APK installation (including a broken-pipe failure in
-the runner's post-boot settings command). The workflow waits for boot completion and system
-provisioning in a dedicated script because the emulator runner executes each script line
-individually, and now uses a smaller API-34 Pixel 2 profile with a software GPU. The latest run
-reached instrumentation, but the permission grant was ordered before APK installation and was a
-no-op; the workflow now installs the debug APK first so the grant is effective. One green hosted
-journey is still required. The app sends NetBox `nbt_` tokens with Bearer auth while retaining
-legacy Token auth.
+Status: **done**, 2026-08-02; the pinned NetBox 4.6/netbox-docker 5.0.2 fixture started, seeded,
+authenticated with a v2 token, and was torn down cleanly. GitHub Actions run `30741945664` passed
+the full Pixel 2 API-34 emulator journey (`Tests 1/1 completed`, Gradle successful), including
+onboarding, cache-backed detail/search navigation, and offline mode. The workflow uploads logcat,
+screenshots, NetBox logs, and Android reports on failure. The app sends NetBox `nbt_` tokens with
+Bearer auth while retaining legacy Token auth.
 
 
 ## NBC-201: make the offline topology view readable on mobile
