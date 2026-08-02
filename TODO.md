@@ -4858,3 +4858,245 @@ short, human-readable language.
 
 Status: **done**, 2026-08-03 - cancellation/reason summarization tests, remote lint/build, and Mi
 Pad 4 launcher/splash verification passed; no NetBox data was changed.
+
+
+## NBC-286: audit view usability
+
+Audit every navigable view and major interaction flow for usability problems, using the Mi Pad 4
+as the primary verification device. Record each concrete finding as a follow-up TODO instead of
+letting the audit become an untracked list of impressions.
+
+- [x] Inventory all navigation destinations and major dialogs from the current route graph.
+- [x] Exercise the destinations on the Mi Pad 4, including empty, loading, error, and tablet layouts
+      where they can be reached without mutating NetBox data.
+- [x] Add a separate, actionable TODO entry for every concrete usability issue found.
+- [x] Record the audit evidence and limitations in this entry.
+
+Status: **done**, 2026-08-03 - route graph and major dialogs were inventoried; Mi Pad 4 exercised
+dashboard, search, scanner, add/create, linked picker, settings, list/detail, rack elevation,
+device tabs, and sidebar states without submitting a NetBox mutation. Four concrete usability
+follow-ups were recorded below. Topology, conflict, pending-change, and onboarding-empty states
+were reviewed in code but not entered on the already-configured device; no upload/delete/create
+action was submitted.
+
+
+## NBC-287: audit code quality and maintainability
+
+Review the current implementation for duplicated logic, oversized files, weak boundaries, missing
+tests, and other maintainability risks. Record concrete findings as follow-up TODO entries with
+file/symbol-level scope where possible.
+
+- [x] Review architecture and dependency boundaries across the app.
+- [x] Review the largest/highest-risk UI, sync, persistence, and API files.
+- [x] Review test coverage and build/lint/CI quality gates.
+- [x] Add a separate, actionable TODO entry for every concrete code-quality issue found.
+- [x] Record the audit evidence and limitations in this entry.
+
+Status: **done**, 2026-08-03 - reviewed route/navigation boundaries, the largest UI and sync files,
+Room migration configuration, JSON/API repository boundaries, tests, lint baseline, and CI. The
+actionable findings below include exact files/symbols and the limitations of this static review.
+
+
+## NBC-288: make the scanner cover the complete tablet content area
+
+On the Mi Pad 4 tablet layout, the camera preview starts to the right of the persistent navigation
+rail, leaving the rail visible as dark, partially legible text behind the scanner. This makes the
+scanner look broken and competes with the scan controls.
+
+- [ ] Give the scanner an explicit full-screen/content-layer presentation on tablets, or hide the
+      persistent rail while scanning.
+- [ ] Ensure the preview, scan frame, and camera controls are clipped to one coherent surface with
+      no underlying navigation labels showing through.
+- [ ] Verify portrait and landscape tablet layouts plus the phone layout.
+
+Status: not started, 2026-08-03 - Mi Pad 4 evidence: `/tmp/audit-scanner-mipad.png`.
+
+
+## NBC-289: make linked create fields tappable across the whole control
+
+The generic create form's read-only linked and multi-choice fields open only when the trailing
+dropdown icon is tapped. Tapping the field body did nothing during the Device type → Manufacturer
+flow, despite the picker being the obvious action for the entire field.
+
+- [ ] Make the whole `CreateChoiceInput` and `CreateMultiChoiceInput` field open its picker.
+- [ ] Keep the trailing icon as a redundant, accessible affordance and preserve clear/reset actions.
+- [ ] Add a Compose regression test covering a body tap and the icon tap.
+
+Status: not started, 2026-08-03 - confirmed on Mi Pad 4; implementation is in
+`ui/generic/GenericCreateScreen.kt` around `CreateChoiceInput`/`CreateMultiChoiceInput`.
+
+
+## NBC-290: make sidebar search reveal matches in collapsed groups
+
+Sidebar search currently filters the contents of an expanded group but does not expand a matching
+group. Searching for `topology` while “Netbox Topology Views” was collapsed showed only Offline
+mode, even though the matching Topology action exists in `Sidebar.kt`.
+
+- [ ] Auto-expand groups containing a matching model or special action while a search is active.
+- [ ] Keep the matching group visible when all of its children are filtered out except the special
+      action.
+- [ ] Add a sidebar search test for a collapsed plugin group and a regular NetBox app group.
+
+Status: not started, 2026-08-03 - confirmed on Mi Pad 4; relevant condition is in
+`ui/directory/Sidebar.kt` near the `Topology` action and expanded-app filtering.
+
+
+## NBC-291: keep rack-elevation slot labels legible on tablets
+
+Rack elevation works and renders device images, but the left-side U-range labels wrap into awkward
+fragments such as `U16.5–U16` followed by a lone `16` on the Mi Pad 4. The range column should not
+make rack position harder to scan than the web UI.
+
+- [ ] Give the elevation label column a responsive width or use a compact, non-wrapping range
+      format.
+- [ ] Preserve legibility for half-U positions, multi-U devices, and both rack faces.
+- [ ] Add a screenshot/UI regression check at tablet width.
+
+Status: not started, 2026-08-03 - confirmed on Mi Pad 4 rack `Samson SRK16`; screenshot:
+`/tmp/audit-rack-elevation-mipad.png`.
+
+
+## NBC-292: split the generic detail screen into maintainable feature components
+
+`ui/generic/GenericDetailScreen.kt` is currently 2,494 lines and combines the screen shell, media,
+rack elevation, related-item sheets, field rendering, edit forms, diff dialogs, and journal rows.
+This makes changes to one item type's view risky and makes focused UI tests difficult to place.
+
+- [ ] Extract identity/media/related-item/rack sections into focused composables/files.
+- [ ] Extract field/edit state and dialog coordination from the screen function.
+- [ ] Keep shared presentation helpers in `ui/common` or a clearly scoped generic-detail package.
+- [ ] Add screen-level tests for the extracted states before removing the old coupling.
+
+Status: not started, 2026-08-03 - static review; file measured at 2,494 lines.
+
+
+## NBC-293: split the settings screen and dialog implementations
+
+`ui/settings/SettingsScreen.kt` is currently 1,677 lines and owns the main settings index, every
+category screen, printing UI, gesture rows, hidden-field and notification dialogs, server editing,
+QR setup, and object-type colors. The file has become a second application shell rather than a
+stable composition boundary.
+
+- [ ] Move each settings category into its own screen/component file while keeping one navigation
+      model.
+- [ ] Move modal editors and picker dialogs beside the state they edit.
+- [ ] Keep preference persistence in `SettingsViewModel`/repositories, not in UI helpers.
+- [ ] Add focused tests for category navigation and preference save/cancel behavior.
+
+Status: not started, 2026-08-03 - static review; file measured at 1,677 lines.
+
+
+## NBC-294: reduce MainActivity orchestration responsibilities
+
+`MainActivity` currently coordinates deep links, QR setup imports, reconciliation intents, crash
+report presentation, notification permission, foreground/background notification state, the modal
+drawer, the complete navigation host, and all global gesture dispatch. This coupling makes lifecycle
+and intent regressions hard to test independently.
+
+- [ ] Extract the app shell/drawer and gesture action dispatcher into testable Compose/application
+      components.
+- [ ] Centralize incoming-intent routing and make cold-start/warm-start behavior table-driven.
+- [ ] Add instrumentation coverage for deep links, reconciliation summaries, and activity restart.
+
+Status: not started, 2026-08-03 - static review; `MainActivity.kt` measured at 351 lines with
+multiple unrelated lifecycle responsibilities.
+
+
+## NBC-295: replace destructive Room migration fallback
+
+`AppDatabase` is version 15 with `exportSchema = false`, only a 14→15 migration is registered, and
+`DatabaseModule` calls `fallbackToDestructiveMigration(dropAllTables = true)`. A future schema bump
+without a migration can silently erase the complete offline cache and pending outbox, which is an
+unacceptable failure mode for an offline-first app.
+
+- [ ] Enable Room schema export and keep migration JSON under version control.
+- [ ] Add explicit migrations for every supported version and migration tests that preserve cached
+      objects, media metadata, and pending edits.
+- [ ] Remove destructive fallback from normal production construction; if a recovery reset is
+      needed, make it explicit and user-visible.
+
+Status: not started, 2026-08-03 - static review of `data/db/AppDatabase.kt` and
+`di/DatabaseModule.kt`; no database was reset during the audit.
+
+
+## NBC-296: simplify the pending-edit reconciliation state machine
+
+`PendingEditRepository.kt` repeats nearly identical cancellation, IO, HTTP, and generic exception
+handling across create, edit, delete, and reconciliation loops. The repetition makes it easy for
+one mutation type to diverge in retry/conflict semantics, especially in the most critical offline
+path.
+
+- [ ] Introduce a shared operation/error classification and a single retryable-result policy.
+- [ ] Model create/edit/delete reconciliation as explicit state transitions with one summary path.
+- [ ] Add parameterized tests for connectivity loss, 4xx, 5xx, cancellation, conflict, and 404
+      behavior for every mutation type.
+
+Status: not started, 2026-08-03 - static review; repeated branches span
+`data/repository/PendingEditRepository.kt` lines 90–460.
+
+
+## NBC-297: establish typed boundaries around generic NetBox JSON
+
+Generic detail, dashboard diff, device interfaces, custom fields, media, and search each parse
+`JsonObject` fields independently. This is flexible for plugins, but duplicated field-name and
+fallback logic is spread across repositories and UI files, so API shape changes can produce silent
+partial rendering.
+
+- [ ] Define shared lightweight DTO/presentation adapters for common references, timestamps, media,
+      statuses, and custom-field values.
+- [ ] Keep plugin-specific unknown fields dynamic while removing duplicate parsing of common fields.
+- [ ] Add fixture-based compatibility tests for representative NetBox list/detail payloads,
+      including missing/null/changed fields.
+
+Status: not started, 2026-08-03 - static review of `GenericObjectRepository`,
+`GlobalSearchRepository`, `DeviceDetailViewModel`, `ObjectChangeDiffViewModel`, and related UI
+parsers.
+
+
+## NBC-298: expand route-level UI coverage and CI smoke coverage
+
+The repository has one opt-in Android E2E journey (`NetBoxE2eTest`) covering onboarding, initial
+sync, device navigation, search, and offline mode. There are no other Compose/instrumentation
+tests for the many route-level screens and dialogs; the E2E workflow is manual-only. Unit tests
+cover useful pure logic, but they cannot catch navigation, tablet layout, accessibility, or dialog
+regressions.
+
+- [ ] Add a disposable-NetBox Compose journey for list/detail/edit cancellation, linked creation,
+      scanner, media, settings, pending changes, conflicts, topology, and change diffs.
+- [ ] Add route-level empty/loading/error/offline assertions and tablet screenshots where practical.
+- [ ] Decide which short smoke journey should run on pull requests while keeping the full suite
+      opt-in if runtime is too high.
+
+Status: not started, 2026-08-03 - static review of `android-e2e.yaml` and test inventory; only
+`NetBoxE2eTest.kt` uses `createAndroidComposeRule`.
+
+
+## NBC-299: pay down the Android lint baseline
+
+`app/lint-baseline.xml` is 1,858 lines and includes 53 `UseKtx`, 36
+`IntentFilterUniqueDataAttributes`, 21 `GradleDependency`, and 11 `MissingPermission` findings,
+among others. The baseline keeps CI green but hides a large amount of known maintenance debt.
+
+- [ ] Classify each baseline entry as fixed, intentionally suppressed with a reason, or obsolete.
+- [ ] Remove fixable findings in small batches and regenerate the baseline after each batch.
+- [ ] Fail CI when new baseline findings are introduced and document the remaining intentional
+      suppressions.
+
+Status: not started, 2026-08-03 - static review; baseline counts measured with `rg` on 2026-08-03.
+
+
+## NBC-300: clear the remaining non-baselined lint and compiler warnings
+
+The remote `:app:lintDebug` gate succeeds but still reports six non-baselined warnings: one
+modifier-parameter ordering warning and KTX suggestions for `String.toUri`, `createBitmap`, and
+`Bitmap.scale`. The unit-test compile also reports four deprecated `hiltViewModel` imports in
+`Sidebar.kt` and `SettingsScreen.kt`; Gradle reports deprecated features that will stop working
+with Gradle 10.
+
+- [ ] Fix the six current lint warnings and keep the baseline from absorbing them.
+- [ ] Migrate the deprecated Hilt Compose import to `androidx.hilt.lifecycle.viewmodel.compose`.
+- [ ] Run the build with full deprecation warnings and remove or document project-owned Gradle
+      deprecations.
+
+Status: not started, 2026-08-03 - `just test`, `just lint`, and remote `:app:lintDebug` passed;
+the warning counts were recorded from their output.
