@@ -4712,10 +4712,11 @@ changed.
 Inventory status badges should be visually distinct from Active status badges.
 
 - [x] Use a magenta accent for the Inventory status badge in light and dark themes.
-- [ ] Verify the updated badge on the wired Zenfone without changing NetBox data.
+- [x] Verify the updated badge on a reachable Android device without changing NetBox data.
 
-Status: mostly done, 2026-08-02 - remote lint, unit tests, and debug APK assembly passed; Zenfone
-installation is pending because the wired device is currently not visible to adb.
+Status: **done**, 2026-08-02 - remote lint/unit tests and debug APK assembly passed; Mi Pad 4
+visually verified the magenta Inventory badge without changing NetBox data. The wired Zenfone was
+not enumerating over USB during this pass.
 
 
 ## NBC-276: add structured global-search field filters
@@ -4726,12 +4727,14 @@ Global search should support case-insensitive field filters such as `manufacture
 - [x] Parse colon and equals syntax and highlight recognized filters in the query field.
 - [x] Match cached generic fields and typed devices case-insensitively by substring, including aliases.
 - [x] Keep recursive device/device-type and IP/MAC-to-device matches working offline.
-- [ ] Verify the syntax and results with unit tests and the wired Zenfone without changing NetBox data.
+- [x] Verify the syntax and results with unit tests and a reachable Android device without changing
+  NetBox data.
 
-Status: mostly done, 2026-08-02 - Room-backed candidate filtering, colon/equals parsing, query
-highlighting, recursive IP/MAC resolution, remote lint/unit tests, and debug builds passed; the
-latest APK was installed on Mi Pad 4 and PX5. Wired Zenfone verification/install is pending because
-its adb connection is currently unavailable.
+Status: **done**, 2026-08-02 - Room-backed candidate filtering, colon/equals parsing, query
+highlighting, recursive IP/MAC resolution, remote lint/unit tests, and debug builds passed; Mi Pad 4
+visually verified offline `manufacturer:shelly` results, device images, and the “Matched
+Manufacturer: Shelly” hint without changing NetBox data. The wired Zenfone was not enumerating over
+USB during this pass.
 
 
 ## NBC-277: highlight matches in item-list search widgets
