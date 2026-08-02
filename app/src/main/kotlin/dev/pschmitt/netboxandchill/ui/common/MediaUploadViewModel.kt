@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
+import dev.pschmitt.netboxandchill.data.schema.documentTypePresentation
 import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.MediaUploadRepository
@@ -184,22 +185,24 @@ private fun documentTypeOptionsFromDocuments(
                     is JsonObject -> raw["value"]?.jsonPrimitive?.contentOrNull
                     else -> null
                 }?.takeIf(String::isNotBlank) ?: return@mapNotNull null
-            val label =
+            val labelCandidates =
                 when (raw) {
                     is JsonObject ->
-                        raw["label"]?.jsonPrimitive?.contentOrNull
-                            ?: raw["display"]?.jsonPrimitive?.contentOrNull
-                    else -> null
+                        listOfNotNull(
+                            raw["value"]?.jsonPrimitive?.contentOrNull,
+                            raw["label"]?.jsonPrimitive?.contentOrNull,
+                            raw["display"]?.jsonPrimitive?.contentOrNull,
+                        )
+                    else -> emptyList()
+                } + value
+            val label =
+                labelCandidates.firstNotNullOfOrNull { candidate ->
+                    candidate.takeIf { it.any(Char::isLetter) }?.let(::documentTypeLabel)
                 } ?: documentTypeLabel(value)
             MediaDocumentTypeOption(value, label)
         }
         .distinctBy { it.value }
 
 private fun documentTypeLabel(value: String): String =
-    when (value.lowercase()) {
-        "purchaseorder" -> "Purchase order"
-        "floorplan" -> "Floor plan"
-        "manual" -> "Manual"
-        "other" -> "Other"
-        else -> value.replace('_', ' ').replaceFirstChar { it.uppercase() }
-    }
+    documentTypePresentation(value)?.label
+        ?: value.replace('_', ' ').replaceFirstChar { it.uppercase() }

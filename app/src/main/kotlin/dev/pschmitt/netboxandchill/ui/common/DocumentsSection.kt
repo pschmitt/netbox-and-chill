@@ -5,6 +5,7 @@ import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import dev.pschmitt.netboxandchill.data.schema.documentTypePresentation
 import coil3.compose.AsyncImage
 import dev.pschmitt.netboxandchill.data.repository.CachedDocument
 import java.io.File
@@ -86,12 +89,13 @@ fun DocumentsSection(
                     ListItem(
                         headlineContent = { Text(document.name) },
                         supportingContent = {
-                            Text(
-                                listOfNotNull(document.documentType, document.filename)
-                                    .distinct()
-                                    .joinToString(" · "),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                document.documentType?.let { type -> DocumentTypeBadge(type) }
+                                Text(
+                                    document.filename,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         },
                         leadingContent = {
                             DocumentPreview(
@@ -127,6 +131,23 @@ fun DocumentsSection(
                 Text("Upload document")
             }
         }
+    }
+}
+
+@Composable
+private fun DocumentTypeBadge(rawType: String) {
+    val presentation = documentTypePresentation(rawType) ?: return
+    val colors = documentTypeBadgeColors(presentation.key)
+    Surface(
+        color = colors.container,
+        contentColor = colors.content,
+        shape = RoundedCornerShape(50),
+    ) {
+        Text(
+            presentation.label,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+        )
     }
 }
 

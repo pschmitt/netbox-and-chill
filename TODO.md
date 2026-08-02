@@ -4203,3 +4203,21 @@ Status: **done**, 2026-08-02; the remote unit suite and `ktfmtCheck` passed, the
 installed on the wired Zenfone, and both dialogs were opened without selecting or uploading a
 production file. Image attachments show Choose image/Take photo; documents show Choose document
 and Choose document type.
+
+
+## NBC-238: colorize and humanize document-type badges
+
+Documents on item pages should identify their NetBox document type with a compact, type-specific
+colored badge. Labels from the Documents plugin should be normalized so values such as
+`Purchaseorder` are shown as “Purchase order”.
+
+- [x] Normalize document-type keys and human-readable labels consistently in cached documents and
+  upload type choices.
+- [x] Render a colored badge for every document type while retaining the filename and preview.
+- [x] Use stable, readable colors for known and unknown document types in light and dark themes.
+- [x] Add focused presentation tests and verify the populated Documents section on the wired
+  Zenfone without uploading or changing a production record.
+
+Status: **done**, 2026-08-02 - 208 remote unit tests, remote ktfmt, and `lintDebug` passed. The
+wired Zenfone showed the cached PDF preview with a purple `Purchase order` badge and corrected
+two-word label; no upload or production record change was made.

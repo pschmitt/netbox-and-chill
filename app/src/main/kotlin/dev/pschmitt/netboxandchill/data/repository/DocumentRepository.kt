@@ -2,7 +2,7 @@ package dev.pschmitt.netboxandchill.data.repository
 
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
-import dev.pschmitt.netboxandchill.data.schema.Humanize
+import dev.pschmitt.netboxandchill.data.schema.documentTypePresentation
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -85,13 +85,22 @@ constructor(
             objectJson["name"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf(String::isNotBlank)
                 ?: entity.display
-        val documentType =
-            (objectJson["document_type"] as? JsonObject)?.let { type ->
-                type["label"]?.jsonPrimitive?.contentOrNull
-                    ?: type["display"]?.jsonPrimitive?.contentOrNull
-                    ?: type["value"]?.jsonPrimitive?.contentOrNull
+        val documentTypeCandidates =
+            when (val rawType = objectJson["document_type"]) {
+                is JsonObject ->
+                    listOfNotNull(
+                        rawType["value"]?.jsonPrimitive?.contentOrNull,
+                        rawType["label"]?.jsonPrimitive?.contentOrNull,
+                        rawType["display"]?.jsonPrimitive?.contentOrNull,
+                    )
+                else -> listOfNotNull(rawType?.jsonPrimitive?.contentOrNull)
             }
-                ?: objectJson["document_type"]?.jsonPrimitive?.contentOrNull?.let(Humanize::label)
+        val documentType =
+            documentTypeCandidates.firstNotNullOfOrNull { candidate ->
+                candidate.takeIf { it.any(Char::isLetter) }?.let { type ->
+                    documentTypePresentation(type)?.label ?: type
+                }
+            }
         return CachedDocumentWithTarget(
             document =
                 CachedDocument(
