@@ -1900,10 +1900,11 @@ supports them.
 - [x] Preserve the selected rear lens and zoom when switching front/rear cameras.
 - [x] Keep zoom controls usable on devices without multiple rear lenses.
 
-Status: mostly done, 2026-08-01 - pinch zoom and cross-camera clamping are implemented; remote
+Status: **done**, 2026-08-02 - pinch zoom and cross-camera clamping are implemented; remote
 lint/tests/debug build passed and the build is installed on Mi Pad 4 and PX5. PX5 exposes `0.6×`
-and `1×` rear choices and the selected lens control switches correctly; physical pinch-gesture
-verification remains open.
+and `1×` rear choices and the selected lens control switches correctly. A real two-pointer touch
+sequence on the rooted Mi Pad produced the scanner's `1.3×` zoom indicator; SELinux was restored to
+`Enforcing` and no NetBox data was changed.
 
 ## NBC-73: reorder bottom navigation and add a Settings shortcut
 
