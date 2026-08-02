@@ -176,7 +176,7 @@ fun GenericDetailScreen(
     var mediaUploadInitialKind by remember { mutableStateOf<MediaUploadKind?>(null) }
     var showJournalEditor by remember { mutableStateOf(false) }
     var journalEditorEntry by remember { mutableStateOf<JournalEntryUi?>(null) }
-    var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
+    var imageViewer by remember { mutableStateOf<Pair<List<ImageViewerItem>, Int>?>(null) }
     var matterPairingCode by remember { mutableStateOf<String?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
@@ -699,7 +699,7 @@ fun GenericDetailScreen(
                             ImageAttachmentGallery(
                                 attachments = imageAttachments,
                                 localImageFile = viewModel::localAttachmentFile,
-                                onImageClick = { items, index -> imageViewerItem = items[index] },
+                                onImageClick = { items, index -> imageViewer = items to index },
                                 onAdd = {
                                     mediaUploadInitialKind = MediaUploadKind.ImageAttachment
                                     showMediaUpload = true
@@ -766,7 +766,7 @@ fun GenericDetailScreen(
                                             },
                                             onDownloadAttachment = viewModel::downloadAttachment,
                                             localAttachmentFile = viewModel::localAttachmentFile,
-                                            onImageClick = { imageViewerItem = it },
+                                            onImageClick = { imageViewer = listOf(it) to 0 },
                                             isDownloading = isDownloading,
                                             onCopyValue = onCopyValue,
                                             onFieldLongPress = { fieldActionLabel = it },
@@ -874,11 +874,11 @@ fun GenericDetailScreen(
             },
         )
     }
-    imageViewerItem?.let { item ->
+    imageViewer?.let { (items, index) ->
         ImageViewerDialog(
-            items = listOf(item),
-            initialIndex = 0,
-            onDismiss = { imageViewerItem = null },
+            items = items,
+            initialIndex = index,
+            onDismiss = { imageViewer = null },
         )
     }
     matterPairingCode?.let { code ->

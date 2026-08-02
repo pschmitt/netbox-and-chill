@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.ui.common
 import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
@@ -18,12 +19,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -32,9 +36,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
@@ -65,6 +76,11 @@ private val DismissThreshold = 120.dp
 private const val MIN_SCALE = 1f
 private const val MAX_SCALE = 5f
 
+internal fun imageViewerTargetIndex(currentPage: Int, pageCount: Int, step: Int): Int? {
+    if (pageCount <= 0 || step == 0) return null
+    return (currentPage + step).takeIf { it in 0 until pageCount }
+}
+
 /**
  * Full-screen swipe-to-dismiss image viewer (NBC-20): pinch-to-zoom/pan on the current image,
  * horizontal swipe between [items] via [HorizontalPager], vertical drag-down dismisses (an explicit
@@ -81,15 +97,43 @@ fun ImageViewerDialog(items: List<ImageViewerItem>, initialIndex: Int, onDismiss
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val thresholdPx = with(density) { DismissThreshold.toPx() }
+    val focusRequester = remember { FocusRequester() }
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
         val dismissProgress = (abs(dismissOffsetY.value) / (thresholdPx * 3)).coerceIn(0f, 1f)
         Box(
             modifier =
                 Modifier.fillMaxSize()
+                    .focusRequester(focusRequester)
+                    .focusable()
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) {
+                            false
+                        } else {
+                            val step =
+                                when (event.key) {
+                                    Key.DirectionLeft -> -1
+                                    Key.DirectionRight -> 1
+                                    else -> 0
+                                }
+                            val target =
+                                imageViewerTargetIndex(
+                                    pagerState.currentPage,
+                                    items.size,
+                                    step,
+                                )
+                            if (target == null) {
+                                false
+                            } else {
+                                scope.launch { pagerState.animateScrollToPage(target) }
+                                true
+                            }
+                        }
+                    }
                     .background(Color.Black.copy(alpha = 1f - dismissProgress * 0.7f))
         ) {
             Column(
@@ -136,6 +180,53 @@ fun ImageViewerDialog(items: List<ImageViewerItem>, initialIndex: Int, onDismiss
                 ImageMetadataPanel(
                     item = items[pagerState.currentPage.coerceIn(0, items.lastIndex)]
                 )
+            }
+            if (items.size > 1) {
+                val currentPage = pagerState.currentPage.coerceIn(0, items.lastIndex)
+                val previousPage = imageViewerTargetIndex(currentPage, items.size, -1)
+                val nextPage = imageViewerTargetIndex(currentPage, items.size, 1)
+                IconButton(
+                    onClick = {
+                        previousPage?.let { target ->
+                            scope.launch { pagerState.animateScrollToPage(target) }
+                        }
+                    },
+                    enabled = previousPage != null,
+                    modifier =
+                        Modifier.align(Alignment.CenterStart)
+                            .padding(start = 8.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.45f),
+                                androidx.compose.foundation.shape.CircleShape,
+                            ),
+                ) {
+                    Icon(
+                        Icons.Default.ChevronLeft,
+                        contentDescription = "Previous image",
+                        tint = Color.White.copy(alpha = if (previousPage == null) 0.35f else 1f),
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        nextPage?.let { target ->
+                            scope.launch { pagerState.animateScrollToPage(target) }
+                        }
+                    },
+                    enabled = nextPage != null,
+                    modifier =
+                        Modifier.align(Alignment.CenterEnd)
+                            .padding(end = 8.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.45f),
+                                androidx.compose.foundation.shape.CircleShape,
+                            ),
+                ) {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Next image",
+                        tint = Color.White.copy(alpha = if (nextPage == null) 0.35f else 1f),
+                    )
+                }
             }
             IconButton(
                 onClick = onDismiss,

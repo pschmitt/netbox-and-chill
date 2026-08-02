@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -63,7 +64,7 @@ fun MediaUploadDialog(
     var kind by remember(endpointPath, initialKind) {
         mutableStateOf(initialKind ?: defaultKind)
     }
-    var kindMenuExpanded by remember { mutableStateOf(false) }
+    var photoKindMenuExpanded by remember { mutableStateOf(false) }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
     var selectedFilename by remember { mutableStateOf<String?>(null) }
     var captureUri by remember { mutableStateOf<Uri?>(null) }
@@ -111,72 +112,84 @@ fun MediaUploadDialog(
         if (state.message != null) selectedUri = null
     }
 
-    val availableKinds =
-        buildList {
-            add(MediaUploadKind.ImageAttachment)
-            if (endpointPath == "api/dcim/device-types/") {
-                add(MediaUploadKind.DeviceTypeFront)
-                add(MediaUploadKind.DeviceTypeRear)
-            }
-            if (
-                initialKind == MediaUploadKind.Document ||
-                    documentEndpointPath != null && documentTypeOptions.isNotEmpty()
-            ) {
-                add(MediaUploadKind.Document)
-            }
-        }
-    if (kind !in availableKinds) kind = availableKinds.first()
-    val canTakePhoto = kind != MediaUploadKind.Document
+    val isDocument = kind == MediaUploadKind.Document
+    val isDeviceTypePhoto =
+        kind == MediaUploadKind.DeviceTypeFront || kind == MediaUploadKind.DeviceTypeRear
+    val canTakePhoto = !isDocument
     val canUpload =
         selectedUri != null &&
             !state.isUploading &&
-            (kind != MediaUploadKind.Document || documentTypeValue != null)
+            (!isDocument || documentTypeValue != null)
+    val dialogTitle =
+        when {
+            isDocument -> "Upload document"
+            isDeviceTypePhoto -> "Upload device-type photo"
+            else -> "Upload image attachment"
+        }
+    val dialogDescription =
+        when {
+            isDocument -> "Choose a document file and its NetBox document type."
+            isDeviceTypePhoto -> "Choose or capture the device type's front or rear photo."
+            else -> "Choose an image file or take a photo to attach to this item."
+        }
 
     AlertDialog(
         onDismissRequest = { if (!state.isUploading) onDismiss() },
-        icon = { Icon(Icons.Default.UploadFile, contentDescription = null) },
-        title = { Text("Upload media") },
+        icon = {
+            Icon(
+                if (isDocument) Icons.Default.Description else Icons.Default.Image,
+                contentDescription = null,
+            )
+        },
+        title = { Text(dialogTitle) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                OutlinedButton(
-                    onClick = { kindMenuExpanded = true },
-                    enabled = !state.isUploading,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        if (kind == MediaUploadKind.Document) Icons.Default.Description
-                        else Icons.Default.UploadFile,
-                        contentDescription = null,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(kind.label)
-                }
-                DropdownMenu(
-                    expanded = kindMenuExpanded,
-                    onDismissRequest = { kindMenuExpanded = false },
-                ) {
-                    availableKinds.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(option.label) },
-                            onClick = {
-                                kind = option
-                                kindMenuExpanded = false
-                                selectedUri = null
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    if (option == MediaUploadKind.Document) Icons.Default.Description
-                                    else Icons.Default.UploadFile,
-                                    contentDescription = null,
-                                )
-                            },
+                Text(dialogDescription, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
+                if (isDeviceTypePhoto) {
+                    OutlinedButton(
+                        onClick = { photoKindMenuExpanded = true },
+                        enabled = !state.isUploading,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (kind == MediaUploadKind.DeviceTypeFront) "Front photo"
+                            else "Rear photo"
                         )
                     }
+                    DropdownMenu(
+                        expanded = photoKindMenuExpanded,
+                        onDismissRequest = { photoKindMenuExpanded = false },
+                    ) {
+                        listOf(
+                                MediaUploadKind.DeviceTypeFront,
+                                MediaUploadKind.DeviceTypeRear,
+                            )
+                            .forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (option == MediaUploadKind.DeviceTypeFront) "Front photo"
+                                            else "Rear photo"
+                                        )
+                                    },
+                                    onClick = {
+                                        kind = option
+                                        photoKindMenuExpanded = false
+                                        selectedUri = null
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Image, contentDescription = null)
+                                    },
+                                )
+                            }
+                    }
                 }
-                if (kind == MediaUploadKind.Document) {
+                if (isDocument) {
                     OutlinedButton(
                         onClick = { documentTypeMenuExpanded = true },
                         enabled = !state.isUploading,
@@ -207,14 +220,14 @@ fun MediaUploadDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = {
-                            filePicker.launch(if (kind == MediaUploadKind.Document) "*/*" else "image/*")
+                            filePicker.launch(if (isDocument) "*/*" else "image/*")
                         },
                         enabled = !state.isUploading,
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(Icons.Default.UploadFile, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Choose file")
+                        Text(if (isDocument) "Choose document" else "Choose image")
                     }
                     if (canTakePhoto) {
                         OutlinedButton(
@@ -262,7 +275,7 @@ fun MediaUploadDialog(
             ) {
                 Icon(Icons.Default.UploadFile, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Upload")
+                Text(if (isDocument) "Upload document" else "Upload image")
             }
         },
     )

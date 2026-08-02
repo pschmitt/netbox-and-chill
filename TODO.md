@@ -4178,3 +4178,35 @@ while remaining cache-first and safe to use offline.
 Status: **done**, 2026-08-02; remote unit tests and `ktfmtCheck` passed, the debug APK was
 deployed to all three devices, and the Mi Pad 4 showed a cached PDF first-page thumbnail for
 `fnuc` while the empty `turris` document state retained its fallback and Upload document action.
+
+
+## NBC-236: add keyboard and button navigation to the image viewer
+
+The full-screen image viewer should support hardware-keyboard left/right navigation and expose
+small previous/next controls for users who do not discover horizontal swiping.
+
+- [x] Add previous/next controls with disabled edge states.
+- [x] Handle left/right keyboard arrows without breaking zoom, swipe, or dismiss gestures.
+- [x] Keep image-attachment galleries navigable as a group on generic item pages too.
+- [x] Add focused navigation tests and verify the viewer on the wired Zenfone.
+
+Status: **done**, 2026-08-02; remote unit tests and `ktfmtCheck` passed, and the wired Zenfone
+showed the previous/next controls while `DPAD_RIGHT` moved the device-type viewer from Front to
+Rear. Generic image-attachment galleries now pass the full group into the viewer.
+
+
+## NBC-237: separate document and image upload dialogs
+
+The media upload dialog should make its single-purpose workflow clear. Documents and image
+attachments should each have a dedicated dialog mode instead of looking like interchangeable
+buttons in one generic chooser.
+
+- [x] Give document and image uploads distinct titles, explanations, and visual treatment.
+- [x] Keep camera capture available for image attachments and file picking available for both modes.
+- [x] Keep document-type selection visible only in the document dialog.
+- [x] Verify both flows open correctly without uploading a production file.
+
+Status: **done**, 2026-08-02; the remote unit suite and `ktfmtCheck` passed, the debug APK was
+installed on the wired Zenfone, and both dialogs were opened without selecting or uploading a
+production file. Image attachments show Choose image/Take photo; documents show Choose document
+and Choose document type.
