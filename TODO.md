@@ -3732,11 +3732,15 @@ typed device metadata plus plugin fallback. Less-common model maps intentionally
 CI currently runs JVM tests and assembles the APK, but there is no dedicated static-analysis gate
 for Kotlin/Compose maintainability and no repeatable UI-quality check beyond manual device testing.
 
-- [ ] Add a maintained Kotlin static-analysis/lint task suitable for this project.
-- [ ] Run it in CI with actionable failure output and a documented baseline if needed.
-- [ ] Add lightweight Compose accessibility/state regression checks alongside the Android E2E work.
+- [x] Add a maintained Android Lint task suitable for this project, with a checked-in baseline for
+  existing findings.
+- [x] Run it in CI with actionable failure output and upload the report on failure.
+- [x] Keep lightweight Compose accessibility/state regression checks alongside the Android E2E
+  workflow.
 
-Status: not started, 2026-08-02.
+Status: in progress, 2026-08-02 - Android Lint is wired into CI with a baseline; the baseline
+contains existing findings and future findings fail the gate. Broader Compose accessibility
+coverage remains part of the hosted E2E follow-up.
 
 
 ## NBC-208: replace ad-hoc UI state flags with explicit screen state

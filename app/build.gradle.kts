@@ -40,6 +40,12 @@ android {
     compileSdk = 36
     buildToolsVersion = "36.1.0"
 
+    lint {
+        // Keep the known legacy findings visible without blocking CI; new findings still fail
+        // the gate. Remove entries as the underlying permission/API/accessibility issues are fixed.
+        baseline = file("lint-baseline.xml")
+    }
+
     defaultConfig {
         applicationId = "dev.pschmitt.netboxandchill"
         minSdk = 26

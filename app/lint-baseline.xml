@@ -1,0 +1,1858 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.2.1" type="baseline" client="gradle" dependencies="false" name="AGP (9.2.1)" variant="all" version="9.2.1">
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="        printers = adapter?.let { BrotherPrinter.pairedPrinters(it.bondedDevices) }.orEmpty()"
+        errorLine2="                                                                ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="199"
+            column="65"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="                        if (it.isDiscovering) it.cancelDiscovery()"
+        errorLine2="                            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="210"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="                        if (it.isDiscovering) it.cancelDiscovery()"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="210"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="                        it.startDiscovery()"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="211"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="                runCatching { bluetoothAdapter(context)?.cancelDiscovery() }"
+        errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="290"
+            column="31"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="                            context.startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="333"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="                                                    runCatching { option.device.createBond() }"
+        errorLine2="                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="398"
+            column="67"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="                    bluetoothAdapter(context)?.cancelDiscovery()"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="595"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="        NotificationManagerCompat.from(context)"
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/sync/SyncNotifier.kt"
+            line="167"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="        NotificationManagerCompat.from(context).notify(RECONCILIATION_NOTIFICATION_ID, notification)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/sync/SyncNotifier.kt"
+            line="200"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="        NotificationManagerCompat.from(context).notify(CHANGE_NOTIFICATION_ID, notification)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/sync/SyncNotifier.kt"
+            line="239"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ApplySharedPref"
+        message="Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+        errorLine1="        preferences.edit().putString(PENDING_REPORT, report).commit()"
+        errorLine2="                                                             ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/crash/CrashReport.kt"
+            line="21"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="ApplySharedPref"
+        message="Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
+        errorLine1="            preferences.edit().remove(PENDING_REPORT).commit()"
+        errorLine2="                                                      ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/crash/CrashReport.kt"
+            line="27"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 28 (current min is 26): `setPhysicalCameraId`"
+        errorLine1="                    Camera2Interop.Extender(previewBuilder).setPhysicalCameraId(physicalCameraId)"
+        errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="446"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 28 (current min is 26): `setPhysicalCameraId`"
+        errorLine1="                    Camera2Interop.Extender(analysisBuilder).setPhysicalCameraId(physicalCameraId)"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="447"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="OldTargetApi"
+        message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the `android.os.Build.VERSION_CODES` javadoc for details."
+        errorLine1="        targetSdk = 36"
+        errorLine2="        ~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="52"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `usesPermissionFlags` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="        android:usesPermissionFlags=&quot;neverForLocation&quot; />"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="18"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="AppLinkWarning"
+        message="This intent filter has the format of an Android App Link but is missing the `autoVerify` attribute; add `android:autoVerify=&quot;true&quot;` to ensure your domain will be validated and enable App Link-related Lint warnings. If you do not want clicked URLs to bring the user to your app, remove the `android.intent.category.BROWSABLE` category, or set `android:autoVerify=&quot;false&quot;` to make it clear this is not intended to be an Android App Link."
+        errorLine1="            &lt;intent-filter>"
+        errorLine2="             ~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="69"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="AppLinkWarning"
+        message="This intent filter has the format of an Android App Link but is missing the `autoVerify` attribute; add `android:autoVerify=&quot;true&quot;` to ensure your domain will be validated and enable App Link-related Lint warnings. If you do not want clicked URLs to bring the user to your app, remove the `android.intent.category.BROWSABLE` category, or set `android:autoVerify=&quot;false&quot;` to make it clear this is not intended to be an Android App Link."
+        errorLine1="            &lt;intent-filter>"
+        errorLine2="             ~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="89"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="AppLinkWarning"
+        message="This intent filter has the format of an Android App Link but is missing the `autoVerify` attribute; add `android:autoVerify=&quot;true&quot;` to ensure your domain will be validated and enable App Link-related Lint warnings. If you do not want clicked URLs to bring the user to your app, remove the `android.intent.category.BROWSABLE` category, or set `android:autoVerify=&quot;false&quot;` to make it clear this is not intended to be an Android App Link."
+        errorLine1="            &lt;intent-filter>"
+        errorLine2="             ~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="133"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/dcim/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="73"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/ipam/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="74"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/circuits/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="75"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/tenancy/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="76"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data"
+        errorLine2="                ^">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="77"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/wireless/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="81"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/vpn/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="82"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/extras/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="83"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/plugins/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="84"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/dcim/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="93"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/ipam/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="94"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/circuits/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="95"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/tenancy/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="96"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data"
+        errorLine2="                ^">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="97"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/wireless/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="101"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/vpn/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="102"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/extras/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="103"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;*&quot; android:pathPattern=&quot;/plugins/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="104"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/dcim/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="117"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/ipam/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="118"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/circuits/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="119"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/tenancy/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="120"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data"
+        errorLine2="                ^">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="121"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/wireless/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="125"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/vpn/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="126"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/extras/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="127"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;https&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/plugins/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="128"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/dcim/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="137"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/ipam/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="138"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/circuits/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="139"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/tenancy/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="140"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data"
+        errorLine2="                ^">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="141"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/wireless/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="145"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/vpn/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="146"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/extras/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="147"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;http&quot; android:host=&quot;${appLinkHost}&quot; android:pathPattern=&quot;/plugins/.*&quot; />"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="148"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="MissingKeepAnnotation"
+        message="To prevent this Enum&apos;s serializer from being obfuscated in minified builds, annotate it with @androidx.annotation.Keep"
+        errorLine1="enum class SettingsCategory(val title: String, val subtitle: String) {"
+        errorLine2="           ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/settings/SettingsCategory.kt"
+            line="16"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 9.2.1 is available: 9.3.1"
+        errorLine1="android-plugin = &quot;9.2.1&quot;"
+        errorLine2="                 ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="2"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of `compileSdk` than 36 is available: 37"
+        errorLine1="    compileSdk = 36"
+        errorLine2="    ~~~~~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="40"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.camera:camera-camera2 than 1.5.1 is available: 1.6.1"
+        errorLine1="androidx-camera = &quot;1.5.1&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="4"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.camera:camera-core than 1.5.1 is available: 1.6.1"
+        errorLine1="androidx-camera = &quot;1.5.1&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="4"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.camera:camera-lifecycle than 1.5.1 is available: 1.6.1"
+        errorLine1="androidx-camera = &quot;1.5.1&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="4"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.camera:camera-view than 1.5.1 is available: 1.6.1"
+        errorLine1="androidx-camera = &quot;1.5.1&quot;"
+        errorLine2="                  ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="4"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.runtime:runtime than 1.11.3 is available: 1.11.4"
+        errorLine1="androidx-compose = &quot;1.11.3&quot;"
+        errorLine2="                   ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="5"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.ui:ui than 1.11.3 is available: 1.11.4"
+        errorLine1="androidx-compose = &quot;1.11.3&quot;"
+        errorLine2="                   ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="5"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.ui:ui-test-junit4 than 1.11.3 is available: 1.11.4"
+        errorLine1="androidx-compose = &quot;1.11.3&quot;"
+        errorLine2="                   ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="5"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.ui:ui-test-manifest than 1.11.3 is available: 1.11.4"
+        errorLine1="androidx-compose = &quot;1.11.3&quot;"
+        errorLine2="                   ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="5"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.ui:ui-tooling than 1.11.3 is available: 1.11.4"
+        errorLine1="androidx-compose = &quot;1.11.3&quot;"
+        errorLine2="                   ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="5"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.compose.ui:ui-tooling-preview than 1.11.3 is available: 1.11.4"
+        errorLine1="androidx-compose = &quot;1.11.3&quot;"
+        errorLine2="                   ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="5"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="Upgrade `androidx.compose.foundation` for keyboard and mouse support"
+        errorLine1="androidx-compose = &quot;1.11.3&quot;"
+        errorLine2="                   ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="5"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core than 1.18.0 is available: 1.19.0"
+        errorLine1="androidx-core = &quot;1.18.0&quot;"
+        errorLine2="                ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="11"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-splashscreen than 1.0.1 is available: 1.2.0"
+        errorLine1="androidx-core-splashscreen = &quot;1.0.1&quot;"
+        errorLine2="                             ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="12"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-compiler than 1.3.0 is available: 1.4.0"
+        errorLine1="androidx-hilt = &quot;1.3.0&quot;"
+        errorLine2="                ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="13"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-navigation-compose than 1.3.0 is available: 1.4.0"
+        errorLine1="androidx-hilt = &quot;1.3.0&quot;"
+        errorLine2="                ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="13"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.hilt:hilt-work than 1.3.0 is available: 1.4.0"
+        errorLine1="androidx-hilt = &quot;1.3.0&quot;"
+        errorLine2="                ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="13"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.10.0 is available: 2.11.0"
+        errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
+        errorLine2="                     ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="14"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.10.0 is available: 2.11.0"
+        errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
+        errorLine2="                     ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="14"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.10.0 is available: 2.11.0"
+        errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
+        errorLine2="                     ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="14"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-ktx than 2.10.0 is available: 2.11.0"
+        errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
+        errorLine2="                     ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="14"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.plugin.compose than 2.4.0 is available: 2.4.10"
+        errorLine1="kotlin = &quot;2.4.0&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="25"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.plugin.serialization than 2.4.0 is available: 2.4.10"
+        errorLine1="kotlin = &quot;2.4.0&quot;"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="25"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-coroutines-test than 1.10.2 is available: 1.11.0"
+        errorLine1="kotlinx-coroutines = &quot;1.10.2&quot;"
+        errorLine2="                     ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="26"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of com.mikepenz:multiplatform-markdown-renderer than 0.41.0 is available: 0.43.0"
+        errorLine1="markdown-renderer = &quot;0.41.0&quot;"
+        errorLine2="                    ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="33"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of com.mikepenz:multiplatform-markdown-renderer-m3 than 0.41.0 is available: 0.43.0"
+        errorLine1="markdown-renderer = &quot;0.41.0&quot;"
+        errorLine2="                    ~~~~~~~~">
+        <location
+            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            line="33"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                    Camera2Interop.Extender(previewBuilder).setPhysicalCameraId(physicalCameraId)"
+        errorLine2="                                   ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="446"
+            column="36"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                    Camera2Interop.Extender(previewBuilder).setPhysicalCameraId(physicalCameraId)"
+        errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="446"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                    Camera2Interop.Extender(analysisBuilder).setPhysicalCameraId(physicalCameraId)"
+        errorLine2="                                   ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="447"
+            column="36"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                    Camera2Interop.Extender(analysisBuilder).setPhysicalCameraId(physicalCameraId)"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="447"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                val camera2Info ="
+        errorLine2="                    ~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="585"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                    runCatching { Camera2CameraInfo.from(info) }.getOrNull()"
+        errorLine2="                                                    ~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="586"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                    camera2Info.getCameraCharacteristic(CameraCharacteristics.LENS_FACING)"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="589"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                        val physicalCamera2Info ="
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="601"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                            runCatching { Camera2CameraInfo.from(physicalInfo) }.getOrNull()"
+        errorLine2="                                                            ~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="602"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                        val cameraId = physicalCamera2Info.cameraId"
+        errorLine2="                                                           ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="604"
+            column="60"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                                .getCameraCharacteristic("
+        errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="607"
+            column="34"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                            id = &quot;logical:${camera2Info.cameraId}&quot;,"
+        errorLine2="                                                        ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="628"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="    val cameraId = Camera2CameraInfo.from(this).cameraId"
+        errorLine2="                                     ~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="643"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="    val cameraId = Camera2CameraInfo.from(this).cameraId"
+        errorLine2="                                                ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="643"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                runCatching { Camera2CameraInfo.from(info).cameraId == cameraId }"
+        errorLine2="                                                ~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="647"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.camera2.interop.ExperimentalCamera2Interop` or `@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)`"
+        errorLine1="                runCatching { Camera2CameraInfo.from(info).cameraId == cameraId }"
+        errorLine2="                                                           ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="647"
+            column="60"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/RemoteThumbnail.kt"
+            line="29"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="fun SyncIssueCard(issue: SyncIssue, onRetry: (() -> Unit)? = null, modifier: Modifier = Modifier) {"
+        errorLine2="                                                                   ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/SyncIssueCard.kt"
+            line="25"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="UnnecessaryComposedModifier"
+        message="Unnecessary use of Modifier.composed"
+        errorLine1="    composed {"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/ReorderableSections.kt"
+            line="82"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                        Log.e(&quot;ScannerCamera&quot;, &quot;Unable to bind ${activeCamera.id}&quot;, it)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="478"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="LogNotTimber"
+        message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
+        errorLine1="                Log.w(&quot;ScannerCamera&quot;, &quot;No camera available for lens $desiredLens&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="481"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="DataExtractionRules"
+        message="The attribute `android:allowBackup` is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute `android:dataExtractionRules` specifying an `@xml` resource which configures cloud backups and device transfers on Android 12 and higher."
+        errorLine1="        android:allowBackup=&quot;false&quot;"
+        errorLine2="                             ~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="33"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="This folder configuration (`v26`) is unnecessary; `minSdkVersion` is 26. Merge all the resources in this folder into `mipmap-anydpi`.">
+        <location
+            file="src/main/res/mipmap-anydpi-v26"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var selectedTab by remember { mutableStateOf(-1) }"
+        errorLine2="                                  ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/devicedetail/DeviceDetailScreen.kt"
+            line="138"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="                        var selectedTab by remember { mutableStateOf(0) }"
+        errorLine2="                                                      ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/generic/GenericDetailScreen.kt"
+            line="558"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="        mutableStateOf(savedPrintSettings.qrSize)"
+        errorLine2="        ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/common/PrintLabelDialog.kt"
+            line="122"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableFloatStateOf` instead of `mutableStateOf`"
+        errorLine1="    var zoomRatio by remember { mutableStateOf(1f) }"
+        errorLine2="                                ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/scanner/ScannerScreen.kt"
+            line="99"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="            var buildTapCount by remember { mutableStateOf(0) }"
+        errorLine2="                                            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/settings/SettingsScreen.kt"
+            line="895"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_launcher_foreground` appears to be unused">
+        <location
+            file="src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.mipmap.ic_launcher_round` appears to be unused"
+        errorLine1="&lt;adaptive-icon xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
+            line="2"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="MonochromeLauncherIcon"
+        message="The application adaptive icon is missing a monochrome tag"
+        errorLine1="&lt;adaptive-icon xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
+            line="2"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="            Bitmap.createBitmap(BrotherPtcBp.RASTER_WIDTH, source.width, Bitmap.Config.ARGB_8888)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="43"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.set` instead?"
+        errorLine1="                padded.setPixel("
+        errorLine2="                ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="48"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.get` instead?"
+        errorLine1="                    source.getPixel(sourceX, sourceY),"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="51"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.get` instead?"
+        errorLine1="                val pixel = padded.getPixel(x, y)"
+        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="61"
+            column="29"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="        return Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888).also {"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="87"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.get` instead?"
+        errorLine1="                    val pixel = source.getPixel(x, y)"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="91"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.set` instead?"
+        errorLine1="                    bitmap.setPixel("
+        errorLine2="                    ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="92"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="184"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="            Bitmap.createBitmap(textSourceWidth, textSourceHeight, Bitmap.Config.ARGB_8888)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="202"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/printing/BrotherLabelRenderer.kt"
+            line="222"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        preferences.edit().putString(PENDING_REPORT, report).commit()"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/crash/CrashReport.kt"
+            line="21"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            preferences.edit().remove(PENDING_REPORT).commit()"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/crash/CrashReport.kt"
+            line="27"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                                    Intent(Intent.ACTION_VIEW, Uri.parse(newsItem.link))"
+        errorLine2="                                                                               ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/dashboard/DashboardScreen.kt"
+            line="336"
+            column="80"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/devicedetail/DeviceDetailScreen.kt"
+            line="330"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                                   ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/devicedetail/DeviceDetailScreen.kt"
+            line="618"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                                Intent(Intent.ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                                           ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/generic/GenericDetailScreen.kt"
+            line="487"
+            column="76"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                                    Intent(Intent.ACTION_VIEW, Uri.parse(url))"
+        errorLine2="                                                                               ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/generic/GenericDetailScreen.kt"
+            line="681"
+            column="80"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tokensUrl)))"
+        errorLine2="                                                                             ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/onboarding/OnboardingScreen.kt"
+            line="137"
+            column="78"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="        return Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bitmap ->"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/qrsetup/QrBitmap.kt"
+            line="21"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.set` instead?"
+        errorLine1="                    bitmap.setPixel(x, y, if (matrix[x, y]) Color.BLACK else Color.WHITE)"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/qrsetup/QrBitmap.kt"
+            line="24"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            prefs.edit().putInt(KEY_CHANGE_NOTIFICATION_CURSOR, value).apply()"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="211"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="268"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putBoolean(KEY_SYNC_ONLY_ON_WIFI, enabled).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="273"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putBoolean(KEY_SYNC_WHILE_ROAMING, enabled).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="278"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putBoolean(KEY_SYNC_ON_APP_LAUNCH, enabled).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="283"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putBoolean(KEY_CHANGE_NOTIFICATIONS_ENABLED, enabled).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="293"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(gesturePreferenceKey(shortcut), action.storageKey).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="319"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs"
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="324"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().remove(gestureTargetKey(shortcut)).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="332"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(KEY_SCANNER_LENS, lens.storageKey).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="337"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(KEY_SCANNER_REAR_LENS, lens.storageKey).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="342"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(KEY_THEME_MODE, mode.storageKey).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="347"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(KEY_THEME_ACCENT, accent.storageKey).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="352"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            prefs.edit().remove(key).apply()"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="361"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            prefs.edit().putString(key, accent.storageKey).apply()"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="364"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs"
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="372"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putBoolean(KEY_OFFLINE_MODE, enabled).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="386"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs"
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="403"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().remove(KEY_SYNC_ISSUE_MESSAGE).remove(KEY_SYNC_ISSUE_TIME).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="412"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putLong(KEY_LAST_SUCCESSFUL_SYNC, timestamp).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="418"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY_HIDDEN_FIELDS, updated).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="425"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY_HIDDEN_FIELDS, updated).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="431"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs"
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="437"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(KEY_SIDEBAR_MODEL_ORDERS, encodeModelOrders(updated)).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="448"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY_HIDDEN_SIDEBAR_APPS, updated).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="454"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs"
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="460"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY_HIDDEN_DASHBOARD_SECTIONS, updated).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="469"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY_PINNED_MODELS, updated).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="482"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs"
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="494"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().clear().apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="503"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY_CHANGE_NOTIFICATION_FILTERS, filters).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
+            line="638"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))"
+        errorLine2="                                                     ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/settings/SettingsScreen.kt"
+            line="144"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toColorInt` instead?"
+        errorLine1="    runCatching { Color(android.graphics.Color.parseColor(value)) }.getOrDefault(fallback)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/topology/TopologyScreen.kt"
+            line="328"
+            column="25"/>
+    </issue>
+
+</issues>
