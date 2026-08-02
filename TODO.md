@@ -4235,6 +4235,19 @@ headings on item overview pages.
 Status: in progress
 
 
+## NBC-250: separate item-card status and cache badges
+
+The status and Cached badges in item identity cards should sit on their own row and use a matching
+height so the card reads cleanly on phones.
+
+- [x] Move the device status/cache badges below the identity row in the top card.
+- [x] Apply the same badge row treatment to generic item detail cards when a status exists.
+- [x] Give both badge styles the same fixed height.
+- [ ] Verify the card layout on the wired Zenfone without changing production data.
+
+Status: in progress
+
+
 ## NBC-248: preserve external URL origins in item views
 
 Only URLs served by the configured NetBox origin should be displayed in shortened `/path` form;

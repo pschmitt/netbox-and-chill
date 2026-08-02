@@ -120,6 +120,7 @@ import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
@@ -202,6 +203,10 @@ fun GenericDetailScreen(
             hiddenFieldKeys,
             showHiddenFields,
         )
+    val statusField =
+        visibleFields.firstOrNull { it.label.equals("Status", ignoreCase = true) }
+            as? FieldRow.PlainText
+    val visibleOverviewFields = visibleFields.filterNot { it == statusField }
     val modelLabel = endpointModelLabel(viewModel.route.endpointPath)
     val detailAccent =
         MaterialTheme.colorScheme.detailAccentFor(viewModel.route.endpointPath, objectTypeAccent)
@@ -626,35 +631,58 @@ fun GenericDetailScreen(
                             }
                         ) {
                             ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                Row(
+                                Column(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Surface(
-                                        color = detailAccent.copy(alpha = 0.18f),
-                                        shape = RoundedCornerShape(14.dp),
-                                        modifier = Modifier.size(52.dp),
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Outlined.Category,
-                                                contentDescription = null,
-                                                tint = detailAccent,
-                                                modifier = Modifier.size(28.dp),
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            color = detailAccent.copy(alpha = 0.18f),
+                                            shape = RoundedCornerShape(14.dp),
+                                            modifier = Modifier.size(52.dp),
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Outlined.Category,
+                                                    contentDescription = null,
+                                                    tint = detailAccent,
+                                                    modifier = Modifier.size(28.dp),
+                                                )
+                                            }
+                                        }
+                                        Column(Modifier.padding(start = 14.dp)) {
+                                            Text(
+                                                title ?: "Object #${viewModel.route.id}",
+                                                style = MaterialTheme.typography.headlineSmall,
+                                            )
+                                            Text(
+                                                "ID #${viewModel.route.id}",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
                                     }
-                                    Column(Modifier.padding(start = 14.dp)) {
-                                        Text(
-                                            title ?: "Object #${viewModel.route.id}",
-                                            style = MaterialTheme.typography.headlineSmall,
-                                        )
-                                        Text(
-                                            "ID #${viewModel.route.id}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
                                         CachedBadge()
+                                        statusField?.let { status ->
+                                            Box(
+                                                modifier =
+                                                    Modifier.combinedClickable(
+                                                        onClick = {},
+                                                        onLongClick = {
+                                                            fieldActionLabel = status.label
+                                                        },
+                                                    )
+                                            ) {
+                                                StatusChip(
+                                                    label = status.value,
+                                                    value = status.value.lowercase(),
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -753,7 +781,7 @@ fun GenericDetailScreen(
                                             )
                                         }
                                     }
-                                    visibleFields.forEach { row ->
+                                    visibleOverviewFields.forEach { row ->
                                         fieldRow(
                                             row,
                                             onNavigateToReference = { endpointPath, id ->

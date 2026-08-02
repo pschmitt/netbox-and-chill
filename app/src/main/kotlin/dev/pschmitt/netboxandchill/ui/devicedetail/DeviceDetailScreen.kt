@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -434,57 +435,63 @@ fun DeviceDetailScreen(
                         ) {
                             Column(Modifier.fillMaxWidth()) {
                                 ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        Surface(
-                                            color = detailAccent.copy(alpha = 0.18f),
-                                            shape =
-                                                androidx.compose.foundation.shape.RoundedCornerShape(
-                                                    14.dp
-                                                ),
-                                            modifier = Modifier.size(52.dp),
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    Icons.Default.Cable,
-                                                    contentDescription = null,
-                                                    tint = detailAccent,
-                                                    modifier = Modifier.size(28.dp),
-                                                )
-                                            }
-                                        }
-                                        Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                                            Text(
-                                                current.name,
-                                                style = MaterialTheme.typography.headlineSmall,
-                                            )
-                                            current.deviceTypeModel?.let {
-                                                Text(
-                                                    it,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                            }
-                                        }
-                                        CachedBadge()
-                                        Spacer(Modifier.width(8.dp))
-                                        if (isFieldVisible("Status")) {
-                                            Box(
-                                                modifier =
-                                                    Modifier.combinedClickable(
-                                                        onClick = {},
-                                                        onLongClick = {
-                                                            fieldActionLabel = "Status"
-                                                        },
-                                                    )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Surface(
+                                                color = detailAccent.copy(alpha = 0.18f),
+                                                shape =
+                                                    androidx.compose.foundation.shape.RoundedCornerShape(
+                                                        14.dp
+                                                    ),
+                                                modifier = Modifier.size(52.dp),
                                             ) {
-                                                StatusChip(
-                                                    label = current.statusLabel,
-                                                    value = current.statusValue,
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        Icons.Default.Cable,
+                                                        contentDescription = null,
+                                                        tint = detailAccent,
+                                                        modifier = Modifier.size(28.dp),
+                                                    )
+                                                }
+                                            }
+                                            Column(Modifier.padding(start = 14.dp).weight(1f)) {
+                                                Text(
+                                                    current.name,
+                                                    style = MaterialTheme.typography.headlineSmall,
                                                 )
+                                                current.deviceTypeModel?.let {
+                                                    Text(
+                                                        it,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color =
+                                                            MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            CachedBadge()
+                                            if (isFieldVisible("Status")) {
+                                                Box(
+                                                    modifier =
+                                                        Modifier.combinedClickable(
+                                                            onClick = {},
+                                                            onLongClick = {
+                                                                fieldActionLabel = "Status"
+                                                            },
+                                                        )
+                                                ) {
+                                                    StatusChip(
+                                                        label = current.statusLabel,
+                                                        value = current.statusValue,
+                                                    )
+                                                }
                                             }
                                         }
                                     }
