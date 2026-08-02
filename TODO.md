@@ -3989,11 +3989,12 @@ remote unit tests pass, with device/UI verification still pending.
 The item detail tab bar should treat Overview like every other tab instead of pinning it in a
 separate leading control.
 
-- [ ] Replace the split Overview/related layout with one regular scrollable tab component.
-- [ ] Keep all tabs, icons, counts, and left/right swipe navigation working on phones and tablets.
-- [ ] Verify device and generic item detail pages on a physical device.
+- [x] Replace the split Overview/related layout with one regular scrollable tab component.
+- [x] Keep all tabs, icons, counts, and left/right swipe navigation working on phones and tablets.
+- [x] Verify the device detail layout and swipe navigation on the Mi Pad 4.
 
-Status: in progress, 2026-08-02 - implementation started.
+Status: **done**, 2026-08-02; implemented in `b9d71ed` and verified on the Mi Pad 4 with the
+regular scrollable tab row and Overview/Journal swipe navigation.
 
 
 ## NBC-223: show item-detail tab counts as badges
@@ -4001,7 +4002,8 @@ Status: in progress, 2026-08-02 - implementation started.
 Positive related-item counts should be compact badges on the tabs instead of making tab titles
 longer with parenthesized count text.
 
-- [ ] Render positive counts as Material 3 badges on the corresponding tab icons.
-- [ ] Keep zero-count tabs unbadged and verify the result on a physical device.
+- [x] Render positive counts as Material 3 badges on the corresponding tab icons.
+- [x] Keep zero-count tabs unbadged and verify the result on a physical device.
 
-Status: in progress, 2026-08-02 - implementation started.
+Status: **done**, 2026-08-02; implemented in `3afce12` and visually verified on the Mi Pad 4
+with positive and zero-count tabs.
