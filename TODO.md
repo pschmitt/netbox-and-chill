@@ -4345,9 +4345,9 @@ Large Markdown comment values on item pages should not consume the entire overvi
 - [x] Collapse long comments above a line/character threshold with a visible fade.
 - [x] Provide Show more and Collapse actions while leaving short comments unchanged.
 - [x] Apply the behavior to dedicated device comments and generic Markdown fields.
-- [ ] Verify the FNUC device comments on the wired Zenfone without changing production data.
+- [x] Verify the FNUC device comments on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done** (2026-08-02; opened cached FNUC device 11 on the wired Zenfone, verified the clipped Markdown preview and `Show more`, then expanded it)
 
 
 ## NBC-245: create sanitized README screenshots
