@@ -3838,12 +3838,16 @@ Users should be able to upload device-type pictures, image attachments, and docu
 pages. The flow must support taking a photo inside the app as well as selecting an existing file,
 and NetBox Documents uploads must expose the document type (manual, purchase order, and so on).
 
-- [ ] Add cache-aware upload actions to the item types that support each media relation.
-- [ ] Offer both camera capture and system file/document picking.
-- [ ] Add document-type selection from the cached netbox-documents choices.
-- [ ] Keep uploads explicit, cancellable, and safe when offline.
+- [x] Add cache-aware upload actions to item pages: image attachments, device-type front/rear
+  photos, and netbox-documents files.
+- [x] Offer both camera capture and system file/document picking.
+- [x] Add document-type selection from the cached netbox-documents choices.
+- [x] Keep uploads explicit, cancellable, and safe when offline; offline mode rejects before any
+  request and successful uploads refresh the relevant Room cache.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - remote unit tests, ktfmt, and Android Lint passed. Item overflow
+menus now open a media upload dialog with camera/file selection; document types come from cached
+directory/object data, and no production records were created during implementation.
 
 
 ## NBC-214: manage NetBox custom-field definitions

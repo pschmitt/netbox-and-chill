@@ -2,6 +2,8 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Matches FileDownloadRepository's File(context.cacheDir, "downloads") target dir. -->
     <cache-path name="downloads" path="downloads/" />
+    <!-- Temporary camera captures used by the item media-upload flow. -->
+    <cache-path name="uploads" path="uploads/" />
     <!-- Durable copies created when attachment sync is enabled. -->
     <files-path name="offline-attachments" path="offline-attachments/" />
 </paths>

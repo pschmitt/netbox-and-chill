@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -103,6 +104,7 @@ import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
+import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
 import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
@@ -159,6 +161,7 @@ fun GenericDetailScreen(
 
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
+    var showMediaUpload by remember { mutableStateOf(false) }
     var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
     var matterPairingCode by remember { mutableStateOf<String?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
@@ -394,6 +397,17 @@ fun GenericDetailScreen(
                                     enabled = !isRefreshing,
                                     onClick = {
                                         viewModel.refresh(showConfirmation = true)
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Upload media") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.UploadFile, contentDescription = null)
+                                    },
+                                    enabled = !isRefreshing,
+                                    onClick = {
+                                        showMediaUpload = true
                                         actionMenuExpanded = false
                                     },
                                 )
@@ -766,6 +780,14 @@ fun GenericDetailScreen(
     }
     printRequest?.let { request ->
         PrintLabelDialog(request = request, onDismiss = { printRequest = null })
+    }
+    if (showMediaUpload) {
+        MediaUploadDialog(
+            endpointPath = viewModel.route.endpointPath,
+            objectId = viewModel.route.id,
+            onDismiss = { showMediaUpload = false },
+            onUploaded = { viewModel.refresh(showConfirmation = false) },
+        )
     }
     imageViewerItem?.let { item ->
         ImageViewerDialog(
