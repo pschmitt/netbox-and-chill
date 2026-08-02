@@ -9,6 +9,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -27,6 +28,7 @@ fun RemoteThumbnail(
     localFile: File? = null,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
+    fallbackTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     if (imageUrl.isNullOrBlank() && localFile == null) {
         Box(
@@ -39,7 +41,7 @@ fun RemoteThumbnail(
             Icon(
                 Icons.Default.Hub,
                 contentDescription = contentDescription,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = fallbackTint,
             )
         }
     } else {

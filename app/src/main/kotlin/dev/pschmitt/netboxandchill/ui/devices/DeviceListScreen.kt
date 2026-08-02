@@ -38,6 +38,7 @@ import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
+import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +55,7 @@ fun DeviceListScreen(
 ) {
     val devices by viewModel.devices.collectAsStateWithLifecycle()
     val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
+    val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -118,6 +120,11 @@ fun DeviceListScreen(
                         )
                     }
                 } else {
+                    val rowColor =
+                        MaterialTheme.colorScheme.detailAccentFor(
+                            "api/dcim/devices/",
+                            objectTypeAccent,
+                        )
                     LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
                         items(
                             items = devices,
@@ -128,6 +135,7 @@ fun DeviceListScreen(
                                 device = device,
                                 frontImageUrl =
                                     deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
+                                fallbackTint = rowColor,
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onDeviceClick(device.id) },
                             )
@@ -151,6 +159,7 @@ private fun DeviceRow(
     device: DeviceEntity,
     frontImageUrl: String?,
     localImageFile: (String, String) -> java.io.File?,
+    fallbackTint: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
 ) {
     val localFile =
@@ -165,6 +174,7 @@ private fun DeviceRow(
                 contentDescription = device.deviceTypeModel,
                 localFile = localFile,
                 modifier = Modifier.size(72.dp),
+                fallbackTint = fallbackTint,
             )
         },
         headlineContent = { Text(device.name) },

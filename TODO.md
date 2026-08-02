@@ -3811,12 +3811,13 @@ visual identity (icon + color as a pair), not color alone.
 - [x] Reflect the per-type identity on the generic and typed detail screens (e.g. a type indicator/
   accent near the title or icon).
 - [x] Reflect the per-type identity in the sidebar's per-app-group sections/icons.
-- [ ] Audit remaining surfaces that show an object type (list screens, reference chips, etc.) and
-  apply the same identity there too, rather than limiting this to search/detail/sidebar.
+- [x] Audit remaining surfaces that show an object type (list screens, dashboard stats/bookmarks,
+  and fallback/reference icons) and apply the same identity there too, rather than limiting this
+  to search/detail/sidebar.
 
-Status: in progress, 2026-08-02; deterministic endpoint colors, persisted Theme overrides, and
-search/detail/sidebar integration are implemented and remotely verified. A final audit of list,
-reference-chip, and remaining object-type surfaces is still open.
+Status: **done**, 2026-08-02; deterministic endpoint colors, persisted Theme overrides, and
+search/detail/sidebar/list/dashboard integration were remotely verified with unit tests and
+ktfmt checks. Image rows retain their thumbnails while fallback icons use the same per-type color.
 
 ## NBC-213: add photos, image attachments, and typed NetBox documents
 

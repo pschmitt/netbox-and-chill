@@ -48,6 +48,7 @@ constructor(
     val lastSuccessfulSyncAt = settingsRepository.lastSuccessfulSyncAt
     val dashboardSectionOrder = settingsRepository.dashboardSectionOrder
     val hiddenDashboardSections = settingsRepository.hiddenDashboardSections
+    val objectTypeAccents = settingsRepository.objectTypeAccents
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(

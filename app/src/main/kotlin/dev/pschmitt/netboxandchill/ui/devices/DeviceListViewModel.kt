@@ -8,6 +8,7 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
+import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import java.io.File
@@ -29,9 +30,15 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
 ) : ViewModel() {
+
+    val objectTypeAccent =
+        settingsRepository.objectTypeAccents
+            .map { accents -> accents["api/dcim/devices"] }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()

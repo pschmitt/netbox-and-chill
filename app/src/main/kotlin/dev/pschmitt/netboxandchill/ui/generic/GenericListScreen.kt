@@ -38,6 +38,7 @@ import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +56,7 @@ fun GenericListScreen(
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
     val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
+    val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -124,11 +126,17 @@ fun GenericListScreen(
                         AppIcons.forAppKey(
                             NetBoxRef.appKeyFromEndpointPath(viewModel.route.endpointPath)
                         )
+                    val rowColor =
+                        MaterialTheme.colorScheme.detailAccentFor(
+                            viewModel.route.endpointPath,
+                            objectTypeAccent,
+                        )
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(objects, key = { it.id }) { obj ->
                             ObjectRow(
                                 obj = obj,
                                 icon = rowIcon,
+                                iconTint = rowColor,
                                 frontImageUrl = deviceTypeImages[obj.id]?.frontImageUrl,
                                 localImageFile = viewModel::localImageFile,
                                 onClick = { onObjectClick(obj.id) },
@@ -152,6 +160,7 @@ fun GenericListScreen(
 private fun ObjectRow(
     obj: NetBoxObjectEntity,
     icon: ImageVector,
+    iconTint: androidx.compose.ui.graphics.Color,
     frontImageUrl: String?,
     localImageFile: (String, String) -> java.io.File?,
     onClick: () -> Unit,
@@ -166,7 +175,7 @@ private fun ObjectRow(
         leadingContent = {
             if (frontImageUrl.isNullOrBlank()) {
                 Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null)
+                    Icon(icon, contentDescription = null, tint = iconTint)
                 }
             } else {
                 RemoteThumbnail(

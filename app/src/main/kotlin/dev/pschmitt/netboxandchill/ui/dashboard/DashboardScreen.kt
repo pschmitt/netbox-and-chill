@@ -79,6 +79,7 @@ import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 import dev.pschmitt.netboxandchill.ui.common.SectionReorderState
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
@@ -120,6 +121,7 @@ fun DashboardScreen(
     val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
     val dashboardSavedOrder by viewModel.dashboardSectionOrder.collectAsStateWithLifecycle()
     val hiddenDashboardSections by viewModel.hiddenDashboardSections.collectAsStateWithLifecycle()
+    val objectTypeAccents by viewModel.objectTypeAccents.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val dashboardSections =
@@ -310,7 +312,7 @@ fun DashboardScreen(
                                 if (stats.isEmpty()) {
                                     EmptyHint(isRefreshing, "No stats cached yet - pull to sync")
                                 } else {
-                                    StatsRow(stats, onStatClick)
+                                    StatsRow(stats, objectTypeAccents, onStatClick)
                                 }
                             }
                             DashboardSection.Search ->
@@ -357,6 +359,12 @@ fun DashboardScreen(
                                         BookmarkRow(
                                             bookmark = bookmark,
                                             thumbnail = thumbnail,
+                                            typeColor = bookmark.targetEndpointPath?.let { path ->
+                                                MaterialTheme.colorScheme.detailAccentFor(
+                                                    path,
+                                                    objectTypeAccents[path.trim('/')],
+                                                )
+                                            } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                                             localImageFile = viewModel::localImageFile,
                                         ) {
                                             bookmarkTargets[bookmark.id]?.let { (path, id) ->
@@ -385,6 +393,12 @@ fun DashboardScreen(
                                         ChangeRow(
                                             change = change,
                                             thumbnail = thumbnail,
+                                            typeColor = change.targetEndpointPath?.let { path ->
+                                                MaterialTheme.colorScheme.detailAccentFor(
+                                                    path,
+                                                    objectTypeAccents[path.trim('/')],
+                                                )
+                                            } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                                             localImageFile = viewModel::localImageFile,
                                             onClick = {
                                                 changeTargets[change.id]?.let { (path, id) ->
@@ -559,16 +573,32 @@ private fun NewsRow(item: NewsItemEntity, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StatsRow(stats: List<DashboardStatEntity>, onStatClick: (String, String) -> Unit) {
+private fun StatsRow(
+    stats: List<DashboardStatEntity>,
+    objectTypeAccents: Map<String, dev.pschmitt.netboxandchill.data.repository.ThemeAccent>,
+    onStatClick: (String, String) -> Unit,
+) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(stats, key = { it.endpointPath }) { stat ->
-            StatTile(stat, onClick = { onStatClick(stat.endpointPath, stat.label) })
+            StatTile(
+                stat,
+                typeColor =
+                    MaterialTheme.colorScheme.detailAccentFor(
+                        stat.endpointPath,
+                        objectTypeAccents[stat.endpointPath.trim('/')],
+                    ),
+                onClick = { onStatClick(stat.endpointPath, stat.label) },
+            )
         }
     }
 }
 
 @Composable
-private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
+private fun StatTile(
+    stat: DashboardStatEntity,
+    typeColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
     // Fixed height too, not just width - the label ("Device Types" vs. "Racks") wraps to a
     // different number of lines depending on its length, which otherwise leaves the cards in a
     // row at different heights.
@@ -581,6 +611,7 @@ private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
             Icon(
                 AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(stat.endpointPath)),
                 contentDescription = null,
+                tint = typeColor,
             )
             Spacer(Modifier.height(8.dp))
             Text(stat.count.toString(), style = MaterialTheme.typography.headlineSmall)
@@ -652,6 +683,7 @@ private fun GlobalSearchCard(
 private fun BookmarkRow(
     bookmark: BookmarkEntity,
     thumbnail: DashboardThumbnail?,
+    typeColor: androidx.compose.ui.graphics.Color,
     localImageFile: (DashboardThumbnail) -> java.io.File?,
     onClick: () -> Unit,
 ) {
@@ -665,7 +697,7 @@ private fun BookmarkRow(
         leadingContent = {
             if (thumbnail == null) {
                 Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null)
+                    Icon(icon, contentDescription = null, tint = typeColor)
                 }
             } else {
                 RemoteThumbnail(
@@ -673,6 +705,7 @@ private fun BookmarkRow(
                     contentDescription = bookmark.display,
                     localFile = localFile,
                     modifier = Modifier.size(56.dp),
+                    fallbackTint = typeColor,
                 )
             }
         },
@@ -686,24 +719,25 @@ private fun BookmarkRow(
 private fun ChangeRow(
     change: ObjectChangeEntity,
     thumbnail: DashboardThumbnail?,
+    typeColor: androidx.compose.ui.graphics.Color,
     localImageFile: (DashboardThumbnail) -> java.io.File?,
     onClick: () -> Unit,
     onDiffClick: () -> Unit,
 ) {
     val hasTarget = change.targetEndpointPath != null && change.targetId != null
-    val (icon, tint) =
+    val icon =
         when (change.actionValue) {
-            "create" -> Icons.Default.AddCircle to MaterialTheme.colorScheme.primary
-            "update" -> Icons.Default.Edit to MaterialTheme.colorScheme.onSurfaceVariant
-            "delete" -> Icons.Default.Delete to MaterialTheme.colorScheme.error
-            else -> Icons.Default.History to MaterialTheme.colorScheme.onSurfaceVariant
+            "create" -> Icons.Default.AddCircle
+            "update" -> Icons.Default.Edit
+            "delete" -> Icons.Default.Delete
+            else -> Icons.Default.History
         }
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     ListItem(
         leadingContent = {
             if (thumbnail == null) {
                 Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = change.actionLabel, tint = tint)
+                    Icon(icon, contentDescription = change.actionLabel, tint = typeColor)
                 }
             } else {
                 RemoteThumbnail(
@@ -711,6 +745,7 @@ private fun ChangeRow(
                     contentDescription = change.objectRepr,
                     localFile = localFile,
                     modifier = Modifier.size(56.dp),
+                    fallbackTint = typeColor,
                 )
             }
         },

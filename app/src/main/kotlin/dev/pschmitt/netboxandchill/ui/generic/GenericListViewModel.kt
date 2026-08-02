@@ -11,6 +11,7 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
 import dev.pschmitt.netboxandchill.data.repository.GenericObjectRepository
 import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
+import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
@@ -34,11 +35,17 @@ constructor(
     private val repository: GenericObjectRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val fileDownloadRepository: FileDownloadRepository,
+    settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
 ) : ViewModel() {
 
     val route: Route.GenericList = savedStateHandle.toRoute()
+
+    val objectTypeAccent =
+        settingsRepository.objectTypeAccents
+            .map { accents -> accents[route.endpointPath.trim('/')] }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
