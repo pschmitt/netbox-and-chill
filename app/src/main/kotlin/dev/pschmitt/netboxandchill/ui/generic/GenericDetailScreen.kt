@@ -621,24 +621,30 @@ fun GenericDetailScreen(
                     else -> {
                         val hasJournal = journalEntries.isNotEmpty()
                         var selectedTab by remember { mutableStateOf(0) }
-                        val tabCount = if (hasJournal) 2 else 1
+                        val tabCount =
+                            1 +
+                                (if (viewModel.isRack) 1 else 0) +
+                                (if (hasJournal) 1 else 0)
                         val visibleSelectedTab = selectedTab.coerceIn(0, tabCount - 1)
-                        LaunchedEffect(hasJournal) {
+                        LaunchedEffect(viewModel.isRack, hasJournal) {
                             selectedTab = visibleSelectedTab
                         }
                         val tabs =
-                            listOf(ItemDetailTab("Overview", Icons.Default.Info)) +
+                            buildList {
+                                add(ItemDetailTab("Overview", Icons.Default.Info))
+                                if (viewModel.isRack) {
+                                    add(ItemDetailTab("Elevation", Icons.Default.Storage))
+                                }
                                 if (hasJournal) {
-                                    listOf(
+                                    add(
                                         ItemDetailTab(
                                             "Journal",
                                             Icons.Default.History,
                                             journalEntries.size,
                                         )
                                     )
-                                } else {
-                                    emptyList()
                                 }
+                            }
                         Column(Modifier.fillMaxSize()) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
@@ -671,24 +677,6 @@ fun GenericDetailScreen(
                                     )
                                 }
                                 item { Spacer(Modifier.height(8.dp)) }
-                                if (viewModel.isRack) {
-                                    item {
-                                        RackElevationOverview(
-                                            front = frontElevation,
-                                            rear = rearElevation,
-                                            previews = rackDevicePreviews,
-                                            localImageFile = viewModel::localAttachmentFile,
-                                            highlightDeviceId = highlightDeviceId,
-                                            onDeviceClick = { id ->
-                                                onNavigateToReference(
-                                                    "api/dcim/devices/",
-                                                    id,
-                                                    title ?: modelLabel,
-                                                )
-                                            },
-                                        )
-                                    }
-                                }
                                 item {
                                     ImageAttachmentGallery(
                                         attachments = imageAttachments,
@@ -765,6 +753,42 @@ fun GenericDetailScreen(
                                         onCopyValue = onCopyValue,
                                         onFieldLongPress = { fieldActionLabel = it },
                                         onMatterPairingCode = { matterPairingCode = it },
+                                    )
+                                }
+                            }
+                        } else if (viewModel.isRack && visibleSelectedTab == 1) {
+                            LazyColumn(
+                                modifier =
+                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                        visibleSelectedTab,
+                                        tabCount,
+                                    ) { selectedTab = it },
+                                contentPadding = PaddingValues(16.dp),
+                            ) {
+                                item {
+                                    GenericDetailIdentityCard(
+                                        id = viewModel.route.id,
+                                        endpointPath = viewModel.route.endpointPath,
+                                        statusField = statusField,
+                                        detailAccent = detailAccent,
+                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
+                                    )
+                                }
+                                item { Spacer(Modifier.height(8.dp)) }
+                                item {
+                                    RackElevationOverview(
+                                        front = frontElevation,
+                                        rear = rearElevation,
+                                        previews = rackDevicePreviews,
+                                        localImageFile = viewModel::localAttachmentFile,
+                                        highlightDeviceId = highlightDeviceId,
+                                        onDeviceClick = { id ->
+                                            onNavigateToReference(
+                                                "api/dcim/devices/",
+                                                id,
+                                                title ?: modelLabel,
+                                            )
+                                        },
                                     )
                                 }
                             }

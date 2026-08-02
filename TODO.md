@@ -4638,3 +4638,14 @@ appearance.
 
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the count badge is now neutral gray and
 was verified on the wired Zenfone; no NetBox data was changed.
+
+
+## NBC-270: move rack elevation to its own tab
+
+Rack elevation should have a dedicated tab instead of occupying the top of the rack Overview tab.
+
+- [ ] Add a rack-only Elevation tab while preserving Overview and Journal ordering.
+- [ ] Render the front/rear elevation only in that tab and keep device navigation working.
+- [ ] Verify the rack tabs on the wired Zenfone without changing NetBox data.
+
+Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
