@@ -25,4 +25,19 @@ class DeviceDetailViewModelTest {
             result,
         )
     }
+
+    @Test
+    fun `resolves manufacturer id from cached device type JSON`() {
+        assertEquals(
+            42,
+            parseManufacturerId(
+                "{\"id\":7,\"model\":\"Example\",\"manufacturer\":{\"id\":42,\"name\":\"Example Corp\"}}"
+            ),
+        )
+    }
+
+    @Test
+    fun `does not invent manufacturer id when the cached relation is absent`() {
+        assertEquals(null, parseManufacturerId("{\"id\":7,\"model\":\"Example\"}"))
+    }
 }

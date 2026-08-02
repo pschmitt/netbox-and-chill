@@ -126,6 +126,7 @@ fun DeviceDetailScreen(
     val device by viewModel.device.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
+    val manufacturerId by viewModel.manufacturerId.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val interfaceIpAddresses by viewModel.interfaceIpAddresses.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
@@ -532,6 +533,16 @@ fun DeviceDetailScreen(
                             detailField(
                                 "Manufacturer",
                                 current.manufacturerName,
+                                onClick =
+                                    manufacturerId?.let { id ->
+                                        {
+                                            onReferenceClick(
+                                                "api/dcim/manufacturers/",
+                                                id,
+                                                current.name,
+                                            )
+                                        }
+                                    },
                                 onFieldLongPress = { fieldActionLabel = it },
                             )
                         if (isFieldVisible("model"))

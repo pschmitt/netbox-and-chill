@@ -3761,11 +3761,13 @@ Status: not started, 2026-08-02.
 The device overview renders the manufacturer as plain text even though Rack and Model are
 navigable references. Make the manufacturer row open the cached manufacturer detail page.
 
-- [ ] Preserve the manufacturer ID in the typed device cache.
-- [ ] Make the manufacturer row navigate to its generic detail route.
-- [ ] Verify the link works from an offline cached device.
+- [x] Resolve the manufacturer ID from the cached device-type object.
+- [x] Make the manufacturer row navigate to its generic detail route.
+- [x] Verify the link works from an offline cached device.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - added cache-first manufacturer-ID resolution and navigation; the
+Mi Pad opened the cached D-Link manufacturer detail page while offline. Remote ktfmt/unit tests
+passed and the APK was installed on all three devices.
 
 
 ## NBC-212: dedicated per-type visual identity (color + icon), configurable in Settings
@@ -3794,5 +3796,18 @@ visual identity (icon + color as a pair), not color alone.
 - [ ] Reflect the per-type identity in the sidebar's per-app-group sections/icons.
 - [ ] Audit remaining surfaces that show an object type (list screens, reference chips, etc.) and
   apply the same identity there too, rather than limiting this to search/detail/sidebar.
+
+Status: not started, 2026-08-02.
+
+## NBC-213: add photos, image attachments, and typed NetBox documents
+
+Users should be able to upload device-type pictures, image attachments, and documents from item
+pages. The flow must support taking a photo inside the app as well as selecting an existing file,
+and NetBox Documents uploads must expose the document type (manual, purchase order, and so on).
+
+- [ ] Add cache-aware upload actions to the item types that support each media relation.
+- [ ] Offer both camera capture and system file/document picking.
+- [ ] Add document-type selection from the cached netbox-documents choices.
+- [ ] Keep uploads explicit, cancellable, and safe when offline.
 
 Status: not started, 2026-08-02.

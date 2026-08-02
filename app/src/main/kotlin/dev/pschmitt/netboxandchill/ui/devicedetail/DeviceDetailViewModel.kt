@@ -57,6 +57,7 @@ import timber.log.Timber
 private const val DEVICE_OBJECT_TYPE = "dcim.device"
 const val JOURNAL_TAB_ENDPOINT_PATH = "__journal__"
 const val INTERFACES_TAB_ENDPOINT_PATH = "api/dcim/interfaces/"
+const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
 private const val IP_ADDRESSES_ENDPOINT_PATH = "api/ipam/ip-addresses/"
 private val ipAddressJson = Json { ignoreUnknownKeys = true }
 
@@ -87,6 +88,15 @@ internal fun parseInterfaceIpAddress(
             ?: objectJson["display"]?.jsonPrimitive?.contentOrNull
     if (address.isNullOrBlank()) return null
     return ParsedInterfaceIpAddress(interfaceId, InterfaceIpAddress(objectId, address))
+}
+
+internal fun parseManufacturerId(rawJson: String): Int? {
+    val objectJson =
+        runCatching {
+                ipAddressJson.decodeFromString(JsonObject.serializer(), rawJson)
+            }
+            .getOrNull() ?: return null
+    return (objectJson["manufacturer"] as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
 }
 
 val DEVICE_RELATED_TABS =
@@ -179,6 +189,18 @@ constructor(
         device
             .flatMapLatest { entity ->
                 entity?.deviceTypeId?.let { deviceTypeRepository.observe(it) } ?: flowOf(null)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** Manufacturer references live in the cached generic device-type object. */
+    val manufacturerId: StateFlow<Int?> =
+        device
+            .flatMapLatest { entity ->
+                entity?.deviceTypeId?.let { deviceTypeId ->
+                    genericObjectRepository
+                        .observeObject(DEVICE_TYPES_ENDPOINT_PATH, deviceTypeId)
+                        .map { objectEntity -> objectEntity?.json?.let(::parseManufacturerId) }
+                } ?: flowOf(null)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
