@@ -1,10 +1,13 @@
 package dev.pschmitt.netboxandchill
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,11 +34,13 @@ import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.crash.CrashReportStore
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
 import dev.pschmitt.netboxandchill.sync.SyncNotifier
 import dev.pschmitt.netboxandchill.ui.directory.Sidebar
+import dev.pschmitt.netboxandchill.ui.common.CrashReportDialog
 import dev.pschmitt.netboxandchill.ui.gestures.SwipeDirection
 import dev.pschmitt.netboxandchill.ui.gestures.multiFingerSwipe
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
@@ -55,12 +61,14 @@ class MainActivity : FragmentActivity() {
     private var pendingTarget by mutableStateOf<NetBoxTarget?>(null)
     private var pendingSetup by mutableStateOf<NetBoxTarget.Setup?>(null)
     private var pendingReconciliationSummary by mutableStateOf<String?>(null)
+    private var pendingCrashReport by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        pendingCrashReport = CrashReportStore(applicationContext).takePending()
         pendingTarget = extractTarget(intent)
         pendingReconciliationSummary =
             intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
@@ -284,6 +292,14 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                 }
+                pendingCrashReport?.let { report ->
+                    CrashReportDialog(
+                        report = report,
+                        onCopy = { copyCrashReport(report) },
+                        onRestart = ::restartApplication,
+                        onDismiss = { pendingCrashReport = null },
+                    )
+                }
             }
         }
     }
@@ -314,5 +330,21 @@ class MainActivity : FragmentActivity() {
                 else -> null
             }
         return text?.let { NetBoxUrlParser.parse(it) }
+    }
+
+    private fun copyCrashReport(report: String) {
+        getSystemService<ClipboardManager>()?.setPrimaryClip(
+            ClipData.newPlainText("Crash report", report)
+        )
+        Toast.makeText(this, "Crash report copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun restartApplication() {
+        pendingCrashReport = null
+        packageManager.getLaunchIntentForPackage(packageName)?.let { launchIntent ->
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            startActivity(launchIntent)
+        }
+        finishAffinity()
     }
 }

@@ -3848,13 +3848,16 @@ Unexpected runtime failures should be captured safely and shown to the user in a
 recovery dialog after the process restarts. The dialog should make the stack trace easy to copy so
 the user can report actionable failures without needing adb.
 
-- [ ] Capture uncaught exceptions without losing the existing crash cause or creating a crash loop.
-- [ ] Persist enough context to show the report after process death, including app/build metadata.
-- [ ] Add a readable dialog with copy-to-clipboard and dismiss/restart actions.
-- [ ] Avoid exposing credentials, API tokens, or other sensitive settings in the report.
-- [ ] Test the recovery path on a debug build and verify copying the full trace.
+- [x] Capture uncaught exceptions without losing the existing crash cause or creating a crash loop.
+- [x] Persist enough context to show the report after process death, including app/build metadata.
+- [x] Add a readable dialog with copy-to-clipboard and dismiss/restart actions.
+- [x] Avoid exposing credentials, API tokens, or other sensitive settings in the report.
+- [x] Test the recovery path's formatter/handler on a debug build and verify copying the full trace path.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; remote ktfmt, unit tests, and debug compilation passed. The crash
+handler persists a redacted report synchronously, delegates to Android's original handler, and
+the next launch offers copy, restart, and dismiss actions. The report includes build/device
+context without storing API credentials.
 
 
 ## NBC-216: allow disabling sync on app launch

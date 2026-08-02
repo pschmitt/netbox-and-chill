@@ -9,6 +9,7 @@ import coil3.SingletonImageLoader
 import dagger.hilt.android.HiltAndroidApp
 import dev.pschmitt.netboxandchill.sync.SyncNotifier
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
+import dev.pschmitt.netboxandchill.crash.CrashReportInstaller
 import javax.inject.Inject
 import timber.log.Timber
 
@@ -25,6 +26,7 @@ class NetBoxAndChillApp : Application(), Configuration.Provider, SingletonImageL
 
     override fun onCreate() {
         super.onCreate()
+        CrashReportInstaller.install(this)
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
