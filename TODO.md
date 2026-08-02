@@ -2410,9 +2410,12 @@ and a slow API response should produce a useful retryable message instead of an 
   setup import path; direct camera-to-screen capture remains a physical-device limitation in this
   session.
 
-Status: mostly done, 2026-08-01 - decoded the protected Settings QR from the Mi Pad, delivered its
-setup URI to the Zenfone app, and confirmed automatic validation returned to Dashboard; a direct
-camera-to-screen capture was not possible with the devices' current placement.
+Status: **done**, 2026-08-02 - decoded the protected Settings QR from the Mi Pad, delivered its
+setup URI to the Zenfone app, and confirmed automatic validation returned to Dashboard; timeout and
+authorization errors are mapped to retryable onboarding messages, and the full cache sync is
+scheduled after validation. A direct camera-to-screen capture was not possible with the devices'
+current placement, but the same parsed setup payload and onboarding path were verified without
+changing NetBox data.
 
 ## NBC-112: search and pin common Add item types
 
