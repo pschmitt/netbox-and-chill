@@ -20,7 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +53,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -115,7 +120,7 @@ fun TopologyScreen(
                     )
                 }
                 Text(
-                    "Pinch to zoom and drag to pan. This graph is cached for offline use.",
+                    "Pinch to zoom or use the controls; drag to pan. This graph is cached for offline use.",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
@@ -156,35 +161,40 @@ fun TopologyScreen(
 
 @Composable
 private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modifier) {
+    var viewportSize by remember(graph) { mutableStateOf(IntSize.Zero) }
     var zoom by remember(graph) { mutableFloatStateOf(1f) }
     var pan by remember(graph) { mutableStateOf(Offset.Zero) }
+    var initialized by remember(graph) { mutableStateOf(false) }
     val transformState =
         rememberTransformableState { zoomChange, panChange, _ ->
-            zoom = (zoom * zoomChange).coerceIn(0.35f, 8f)
+            zoom = (zoom * zoomChange).coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
             pan += panChange
         }
     val density = LocalDensity.current
     val graphBounds = remember(graph) { graph.bounds() }
     val colorScheme = MaterialTheme.colorScheme
 
-    Canvas(
+    androidx.compose.runtime.LaunchedEffect(graph, viewportSize) {
+        if (!initialized && viewportSize != IntSize.Zero) {
+            zoom = initialTopologyZoom(graph.nodes.size, viewportSize.width.toFloat())
+            initialized = true
+        }
+    }
+
+    Box(
         modifier =
             modifier
+                .onSizeChanged { viewportSize = it }
                 .background(colorScheme.surfaceContainerLow)
-                .transformable(transformState)
                 .semantics {
                     contentDescription =
                         "Topology graph with ${graph.nodes.size} nodes and ${graph.edges.size} connections"
                 },
     ) {
+        Canvas(modifier = Modifier.fillMaxSize().transformable(transformState)) {
         val availableWidth = (size.width - 32f).coerceAtLeast(1f)
         val availableHeight = (size.height - 32f).coerceAtLeast(1f)
-        val fitScale =
-            min(
-                    availableWidth / graphBounds.width.coerceAtLeast(1f),
-                    availableHeight / graphBounds.height.coerceAtLeast(1f),
-                )
-                .coerceIn(0.08f, 4f)
+        val fitScale = topologyFitScale(graphBounds, availableWidth, availableHeight)
         val totalScale = fitScale * zoom
         val graphCenter = graphBounds.center
         val screenCenter = Offset(size.width / 2f, size.height / 2f) + pan
@@ -245,8 +255,65 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
                 }
             }
         }
+        }
+
+        Row(
+            modifier =
+                Modifier.align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(
+                        colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                        RoundedCornerShape(14.dp),
+                    ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = { zoom = (zoom / ZOOM_STEP).coerceAtLeast(MIN_TOPOLOGY_ZOOM) },
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(Icons.Default.ZoomOut, contentDescription = "Zoom out")
+            }
+            Text(
+                "${(zoom * 100).toInt()}%",
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(horizontal = 2.dp),
+            )
+            IconButton(
+                onClick = {
+                    zoom = initialTopologyZoom(graph.nodes.size, viewportSize.width.toFloat())
+                    pan = Offset.Zero
+                },
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(Icons.Default.RestartAlt, contentDescription = "Reset topology view")
+            }
+            IconButton(
+                onClick = { zoom = (zoom * ZOOM_STEP).coerceAtMost(MAX_TOPOLOGY_ZOOM) },
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(Icons.Default.ZoomIn, contentDescription = "Zoom in")
+            }
+        }
     }
 }
+
+private const val MIN_TOPOLOGY_ZOOM = 0.35f
+private const val MAX_TOPOLOGY_ZOOM = 8f
+private const val ZOOM_STEP = 1.4f
+
+internal fun initialTopologyZoom(nodeCount: Int, viewportWidth: Float): Float =
+    when {
+        viewportWidth < 720f -> if (nodeCount > 40) 1.35f else 1.7f
+        viewportWidth < 1200f -> if (nodeCount > 40) 1.2f else 1.45f
+        else -> if (nodeCount > 40) 1.1f else 1.25f
+    }
+
+internal fun topologyFitScale(bounds: Rect, availableWidth: Float, availableHeight: Float): Float =
+    min(
+            availableWidth / bounds.width.coerceAtLeast(1f),
+            availableHeight / bounds.height.coerceAtLeast(1f),
+        )
+        .coerceIn(0.08f, 4f)
 
 private fun TopologyGraph.bounds(): Rect {
     if (nodes.isEmpty()) return Rect(0f, 0f, 1f, 1f)

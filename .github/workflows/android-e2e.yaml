@@ -45,7 +45,7 @@ jobs:
         with:
           api-level: 35
           arch: x86_64
-          profile: Pixel_2
+          profile: pixel_7_pro
           target: google_apis
           force-avd-creation: true
           disable-animations: true

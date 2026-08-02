@@ -3645,7 +3645,8 @@ Improve the initial viewport and controls without making the graph less useful o
 - [ ] Keep graph rendering cache-first and verify the Mi Pad phone/tablet layouts.
 - [ ] Add focused viewport/scale tests where the behavior is made deterministic.
 
-Status: not started, 2026-08-02.
+Status: in progress, 2026-08-02 - implementing a deterministic mobile viewport and explicit
+zoom controls while preserving the cache-first graph source.
 
 
 ## NBC-202: hide NetBox News by default
