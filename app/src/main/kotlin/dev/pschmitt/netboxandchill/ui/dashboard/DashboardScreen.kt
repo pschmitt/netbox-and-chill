@@ -480,7 +480,6 @@ private fun DashboardSectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         modifier =
             Modifier.fillMaxWidth()
-                .testTag("e2e-search-card")
                 .graphicsLayer { rotationZ = wiggle }
                 .combinedClickable(onClick = {}, onLongClick = onLongPress)
                 .padding(bottom = 8.dp),
@@ -643,6 +642,7 @@ private fun GlobalSearchCard(
             ),
         modifier =
             Modifier.fillMaxWidth()
+                .testTag("e2e-search-card")
                 .graphicsLayer { rotationZ = wiggle }
                 .combinedClickable(onClick = onClick, onLongClick = onLongPress),
     ) {
