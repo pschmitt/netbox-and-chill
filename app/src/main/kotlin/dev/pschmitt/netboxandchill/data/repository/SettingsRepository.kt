@@ -397,7 +397,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     }
 
     fun recordSyncIssue(message: String) {
-        val issueMessage = message.takeIf { it.isNotBlank() } ?: "Sync failed"
+        val issueMessage = summarizeSyncIssueMessage(message)
         val issue =
             SyncIssue(issueMessage.take(MAX_SYNC_MESSAGE_LENGTH), System.currentTimeMillis())
         prefs
@@ -529,7 +529,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private fun loadSyncIssue(): SyncIssue? {
         val message = prefs.getString(KEY_SYNC_ISSUE_MESSAGE, null)?.takeIf { it.isNotBlank() }
         val occurredAt = prefs.getLong(KEY_SYNC_ISSUE_TIME, 0L)
-        return if (message != null && occurredAt > 0L) SyncIssue(message, occurredAt) else null
+        return if (message != null && occurredAt > 0L) {
+            SyncIssue(summarizeSyncIssueMessage(message), occurredAt)
+        } else null
     }
 
     private fun loadLastSuccessfulSyncAt(): Long? =

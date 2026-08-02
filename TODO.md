@@ -4842,5 +4842,19 @@ foreground artwork so the outer connector marks remain inside Android's adaptive
 - [x] Reduce the adaptive-icon foreground artwork slightly.
 - [x] Verify the launcher and splash rendering on a physical device.
 
-Status: **done**, 2026-08-03 - adaptive foreground reduced to 0.76; Mi Pad 4 launcher and
-splash screenshots show the full artwork inside the safe area; debug APK installed on all devices.
+Status: **done**, 2026-08-03 - adaptive foreground reduced to 0.64; Mi Pad 4 launcher and
+splash screenshots show the complete artwork inside the safe area.
+
+
+## NBC-285: make sync retry feedback concise and visible
+
+Retrying a failed sync currently gives no immediate visual response, while cancellation errors can
+repeat the same per-object text many times. Show a clear retrying state and summarize the issue in
+short, human-readable language.
+
+- [x] Show immediate feedback and disable the retry action while the retry is queued/running.
+- [x] Collapse repeated cancellation and per-object error lines into a concise summary.
+- [x] Cover sync issue summarization with unit tests and verify the updated APK on a device.
+
+Status: **done**, 2026-08-03 - cancellation/reason summarization tests, remote lint/build, and Mi
+Pad 4 launcher/splash verification passed; no NetBox data was changed.

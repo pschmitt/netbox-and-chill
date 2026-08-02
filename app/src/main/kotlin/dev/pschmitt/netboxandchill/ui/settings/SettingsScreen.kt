@@ -517,6 +517,7 @@ fun SettingsCategoryScreen(
                 SyncIssueCard(
                     issue,
                     onRetry = viewModel::syncNow,
+                    isSyncing = isSyncing,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
             }

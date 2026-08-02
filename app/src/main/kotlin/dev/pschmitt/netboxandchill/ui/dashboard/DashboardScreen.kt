@@ -212,7 +212,11 @@ fun DashboardScreen(
                 if (shouldShowSyncIssue(offlineMode)) {
                     syncIssue?.let { issue ->
                         item {
-                            SyncIssueCard(issue, onRetry = viewModel::retrySync)
+                            SyncIssueCard(
+                                issue,
+                                onRetry = viewModel::retrySync,
+                                isSyncing = isRefreshing,
+                            )
                             Spacer(Modifier.height(16.dp))
                         }
                     }
