@@ -38,6 +38,19 @@ adjust the APK filter regex/prerelease settings, or grab the specific APK from t
   on-device (`EncryptedSharedPreferences`) and never leave your device except to talk to your own
   NetBox instance (see [PRIVACY.md](PRIVACY.md))
 
+## Screenshots
+
+These screenshots were captured from a disposable local NetBox fixture containing only synthetic
+CI E2E records. No production inventory, hostnames, tokens, or identifiers are shown.
+
+<p>
+  <img src="docs/images/readme-dashboard.png" alt="Dashboard with statistics and recent changes" width="180">
+  <img src="docs/images/readme-device-detail.png" alt="Device detail page with status, cache, and media sections" width="180">
+  <img src="docs/images/readme-search.png" alt="Global search with recently visited items" width="180">
+  <img src="docs/images/readme-scanner.png" alt="QR and barcode scanner" width="180">
+  <img src="docs/images/readme-settings.png" alt="Settings categories" width="180">
+</p>
+
 ## Setup
 
 You need your own NetBox instance and an API token (NetBox profile → API Tokens). Enter the

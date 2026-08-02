@@ -4230,9 +4230,9 @@ headings on item overview pages.
 
 - [x] Reuse the shared section-heading component for image attachments and documents.
 - [x] Preserve attachment counts, previews, upload actions, and document badges.
-- [ ] Verify the consistent headings on the wired Zenfone without changing production data.
+- [x] Verify the consistent headings on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed the shared Image attachments and Documents headings.
 
 
 ## NBC-252: center and rename the document add tile
@@ -4242,9 +4242,9 @@ The document media tile should match the image tile’s centered label treatment
 
 - [x] Rename the action from “Upload document” to “Add document”.
 - [x] Center the tile label even when it wraps.
-- [ ] Verify the document tile in the installed UI on the wired Zenfone without uploading media.
+- [x] Verify the document tile in the installed UI on the wired Zenfone without uploading media.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed the centered two-line Add document tile; no media was uploaded.
 
 
 ## NBC-251: add icons to status and cache badges
@@ -4254,9 +4254,9 @@ Item identity badges should communicate their meaning with a small icon as well 
 - [x] Map common NetBox status values to relevant status icons.
 - [x] Add a cached/offline icon to the Cached badge.
 - [x] Preserve equal badge heights and existing colors/click behavior.
-- [ ] Verify the badge icons in the installed UI on the wired Zenfone without changing production data.
+- [x] Verify the badge icons in the installed UI on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed the Cached and Active icons in the item card.
 
 
 ## NBC-250: separate item-card status and cache badges
@@ -4267,9 +4267,9 @@ height so the card reads cleanly on phones.
 - [x] Move the device status/cache badges below the identity row in the top card.
 - [x] Apply the same badge row treatment to generic item detail cards when a status exists.
 - [x] Give both badge styles the same fixed height.
-- [ ] Verify the card layout on the wired Zenfone without changing production data.
+- [x] Verify the card layout on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed the identity row above an equal-height Cached/Active row.
 
 
 ## NBC-248: preserve external URL origins in item views
@@ -4351,12 +4351,12 @@ Status: in progress
 The README should show the app’s main workflows without exposing real NetBox names, hosts,
 identifiers, comments, or tokens.
 
-- [ ] Create clearly named temporary demo records (or an isolated local fixture) for screenshots.
-- [ ] Capture sanitized dashboard, device/detail, search, scan, and settings/media screenshots.
-- [ ] Add only sanitized images and captions to the README.
-- [ ] Remove temporary records and verify no production demo data remains.
+- [x] Create clearly named temporary demo records (or an isolated local fixture) for screenshots.
+- [x] Capture sanitized dashboard, device/detail, search, scan, and settings/media screenshots.
+- [x] Add only sanitized images and captions to the README.
+- [x] Remove temporary records and verify no production demo data remains.
 
-Status: in progress
+Status: **done**, 2026-08-02 - captured five README images from the disposable local fixture, added captions, and removed its containers/volumes; production was untouched.
 
 
 ## NBC-246: indicate cached item detail pages
@@ -4366,9 +4366,9 @@ offline cache.
 
 - [x] Add a shared compact Cached badge to dedicated device and generic item identity cards.
 - [x] Keep the badge independent of network availability and avoid changing item data.
-- [ ] Verify the indicator on cached device and generic item pages on the wired Zenfone.
+- [x] Verify the indicator on cached device and generic item pages on the wired Zenfone.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed Cached on the synthetic cached device and generic device-type pages.
 
 
 ## NBC-247: polish active global-search filters
@@ -4403,6 +4403,6 @@ document sections should stay compact and keep only the add action.
 
 - [x] Show count badges on both media section headings, including zero.
 - [x] Remove the empty “No documents attached” message.
-- [ ] Verify the empty and populated states in the installed UI on the wired Zenfone without changing production data.
+- [x] Verify the empty and populated states in the installed UI on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed zero badges, no empty document message, and both centered add tiles without uploading media.
