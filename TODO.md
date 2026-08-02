@@ -4293,9 +4293,9 @@ kind, and provide the same Markdown editing and live preview experience as other
 - [x] Make the dialog wider and keep its contents scrollable on compact screens.
 - [x] Give Info, Success, Warning, and Danger/Failed kinds distinct semantic colors and icons.
 - [x] Reuse the Markdown formatting toolbar and rendered preview for journal comments.
-- [ ] Verify add/edit flows on the wired Zenfone without saving a production journal entry.
+- [x] Verify add/edit flows on the wired Zenfone without saving a production journal entry.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone opened the add-journal editor, showed all four semantic kind options, rendered a Markdown preview, and Cancel discarded the unsaved draft.
 
 
 ## NBC-241: use one media upload action style
