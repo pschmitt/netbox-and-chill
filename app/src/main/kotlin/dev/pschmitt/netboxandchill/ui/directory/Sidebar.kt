@@ -140,7 +140,7 @@ fun Sidebar(
                             )
                         } else {
                             Icon(
-                                AppIcons.Devices,
+                                AppIcons.forEndpointPath(DEVICES_PATH),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(36.dp),
@@ -180,7 +180,12 @@ fun Sidebar(
                     item {
                         NavigationDrawerItem(
                             label = { Text("Devices") },
-                            icon = { Icon(AppIcons.Devices, contentDescription = null) },
+                            icon = {
+                                Icon(
+                                    AppIcons.forEndpointPath(DEVICES_PATH),
+                                    contentDescription = null,
+                                )
+                            },
                             selected = false,
                             onClick = onDeviceListClick,
                             modifier =
@@ -196,7 +201,7 @@ fun Sidebar(
                             label = { Text(model.modelLabel) },
                             icon = {
                                 Icon(
-                                    AppIcons.forAppKey(model.appKey),
+                                    AppIcons.forEndpointPath(model.endpointPath),
                                     contentDescription = null,
                                     tint =
                                         visualColorForEndpointPath(
@@ -314,6 +319,12 @@ fun Sidebar(
                             ) {
                                 NavigationDrawerItem(
                                     label = { Text(model.modelLabel) },
+                                    icon = {
+                                        Icon(
+                                            AppIcons.forEndpointPath(model.endpointPath),
+                                            contentDescription = null,
+                                        )
+                                    },
                                     selected = false,
                                     onClick = { onModelClick(model) },
                                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),

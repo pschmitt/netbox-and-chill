@@ -51,7 +51,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
-import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
@@ -159,14 +158,12 @@ fun GlobalSearchScreen(
                         items(recentResults, key = { "recent-${it.endpointPath}-${it.id}" }) { hit
                             ->
                             val model = modelsByEndpointPath[hit.endpointPath]
-                            val appKey =
-                                model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
                             val thumbnail =
                                 viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
                             SearchResultRow(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
-                                icon = AppIcons.forAppKey(appKey),
+                                icon = AppIcons.forEndpointPath(hit.endpointPath),
                                 typeColor =
                                     visualColorForEndpointPath(
                                         hit.endpointPath,
@@ -238,14 +235,12 @@ fun GlobalSearchScreen(
                         }
                         items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
                             val model = modelsByEndpointPath[hit.endpointPath]
-                            val appKey =
-                                model?.appKey ?: NetBoxRef.appKeyFromEndpointPath(hit.endpointPath)
                             val thumbnail =
                                 viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
                             SearchResultRow(
                                 hit = hit,
                                 modelLabel = model?.modelLabel,
-                                icon = AppIcons.forAppKey(appKey),
+                                icon = AppIcons.forEndpointPath(hit.endpointPath),
                                 typeColor =
                                     visualColorForEndpointPath(
                                         hit.endpointPath,
@@ -309,7 +304,7 @@ private fun ActiveTypeFilter(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        AppIcons.forAppKey(model.appKey),
+                        AppIcons.forEndpointPath(model.endpointPath),
                         contentDescription = null,
                         tint = accent,
                         modifier = Modifier.size(22.dp),
@@ -356,7 +351,7 @@ private fun ActiveTypeFilter(
 private fun TypeSuggestionRow(model: NetBoxModelEntity, onClick: () -> Unit) {
     ListItem(
         leadingContent = {
-            Icon(AppIcons.forAppKey(model.appKey), contentDescription = null)
+            Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
         },
         headlineContent = { Text(model.modelLabel) },
         supportingContent = { Text("Search only " + model.modelLabel.lowercase()) },

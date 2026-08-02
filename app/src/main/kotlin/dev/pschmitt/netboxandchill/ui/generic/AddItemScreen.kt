@@ -225,7 +225,9 @@ private fun AddModelRow(
     onTogglePin: () -> Unit,
 ) {
     ListItem(
-        leadingContent = { Icon(AppIcons.forAppKey(model.appKey), contentDescription = null) },
+        leadingContent = {
+            Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
+        },
         headlineContent = { Text(model.modelLabel) },
         supportingContent = { Text(model.appLabel) },
         trailingContent = {

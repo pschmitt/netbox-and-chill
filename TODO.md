@@ -4534,3 +4534,29 @@ badge color.
 
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests and debug build passed; the muted badge color
 is applied to both media section count paths without changing NetBox data.
+
+
+## NBC-262: use endpoint-specific identity icons
+
+The main identity card on item views should use the same object-type icon language as the rest of
+the app instead of a generic category/cable icon.
+
+- [x] Add a shared endpoint-specific icon resolver with app-level fallback for unknown/plugin types.
+- [x] Use it on device and generic item identity cards.
+- [x] Reuse it in lists, search, dashboard, settings, add-item, and sidebar item rows.
+
+Status: **done**, 2026-08-02 - endpoint icon mapping and all consumers compile-tested remotely; no
+NetBox data was changed.
+
+
+## NBC-263: specialize device detail tab icons
+
+Related-item tabs on device views should use distinct icons for interfaces, power ports, front/rear
+ports, and other port families, consistently with object-type rows elsewhere.
+
+- [x] Resolve related-tab icons through the shared endpoint icon catalog.
+- [x] Use the same icon for the corresponding related-item list rows.
+- [x] Give power ports/outlets a power icon distinct from network interfaces.
+
+Status: **done**, 2026-08-02 - shared tab/list icon wiring is included in the remote validation pass;
+no NetBox data was changed.

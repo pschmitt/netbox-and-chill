@@ -1615,7 +1615,7 @@ private fun ObjectTypeColorsDialog(
                                 shape = MaterialTheme.shapes.small,
                             ) {
                                 Icon(
-                                    AppIcons.forAppKey(model.appKey),
+                                    AppIcons.forEndpointPath(model.endpointPath),
                                     contentDescription = null,
                                     tint =
                                         visualColorForEndpointPath(

@@ -76,6 +76,7 @@ import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
@@ -101,6 +102,7 @@ import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
+import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 import dev.pschmitt.netboxandchill.ui.generic.FieldRow
 import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
 import dev.pschmitt.netboxandchill.ui.generic.actionValue
@@ -448,7 +450,9 @@ fun DeviceDetailScreen(
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
                                                 Icon(
-                                                    Icons.Default.Cable,
+                                                    AppIcons.forEndpointPath(
+                                                        NetBoxRef.DEVICES_ENDPOINT_PATH
+                                                    ),
                                                     contentDescription = null,
                                                     tint = detailAccent,
                                                     modifier = Modifier.size(30.dp),
@@ -885,7 +889,7 @@ private fun deviceEditFieldKey(label: String): String =
 @Composable
 private fun tabIcon(tab: DeviceRelatedTab) =
     if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) Icons.Default.History
-    else Icons.Default.Cable
+    else AppIcons.forEndpointPath(tab.endpointPath)
 
 @Composable
 private fun DeviceRelatedObjects(
@@ -918,7 +922,9 @@ private fun DeviceRelatedObjects(
                 emptyList()
             }
         ListItem(
-            leadingContent = { Icon(Icons.Default.Cable, contentDescription = null) },
+            leadingContent = {
+                Icon(AppIcons.forEndpointPath(tab.endpointPath), contentDescription = null)
+            },
             headlineContent = { Text(objectEntity.display) },
             supportingContent = {
                 if (ipAddresses.isNotEmpty() || macAddresses.isNotEmpty()) {

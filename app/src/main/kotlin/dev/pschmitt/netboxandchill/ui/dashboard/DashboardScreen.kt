@@ -74,7 +74,6 @@ import dev.pschmitt.netboxandchill.data.db.BookmarkEntity
 import dev.pschmitt.netboxandchill.data.db.DashboardStatEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.db.NewsItemEntity
-import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
@@ -608,7 +607,7 @@ private fun StatTile(
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(
-                AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(stat.endpointPath)),
+                AppIcons.forEndpointPath(stat.endpointPath),
                 contentDescription = null,
                 tint = typeColor,
             )
@@ -690,7 +689,7 @@ private fun BookmarkRow(
     val hasTarget = bookmark.targetEndpointPath != null && bookmark.targetId != null
     val icon =
         bookmark.targetEndpointPath?.let {
-            AppIcons.forAppKey(NetBoxRef.appKeyFromEndpointPath(it))
+            AppIcons.forEndpointPath(it)
         } ?: Icons.Default.Bookmark
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     ListItem(

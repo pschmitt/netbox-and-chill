@@ -124,6 +124,7 @@ import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
 import dev.pschmitt.netboxandchill.ui.common.fileViewIntent
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.shareIntent
+import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -648,10 +649,11 @@ fun GenericDetailScreen(
                                 contentPadding = PaddingValues(16.dp),
                             ) {
                                 item {
-                                    GenericDetailIdentityCard(
-                                        id = viewModel.route.id,
-                                        statusField = statusField,
-                                        detailAccent = detailAccent,
+                                        GenericDetailIdentityCard(
+                                            id = viewModel.route.id,
+                                            endpointPath = viewModel.route.endpointPath,
+                                            statusField = statusField,
+                                            detailAccent = detailAccent,
                                         onStatusLongPress = { fieldActionLabel = statusField?.label },
                                     )
                                 }
@@ -772,6 +774,7 @@ fun GenericDetailScreen(
                                 item {
                                     GenericDetailIdentityCard(
                                         id = viewModel.route.id,
+                                        endpointPath = viewModel.route.endpointPath,
                                         statusField = statusField,
                                         detailAccent = detailAccent,
                                         onStatusLongPress = { fieldActionLabel = statusField?.label },
@@ -997,6 +1000,7 @@ fun GenericDetailScreen(
 @Composable
 private fun GenericDetailIdentityCard(
     id: Int,
+    endpointPath: String,
     statusField: FieldRow.PlainText?,
     detailAccent: Color,
     onStatusLongPress: () -> Unit,
@@ -1015,7 +1019,7 @@ private fun GenericDetailIdentityCard(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Outlined.Category,
+                        AppIcons.forEndpointPath(endpointPath),
                         contentDescription = null,
                         tint = detailAccent,
                         modifier = Modifier.size(30.dp),

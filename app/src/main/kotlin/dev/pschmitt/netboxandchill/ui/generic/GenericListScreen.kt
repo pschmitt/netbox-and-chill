@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
-import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.data.schema.assetTagStateFromRawJson
 import dev.pschmitt.netboxandchill.ui.common.AssetTagBadge
 import dev.pschmitt.netboxandchill.ui.common.MissingAssetTagBadge
@@ -122,10 +121,7 @@ fun GenericListScreen(
                         )
                     }
                 } else {
-                    val rowIcon =
-                        AppIcons.forAppKey(
-                            NetBoxRef.appKeyFromEndpointPath(viewModel.route.endpointPath)
-                        )
+                    val rowIcon = AppIcons.forEndpointPath(viewModel.route.endpointPath)
                     val rowColor =
                         MaterialTheme.colorScheme.detailAccentFor(
                             viewModel.route.endpointPath,
