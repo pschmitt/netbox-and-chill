@@ -16,15 +16,15 @@ fun Modifier.itemTabSwipe(
 ): Modifier =
     pointerInput(selectedTab, tabCount, onTabSelected) {
         awaitEachGesture {
-            // Observe during the initial pass so a LazyColumn's vertical scroll handling cannot
-            // swallow a horizontal detail-tab gesture before this detector sees it. We only
-            // consume a deliberate horizontal swipe after the direction is unambiguous.
+            // Observe during the main pass so nested horizontal children (for example the image
+            // attachment LazyRow) get first chance to consume their own drag. We only consume a
+            // deliberate horizontal swipe when no child has claimed it.
             val down = awaitFirstDown(pass = PointerEventPass.Initial)
             var previous = down.position
             var total = Offset.Zero
             var triggered = false
             while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val event = awaitPointerEvent(PointerEventPass.Main)
                 val change = event.changes.firstOrNull() ?: break
                 if (!change.pressed) break
                 if (change.isConsumed) break

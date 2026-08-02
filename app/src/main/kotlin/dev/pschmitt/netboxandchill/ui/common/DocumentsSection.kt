@@ -54,7 +54,12 @@ fun DocumentsSection(
             "Documents",
             trailingContent = {
                 if (documents.isNotEmpty()) {
-                    Badge { Text(documents.size.toString()) }
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Text(documents.size.toString())
+                    }
                 }
             },
         )
@@ -100,7 +105,7 @@ fun DocumentsSection(
             }
         }
         onAddDocument?.let { onAdd ->
-            MediaAddTile(
+            MediaAddButton(
                 label = "Add document",
                 onClick = onAdd,
                 icon = Icons.Default.UploadFile,

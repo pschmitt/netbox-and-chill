@@ -429,75 +429,65 @@ fun DeviceDetailScreen(
                         ) { tabIndex -> selectedTab = tabIndex },
                     contentPadding = PaddingValues(16.dp),
                 ) {
-                    stickyHeader {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.fillMaxWidth(),
+                    item {
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         ) {
-                            Column(Modifier.fillMaxWidth()) {
-                                ElevatedCard(
-                                    modifier =
-                                        Modifier.fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            Box(Modifier.fillMaxWidth()) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
                                 ) {
-                                    Box(Modifier.fillMaxWidth()) {
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                    Row(verticalAlignment = Alignment.Top) {
+                                        Surface(
+                                            color = detailAccent.copy(alpha = 0.18f),
+                                            shape =
+                                                androidx.compose.foundation.shape.RoundedCornerShape(
+                                                    14.dp,
+                                                ),
+                                            modifier = Modifier.size(52.dp),
                                         ) {
-                                            Row(verticalAlignment = Alignment.Top) {
-                                                Surface(
-                                                    color = detailAccent.copy(alpha = 0.18f),
-                                                    shape =
-                                                        androidx.compose.foundation.shape.RoundedCornerShape(
-                                                            15.dp,
-                                                        ),
-                                                    modifier = Modifier.size(60.dp),
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Icon(
-                                                            Icons.Default.Cable,
-                                                            contentDescription = null,
-                                                            tint = detailAccent,
-                                                            modifier = Modifier.size(34.dp),
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Cable,
+                                                    contentDescription = null,
+                                                    tint = detailAccent,
+                                                    modifier = Modifier.size(30.dp),
+                                                )
+                                            }
+                                        }
+                                        Column(
+                                            Modifier.padding(start = 10.dp)
+                                                .padding(end = 8.dp)
+                                                .weight(1f),
+                                        ) {
+                                            current.deviceTypeModel?.let {
+                                                Text(
+                                                    it,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                            if (isFieldVisible("Status")) {
+                                                Spacer(Modifier.height(2.dp))
+                                                Box(
+                                                    modifier =
+                                                        Modifier.combinedClickable(
+                                                            onClick = {},
+                                                            onLongClick = {
+                                                                fieldActionLabel = "Status"
+                                                            },
                                                         )
-                                                    }
-                                                }
-                                                Column(
-                                                    Modifier.padding(start = 12.dp)
-                                                        .padding(end = 28.dp)
-                                                        .weight(1f),
                                                 ) {
-                                                    current.deviceTypeModel?.let {
-                                                        Text(
-                                                            it,
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            color =
-                                                                MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        )
-                                                    }
-                                                    if (isFieldVisible("Status")) {
-                                                        Spacer(Modifier.height(4.dp))
-                                                        Box(
-                                                            modifier =
-                                                                Modifier.combinedClickable(
-                                                                    onClick = {},
-                                                                    onLongClick = {
-                                                                        fieldActionLabel = "Status"
-                                                                    },
-                                                                )
-                                                        ) {
-                                                            StatusChip(
-                                                                label = current.statusLabel,
-                                                                value = current.statusValue,
-                                                            )
-                                                        }
-                                                    }
+                                                    StatusChip(
+                                                        label = current.statusLabel,
+                                                        value = current.statusValue,
+                                                    )
                                                 }
                                             }
                                         }
                                     }
                                 }
-                                Spacer(Modifier.height(8.dp))
                             }
                         }
                     }

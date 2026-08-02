@@ -4507,3 +4507,30 @@ Status: **done**, 2026-08-02 - remote ktfmt/unit tests/debug build passed; the w
 the device name in the transparent header and a compact typed card with model/status, and the
 generic device-type view showed the same header/card treatment with no cached icon; the same APK
 was installed on the Mi Pad 4 and PX5; no NetBox data was changed.
+
+
+## NBC-260: streamline scrolling detail headers
+
+The detail app bar is already fixed at the top, so keeping a second identity card fixed beneath it
+wastes a large amount of screen space while browsing an item.
+
+- [x] Make the identity card a normal first item in both device and generic detail lists.
+- [x] Keep the two detail layouts consistent and retain status long-press editing.
+- [x] Verify that scrolling leaves only the compact app bar visible on phones.
+- [x] Keep image attachment gestures inside the gallery and place add actions below previews.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests, debug build, and wired-Zenfone visual checks
+passed; the identity card now scrolls away, gallery swipes stay within the gallery, and add actions
+sit below previews. No NetBox data was changed.
+
+
+## NBC-261: soften media count badges
+
+Image attachment and document counts are informational and should not use the urgent-looking error
+badge color.
+
+- [x] Use a muted secondary-container color for both media section count badges.
+- [x] Verify the badge styling with the installed detail view without changing NetBox data.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests and debug build passed; the muted badge color
+is applied to both media section count paths without changing NetBox data.

@@ -625,213 +625,183 @@ fun GenericDetailScreen(
                         LaunchedEffect(hasJournal) {
                             selectedTab = visibleSelectedTab
                         }
-                        Column(
-                            Modifier.fillMaxSize().itemTabSwipe(visibleSelectedTab, tabCount) {
-                                selectedTab = it
-                            }
-                        ) {
-                            ElevatedCard(
-                                modifier =
-                                    Modifier.fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Box(Modifier.fillMaxWidth()) {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth().padding(10.dp),
-                                    ) {
-                                        Row(verticalAlignment = Alignment.Top) {
-                                            Surface(
-                                                color = detailAccent.copy(alpha = 0.18f),
-                                                shape = RoundedCornerShape(16.dp),
-                                                modifier = Modifier.size(60.dp),
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Icon(
-                                                        Icons.Outlined.Category,
-                                                        contentDescription = null,
-                                                        tint = detailAccent,
-                                                        modifier = Modifier.size(34.dp),
-                                                    )
-                                                }
-                                            }
-                                            Column(
-                                                Modifier.padding(start = 12.dp)
-                                                    .padding(end = 28.dp)
-                                                    .weight(1f),
-                                            ) {
-                                                Text(
-                                                    "ID #${viewModel.route.id}",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                                statusField?.let { status ->
-                                                    Spacer(Modifier.height(4.dp))
-                                                    Box(
-                                                        modifier =
-                                                            Modifier.combinedClickable(
-                                                                onClick = {},
-                                                                onLongClick = {
-                                                                    fieldActionLabel = status.label
-                                                                },
-                                                            )
-                                                    ) {
-                                                        StatusChip(
-                                                            label = status.value,
-                                                            value = status.value.lowercase(),
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            ItemDetailTabs(
-                                tabs =
+                        val tabs =
+                            listOf(ItemDetailTab("Overview", Icons.Default.Info)) +
+                                if (hasJournal) {
                                     listOf(
-                                        ItemDetailTab("Overview", Icons.Default.Info),
-                                    ) +
-                                        if (hasJournal) {
-                                            listOf(
-                                                ItemDetailTab(
-                                                    "Journal",
-                                                    Icons.Default.History,
-                                                    journalEntries.size,
-                                                )
-                                            )
-                                        } else {
-                                            emptyList()
-                                        },
-                                selectedTab = visibleSelectedTab,
-                                onTabSelected = { selectedTab = it },
-                            )
-                            if (visibleSelectedTab == 0) {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(16.dp),
-                                ) {
-                                    if (viewModel.isRack) {
-                                        item {
-                                            RackElevationOverview(
-                                                front = frontElevation,
-                                                rear = rearElevation,
-                                                previews = rackDevicePreviews,
-                                                localImageFile = viewModel::localAttachmentFile,
-                                                highlightDeviceId = highlightDeviceId,
-                                                onDeviceClick = { id ->
-                                                    onNavigateToReference(
-                                                        "api/dcim/devices/",
-                                                        id,
-                                                        title ?: modelLabel,
-                                                    )
-                                                },
-                                            )
-                                        }
-                                    }
-                        item {
-                            ImageAttachmentGallery(
-                                attachments = imageAttachments,
-                                localImageFile = viewModel::localAttachmentFile,
-                                onImageClick = { items, index -> imageViewer = items to index },
-                                onAdd = {
-                                    mediaUploadInitialKind = MediaUploadKind.ImageAttachment
-                                    showMediaUpload = true
-                                },
-                            )
-                        }
-                        item {
-                            DocumentsSection(
-                                            documents = documents,
-                                            onOpenDocument = { document ->
-                                                document.documentUrl?.let { url ->
-                                                    viewModel.downloadAttachment(url, document.filename)
-                                                }
-                                                    ?: document.externalUrl?.let { url ->
-                                                        context.startActivity(
-                                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                                        )
-                                                    }
-                                            },
-                                            onAddDocument = {
-                                                mediaUploadInitialKind = MediaUploadKind.Document
-                                                showMediaUpload = true
-                                            },
-                                            localFileFor = { document ->
-                                                document.documentUrl?.let {
-                                                    viewModel.localAttachmentFile(it, document.filename)
-                                                }
-                                            },
+                                        ItemDetailTab(
+                                            "Journal",
+                                            Icons.Default.History,
+                                            journalEntries.size,
                                         )
-                                    }
+                                    )
+                                } else {
+                                    emptyList()
+                                }
+                        if (visibleSelectedTab == 0) {
+                            LazyColumn(
+                                modifier =
+                                    Modifier.fillMaxSize().itemTabSwipe(
+                                        visibleSelectedTab,
+                                        tabCount,
+                                    ) { selectedTab = it },
+                                contentPadding = PaddingValues(16.dp),
+                            ) {
+                                item {
+                                    GenericDetailIdentityCard(
+                                        id = viewModel.route.id,
+                                        statusField = statusField,
+                                        detailAccent = detailAccent,
+                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
+                                    )
+                                }
+                                item {
+                                    ItemDetailTabs(
+                                        tabs = tabs,
+                                        selectedTab = visibleSelectedTab,
+                                        onTabSelected = { selectedTab = it },
+                                    )
+                                }
+                                item { Spacer(Modifier.height(8.dp)) }
+                                if (viewModel.isRack) {
                                     item {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(bottom = 6.dp),
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Description,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp),
-                                            )
-                                            Spacer(Modifier.width(8.dp))
-                                            Text(
-                                                "Details",
-                                                style = MaterialTheme.typography.titleLarge,
-                                            )
-                                        }
-                                    }
-                                    visibleOverviewFields.forEach { row ->
-                                        fieldRow(
-                                            row,
-                                            onNavigateToReference = { endpointPath, id ->
+                                        RackElevationOverview(
+                                            front = frontElevation,
+                                            rear = rearElevation,
+                                            previews = rackDevicePreviews,
+                                            localImageFile = viewModel::localAttachmentFile,
+                                            highlightDeviceId = highlightDeviceId,
+                                            onDeviceClick = { id ->
                                                 onNavigateToReference(
-                                                    endpointPath,
+                                                    "api/dcim/devices/",
                                                     id,
                                                     title ?: modelLabel,
                                                 )
                                             },
-                                            viewModel::showRelatedItems,
-                                            onOpenUrl = { url ->
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                                )
-                                            },
-                                            netboxBaseUrl = netboxBaseUrl,
-                                            onDownloadAttachment = viewModel::downloadAttachment,
-                                            localAttachmentFile = viewModel::localAttachmentFile,
-                                            onImageClick = { imageViewer = listOf(it) to 0 },
-                                            isDownloading = isDownloading,
-                                            onCopyValue = onCopyValue,
-                                            onFieldLongPress = { fieldActionLabel = it },
-                                            onMatterPairingCode = { matterPairingCode = it },
                                         )
                                     }
                                 }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(16.dp),
-                                ) {
-                                    if (journalEntries.isEmpty()) {
-                                        item {
-                                            Text(
-                                                "No journal entries found for this item.",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontStyle = FontStyle.Italic,
-                                                modifier = Modifier.padding(vertical = 16.dp),
+                                item {
+                                    ImageAttachmentGallery(
+                                        attachments = imageAttachments,
+                                        localImageFile = viewModel::localAttachmentFile,
+                                        onImageClick = { items, index ->
+                                            imageViewer = items to index
+                                        },
+                                        onAdd = {
+                                            mediaUploadInitialKind = MediaUploadKind.ImageAttachment
+                                            showMediaUpload = true
+                                        },
+                                    )
+                                }
+                                item {
+                                    DocumentsSection(
+                                        documents = documents,
+                                        onOpenDocument = { document ->
+                                            document.documentUrl?.let { url ->
+                                                viewModel.downloadAttachment(url, document.filename)
+                                            }
+                                                ?: document.externalUrl?.let { url ->
+                                                    context.startActivity(
+                                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                    )
+                                                }
+                                        },
+                                        onAddDocument = {
+                                            mediaUploadInitialKind = MediaUploadKind.Document
+                                            showMediaUpload = true
+                                        },
+                                        localFileFor = { document ->
+                                            document.documentUrl?.let {
+                                                viewModel.localAttachmentFile(it, document.filename)
+                                            }
+                                        },
+                                    )
+                                }
+                                item {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(bottom = 6.dp),
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Description,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Details", style = MaterialTheme.typography.titleLarge)
+                                    }
+                                }
+                                visibleOverviewFields.forEach { row ->
+                                    fieldRow(
+                                        row,
+                                        onNavigateToReference = { endpointPath, id ->
+                                            onNavigateToReference(
+                                                endpointPath,
+                                                id,
+                                                title ?: modelLabel,
                                             )
-                                        }
-                                    } else {
-                                        items(journalEntries, key = { it.id }) { entry ->
-                                            JournalEntryItem(
-                                                entry,
-                                                onEdit = {
-                                                    journalEditorEntry = entry
-                                                    showJournalEditor = true
-                                                },
+                                        },
+                                        viewModel::showRelatedItems,
+                                        onOpenUrl = { url ->
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                             )
-                                        }
+                                        },
+                                        netboxBaseUrl = netboxBaseUrl,
+                                        onDownloadAttachment = viewModel::downloadAttachment,
+                                        localAttachmentFile = viewModel::localAttachmentFile,
+                                        onImageClick = { imageViewer = listOf(it) to 0 },
+                                        isDownloading = isDownloading,
+                                        onCopyValue = onCopyValue,
+                                        onFieldLongPress = { fieldActionLabel = it },
+                                        onMatterPairingCode = { matterPairingCode = it },
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier =
+                                    Modifier.fillMaxSize().itemTabSwipe(
+                                        visibleSelectedTab,
+                                        tabCount,
+                                    ) { selectedTab = it },
+                                contentPadding = PaddingValues(16.dp),
+                            ) {
+                                item {
+                                    GenericDetailIdentityCard(
+                                        id = viewModel.route.id,
+                                        statusField = statusField,
+                                        detailAccent = detailAccent,
+                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
+                                    )
+                                }
+                                item {
+                                    ItemDetailTabs(
+                                        tabs = tabs,
+                                        selectedTab = visibleSelectedTab,
+                                        onTabSelected = { selectedTab = it },
+                                    )
+                                }
+                                if (journalEntries.isEmpty()) {
+                                    item {
+                                        Text(
+                                            "No journal entries found for this item.",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontStyle = FontStyle.Italic,
+                                            modifier = Modifier.padding(vertical = 16.dp),
+                                        )
+                                    }
+                                } else {
+                                    items(journalEntries, key = { it.id }) { entry ->
+                                        JournalEntryItem(
+                                            entry,
+                                            onEdit = {
+                                                journalEditorEntry = entry
+                                                showJournalEditor = true
+                                            },
+                                        )
                                     }
                                 }
                             }
@@ -1021,6 +991,62 @@ fun GenericDetailScreen(
             },
             onDismiss = viewModel::dismissRelatedItems,
         )
+    }
+}
+
+@Composable
+private fun GenericDetailIdentityCard(
+    id: Int,
+    statusField: FieldRow.PlainText?,
+    detailAccent: Color,
+    onStatusLongPress: () -> Unit,
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Surface(
+                color = detailAccent.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.size(52.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Outlined.Category,
+                        contentDescription = null,
+                        tint = detailAccent,
+                        modifier = Modifier.size(30.dp),
+                    )
+                }
+            }
+            Column(
+                Modifier.padding(start = 10.dp).padding(end = 8.dp).weight(1f),
+            ) {
+                Text(
+                    "ID #$id",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                statusField?.let { status ->
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        modifier =
+                            Modifier.combinedClickable(
+                                onClick = {},
+                                onLongClick = onStatusLongPress,
+                            )
+                    ) {
+                        StatusChip(
+                            label = status.value,
+                            value = status.value.lowercase(),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
