@@ -4670,10 +4670,11 @@ four ABI-specific release APKs, `SHA256SUMS`, and successful Build/Lint/Release 
 The label designer preview should reflect the selected print color inversion. “Invert colors” is
 intended for printing on white labels, so the preview must show the corresponding inverted result.
 
-- [ ] Apply the print inversion setting to the label designer preview.
-- [ ] Verify the preview for both normal and inverted print modes without printing a real label.
+- [x] Apply the print inversion setting to the label designer preview.
+- [x] Verify the preview for both normal and inverted print modes without printing a real label.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - the Settings label designer and print dialog now share the inversion
+setting; both normal and inverted previews were verified on the wired Zenfone without printing.
 
 
 ## NBC-273: reduce hardcoded NetBox App Links configuration
@@ -4682,8 +4683,22 @@ Investigate how to support arbitrary NetBox hosts without tying the installed AP
 Links to `netbox.brkn.lol`, while preserving secure link verification and the runtime connection
 configuration flow.
 
-- [ ] Document which intent-filter and Digital Asset Links parts must remain manifest/build-time.
-- [ ] Evaluate compile-time host placeholders/build variants versus runtime-safe custom-scheme links.
-- [ ] Implement the least surprising maintainable option and verify it on a non-default host build.
+- [x] Document which intent-filter and Digital Asset Links parts must remain manifest/build-time.
+- [x] Evaluate compile-time host placeholders/build variants versus runtime-safe custom-scheme links.
+- [x] Implement the least surprising maintainable option and verify it on a non-default host build.
+
+Status: **done**, 2026-08-02 - documented the wildcard chooser, compile-time verified-host
+placeholder, and `nbxc://` fallback; a remote Gradle manifest build confirmed `netbox.example`.
+
+
+## NBC-274: link diff-view item rows
+
+Change-detail diffs should make linked values such as Device and Device Type actionable, like the
+corresponding rows on item detail pages. Where both sides resolve to an item, the before and after
+values should link to their respective detail views.
+
+- [ ] Resolve linked before/after values to cached item targets where possible.
+- [ ] Make both sides clickable without breaking plain-text or unresolved diff values.
+- [ ] Verify device and device-type changes in the change-detail view without changing NetBox data.
 
 Status: not started, 2026-08-02.

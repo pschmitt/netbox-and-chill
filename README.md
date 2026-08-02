@@ -62,6 +62,9 @@ APK releases are published through GitHub Releases. A separate, manual Play Stor
 build a signed AAB for inspection without publishing; Play publication is guarded by an explicit
 workflow input and repository variable. See [docs/releasing.md](docs/releasing.md).
 
+App Link host configuration and the limits of runtime host registration are documented in
+[docs/app-links.md](docs/app-links.md).
+
 ## License
 
 This project is licensed under [GPLv3](LICENSE).

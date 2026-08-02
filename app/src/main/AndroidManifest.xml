@@ -64,7 +64,7 @@
                  NetBox's known top-level app namespaces (core, plugins included, so
                  plugin-provided object links work too). Not auto-verified (that requires a
                  fixed, DNS-verified host), so Android offers this app in the "Open with" chooser
-                 for matching links rather than opening it automatically.
+                 for matching links rather than opening it automatically. See docs/app-links.md.
             -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

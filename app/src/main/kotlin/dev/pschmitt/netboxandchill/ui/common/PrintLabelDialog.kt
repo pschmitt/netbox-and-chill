@@ -152,11 +152,12 @@ fun PrintLabelDialog(
     val previewText =
         if (longLabel) request.longLabelText ?: request.labelText else request.labelText
     val previewBitmap =
-        remember(request.objectUrl, previewText, verticalText, qrSize) {
+        remember(request.objectUrl, previewText, invertColors, verticalText, qrSize) {
             runCatching {
                     BrotherLabelRenderer.preview(
                         request.objectUrl,
                         previewText,
+                        invert = invertColors,
                         vertical = verticalText,
                         qrSize = qrSize,
                     )
