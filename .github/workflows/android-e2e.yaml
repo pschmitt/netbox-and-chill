@@ -58,10 +58,7 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim
           script: |
             adb shell pm clear dev.pschmitt.netboxandchill.debug || true
-            ./gradlew connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://10.0.2.2:8000 \
-              -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN" \
-              --stacktrace
+            ./gradlew connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://10.0.2.2:8000 -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN"
 
       - name: Capture emulator diagnostics
         if: ${{ failure() }}

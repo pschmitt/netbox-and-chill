@@ -3627,6 +3627,8 @@ the production NetBox.
 - [x] Cover onboarding, cached dashboard/detail navigation, global search, offline mode, and
   connection failure handling.
 - [x] Upload useful failure diagnostics such as screenshots and logcat.
+- [x] Keep the emulator script invocation shell-safe so Gradle receives only the intended tasks
+  and instrumentation properties.
 - [ ] Get a full GitHub-hosted emulator run through the instrumentation journey; fixture startup,
   seeding, and local/remote instrumentation compilation already pass, but hosted API-35 emulator
   boot has been inconsistent.
@@ -3635,9 +3637,10 @@ Status: in progress, 2026-08-02; the Compose instrumentation APK compiled on rof
 NetBox 4.6/netbox-docker 5.0.2 fixture was started, seeded, authenticated with a v2 token, and
 cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 7
 Pro API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on
-failure. Two hosted runs reached the emulator step but failed before tests (one adb setup race,
-one boot timeout); the workflow now allows a 30-minute boot window. The app sends NetBox `nbt_`
-tokens with Bearer auth while retaining legacy Token auth.
+failure. The latest hosted run booted after the extended timeout but exposed a literal-backslash
+Gradle invocation issue before instrumentation started; the multiline command is now shell-safe
+and needs one successful hosted run. The app sends NetBox `nbt_` tokens with Bearer auth while
+retaining legacy Token auth.
 
 
 ## NBC-201: make the offline topology view readable on mobile
