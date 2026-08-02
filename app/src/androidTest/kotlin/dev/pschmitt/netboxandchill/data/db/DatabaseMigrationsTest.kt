@@ -17,7 +17,7 @@ class DatabaseMigrationsTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `device and pending edit data survive the historical migrations`() {
+    fun deviceAndPendingEditDataSurviveHistoricalMigrations() {
         val database = openDatabase()
         database.execSQL(
             """
@@ -74,7 +74,7 @@ class DatabaseMigrationsTest {
     }
 
     @Test
-    fun `news migration creates the new cache without affecting existing tables`() {
+    fun newsMigrationCreatesCacheWithoutAffectingExistingTables() {
         val database = openDatabase()
         database.execSQL("CREATE TABLE devices (id INTEGER NOT NULL PRIMARY KEY, name TEXT NOT NULL)")
         database.execSQL("INSERT INTO devices(id, name) VALUES (7, 'still-here')")
