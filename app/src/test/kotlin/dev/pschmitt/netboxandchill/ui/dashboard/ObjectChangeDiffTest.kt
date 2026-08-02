@@ -176,4 +176,56 @@ class ObjectChangeDiffTest {
         assertEquals("1", resolved.first { it.fieldKey == "position" }.before)
         assertEquals("2", resolved.first { it.fieldKey == "position" }.after)
     }
+
+    @Test
+    fun keeps_before_and_after_links_for_cached_device_type_references() = runBlocking {
+        val change =
+            parse(
+                """{
+                    "changed_object_type":"dcim.device",
+                    "prechange_data":{"device_type":244},
+                    "postchange_data":{"device_type":245}
+                }"""
+            )
+        val rows =
+            buildDiffRows(
+                change["prechange_data"] as JsonObject,
+                change["postchange_data"] as JsonObject,
+            )
+
+        val resolved = resolveLinkedDiffRows(change, rows) { endpoint, id ->
+            assertEquals("api/dcim/device-types/", endpoint)
+            "Device type $id"
+        }
+        val deviceType = resolved.single()
+
+        assertEquals("Device type 244", deviceType.before)
+        assertEquals("Device type 245", deviceType.after)
+        assertEquals(DiffReference("api/dcim/device-types/", 244), deviceType.beforeReference)
+        assertEquals(DiffReference("api/dcim/device-types/", 245), deviceType.afterReference)
+    }
+
+    @Test
+    fun retains_a_link_when_the_related_display_is_not_cached() = runBlocking {
+        val change =
+            parse(
+                """{
+                    "changed_object_type":"dcim.device",
+                    "prechange_data":{"device":17},
+                    "postchange_data":{"device":18}
+                }"""
+            )
+        val rows =
+            buildDiffRows(
+                change["prechange_data"] as JsonObject,
+                change["postchange_data"] as JsonObject,
+            )
+
+        val resolved = resolveLinkedDiffRows(change, rows) { _, _ -> null }.single()
+
+        assertEquals("17", resolved.before)
+        assertEquals("18", resolved.after)
+        assertEquals(DiffReference("api/dcim/devices/", 17), resolved.beforeReference)
+        assertEquals(DiffReference("api/dcim/devices/", 18), resolved.afterReference)
+    }
 }

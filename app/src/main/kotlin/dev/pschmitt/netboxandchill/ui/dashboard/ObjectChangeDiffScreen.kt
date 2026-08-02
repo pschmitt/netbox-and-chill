@@ -193,14 +193,19 @@ private fun DiffContent(
                         modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                     )
                 }
-                DiffRowCard(row)
+                DiffRowCard(row) { reference ->
+                    onOpenChangedObject(reference.endpointPath, reference.id)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DiffRowCard(row: DiffRow) {
+private fun DiffRowCard(
+    row: DiffRow,
+    onOpenReference: (DiffReference) -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(row.label, style = MaterialTheme.typography.labelLarge)
@@ -210,6 +215,8 @@ private fun DiffRowCard(row: DiffRow) {
                     value = row.before,
                     color = MaterialTheme.colorScheme.error,
                     markdown = row.markdown,
+                    reference = row.beforeReference,
+                    onOpenReference = onOpenReference,
                 )
             }
             if (row.after != null) {
@@ -218,6 +225,8 @@ private fun DiffRowCard(row: DiffRow) {
                     value = row.after,
                     color = MaterialTheme.colorScheme.primary,
                     markdown = row.markdown,
+                    reference = row.afterReference,
+                    onOpenReference = onOpenReference,
                 )
             }
         }
@@ -225,9 +234,22 @@ private fun DiffRowCard(row: DiffRow) {
 }
 
 @Composable
-private fun DiffValue(prefix: String, value: String, color: androidx.compose.ui.graphics.Color, markdown: Boolean) {
+private fun DiffValue(
+    prefix: String,
+    value: String,
+    color: androidx.compose.ui.graphics.Color,
+    markdown: Boolean,
+    reference: DiffReference?,
+    onOpenReference: (DiffReference) -> Unit,
+) {
     androidx.compose.foundation.layout.Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(top = 6.dp)
+                .then(
+                    if (reference == null) Modifier
+                    else Modifier.clickable { onOpenReference(reference) }
+                ),
         verticalAlignment = androidx.compose.ui.Alignment.Top,
     ) {
         Text(
@@ -244,6 +266,14 @@ private fun DiffValue(prefix: String, value: String, color: androidx.compose.ui.
                 style = MaterialTheme.typography.bodyMedium,
                 color = color,
                 modifier = Modifier.weight(1f),
+            )
+        }
+        if (reference != null) {
+            Icon(
+                Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = "Open ${value.ifBlank { "linked item" }}",
+                tint = color,
+                modifier = Modifier.size(18.dp),
             )
         }
     }

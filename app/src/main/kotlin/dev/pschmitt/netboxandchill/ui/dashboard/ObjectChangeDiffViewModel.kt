@@ -45,7 +45,11 @@ data class DiffRow(
     val section: String? = null,
     val markdown: Boolean = false,
     val fieldKey: String? = null,
+    val beforeReference: DiffReference? = null,
+    val afterReference: DiffReference? = null,
 )
+
+data class DiffReference(val endpointPath: String, val id: Int)
 
 data class ChangeImage(
     val label: String,
@@ -288,12 +292,25 @@ internal suspend fun resolveLinkedDiffRows(
                 snapshotValue(pre, fieldKey, snapshotKey),
                 snapshotValue(post, fieldKey, snapshotKey),
             ) ?: return@map row
+        val beforeElement = snapshotValue(pre, fieldKey, snapshotKey)
+        val afterElement = snapshotValue(post, fieldKey, snapshotKey)
         row.copy(
             before = resolveDiffReferenceValue(row.before, endpointPath, resolveDisplay),
             after = resolveDiffReferenceValue(row.after, endpointPath, resolveDisplay),
+            beforeReference =
+                referenceFromSnapshot(beforeElement)?.let { DiffReference(endpointPath, it) },
+            afterReference =
+                referenceFromSnapshot(afterElement)?.let { DiffReference(endpointPath, it) },
         )
     }
 }
+
+private fun referenceFromSnapshot(value: JsonElement?): Int? =
+    when (value) {
+        is JsonPrimitive -> value.intOrNull
+        is JsonObject -> value["id"]?.jsonPrimitive?.intOrNull
+        else -> null
+    }
 
 private suspend fun resolveDiffReferenceValue(
     value: String?,
