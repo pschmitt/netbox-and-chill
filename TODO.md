@@ -4455,3 +4455,18 @@ Status: **done**, 2026-08-02 - remote ktfmt/unit tests and a debug build passed;
 showed the larger identity icon with the name/model-or-ID/status stack to its right on both the typed
 device and generic device-type cards, while the green content-save-check-style downloaded indicator
 stayed in the card's top-right corner; no NetBox data was changed.
+
+
+## NBC-257: show document names without duplicate filenames
+
+Document cards in item views should use the configured document name as their sole title. The stored
+filename remains an implementation detail for previews and downloads, but should not be repeated in
+the row.
+
+- [x] Remove the duplicate filename from document card supporting text.
+- [x] Keep document type badges and filename-based preview/download behavior unchanged.
+- [x] Verify a populated document card on the wired Zenfone without changing production data.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/debug build passed; the wired Zenfone's
+cached device-type document card showed the configured document name once, with its PDF preview,
+type badge, and download action intact; no NetBox data was changed.

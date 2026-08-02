@@ -5,7 +5,6 @@ import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -74,13 +73,7 @@ fun DocumentsSection(
                     ListItem(
                         headlineContent = { Text(document.name) },
                         supportingContent = {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                document.documentType?.let { type -> DocumentTypeBadge(type) }
-                                Text(
-                                    document.filename,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            document.documentType?.let { type -> DocumentTypeBadge(type) }
                         },
                         leadingContent = {
                             DocumentPreview(
