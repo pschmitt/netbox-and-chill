@@ -4487,3 +4487,19 @@ Status: **done**, 2026-08-02 - remote ktfmt/unit tests/debug build passed; the c
 and generic device-type cards rendered on the wired Zenfone with the identity text and status kept
 beside the larger icon and the green downloaded indicator still in the top-right; the same APK was
 installed on the Mi Pad 4 and PX5; no NetBox data was changed.
+
+
+## NBC-259: streamline item detail headers and identity cards
+
+Item and device detail views should use the header for the current item's identity, keep the app bar
+visually integrated with the detail surface, and make the sticky identity card compact.
+
+- [x] Remove the distracting cached/downloaded icon from the identity card.
+- [x] Show the current device or item name in a transparent detail header.
+- [x] Keep model/ID and status in the compact sticky identity card beside the identity icon.
+- [x] Verify both typed and generic detail views on the wired Zenfone without changing production data.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/debug build passed; the wired Zenfone showed
+the device name in the transparent header and a compact typed card with model/status, and the
+generic device-type view showed the same header/card treatment with no cached icon; the same APK
+was installed on the Mi Pad 4 and PX5; no NetBox data was changed.
