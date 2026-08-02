@@ -105,7 +105,7 @@ fun PrintLabelDialog(
     var selected by remember { mutableStateOf<PairedPrinter?>(null) }
     var isDiscovering by remember { mutableStateOf(false) }
     var pairingAddress by remember { mutableStateOf<String?>(null) }
-    var isPrinting by remember { mutableStateOf(false) }
+    var printState by remember { mutableStateOf<PrintOperationState>(PrintOperationState.Idle) }
     var invertColors by remember(savedPrintSettings.invertColors) {
         mutableStateOf(savedPrintSettings.invertColors)
     }
@@ -122,7 +122,6 @@ fun PrintLabelDialog(
         mutableStateOf(savedPrintSettings.qrSize)
     }
     var qrSizeMenuExpanded by remember { mutableStateOf(false) }
-    var resultMessage by remember { mutableStateOf<String?>(null) }
     val pairedAddresses = printers.mapTo(mutableSetOf()) { it.address }
     val printerOptions =
         buildList {
@@ -303,7 +302,7 @@ fun PrintLabelDialog(
     }
 
     AlertDialog(
-        onDismissRequest = { if (!isPrinting) onDismiss() },
+        onDismissRequest = { if (!printState.isPrinting) onDismiss() },
         icon = { Icon(Icons.Default.Print, contentDescription = null) },
         title = { Text("Print device label") },
         text = {
@@ -556,7 +555,7 @@ fun PrintLabelDialog(
                         )
                     }
                 }
-                if (isPrinting) {
+                if (printState.isPrinting) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         androidx.compose.foundation.layout.Box(
                             modifier = Modifier.size(20.dp),
@@ -571,7 +570,7 @@ fun PrintLabelDialog(
                         Text("Printing…")
                     }
                 }
-                resultMessage?.let { message ->
+                printState.message?.let { message ->
                     Text(
                         message,
                         color =
@@ -582,7 +581,7 @@ fun PrintLabelDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isPrinting) { Text("Close") }
+            TextButton(onClick = onDismiss, enabled = !printState.isPrinting) { Text("Close") }
         },
         confirmButton = {
             Button(
@@ -593,8 +592,7 @@ fun PrintLabelDialog(
                     // active inquiry can otherwise starve the connection and make a reachable
                     // bonded P-touch look offline.
                     bluetoothAdapter(context)?.cancelDiscovery()
-                    isPrinting = true
-                    resultMessage = null
+                    printState = PrintOperationState.Printing
                     scope.launch {
                         val result = runCatching {
                             val text =
@@ -616,12 +614,15 @@ fun PrintLabelDialog(
                         result
                             .onSuccess { onDismiss() }
                             .onFailure { error ->
-                                isPrinting = false
-                                resultMessage = printerFailureMessage(printer.name, error)
+                                printState =
+                                    PrintOperationState.Failed(
+                                        printerFailureMessage(printer.name, error)
+                                    )
                             }
                     }
                 },
-                enabled = selected != null && !isPrinting && hasPermission && copyCount != null,
+                enabled =
+                    selected != null && !printState.isPrinting && hasPermission && copyCount != null,
             ) {
                 Icon(Icons.Default.Print, contentDescription = null)
                 Spacer(Modifier.width(8.dp))

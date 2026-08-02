@@ -3748,11 +3748,13 @@ coverage remains part of the hosted E2E follow-up.
 Several complex screens keep many independent booleans, nullable callbacks, and error strings for
 dialogs and actions. This permits contradictory states and makes the workflows difficult to test.
 
-- [ ] Identify the highest-risk edit/sync/print flows and model their states explicitly.
-- [ ] Make transient events distinct from persistent screen state.
-- [ ] Add focused state-transition tests before changing UI behavior.
+- [x] Identify the highest-risk edit/sync/print flows and model their states explicitly.
+- [x] Make transient print-operation events distinct from persistent printer/settings state.
+- [x] Add focused state-transition tests before changing UI behavior.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - the print dialog now uses mutually exclusive Idle/Printing/Failed
+operation state, with transition-focused unit tests; printer discovery and saved print settings
+remain separate state concerns.
 ## NBC-209: restore the related tabs on device detail pages
 
 After making Overview sticky, the device detail tab row no longer rendered the Journal, Interfaces,
