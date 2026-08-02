@@ -3702,11 +3702,14 @@ Repositories and view models repeat variations of runCatching, best-effort refre
 storage, and viewModelScope.launch plumbing. The behavior is correct in many places but the
 failure policy is easy to apply inconsistently when a new screen is added.
 
-- [ ] Define a shared cache-first refresh/result abstraction for read-through screens.
-- [ ] Standardize cancellation, retry, and user-visible error semantics.
-- [ ] Add tests proving cached data remains available when refresh fails or is cancelled.
+- [x] Define a shared cache-first refresh/result abstraction for read-through screens.
+- [x] Standardize cancellation, retry, and user-visible error semantics for the migrated search
+  refresh path.
+- [x] Add tests proving cached data remains available when refresh fails; cancellation is
+  propagated for replacement queries.
 
-Status: not started, 2026-08-02.
+Status: in progress, 2026-08-02 - the shared helper is covered by unit tests and global search now
+uses it; remaining refresh callers can migrate incrementally without changing cache behavior.
 
 
 ## NBC-206: centralize NetBox endpoint and field metadata

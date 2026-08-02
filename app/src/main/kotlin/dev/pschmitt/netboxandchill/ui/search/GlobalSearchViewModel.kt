@@ -18,9 +18,10 @@ import dev.pschmitt.netboxandchill.data.repository.rankSearchHits
 import dev.pschmitt.netboxandchill.data.repository.recentVisitsToSearchHits
 import dev.pschmitt.netboxandchill.data.repository.queryRemainderAfterTypeSelection
 import dev.pschmitt.netboxandchill.data.repository.typeFilterSuggestions
+import dev.pschmitt.netboxandchill.ui.common.CacheFirstRefreshState
+import dev.pschmitt.netboxandchill.ui.common.runCacheFirstRefresh
 import java.io.File
 import javax.inject.Inject
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,8 +36,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
 data class SearchThumbnail(val url: String, val filename: String)
 
 internal fun shouldRefreshGlobalSearch(queryText: String, offlineMode: Boolean): Boolean =
@@ -127,11 +128,13 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    private val _refreshState = MutableStateFlow(CacheFirstRefreshState())
+    val isRefreshing: StateFlow<Boolean> =
+        _refreshState.map { it.isRefreshing }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val errorMessage: StateFlow<String?> =
+        _refreshState.map { it.errorMessage }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Every discovered cached model is available here so result rows and type completions can use
     // the same humanized labels and app icons as the sidebar.
@@ -151,21 +154,18 @@ constructor(
                 }
                 .collectLatest { (text, offline) ->
                 if (!shouldRefreshGlobalSearch(text, offline)) return@collectLatest
-                _isRefreshing.value = true
                 val endpointPaths =
                     typeFilter.value?.endpointPath?.let(::listOf)
                         ?: (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS +
                                 settingsRepository.pinnedModelPaths.value)
                             .distinct()
-                try {
-                    searchRepository.refresh(text, endpointPaths)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    _errorMessage.value = "Live search refresh failed - showing cached results"
-                } finally {
-                    _isRefreshing.value = false
-                }
+                _refreshState.runCacheFirstRefresh(
+                    operation = {
+                        searchRepository.refresh(text, endpointPaths)
+                        Result.success(Unit)
+                    },
+                    errorMessage = { "Live search refresh failed - showing cached results" },
+                )
                 }
         }
     }
@@ -184,7 +184,7 @@ constructor(
     }
 
     fun errorShown() {
-        _errorMessage.value = null
+        _refreshState.update { it.copy(errorMessage = null) }
     }
 
     fun thumbnailFor(
