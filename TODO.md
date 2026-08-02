@@ -4697,8 +4697,11 @@ Change-detail diffs should make linked values such as Device and Device Type act
 corresponding rows on item detail pages. Where both sides resolve to an item, the before and after
 values should link to their respective detail views.
 
-- [ ] Resolve linked before/after values to cached item targets where possible.
-- [ ] Make both sides clickable without breaking plain-text or unresolved diff values.
-- [ ] Verify device and device-type changes in the change-detail view without changing NetBox data.
+- [x] Resolve linked before/after values to cached item targets where possible.
+- [x] Make both sides clickable without breaking plain-text or unresolved diff values.
+- [x] Verify device and device-type changes in the change-detail view without changing NetBox data.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - cached and unresolved device/device-type references retain their
+endpoint/id targets, both before and after values are independently clickable, and the behavior is
+covered by remote unit tests/lint plus a wired Zenfone change-detail smoke test; no NetBox data was
+changed.
