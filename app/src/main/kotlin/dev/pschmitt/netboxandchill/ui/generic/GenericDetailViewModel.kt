@@ -25,6 +25,7 @@ import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.REFRESH_QUEUED_TOAST
 import dev.pschmitt.netboxandchill.ui.common.refreshCompletionToast
 import dev.pschmitt.netboxandchill.ui.common.shouldShowRefreshQueuedToast
@@ -54,7 +55,7 @@ import kotlinx.serialization.json.intOrNull
 
 // Mirrors NetBoxNavHost's/GlobalSearchRepository's DEVICES_ENDPOINT_PATH constant - kept local
 // rather than shared to avoid a broader refactor while other agents are touching those files.
-private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+private const val DEVICES_ENDPOINT_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
 
 data class RackDevicePreview(
     val deviceTypeId: Int,

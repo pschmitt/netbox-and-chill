@@ -3718,11 +3718,13 @@ Raw endpoint strings and model-specific field rules are spread across navigation
 search, thumbnails, diff resolution, and renderers. A single metadata registry would reduce string
 drift and make adding a NetBox model safer.
 
-- [ ] Introduce typed endpoint/model metadata for labels, icons, routes, and special fields.
-- [ ] Replace duplicated device/device-type path checks where behavior is equivalent.
-- [ ] Keep plugin and unknown-model fallback behavior intact.
+- [x] Introduce typed endpoint/model metadata for labels, icons, routes, and special fields.
+- [x] Replace duplicated device/device-type/site/rack path checks where behavior is equivalent.
+- [x] Keep plugin and unknown-model fallback behavior intact.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02 - core endpoint identity now lives in `NetBoxRef`/
+`NetBoxEndpointCatalog`, shared constants and dashboard stats use it, and catalog tests cover
+typed device metadata plus plugin fallback. Less-common model maps intentionally remain generic.
 
 
 ## NBC-207: add static-analysis and UI-quality gates

@@ -4,6 +4,7 @@ import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.RecentVisitDao
 import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -23,7 +24,7 @@ class RecentVisitRepository @Inject constructor(private val dao: RecentVisitDao)
 
     suspend fun record(device: DeviceEntity) {
         record(
-            endpointPath = "api/dcim/devices/",
+            endpointPath = NetBoxRef.DEVICES_ENDPOINT_PATH,
             id = device.id,
             display = device.name,
             secondaryLine = device.statusLabel ?: device.siteName,

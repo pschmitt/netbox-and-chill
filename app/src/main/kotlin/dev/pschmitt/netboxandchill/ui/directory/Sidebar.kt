@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.R
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.data.repository.TopologyRepository
 import dev.pschmitt.netboxandchill.ui.common.rememberReorderWiggle
 import dev.pschmitt.netboxandchill.ui.common.rememberSectionReorderState
@@ -65,7 +66,7 @@ import dev.pschmitt.netboxandchill.ui.common.sectionDragOffset
 import dev.pschmitt.netboxandchill.ui.common.sectionReorderGesture
 import dev.pschmitt.netboxandchill.ui.common.visualColorForEndpointPath
 
-private const val DEVICES_PATH = "api/dcim/devices/"
+private const val DEVICES_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
 
 private fun <T> moveItem(items: List<T>, item: T, offset: Int): List<T>? {
     val from = items.indexOf(item)

@@ -50,15 +50,16 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
 
 private const val DEVICE_OBJECT_TYPE = "dcim.device"
 const val JOURNAL_TAB_ENDPOINT_PATH = "__journal__"
-const val INTERFACES_TAB_ENDPOINT_PATH = "api/dcim/interfaces/"
-const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
-private const val IP_ADDRESSES_ENDPOINT_PATH = "api/ipam/ip-addresses/"
+const val INTERFACES_TAB_ENDPOINT_PATH = NetBoxRef.INTERFACES_ENDPOINT_PATH
+const val DEVICE_TYPES_ENDPOINT_PATH = NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH
+private const val IP_ADDRESSES_ENDPOINT_PATH = NetBoxRef.IP_ADDRESSES_ENDPOINT_PATH
 private val ipAddressJson = Json { ignoreUnknownKeys = true }
 
 data class DeviceRelatedTab(val label: String, val endpointPath: String)

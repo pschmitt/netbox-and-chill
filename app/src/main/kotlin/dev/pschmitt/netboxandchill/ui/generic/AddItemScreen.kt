@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
@@ -61,7 +62,7 @@ fun AddItemScreen(
                         appLabel = "DCIM",
                         modelKey = "devices",
                         modelLabel = "Devices",
-                        endpointPath = "api/dcim/devices/",
+                        endpointPath = NetBoxRef.DEVICES_ENDPOINT_PATH,
                     )
                 )
                 add(
@@ -70,7 +71,7 @@ fun AddItemScreen(
                         appLabel = "DCIM",
                         modelKey = "device-types",
                         modelLabel = "Device types",
-                        endpointPath = "api/dcim/device-types/",
+                        endpointPath = NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH,
                     )
                 )
                 addAll(
@@ -90,7 +91,8 @@ fun AddItemScreen(
             model.modelKey.lowercase().contains(normalizedQuery) ||
             model.appLabel.lowercase().contains(normalizedQuery)
     }
-    val defaultPinnedEndpoints = listOf("api/dcim/devices/", "api/dcim/device-types/")
+    val defaultPinnedEndpoints =
+        listOf(NetBoxRef.DEVICES_ENDPOINT_PATH, NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH)
     val pinnedEndpoints = buildList {
         addAll(defaultPinnedEndpoints)
         addAll(

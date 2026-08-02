@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.conflicts.EditConflictsScreen
 import dev.pschmitt.netboxandchill.ui.dashboard.DashboardScreen
 import dev.pschmitt.netboxandchill.ui.dashboard.ObjectChangeDiffScreen
@@ -31,8 +32,8 @@ import dev.pschmitt.netboxandchill.ui.topology.TopologyScreen
 // the generic object cache for the same endpoint, which may be empty until separately visited -
 // used to special-case the dashboard's "Devices" stat tile onto the existing typed screen instead
 // of the generic list route the other stat tiles use (see NBC-9's TODO.md entry).
-private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
-private const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
+private const val DEVICES_ENDPOINT_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
+private const val DEVICE_TYPES_ENDPOINT_PATH = NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH
 
 private fun NavHostController.navigateToObject(endpointPath: String, id: Int) {
     // Offline-created devices have a negative local cache ID until the POST is reconciled. The

@@ -10,6 +10,13 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * exactly the same way, instead of a third copy of the same logic.
  */
 object NetBoxRef {
+    const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
+    const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
+    const val INTERFACES_ENDPOINT_PATH = "api/dcim/interfaces/"
+    const val IP_ADDRESSES_ENDPOINT_PATH = "api/ipam/ip-addresses/"
+    const val RACKS_ENDPOINT_PATH = "api/dcim/racks/"
+    const val SITES_ENDPOINT_PATH = "api/dcim/sites/"
+
     /** "https://host/api/dcim/sites/3/" -> "api/dcim/sites/" (strips the trailing id segment). */
     fun endpointFromDetailUrl(detailUrl: String): String? {
         val path = detailUrl.toHttpUrlOrNull()?.encodedPath ?: return null
@@ -30,4 +37,52 @@ object NetBoxRef {
         return if (segments.size >= 4 && segments[1] == "plugins") "plugins/${segments[2]}"
         else segments.getOrElse(1) { "" }
     }
+}
+
+/** Metadata for the model types the app treats specially beyond generic NetBox navigation. */
+data class NetBoxEndpointMetadata(
+    val endpointPath: String,
+    val label: String,
+    val appKey: String,
+    val typedDetail: Boolean = false,
+    val supportsDeviceTypeImages: Boolean = false,
+)
+
+/** Shared registry for stable core model identity; plugin models continue through [NetBoxRef]. */
+object NetBoxEndpointCatalog {
+    val coreModels: List<NetBoxEndpointMetadata> =
+        listOf(
+            NetBoxEndpointMetadata(
+                NetBoxRef.DEVICES_ENDPOINT_PATH,
+                "Devices",
+                "dcim",
+                typedDetail = true,
+                supportsDeviceTypeImages = true,
+            ),
+            NetBoxEndpointMetadata(
+                NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH,
+                "Device Types",
+                "dcim",
+                supportsDeviceTypeImages = true,
+            ),
+            NetBoxEndpointMetadata(NetBoxRef.SITES_ENDPOINT_PATH, "Sites", "dcim"),
+            NetBoxEndpointMetadata(NetBoxRef.RACKS_ENDPOINT_PATH, "Racks", "dcim"),
+            NetBoxEndpointMetadata(
+                NetBoxRef.IP_ADDRESSES_ENDPOINT_PATH,
+                "IP Addresses",
+                "ipam",
+            ),
+            NetBoxEndpointMetadata("api/ipam/prefixes/", "Prefixes", "ipam"),
+            NetBoxEndpointMetadata("api/circuits/circuits/", "Circuits", "circuits"),
+            NetBoxEndpointMetadata(
+                "api/virtualization/virtual-machines/",
+                "Virtual Machines",
+                "virtualization",
+            ),
+            NetBoxEndpointMetadata("api/tenancy/tenants/", "Tenants", "tenancy"),
+        )
+
+    private val byPath = coreModels.associateBy { it.endpointPath }
+
+    fun forPath(endpointPath: String): NetBoxEndpointMetadata? = byPath[endpointPath]
 }

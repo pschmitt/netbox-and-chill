@@ -8,6 +8,7 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxObjectDao
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
 import dev.pschmitt.netboxandchill.data.schema.assetTagState
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -284,10 +285,10 @@ private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit
         runCatching { json.decodeFromString(JsonObject.serializer(), raw) }.getOrNull()
 
     companion object {
-        const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
-        const val DEVICE_TYPES_ENDPOINT_PATH = "api/dcim/device-types/"
-        const val INTERFACES_ENDPOINT_PATH = "api/dcim/interfaces/"
-        const val IP_ADDRESSES_ENDPOINT_PATH = "api/ipam/ip-addresses/"
+        const val DEVICES_ENDPOINT_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
+        const val DEVICE_TYPES_ENDPOINT_PATH = NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH
+        const val INTERFACES_ENDPOINT_PATH = NetBoxRef.INTERFACES_ENDPOINT_PATH
+        const val IP_ADDRESSES_ENDPOINT_PATH = NetBoxRef.IP_ADDRESSES_ENDPOINT_PATH
 
         // Baseline model set for the network refresh + result labeling - GlobalSearchViewModel
         // unions this with the user's pinned model paths so anything explicitly starred in the
@@ -297,9 +298,9 @@ private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit
             listOf(
                 DEVICES_ENDPOINT_PATH,
                 DEVICE_TYPES_ENDPOINT_PATH,
-                "api/dcim/sites/",
-                "api/dcim/racks/",
-                "api/ipam/ip-addresses/",
+                NetBoxRef.SITES_ENDPOINT_PATH,
+                NetBoxRef.RACKS_ENDPOINT_PATH,
+                NetBoxRef.IP_ADDRESSES_ENDPOINT_PATH,
                 "api/ipam/prefixes/",
                 "api/circuits/circuits/",
                 "api/virtualization/virtual-machines/",

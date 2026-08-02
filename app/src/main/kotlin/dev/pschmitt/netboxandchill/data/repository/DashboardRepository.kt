@@ -10,6 +10,7 @@ import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.NewsItemEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
+import dev.pschmitt.netboxandchill.data.schema.NetBoxEndpointCatalog
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -212,12 +213,7 @@ constructor(
         // key models," not an exhaustive sweep of NetBox's data model. Picked models this app
         // already deals with elsewhere (typed Device/DeviceType caches from NBC-1/NBC-3).
         val STAT_ENDPOINTS =
-            listOf(
-                "api/dcim/devices/" to "Devices",
-                "api/dcim/device-types/" to "Device Types",
-                "api/dcim/sites/" to "Sites",
-                "api/dcim/racks/" to "Racks",
-            )
+            NetBoxEndpointCatalog.coreModels.take(4).map { it.endpointPath to it.label }
     }
 }
 

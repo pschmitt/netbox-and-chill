@@ -3,6 +3,7 @@ package dev.pschmitt.netboxandchill.data.repository
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -681,7 +682,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_BASE_URL = "base_url"
         const val KEY_TOKEN = "token"
         const val KEY_PINNED_MODELS = "pinned_model_paths"
-        const val DEFAULT_PINNED_MODEL_PATH = "api/dcim/devices/"
+        const val DEFAULT_PINNED_MODEL_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
         const val MAX_PINNED_MODEL_PATHS = 5
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"

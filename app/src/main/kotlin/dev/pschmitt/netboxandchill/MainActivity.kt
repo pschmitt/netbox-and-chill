@@ -44,6 +44,7 @@ import dev.pschmitt.netboxandchill.ui.common.CrashReportDialog
 import dev.pschmitt.netboxandchill.ui.gestures.SwipeDirection
 import dev.pschmitt.netboxandchill.ui.gestures.multiFingerSwipe
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
+import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import dev.pschmitt.netboxandchill.ui.settings.SettingsCategory
 import dev.pschmitt.netboxandchill.ui.theme.NetBoxAndChillTheme
@@ -214,7 +215,7 @@ class MainActivity : FragmentActivity() {
                                 gestureTargets[shortcut]?.let { target ->
                                     val id = target.id ?: return@let
                                     val destination =
-                                        if (target.endpointPath == "api/dcim/devices/" && id > 0) {
+                                        if (target.endpointPath == NetBoxRef.DEVICES_ENDPOINT_PATH && id > 0) {
                                             Route.DeviceDetail(id)
                                         } else {
                                             Route.Generic(target.endpointPath, id, target.label)
