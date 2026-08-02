@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import dev.pschmitt.netboxandchill.data.schema.documentTypePresentation
 import coil3.compose.AsyncImage
@@ -51,15 +50,12 @@ fun DocumentsSection(
     localFileFor: ((CachedDocument) -> File?)? = null,
 ) {
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        NetBoxSectionHeader(Icons.Default.Description, "Documents")
-        if (documents.isEmpty()) {
-            Text(
-                "No documents attached.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontStyle = FontStyle.Italic,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-        } else {
+        NetBoxSectionHeader(
+            Icons.Default.Description,
+            "Documents",
+            trailingContent = { Badge { Text(documents.size.toString()) } },
+        )
+        if (documents.isNotEmpty()) {
             documents.forEach { document ->
                 val canOpen = !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
                 ElevatedCard(
@@ -108,7 +104,7 @@ fun DocumentsSection(
         }
         onAddDocument?.let { onAdd ->
             MediaAddTile(
-                label = "Upload document",
+                label = "Add document",
                 onClick = onAdd,
                 icon = Icons.Default.UploadFile,
                 modifier = Modifier.padding(top = 6.dp),

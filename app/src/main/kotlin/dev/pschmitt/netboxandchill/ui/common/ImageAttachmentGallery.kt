@@ -38,9 +38,7 @@ fun ImageAttachmentGallery(
             Icons.Default.UploadFile,
             "Image attachments",
             trailingContent = {
-                if (attachments.isNotEmpty()) {
-                    Badge { Text(attachments.size.toString()) }
-                }
+                Badge { Text(attachments.size.toString()) }
             },
         )
         LazyRow(

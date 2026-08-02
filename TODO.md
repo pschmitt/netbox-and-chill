@@ -4235,6 +4235,30 @@ headings on item overview pages.
 Status: in progress
 
 
+## NBC-252: center and rename the document add tile
+
+The document media tile should match the image tile’s centered label treatment and use the shorter
+“Add document” action label.
+
+- [x] Rename the action from “Upload document” to “Add document”.
+- [x] Center the tile label even when it wraps.
+- [ ] Verify the document tile in the installed UI on the wired Zenfone without uploading media.
+
+Status: in progress
+
+
+## NBC-251: add icons to status and cache badges
+
+Item identity badges should communicate their meaning with a small icon as well as text.
+
+- [x] Map common NetBox status values to relevant status icons.
+- [x] Add a cached/offline icon to the Cached badge.
+- [x] Preserve equal badge heights and existing colors/click behavior.
+- [ ] Verify the badge icons in the installed UI on the wired Zenfone without changing production data.
+
+Status: in progress
+
+
 ## NBC-250: separate item-card status and cache badges
 
 The status and Cached badges in item identity cards should sit on their own row and use a matching
@@ -4368,5 +4392,17 @@ overview pages.
 - [x] Keep configured groups, ordering, and empty-field handling unchanged.
 - [x] Add focused renderer coverage for the fallback group.
 - [ ] Verify the heading in the installed UI on the wired Zenfone without changing production data.
+
+Status: in progress
+
+
+## NBC-253: add media section count badges
+
+Image attachment and document section headings should show their current item counts, while empty
+document sections should stay compact and keep only the add action.
+
+- [x] Show count badges on both media section headings, including zero.
+- [x] Remove the empty “No documents attached” message.
+- [ ] Verify the empty and populated states in the installed UI on the wired Zenfone without changing production data.
 
 Status: in progress
