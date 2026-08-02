@@ -4378,9 +4378,9 @@ remove without changing the existing cache-first search behavior.
 
 - [x] Replace the plain active-filter list row with an accented filter card.
 - [x] Show the selected object type, filter meaning, matching icon, and accessible clear action.
-- [ ] Verify the active filter and clear action in the installed UI on the wired Zenfone.
+- [x] Verify the active filter and clear action in the installed UI on the wired Zenfone.
 
-Status: in progress
+Status: **done**, 2026-08-02 - the wired Zenfone showed the accented Device Types filter card and its clear action restored the recent cached results without changing NetBox data.
 
 
 ## NBC-249: group ungrouped custom fields under Other
