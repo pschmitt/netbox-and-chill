@@ -228,6 +228,19 @@ constructor(
     /** Retries queued creates and edits before the normal cache sync can overwrite local views. */
     suspend fun syncPending(): PendingSyncResult {
         val created = mutableListOf<ReconciledItem>()
+        val deleted = mutableListOf<ReconciledItem>()
+        val edited = mutableListOf<ReconciledItem>()
+        fun result(failure: Throwable? = null) =
+            PendingSyncResult(
+                reconciliation =
+                    ReconciliationSummary(
+                        created = created.toList(),
+                        edited = edited.toList(),
+                        deleted = deleted.toList(),
+                    ),
+                retryableFailure = failure,
+            )
+
         for (edit in pendingEditDao.getQueuedCreates()) {
             try {
                 val server = api.createObject(edit.endpointPath, decode(edit.patchJson))
@@ -240,16 +253,10 @@ constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: IOException) {
-                return PendingSyncResult(
-                    reconciliation = ReconciliationSummary(created = created.toList()),
-                    retryableFailure = IOException("Offline create upload failed"),
-                )
+                return result(IOException("Offline create upload failed"))
             } catch (error: HttpException) {
                 if (error.code() >= 500) {
-                    return PendingSyncResult(
-                        reconciliation = ReconciliationSummary(created = created.toList()),
-                        retryableFailure = error,
-                    )
+                    return result(error)
                 }
                 Timber.w(
                     error,
@@ -267,7 +274,6 @@ constructor(
             }
         }
 
-        val deleted = mutableListOf<ReconciledItem>()
         for (edit in pendingEditDao.getQueuedDeletes()) {
             try {
                 api.deleteObject("${edit.endpointPath}${edit.id}/")
@@ -282,14 +288,7 @@ constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: IOException) {
-                return PendingSyncResult(
-                    reconciliation =
-                        ReconciliationSummary(
-                            created = created.toList(),
-                            deleted = deleted.toList(),
-                        ),
-                    retryableFailure = IOException("Queued delete upload failed"),
-                )
+                return result(IOException("Queued delete upload failed"))
             } catch (error: HttpException) {
                 if (error.code() == 404) {
                     genericObjectRepository.removeCachedObject(edit.endpointPath, edit.id)
@@ -301,14 +300,7 @@ constructor(
                             edit.localJson,
                         )
                 } else if (error.code() >= 500) {
-                    return PendingSyncResult(
-                        reconciliation =
-                            ReconciliationSummary(
-                                created = created.toList(),
-                                deleted = deleted.toList(),
-                            ),
-                        retryableFailure = error,
-                    )
+                    return result(error)
                 } else {
                     Timber.w(
                         error,
@@ -322,7 +314,6 @@ constructor(
             }
         }
 
-        val edited = mutableListOf<ReconciledItem>()
         for (edit in pendingEditDao.getQueuedEdits()) {
             try {
                 val server = api.getObject("${edit.endpointPath}${edit.id}/")
@@ -341,26 +332,10 @@ constructor(
                 throw cancelled
             } catch (_: IOException) {
                 // Leave the edit queued for the next scheduled/manual sync.
-                return PendingSyncResult(
-                    reconciliation =
-                        ReconciliationSummary(
-                            created = created.toList(),
-                            edited = edited.toList(),
-                            deleted = deleted.toList(),
-                        ),
-                    retryableFailure = IOException("Queued edit upload failed"),
-                )
+                return result(IOException("Queued edit upload failed"))
             } catch (error: HttpException) {
                 if (error.code() >= 500) {
-                    return PendingSyncResult(
-                        reconciliation =
-                            ReconciliationSummary(
-                                created = created.toList(),
-                                edited = edited.toList(),
-                                deleted = deleted.toList(),
-                            ),
-                        retryableFailure = error,
-                    )
+                    return result(error)
                 }
                 Timber.w(
                     error,
@@ -372,14 +347,7 @@ constructor(
                 Timber.w(error, "Pending edit sync failed for %s/%d", edit.endpointPath, edit.id)
             }
         }
-        return PendingSyncResult(
-            reconciliation =
-                ReconciliationSummary(
-                    created = created.toList(),
-                    edited = edited.toList(),
-                    deleted = deleted.toList(),
-                )
-        )
+        return result()
     }
 
     private suspend fun queueDelete(

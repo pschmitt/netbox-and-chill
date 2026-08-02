@@ -5028,13 +5028,13 @@ handling across create, edit, delete, and reconciliation loops. The repetition m
 one mutation type to diverge in retry/conflict semantics, especially in the most critical offline
 path.
 
-- [ ] Introduce a shared operation/error classification and a single retryable-result policy.
-- [ ] Model create/edit/delete reconciliation as explicit state transitions with one summary path.
+- [x] Introduce a shared operation/error classification and a single retryable-result policy.
+- [x] Model create/edit/delete reconciliation as explicit state transitions with one summary path.
 - [ ] Add parameterized tests for connectivity loss, 4xx, 5xx, cancellation, conflict, and 404
       behavior for every mutation type.
 
-Status: not started, 2026-08-03 - static review; repeated branches span
-`data/repository/PendingEditRepository.kt` lines 90–460.
+Status: mostly done, 2026-08-03 - `syncPending()` now uses one accumulator/result path for create,
+edit, and delete reconciliation; the broader parameterized failure matrix remains open.
 
 
 ## NBC-297: establish typed boundaries around generic NetBox JSON
