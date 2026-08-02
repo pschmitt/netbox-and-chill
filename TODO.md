@@ -4674,3 +4674,16 @@ intended for printing on white labels, so the preview must show the correspondin
 - [ ] Verify the preview for both normal and inverted print modes without printing a real label.
 
 Status: not started, 2026-08-02.
+
+
+## NBC-273: reduce hardcoded NetBox App Links configuration
+
+Investigate how to support arbitrary NetBox hosts without tying the installed APK's Android App
+Links to `netbox.brkn.lol`, while preserving secure link verification and the runtime connection
+configuration flow.
+
+- [ ] Document which intent-filter and Digital Asset Links parts must remain manifest/build-time.
+- [ ] Evaluate compile-time host placeholders/build variants versus runtime-safe custom-scheme links.
+- [ ] Implement the least surprising maintainable option and verify it on a non-default host build.
+
+Status: not started, 2026-08-02.
