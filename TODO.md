@@ -3965,10 +3965,11 @@ the device view currently diverges visibly from the other item views.
 - [x] Identify and consolidate the competing item-detail tab implementations.
 - [x] Apply one shared tab presentation to devices and every other tabbed item type.
 - [x] Keep per-type tab contents/counts while standardizing layout, selection, and gestures.
-- [ ] Add UI coverage that checks representative device and non-device views.
+- [x] Add UI coverage that checks representative device and non-device views.
 
-Status: in progress, 2026-08-02 - device and generic detail pages now use the shared tab control;
-remote ktfmt/unit checks pass, with UI coverage/device verification still pending.
+Status: **done**, 2026-08-02 - the shared tab control was visually verified on the PX5 for a typed
+device and a generic device-type detail page; both use the same horizontal Overview/icon/count
+presentation, while the remote unit and ktfmt checks pass.
 
 
 ## NBC-221: prioritize devices and device types in global search
