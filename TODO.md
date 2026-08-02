@@ -4445,12 +4445,13 @@ image viewer, including after the media was downloaded locally; no NetBox data w
 The top-level identity card on generic item and dedicated device detail pages should make the item
 identity read as one clear vertical stack beside a larger, distinctive icon.
 
-- [x] Use a larger green content-save-check-style icon on both card variants.
+- [x] Use a larger identity icon on both card variants, with the item's text to its right.
+- [x] Use the green content-save-check-style icon only for the downloaded/cache indicator.
 - [x] Keep the item name, model/ID subtitle, and status badge in one right-hand column.
 - [x] Keep the downloaded indicator in the card's top-right corner.
 - [x] Verify the updated typed and generic cards on the wired Zenfone without changing production data.
 
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests and a debug build passed; the wired Zenfone
-showed the larger green content-save-check-style icon with the name/model-or-ID/status stack to its
-right on both the typed device and generic device-type cards, while the downloaded indicator stayed
-in the card's top-right corner; no NetBox data was changed.
+showed the larger identity icon with the name/model-or-ID/status stack to its right on both the typed
+device and generic device-type cards, while the green content-save-check-style downloaded indicator
+stayed in the card's top-right corner; no NetBox data was changed.

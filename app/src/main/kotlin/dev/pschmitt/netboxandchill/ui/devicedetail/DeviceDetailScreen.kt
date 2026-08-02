@@ -78,8 +78,6 @@ import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
-import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckGreen
-import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckIcon
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.DownloadedIndicator
 import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
@@ -443,17 +441,21 @@ fun DeviceDetailScreen(
                                         ) {
                                             Row(verticalAlignment = Alignment.Top) {
                                                 Surface(
-                                                    color = ContentSaveCheckGreen.copy(alpha = 0.16f),
+                                                    color = detailAccent.copy(alpha = 0.18f),
                                                     shape =
                                                         androidx.compose.foundation.shape.RoundedCornerShape(
-                                                            18.dp
+                                                            18.dp,
                                                         ),
-                                                    modifier = Modifier.size(72.dp),
+                                                        modifier = Modifier.size(72.dp),
                                                 ) {
-                                                    ContentSaveCheckIcon(
-                                                        tint = ContentSaveCheckGreen,
-                                                        modifier = Modifier.fillMaxSize().padding(10.dp),
-                                                    )
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        Icon(
+                                                            Icons.Default.Cable,
+                                                            contentDescription = null,
+                                                            tint = detailAccent,
+                                                            modifier = Modifier.size(40.dp),
+                                                        )
+                                                    }
                                                 }
                                                 Column(
                                                     Modifier.padding(start = 16.dp)

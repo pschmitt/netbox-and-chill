@@ -102,8 +102,6 @@ import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
 import dev.pschmitt.netboxandchill.data.schema.Humanize
 import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
-import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckGreen
-import dev.pschmitt.netboxandchill.ui.common.ContentSaveCheckIcon
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.DownloadedIndicator
 import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
@@ -638,15 +636,19 @@ fun GenericDetailScreen(
                                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                                     ) {
                                         Row(verticalAlignment = Alignment.Top) {
-                                            Surface(
-                                                color = ContentSaveCheckGreen.copy(alpha = 0.16f),
+                                                Surface(
+                                                color = detailAccent.copy(alpha = 0.18f),
                                                 shape = RoundedCornerShape(18.dp),
                                                 modifier = Modifier.size(72.dp),
                                             ) {
-                                                ContentSaveCheckIcon(
-                                                    tint = ContentSaveCheckGreen,
-                                                    modifier = Modifier.fillMaxSize().padding(10.dp),
-                                                )
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        Icons.Outlined.Category,
+                                                        contentDescription = null,
+                                                        tint = detailAccent,
+                                                        modifier = Modifier.size(40.dp),
+                                                    )
+                                                }
                                             }
                                             Column(
                                                 Modifier.padding(start = 16.dp)
