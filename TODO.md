@@ -2639,8 +2639,9 @@ choices.
 - [x] Keep invalid settings from starting a print.
 - [x] Verify the new settings are visible on the Mi Pad 4.
 
-Status: mostly done, 2026-08-01 - copies, QR size, long-label, inversion, and vertical controls are
-visible in the Mi Pad 4 dialog; physical output verification remains pending printer reachability.
+Status: **done**, 2026-08-02 - copies, QR size, long-label, inversion, and vertical controls were
+visible and interactive in the wired Zenfone dialog; a long/vertical FNUC job completed through
+the bonded PT-P300BT4590.
 
 ## NBC-129: print the four newest Shelly Mini Gen4 devices
 
