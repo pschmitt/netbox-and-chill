@@ -3951,10 +3951,10 @@ control cramped or unusable on narrow phone screens.
 
 - [x] Redesign the sticky Overview treatment so all tabs remain discoverable on narrow screens.
 - [x] Preserve the Overview tab's always-visible behavior while allowing the other tabs to scroll.
-- [ ] Verify the layout on both phones and tablets without reintroducing vertical tab layouts.
+- [x] Verify the layout on both phones and tablets without reintroducing vertical tab layouts.
 
-Status: in progress, 2026-08-02 - shared fixed Overview plus horizontally scrolling related tabs
-implemented; remote ktfmt/unit checks pass, with device verification still pending.
+Status: **done**, 2026-08-02 - the shared regular horizontal tab row was verified on the Mi Pad 4
+and PX5 phone; populated tabs and count badges remain discoverable without vertical stacking.
 
 
 ## NBC-220: unify item-detail tab presentation
