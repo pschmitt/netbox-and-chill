@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill
 
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -51,8 +52,8 @@ class NetBoxE2eTest {
         // The startup WorkManager job must populate the typed device cache before this list is
         // usable. This also exercises the directory/sidebar discovery path used after onboarding.
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
-        waitForText("Devices", timeoutMillis = 60_000)
-        composeRule.onNodeWithText("Devices", useUnmergedTree = true).performClick()
+        waitForTag("e2e-device-list-entry", timeoutMillis = 60_000)
+        composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
         waitForText("CI E2E Device", timeoutMillis = 180_000)
         composeRule.onNodeWithText("CI E2E Device", useUnmergedTree = true).performClick()
         waitForText("Device", timeoutMillis = 30_000)
@@ -62,7 +63,7 @@ class NetBoxE2eTest {
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Search NetBox", timeoutMillis = 30_000)
-        composeRule.onNodeWithText("Search NetBox").performClick()
+        composeRule.onNodeWithTag("e2e-search-card").performClick()
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("CI E2E Device")
         waitForText("CI E2E Device", timeoutMillis = 30_000)
 
@@ -72,7 +73,8 @@ class NetBoxE2eTest {
         composeRule.onNodeWithText("Home").performClick()
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
         composeRule.onNodeWithTag("e2e-offline-toggle").performClick()
-        composeRule.onNodeWithText("Devices", useUnmergedTree = true).performClick()
+        waitForTag("e2e-device-list-entry", timeoutMillis = 30_000)
+        composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
         waitForText("CI E2E Device", timeoutMillis = 30_000)
 
         composeRule.onNodeWithText("Home").performClick()
@@ -86,6 +88,12 @@ class NetBoxE2eTest {
                 .onAllNodesWithText(text, substring = true, useUnmergedTree = true)
                 .fetchSemanticsNodes()
                 .isNotEmpty()
+        }
+    }
+
+    private fun waitForTag(tag: String, timeoutMillis: Long) {
+        composeRule.waitUntil(timeoutMillis) {
+            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 }

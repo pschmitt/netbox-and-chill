@@ -60,8 +60,8 @@ jobs:
       - name: Capture emulator diagnostics
         if: ${{ failure() }}
         run: |
-          adb logcat -d > e2e-logcat.txt || true
-          adb exec-out screencap -p > e2e-screenshot.png || true
+          timeout 60s adb logcat -d > e2e-logcat.txt || true
+          timeout 20s adb exec-out screencap -p > e2e-screenshot.png || true
 
       - name: Capture NetBox diagnostics
         if: ${{ failure() }}

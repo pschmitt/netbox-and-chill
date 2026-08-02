@@ -180,7 +180,9 @@ fun Sidebar(
                             icon = { Icon(AppIcons.Devices, contentDescription = null) },
                             selected = false,
                             onClick = onDeviceListClick,
-                            modifier = Modifier.padding(horizontal = 12.dp),
+                            modifier =
+                                Modifier.padding(horizontal = 12.dp)
+                                    .testTag("e2e-device-list-entry"),
                         )
                     }
                     items(

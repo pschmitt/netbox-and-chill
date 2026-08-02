@@ -64,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -465,6 +466,7 @@ private fun DashboardSectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         modifier =
             Modifier.fillMaxWidth()
+                .testTag("e2e-search-card")
                 .graphicsLayer { rotationZ = wiggle }
                 .combinedClickable(onClick = {}, onLongClick = onLongPress)
                 .padding(bottom = 8.dp),
