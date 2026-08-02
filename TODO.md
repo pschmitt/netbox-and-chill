@@ -4613,3 +4613,15 @@ Item detail count badges should not obscure their tab icons in the compact horiz
 
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the badges now sit after their labels
 and were verified on the wired Zenfone without obscuring tab icons; no NetBox data was changed.
+
+
+## NBC-268: improve interface network identity rows
+
+Interface rows should visually distinguish the IP label from the linked IP value and offer the same
+copy affordance for MAC addresses.
+
+- [ ] Highlight and link only the IP address value, not the `IP:` label.
+- [ ] Add a copy-to-clipboard action for each MAC address.
+- [ ] Verify the interface tab on the wired Zenfone without changing NetBox data.
+
+Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.

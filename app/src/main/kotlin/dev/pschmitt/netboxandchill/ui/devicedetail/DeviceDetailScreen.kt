@@ -943,7 +943,11 @@ private fun DeviceRelatedObjects(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(
-                                    "IP: ${ipAddress.address}",
+                                    "IP: ",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    ipAddress.address,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier =
                                         Modifier.weight(1f).clickable {
@@ -961,7 +965,20 @@ private fun DeviceRelatedObjects(
                             }
                         }
                         macAddresses.forEach { macAddress ->
-                            Text("MAC: $macAddress")
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    "MAC: ",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(macAddress, modifier = Modifier.weight(1f))
+                                DetailTrailingActions(
+                                    copyLabel = "MAC address",
+                                    onCopy = { onCopyValue("MAC address", macAddress) },
+                                )
+                            }
                         }
                     }
                 } else {
