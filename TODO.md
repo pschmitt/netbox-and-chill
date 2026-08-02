@@ -3692,11 +3692,12 @@ formatting, and many independent UI sections. This makes changes risky and slows
 
 - [x] Extract the linked-item search/preview controls into a focused component file with narrow
   parameters.
-- [ ] Move screen-specific state transitions into testable presentation models where practical.
-- [ ] Keep navigation and offline/cache behavior unchanged while splitting the files.
+- [x] Move screen-specific state transitions into testable presentation models where practical.
+- [x] Keep navigation and offline/cache behavior unchanged while splitting the files.
 
-Status: in progress, 2026-08-02 - linked-item picker controls were extracted without behavior
-changes; larger edit/detail sections remain candidates for follow-up extraction.
+Status: **done**, 2026-08-02 - linked-item picker controls and the generic edit lifecycle were
+extracted into focused components/state models. The ViewModel retains the same public UI flows,
+while immutable draft/base/save transitions are unit-tested and remote ktfmt/unit checks pass.
 
 
 ## NBC-205: consolidate cache-first refresh orchestration

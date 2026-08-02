@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -98,22 +99,25 @@ constructor(
             false,
         )
 
-    private val _isSaving = MutableStateFlow(false)
-    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
-
     private val _isDeleting = MutableStateFlow(false)
     val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
 
     private val _deleteResult = MutableStateFlow<DeleteSubmission?>(null)
     val deleteResult: StateFlow<DeleteSubmission?> = _deleteResult.asStateFlow()
 
-    private val _isEditing = MutableStateFlow(false)
-    val isEditing: StateFlow<Boolean> = _isEditing.asStateFlow()
-
-    // Keep the full edit draft in the ViewModel so opening a linked-item create form cannot lose
+    // Keep the edit session in the ViewModel so opening a linked-item create form cannot lose
     // unrelated unsaved fields when navigation temporarily removes this composable.
-    private val _editDraftValues = MutableStateFlow<Map<String, String>>(emptyMap())
-    val editDraftValues: StateFlow<Map<String, String>> = _editDraftValues.asStateFlow()
+    private val _editSession = MutableStateFlow(EditSessionState.Idle)
+    private val editSession: StateFlow<EditSessionState> = _editSession.asStateFlow()
+    val isEditing: StateFlow<Boolean> =
+        editSession.map { it.isEditing }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val isSaving: StateFlow<Boolean> =
+        editSession.map { it.isSaving }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val editDraftValues: StateFlow<Map<String, String>> =
+        editSession.map { it.draftValues }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -140,8 +144,6 @@ constructor(
 
     private val objectEntity =
         objectFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-    private var editBaseJson: String? = null
 
     private val decodedObject: StateFlow<JsonObject?> =
         objectEntity
@@ -375,9 +377,11 @@ constructor(
 
     fun startEditing() {
         _errorMessage.value = null
-        editBaseJson = objectEntity.value?.json
-        _editDraftValues.value = editableFields.value.associate { it.key to it.value }
-        _isEditing.value = true
+        _editSession.value =
+            _editSession.value.beginFullForm(
+                objectEntity.value?.json,
+                editableFields.value.associate { it.key to it.value },
+            )
         _referenceOptions.value = emptyMap()
         _choiceOptions.value = emptyMap()
         viewModelScope.launch { loadEditOptions(editableFields.value) }
@@ -387,8 +391,7 @@ constructor(
     fun startFieldEditing(fieldKey: String) {
         val field = editableFields.value.firstOrNull { it.key == fieldKey } ?: return
         _errorMessage.value = null
-        editBaseJson = objectEntity.value?.json
-        _isEditing.value = false
+        _editSession.value = _editSession.value.beginFocusedField(objectEntity.value?.json)
         _referenceOptions.value = emptyMap()
         _choiceOptions.value = emptyMap()
         viewModelScope.launch { loadEditOptions(listOf(field)) }
@@ -396,16 +399,14 @@ constructor(
 
     fun cancelFieldEditing() {
         _errorMessage.value = null
-        editBaseJson = null
+        _editSession.value = EditSessionState.Idle
         _referenceOptions.value = emptyMap()
         _choiceOptions.value = emptyMap()
     }
 
     fun cancelEditing() {
         _errorMessage.value = null
-        editBaseJson = null
-        _editDraftValues.value = emptyMap()
-        _isEditing.value = false
+        _editSession.value = EditSessionState.Idle
         _referenceOptions.value = emptyMap()
         _choiceOptions.value = emptyMap()
     }
@@ -413,13 +414,12 @@ constructor(
     /** [edits] maps field key -> (kind, edited text), one entry per changed field. */
     fun save(edits: Map<String, Pair<EditFieldKind, String>>) {
         if (edits.isEmpty()) {
-            _editDraftValues.value = emptyMap()
-            _isEditing.value = false
+            _editSession.value = EditSessionState.Idle
             return
         }
         viewModelScope.launch {
-            _isSaving.value = true
-            val baseJson = editBaseJson ?: objectEntity.value?.json
+            _editSession.update { it.saving() }
+            val baseJson = _editSession.value.baseJson ?: objectEntity.value?.json
             if (baseJson == null) {
                 _errorMessage.value = "Couldn't save: the original object is no longer cached"
             } else {
@@ -433,9 +433,7 @@ constructor(
                                 ?.let { decode(it.json) }
                                 ?.let { customFieldRepository.cacheDefinition(it) }
                         }
-                        _isEditing.value = false
-                        editBaseJson = null
-                        _editDraftValues.value = emptyMap()
+                        _editSession.value = EditSessionState.Idle
                         when (submission) {
                             EditSubmission.Updated -> {
                                 _refreshedMessage.value = "${title.value ?: "Item"} updated!"
@@ -453,18 +451,20 @@ constructor(
                     }
                     .onFailure { _errorMessage.value = it.message ?: "Couldn't save changes" }
             }
-            _isSaving.value = false
+            _editSession.update { it.copy(isSaving = false) }
         }
     }
 
     fun initializeEditDraftIfNeeded() {
-        if (_editDraftValues.value.isEmpty() && editableFields.value.isNotEmpty()) {
-            _editDraftValues.value = editableFields.value.associate { it.key to it.value }
+        if (_editSession.value.draftValues.isEmpty() && editableFields.value.isNotEmpty()) {
+            _editSession.update {
+                it.copy(draftValues = editableFields.value.associate { field -> field.key to field.value })
+            }
         }
     }
 
     fun setEditDraftValue(key: String, value: String) {
-        _editDraftValues.value = _editDraftValues.value + (key to value)
+        _editSession.update { it.updateDraft(key, value) }
     }
 
     fun addReferenceOption(fieldKey: String, option: EditOption) {
