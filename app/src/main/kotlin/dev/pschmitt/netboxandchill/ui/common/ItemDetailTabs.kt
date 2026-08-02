@@ -3,6 +3,8 @@ package dev.pschmitt.netboxandchill.ui.common
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
@@ -45,13 +47,16 @@ fun ItemDetailTabs(
             Tab(
                 selected = selectedTab == index,
                 onClick = { onTabSelected(index) },
-                icon = { Icon(tab.icon, contentDescription = null) },
-                text = {
-                    Text(
-                        text = tab.count?.let { "${tab.label} ($it)" } ?: tab.label,
-                        maxLines = 1,
-                    )
+                icon = {
+                    if (tab.count != null && tab.count > 0) {
+                        BadgedBox(badge = { Badge { Text(tab.count.toString()) } }) {
+                            Icon(tab.icon, contentDescription = null)
+                        }
+                    } else {
+                        Icon(tab.icon, contentDescription = null)
+                    }
                 },
+                text = { Text(tab.label, maxLines = 1) },
             )
         }
     }

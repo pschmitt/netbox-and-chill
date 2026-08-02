@@ -3994,3 +3994,14 @@ separate leading control.
 - [ ] Verify device and generic item detail pages on a physical device.
 
 Status: in progress, 2026-08-02 - implementation started.
+
+
+## NBC-223: show item-detail tab counts as badges
+
+Positive related-item counts should be compact badges on the tabs instead of making tab titles
+longer with parenthesized count text.
+
+- [ ] Render positive counts as Material 3 badges on the corresponding tab icons.
+- [ ] Keep zero-count tabs unbadged and verify the result on a physical device.
+
+Status: in progress, 2026-08-02 - implementation started.
