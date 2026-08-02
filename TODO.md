@@ -3577,12 +3577,13 @@ the dashboard remained unchanged; the installed build includes the phone/tablet-
 Settings should offer light, dark, and follow-system color schemes, with follow-system as the
 default, plus an optional user accent color.
 
-- [ ] Persist and apply the light/dark/follow-system choice.
-- [ ] Add a user-selectable accent color with a sensible default.
-- [ ] Expose both options in a dedicated Display/Theme settings area.
-- [ ] Verify changes immediately on phone and tablet layouts.
+- [x] Persist and apply the light/dark/follow-system choice.
+- [x] Add a user-selectable accent color with a sensible default.
+- [x] Expose both options in a dedicated Display/Theme settings area.
+- [x] Verify changes immediately on phone and tablet layouts.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; remote ktfmt/unit tests and debug build passed. Mi Pad 4 opened
+Settings → Display, switched to Dark immediately, then restored Follow system/System default.
 
 
 ## NBC-198: style the dashboard global-search card

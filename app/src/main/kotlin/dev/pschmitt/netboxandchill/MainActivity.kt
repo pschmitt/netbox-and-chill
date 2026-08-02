@@ -66,7 +66,9 @@ class MainActivity : FragmentActivity() {
             intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
 
         setContent {
-            NetBoxAndChillTheme {
+            val themeMode by settingsRepository.themeMode.collectAsStateWithLifecycle()
+            val themeAccent by settingsRepository.themeAccent.collectAsStateWithLifecycle()
+            NetBoxAndChillTheme(themeMode = themeMode, accent = themeAccent) {
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val coroutineScope = rememberCoroutineScope()

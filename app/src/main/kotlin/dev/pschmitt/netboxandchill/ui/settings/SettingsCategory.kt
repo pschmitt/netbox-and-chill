@@ -19,7 +19,7 @@ enum class SettingsCategory(val title: String, val subtitle: String) {
     Camera("Camera", "Scanner camera and lens preferences"),
     Printing("Printing", "Printer and label defaults"),
     Gestures("Gestures", "Gesture shortcuts"),
-    Display("Display", "Fields and item types shown by default"),
+    Display("Display", "Theme, fields, and item types shown by default"),
     Notifications("Notifications", "NetBox change alerts"),
     About("About", "Application and build information");
 

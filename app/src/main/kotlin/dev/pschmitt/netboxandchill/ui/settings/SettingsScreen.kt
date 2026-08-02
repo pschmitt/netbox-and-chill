@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.CheckCircle
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
@@ -52,6 +54,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -64,6 +67,7 @@ import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -110,6 +114,8 @@ import dev.pschmitt.netboxandchill.data.repository.GestureTarget
 import dev.pschmitt.netboxandchill.data.repository.ScannerLens
 import dev.pschmitt.netboxandchill.data.repository.ScannerRearLens
 import dev.pschmitt.netboxandchill.data.repository.PrintSettings
+import dev.pschmitt.netboxandchill.data.repository.ThemeAccent
+import dev.pschmitt.netboxandchill.data.repository.ThemeMode
 import dev.pschmitt.netboxandchill.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import dev.pschmitt.netboxandchill.qrsetup.QrConfigCodec
@@ -234,6 +240,8 @@ fun SettingsCategoryScreen(
         viewModel.settingsRepository.hiddenFieldKeys.collectAsStateWithLifecycle()
     val pinnedModelPaths by
         viewModel.settingsRepository.pinnedModelPaths.collectAsStateWithLifecycle()
+    val themeMode by viewModel.settingsRepository.themeMode.collectAsStateWithLifecycle()
+    val themeAccent by viewModel.settingsRepository.themeAccent.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.settingsRepository.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -249,6 +257,8 @@ fun SettingsCategoryScreen(
     var scannerRearLensMenuExpanded by remember { mutableStateOf(false) }
     var hiddenFieldsDialogVisible by remember { mutableStateOf(false) }
     var changeNotificationsDialogVisible by remember { mutableStateOf(false) }
+    var themeModeMenuExpanded by remember { mutableStateOf(false) }
+    var themeAccentMenuExpanded by remember { mutableStateOf(false) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
 
     val biometricPrompt =
@@ -565,6 +575,81 @@ fun SettingsCategoryScreen(
             }
                 }
                 SettingsCategory.Display -> {
+            SettingsSubsectionHeader("Theme")
+            ListItem(
+                leadingContent = {
+                    Icon(
+                        when (themeMode) {
+                            ThemeMode.FollowSystem -> Icons.Default.BrightnessAuto
+                            ThemeMode.Light -> Icons.Default.LightMode
+                            ThemeMode.Dark -> Icons.Default.DarkMode
+                        },
+                        contentDescription = null,
+                    )
+                },
+                headlineContent = { Text("Color scheme") },
+                supportingContent = { Text(themeMode.label) },
+                trailingContent = {
+                    Box {
+                        IconButton(onClick = { themeModeMenuExpanded = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Choose color scheme")
+                        }
+                        DropdownMenu(
+                            expanded = themeModeMenuExpanded,
+                            onDismissRequest = { themeModeMenuExpanded = false },
+                        ) {
+                            ThemeMode.entries.forEach { mode ->
+                                DropdownMenuItem(
+                                    text = { Text(mode.label) },
+                                    leadingIcon = {
+                                        Icon(
+                                            when (mode) {
+                                                ThemeMode.FollowSystem -> Icons.Default.BrightnessAuto
+                                                ThemeMode.Light -> Icons.Default.LightMode
+                                                ThemeMode.Dark -> Icons.Default.DarkMode
+                                            },
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.settingsRepository.setThemeMode(mode)
+                                        themeModeMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
+                headlineContent = { Text("Accent color") },
+                supportingContent = { Text(themeAccent.label) },
+                trailingContent = {
+                    Box {
+                        IconButton(onClick = { themeAccentMenuExpanded = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Choose accent color")
+                        }
+                        DropdownMenu(
+                            expanded = themeAccentMenuExpanded,
+                            onDismissRequest = { themeAccentMenuExpanded = false },
+                        ) {
+                            ThemeAccent.entries.forEach { accent ->
+                                DropdownMenuItem(
+                                    text = { Text(accent.label) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Palette, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        viewModel.settingsRepository.setThemeAccent(accent)
+                                        themeAccentMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
+            )
             ListItem(
                 leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
                 headlineContent = { Text("Hidden fields") },

@@ -30,6 +30,18 @@ class SettingsPreferenceTest {
     }
 
     @Test
+    fun `theme preferences default to system and round trip supported choices`() {
+        assertEquals(ThemeMode.FollowSystem, ThemeMode.fromStorage(null))
+        assertEquals(ThemeAccent.System, ThemeAccent.fromStorage(null))
+        ThemeMode.entries.forEach { mode ->
+            assertEquals(mode, ThemeMode.fromStorage(mode.storageKey))
+        }
+        ThemeAccent.entries.forEach { accent ->
+            assertEquals(accent, ThemeAccent.fromStorage(accent.storageKey))
+        }
+    }
+
+    @Test
     fun `gesture defaults preserve the original shortcut and disable new directions`() {
         assertEquals(GestureAction.GlobalSearch, GestureAction.fromStorage(null))
         assertEquals(GestureAction.Off, GestureAction.fromStorage(null, GestureAction.Off))

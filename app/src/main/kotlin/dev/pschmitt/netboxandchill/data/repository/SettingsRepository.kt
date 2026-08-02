@@ -121,6 +121,32 @@ enum class ScannerRearLens(val storageKey: String, val label: String) {
     }
 }
 
+enum class ThemeMode(val storageKey: String, val label: String) {
+    FollowSystem("system", "Follow system"),
+    Light("light", "Light"),
+    Dark("dark", "Dark");
+
+    companion object {
+        fun fromStorage(value: String?): ThemeMode =
+            entries.firstOrNull { it.storageKey == value } ?: FollowSystem
+    }
+}
+
+enum class ThemeAccent(val storageKey: String, val label: String) {
+    System("system", "System default"),
+    Teal("teal", "Teal"),
+    Blue("blue", "Blue"),
+    Purple("purple", "Purple"),
+    Orange("orange", "Orange"),
+    Pink("pink", "Pink"),
+    Green("green", "Green");
+
+    companion object {
+        fun fromStorage(value: String?): ThemeAccent =
+            entries.firstOrNull { it.storageKey == value } ?: System
+    }
+}
+
 /**
  * Base URL and API token, backed by [EncryptedSharedPreferences] (Android Keystore-tied, hence
  * `allowBackup=false` in the manifest - a restored backup couldn't decrypt these anyway).
@@ -190,6 +216,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private val _scannerRearLens = MutableStateFlow(loadScannerRearLens())
     val scannerRearLens: StateFlow<ScannerRearLens> = _scannerRearLens.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(loadThemeMode())
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    private val _themeAccent = MutableStateFlow(loadThemeAccent())
+    val themeAccent: StateFlow<ThemeAccent> = _themeAccent.asStateFlow()
 
     private val _printSettings = MutableStateFlow(loadPrintSettings())
     val printSettings: StateFlow<PrintSettings> = _printSettings.asStateFlow()
@@ -294,6 +326,16 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setScannerRearLens(lens: ScannerRearLens) {
         prefs.edit().putString(KEY_SCANNER_REAR_LENS, lens.storageKey).apply()
         _scannerRearLens.value = lens
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.edit().putString(KEY_THEME_MODE, mode.storageKey).apply()
+        _themeMode.value = mode
+    }
+
+    fun setThemeAccent(accent: ThemeAccent) {
+        prefs.edit().putString(KEY_THEME_ACCENT, accent.storageKey).apply()
+        _themeAccent.value = accent
     }
 
     fun updatePrintSettings(settings: PrintSettings) {
@@ -433,6 +475,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _credentials.value = NetBoxCredentials("", "")
         _offlineMode.value = false
         _printSettings.value = PrintSettings()
+        _themeMode.value = ThemeMode.FollowSystem
+        _themeAccent.value = ThemeAccent.System
         _gestureActions.value = defaultGestureActions()
         _gestureTargets.value = emptyMap()
         _hiddenFieldKeys.value = emptySet()
@@ -460,6 +504,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun loadLastSuccessfulSyncAt(): Long? =
         prefs.getLong(KEY_LAST_SUCCESSFUL_SYNC, 0L).takeIf { it > 0L }
+
+    private fun loadThemeMode(): ThemeMode =
+        ThemeMode.fromStorage(prefs.getString(KEY_THEME_MODE, ThemeMode.FollowSystem.storageKey))
+
+    private fun loadThemeAccent(): ThemeAccent =
+        ThemeAccent.fromStorage(prefs.getString(KEY_THEME_ACCENT, ThemeAccent.System.storageKey))
 
     private fun loadGestureActions(): Map<GestureShortcut, GestureAction> =
         GestureShortcut.entries.associateWith { shortcut ->
@@ -601,6 +651,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val TARGET_SEPARATOR = "\u001F"
         const val KEY_SCANNER_LENS = "scanner_default_lens"
         const val KEY_SCANNER_REAR_LENS = "scanner_default_rear_lens"
+        const val KEY_THEME_MODE = "theme_mode"
+        const val KEY_THEME_ACCENT = "theme_accent"
         const val KEY_DEFAULT_PRINTER_NAME = "default_printer_name"
         const val KEY_DEFAULT_PRINTER_ADDRESS = "default_printer_address"
         const val KEY_PRINT_INVERT_COLORS = "print_invert_colors"
