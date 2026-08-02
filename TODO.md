@@ -4320,9 +4320,10 @@ the overview and related tabs scroll, matching the generic item detail layout.
 
 - [x] Render the device identity card as a sticky lazy-list header.
 - [x] Preserve status long-press editing, device-type navigation, and tab swipe behavior.
-- [ ] Verify scrolling on the wired Zenfone without changing production data.
+- [x] Verify scrolling on the wired Zenfone without changing production data.
 
-Status: in progress
+Status: **done**, 2026-08-02 - after scrolling the typed Aqara device overview on the wired
+Zenfone, its identity/status card remained pinned above the changing field content; no data changed.
 
 
 ## NBC-243: mark locally cached document previews
