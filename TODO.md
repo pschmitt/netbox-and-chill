@@ -4658,7 +4658,19 @@ no NetBox data was changed.
 The release workflow should publish a proper signed GitHub release when a semantic-version tag is
 created without a `v` prefix, including the release APK variants and checksums.
 
-- [ ] Trigger the release workflow for unprefixed semantic-version tags such as `1.0.0`.
-- [ ] Cut and verify the `1.0.0` GitHub release with signed APKs and checksums.
+- [x] Trigger the release workflow for unprefixed semantic-version tags such as `1.0.0`.
+- [x] Cut and verify the `1.0.0` GitHub release with signed APKs and checksums.
 
-Status: in progress, 2026-08-02 - workflow trigger support is being added before creating the tag.
+Status: **done**, 2026-08-02 - the signed `1.0.0` tag and public GitHub release were verified with
+four ABI-specific release APKs, `SHA256SUMS`, and successful Build/Lint/Release workflows.
+
+
+## NBC-272: invert label designer preview
+
+The label designer preview should reflect the selected print color inversion. “Invert colors” is
+intended for printing on white labels, so the preview must show the corresponding inverted result.
+
+- [ ] Apply the print inversion setting to the label designer preview.
+- [ ] Verify the preview for both normal and inverted print modes without printing a real label.
+
+Status: not started, 2026-08-02.
