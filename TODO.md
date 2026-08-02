@@ -3637,10 +3637,12 @@ Status: in progress, 2026-08-02; the Compose instrumentation APK compiled on rof
 NetBox 4.6/netbox-docker 5.0.2 fixture was started, seeded, authenticated with a v2 token, and
 cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 7
 Pro API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on
-failure. The latest hosted run booted after the extended timeout but exposed a literal-backslash
-Gradle invocation issue before instrumentation started; the multiline command is now shell-safe
-and needs one successful hosted run. The app sends NetBox `nbt_` tokens with Bearer auth while
-retaining legacy Token auth.
+failure. The shell-safe invocation and permission handling are fixed; one hosted run reached the
+test but was interrupted by the notification permission dialog, while the next run failed before
+APK installation because the emulator's `settings` provider was not ready. The workflow now waits
+for both boot completion and system provisioning before Gradle starts; one green hosted journey
+is still required. The app sends NetBox `nbt_` tokens with Bearer auth while retaining legacy Token
+auth.
 
 
 ## NBC-201: make the offline topology view readable on mobile
