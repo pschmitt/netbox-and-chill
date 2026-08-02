@@ -4772,3 +4772,18 @@ title-casing them as `Ip` and `Mac`.
 
 Status: **done**, 2026-08-02 - acronym-aware labels and regression tests are in place; no NetBox data
 was changed.
+
+
+## NBC-280: add smarter inline change diffs
+
+The change-detail viewer should make edits easier to scan than two plain before/after values. Add a
+toggle for an inline word-level diff while retaining the current field-oriented view, with clear
+colors and working links for resolved related objects.
+
+- [x] Add a discoverable toggle between field rows and inline diffs.
+- [x] Highlight unchanged, removed, and added text within changed values.
+- [x] Preserve before/after links and readable Markdown rendering.
+- [x] Cover the diff-tokenization behavior with unit tests and verify the screen on a device.
+
+Status: **done**, 2026-08-02 - field/inline modes, bounded token-level coloring, related-item links,
+and Markdown fallback are implemented; unit tests, remote lint, and Mi Pad 4 UI verification passed.

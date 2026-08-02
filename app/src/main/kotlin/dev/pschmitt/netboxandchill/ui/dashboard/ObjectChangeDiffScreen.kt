@@ -5,18 +5,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.filled.WrapText
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,9 +33,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -108,6 +123,7 @@ private fun DiffContent(
     localImageFile: (ChangeImage) -> java.io.File?,
     modifier: Modifier = Modifier,
 ) {
+    var showInlineDiff by rememberSaveable { mutableStateOf(false) }
     LazyColumn(modifier = modifier, contentPadding = PaddingValues(16.dp)) {
         item {
             Text(
@@ -179,6 +195,12 @@ private fun DiffContent(
                 )
             }
         } else {
+            item {
+                DiffDisplayModeSelector(
+                    showInlineDiff = showInlineDiff,
+                    onShowInlineDiffChange = { showInlineDiff = it },
+                )
+            }
             itemsIndexed(
                 diff.rows,
                 key = { index, row -> "${row.section.orEmpty()}:${row.label}:$index" },
@@ -193,11 +215,41 @@ private fun DiffContent(
                         modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                     )
                 }
-                DiffRowCard(row) { reference ->
-                    onOpenChangedObject(reference.endpointPath, reference.id)
+                if (showInlineDiff) {
+                    InlineDiffRowCard(row) { reference ->
+                        onOpenChangedObject(reference.endpointPath, reference.id)
+                    }
+                } else {
+                    DiffRowCard(row) { reference ->
+                        onOpenChangedObject(reference.endpointPath, reference.id)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DiffDisplayModeSelector(
+    showInlineDiff: Boolean,
+    onShowInlineDiffChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = !showInlineDiff,
+            onClick = { onShowInlineDiffChange(false) },
+            leadingIcon = { Icon(Icons.Default.ViewList, contentDescription = null) },
+            label = { Text("Fields") },
+        )
+        FilterChip(
+            selected = showInlineDiff,
+            onClick = { onShowInlineDiffChange(true) },
+            leadingIcon = { Icon(Icons.Default.WrapText, contentDescription = null) },
+            label = { Text("Inline diff") },
+        )
     }
 }
 
@@ -229,6 +281,130 @@ private fun DiffRowCard(
                     onOpenReference = onOpenReference,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun InlineDiffRowCard(
+    row: DiffRow,
+    onOpenReference: (DiffReference) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(row.label, style = MaterialTheme.typography.labelLarge)
+            if (row.markdown) {
+                // Preserve rendered Markdown instead of exposing its source syntax in the
+                // inline mode. Plain fields below receive word-level highlighting.
+                if (row.before != null) {
+                    DiffValue(
+                        prefix = "−",
+                        value = row.before,
+                        color = MaterialTheme.colorScheme.error,
+                        markdown = true,
+                        reference = row.beforeReference,
+                        onOpenReference = onOpenReference,
+                    )
+                }
+                if (row.after != null) {
+                    DiffValue(
+                        prefix = "+",
+                        value = row.after,
+                        color = MaterialTheme.colorScheme.primary,
+                        markdown = true,
+                        reference = row.afterReference,
+                        onOpenReference = onOpenReference,
+                    )
+                }
+            } else {
+                val inlineDiff = buildInlineDiff(row.before, row.after)
+                if (row.before != null) {
+                    InlineDiffSide(
+                        prefix = "−",
+                        tokens = inlineDiff.before,
+                        color = MaterialTheme.colorScheme.error,
+                        reference = row.beforeReference,
+                        onOpenReference = onOpenReference,
+                    )
+                }
+                if (row.after != null) {
+                    InlineDiffSide(
+                        prefix = "+",
+                        tokens = inlineDiff.after,
+                        color = MaterialTheme.colorScheme.primary,
+                        reference = row.afterReference,
+                        onOpenReference = onOpenReference,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InlineDiffSide(
+    prefix: String,
+    tokens: List<InlineDiffToken>,
+    color: Color,
+    reference: DiffReference?,
+    onOpenReference: (DiffReference) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val clickableModifier =
+        if (reference == null) Modifier
+        else Modifier.clickable { onOpenReference(reference) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp).then(clickableModifier),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            prefix,
+            style = MaterialTheme.typography.titleMedium,
+            color = color,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Text(
+            text = inlineDiffAnnotatedString(tokens, colors),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+        if (reference != null) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = "Open linked item",
+                tint = color,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+private fun inlineDiffAnnotatedString(
+    tokens: List<InlineDiffToken>,
+    colors: androidx.compose.material3.ColorScheme,
+): AnnotatedString {
+    if (tokens.isEmpty()) return AnnotatedString("(empty)")
+    return buildAnnotatedString {
+        tokens.forEach { token ->
+            val style =
+                when (token.kind) {
+                    InlineDiffTokenKind.UNCHANGED -> SpanStyle(color = colors.onSurfaceVariant)
+                    InlineDiffTokenKind.REMOVED ->
+                        SpanStyle(
+                            color = colors.onErrorContainer,
+                            background = colors.errorContainer,
+                            textDecoration = TextDecoration.LineThrough,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    InlineDiffTokenKind.ADDED ->
+                        SpanStyle(
+                            color = colors.onPrimaryContainer,
+                            background = colors.primaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                }
+            withStyle(style) { append(token.text) }
         }
     }
 }

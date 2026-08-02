@@ -228,4 +228,49 @@ class ObjectChangeDiffTest {
         assertEquals(DiffReference("api/dcim/devices/", 17), resolved.beforeReference)
         assertEquals(DiffReference("api/dcim/devices/", 18), resolved.afterReference)
     }
+
+    @Test
+    fun inline_diff_highlights_only_the_changed_words() {
+        val diff = buildInlineDiff("Shelly old device", "Shelly new device")
+
+        assertEquals(
+            listOf("Shelly", " ", "old", " ", "device"),
+            diff.before.map(InlineDiffToken::text),
+        )
+        assertEquals(
+            listOf(
+                InlineDiffTokenKind.UNCHANGED,
+                InlineDiffTokenKind.UNCHANGED,
+                InlineDiffTokenKind.REMOVED,
+                InlineDiffTokenKind.UNCHANGED,
+                InlineDiffTokenKind.UNCHANGED,
+            ),
+            diff.before.map(InlineDiffToken::kind),
+        )
+        assertEquals(
+            listOf("Shelly", " ", "new", " ", "device"),
+            diff.after.map(InlineDiffToken::text),
+        )
+        assertEquals(
+            listOf(
+                InlineDiffTokenKind.UNCHANGED,
+                InlineDiffTokenKind.UNCHANGED,
+                InlineDiffTokenKind.ADDED,
+                InlineDiffTokenKind.UNCHANGED,
+                InlineDiffTokenKind.UNCHANGED,
+            ),
+            diff.after.map(InlineDiffToken::kind),
+        )
+    }
+
+    @Test
+    fun inline_diff_keeps_added_and_removed_values_for_create_and_delete() {
+        val created = buildInlineDiff(null, "new device")
+        val deleted = buildInlineDiff("old device", null)
+
+        assertTrue(created.before.isEmpty())
+        assertTrue(created.after.all { it.kind == InlineDiffTokenKind.ADDED })
+        assertTrue(deleted.after.isEmpty())
+        assertTrue(deleted.before.all { it.kind == InlineDiffTokenKind.REMOVED })
+    }
 }
