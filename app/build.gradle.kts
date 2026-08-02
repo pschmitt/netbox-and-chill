@@ -167,6 +167,9 @@ dependencies {
     // Image loading (device-type stock photos + image attachments)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    // Coil delegates AVIF decoding to the Android platform, which can ignore AVIF's auxiliary
+    // alpha plane on some devices. libavif provides a consistent alpha-aware decoder instead.
+    implementation(libs.libavif.android)
 
     // Offline cache
     implementation(libs.androidx.room.runtime)

@@ -17,6 +17,7 @@ import dev.pschmitt.netboxandchill.data.api.NetBoxApi
 import dev.pschmitt.netboxandchill.data.api.MediaNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.OfflineModeInterceptor
 import dev.pschmitt.netboxandchill.data.api.TopologyApi
+import dev.pschmitt.netboxandchill.image.LibavifImageDecoder
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -138,6 +139,9 @@ object NetworkModule {
         @DownloadClient okHttpClient: OkHttpClient,
     ): ImageLoader =
         ImageLoader.Builder(context)
-            .components { add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient })) }
+            .components {
+                add(LibavifImageDecoder.Factory())
+                add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient }))
+            }
             .build()
 }

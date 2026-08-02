@@ -141,7 +141,7 @@ private fun DocumentPreview(document: CachedDocument, localFile: File?) {
             value = withContext(Dispatchers.IO) { renderPdfPreview(localFile) }
         }
     val extension = document.filename.substringAfterLast('.', "").uppercase()
-    val isImage = extension in setOf("BMP", "GIF", "JPEG", "JPG", "PNG", "WEBP")
+    val isImage = extension in setOf("AVIF", "BMP", "GIF", "JPEG", "JPG", "PNG", "WEBP")
 
     Box(
         modifier =

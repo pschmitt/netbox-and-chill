@@ -4418,3 +4418,17 @@ instead of taking a full row with a text-labelled Cached badge.
 - [x] Verify both identity-card layouts on the wired Zenfone without changing production data.
 
 Status: **done**, 2026-08-02 - the wired Zenfone showed the downloaded icon in the top-right of both the cached device and generic device-type identity cards; no production data was changed.
+
+
+## NBC-255: preserve transparency when rendering AVIF media
+
+AVIF device-type and image-attachment files may carry transparency as a separate auxiliary alpha
+plane. The Aqara Magic Cube currently renders with a solid green matte instead of transparency.
+
+- [x] Confirm the issue with the production AVIF and identify a decoder path that preserves alpha.
+- [x] Decode AVIF images with auxiliary alpha correctly for remote and cached media.
+- [x] Add focused decoder coverage and verify the Aqara image on the wired Zenfone.
+
+Status: **done**, 2026-08-02 - libavif decoding and header coverage passed the remote unit/lint checks; the
+production Aqara Magic Cube rendered transparently on the wired Zenfone in both the detail view and
+image viewer, including after the media was downloaded locally; no NetBox data was changed.
