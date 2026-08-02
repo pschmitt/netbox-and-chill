@@ -3630,9 +3630,9 @@ the production NetBox.
 
 Status: **done**, 2026-08-02; the Compose instrumentation APK compiled on rofl-14 and the pinned
 NetBox 4.6/netbox-docker 5.0.2 fixture was started, seeded, authenticated with a v2 token, and
-cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 2
-API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on failure.
-The app now sends NetBox `nbt_` tokens with Bearer auth while retaining legacy Token auth.
+cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 7
+Pro API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on
+failure. The app now sends NetBox `nbt_` tokens with Bearer auth while retaining legacy Token auth.
 
 
 ## NBC-201: make the offline topology view readable on mobile
@@ -3640,13 +3640,14 @@ The app now sends NetBox `nbt_` tokens with Bearer auth while retaining legacy T
 The cached netbox-topology graph is technically usable but opens too zoomed out on small screens.
 Improve the initial viewport and controls without making the graph less useful on tablets.
 
-- [ ] Choose a mobile-friendly initial scale and center the useful graph area.
-- [ ] Add explicit zoom controls/reset alongside pinch-to-zoom and pan.
-- [ ] Keep graph rendering cache-first and verify the Mi Pad phone/tablet layouts.
-- [ ] Add focused viewport/scale tests where the behavior is made deterministic.
+- [x] Choose a mobile-friendly initial scale and center the useful graph area.
+- [x] Add explicit zoom controls/reset alongside pinch-to-zoom and pan.
+- [x] Keep graph rendering cache-first and verify the Mi Pad phone/tablet layouts.
+- [x] Add focused viewport/scale tests where the behavior is made deterministic.
 
-Status: in progress, 2026-08-02 - implementing a deterministic mobile viewport and explicit
-zoom controls while preserving the cache-first graph source.
+Status: **done**, 2026-08-02; remote ktfmt/unit tests passed, the debug APK built remotely, and
+the latest debug build was installed successfully on the Zenfone 10, Mi Pad 4, and PX5. The
+viewport behavior is covered by deterministic scale tests and remains cache-first.
 
 
 ## NBC-202: hide NetBox News by default

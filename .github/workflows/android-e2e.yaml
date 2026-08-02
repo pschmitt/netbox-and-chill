@@ -48,7 +48,10 @@ jobs:
           profile: pixel_7_pro
           target: google_apis
           force-avd-creation: true
-          disable-animations: true
+          # The runner's post-boot animation-setting commands can race a slow software
+          # emulator's adb service. The journey has explicit waits, so leave animations
+          # enabled and avoid making runner setup itself the test failure.
+          disable-animations: false
           emulator-options: -no-window -no-audio -no-boot-anim
           script: |
             adb shell pm clear dev.pschmitt.netboxandchill.debug || true
