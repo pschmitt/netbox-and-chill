@@ -4620,11 +4620,12 @@ and were verified on the wired Zenfone without obscuring tab icons; no NetBox da
 Interface rows should visually distinguish the IP label from the linked IP value and offer the same
 copy affordance for MAC addresses.
 
-- [ ] Highlight and link only the IP address value, not the `IP:` label.
-- [ ] Add a copy-to-clipboard action for each MAC address.
-- [ ] Verify the interface tab on the wired Zenfone without changing NetBox data.
+- [x] Highlight and link only the IP address value, not the `IP:` label.
+- [x] Add a copy-to-clipboard action for each MAC address.
+- [x] Verify the interface tab on the wired Zenfone without changing NetBox data.
 
-Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the wired Zenfone verified neutral IP
+labels, highlighted IP values, and a working MAC copy action; no NetBox data was changed.
 
 
 ## NBC-269: use neutral item-tab count badges
@@ -4632,7 +4633,8 @@ Status: in progress, 2026-08-02 - implementation started; no NetBox data was cha
 Item detail count badges should use a calm, neutral color rather than the current alarming pink/red
 appearance.
 
-- [ ] Use a neutral surface-variant badge treatment with readable contrast.
-- [ ] Verify the updated badge style on the wired Zenfone without changing NetBox data.
+- [x] Use a neutral surface-variant badge treatment with readable contrast.
+- [x] Verify the updated badge style on the wired Zenfone without changing NetBox data.
 
-Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the count badge is now neutral gray and
+was verified on the wired Zenfone; no NetBox data was changed.
