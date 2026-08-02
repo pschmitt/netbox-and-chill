@@ -4644,8 +4644,10 @@ was verified on the wired Zenfone; no NetBox data was changed.
 
 Rack elevation should have a dedicated tab instead of occupying the top of the rack Overview tab.
 
-- [ ] Add a rack-only Elevation tab while preserving Overview and Journal ordering.
-- [ ] Render the front/rear elevation only in that tab and keep device navigation working.
-- [ ] Verify the rack tabs on the wired Zenfone without changing NetBox data.
+- [x] Add a rack-only Elevation tab while preserving Overview and Journal ordering.
+- [x] Render the front/rear elevation only in that tab and keep device navigation working.
+- [x] Verify the rack tabs on the wired Zenfone without changing NetBox data.
 
-Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the wired Zenfone verified that rack
+Overview no longer contains elevation and the separate Elevation tab renders clickable front/rear views;
+no NetBox data was changed.
