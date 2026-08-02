@@ -1775,8 +1775,8 @@ better bounds handling so long labels or edge pixels are not clipped.
 - [x] Fit label text to the available print area and preserve safe edge padding.
 - [x] Add renderer coverage for inversion semantics.
 
-Status: mostly done, 2026-07-31 - remote tests/lint/debug build passed and the feature was deployed;
-the inverted default still needs a physical follow-up print.
+Status: **done**, 2026-08-02 - remote tests/lint/debug build passed; the wired Zenfone completed a
+fresh FNUC print with default raster inversion enabled and the updated bounds handling.
 
 ## NBC-64: reorganize Settings and explain cached file types
 
