@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
@@ -58,15 +57,13 @@ fun ItemDetailTabs(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        if (tab.count != null && tab.count > 0) {
-                            BadgedBox(badge = { Badge { Text(tab.count.toString()) } }) {
-                                Icon(tab.icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                            }
-                        } else {
-                            Icon(tab.icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
+                        Icon(tab.icon, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(tab.label, maxLines = 1)
+                        if (tab.count != null && tab.count > 0) {
+                            Spacer(Modifier.width(6.dp))
+                            Badge { Text(tab.count.toString()) }
+                        }
                     }
                 },
             )

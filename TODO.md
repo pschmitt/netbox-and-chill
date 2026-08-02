@@ -4601,3 +4601,14 @@ tab bar uses less vertical space.
 
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the compact horizontal tab row and
 badge/tab selection behavior were verified on the wired Zenfone; no NetBox data was changed.
+
+
+## NBC-267: keep item-tab count badges clear of icons
+
+Item detail count badges should not obscure their tab icons in the compact horizontal tab layout.
+
+- [ ] Place each count badge after the tab label instead of overlaying the icon.
+- [ ] Preserve badge visibility and tab selection behavior.
+- [ ] Verify the updated layout on the wired Zenfone without changing NetBox data.
+
+Status: in progress, 2026-08-02 - implementation started; no NetBox data was changed.
