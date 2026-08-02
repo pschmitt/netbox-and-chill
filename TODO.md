@@ -3982,3 +3982,15 @@ types, without removing the other matching results.
 
 Status: in progress, 2026-08-02 - ranking policy and mixed-result unit coverage implemented;
 remote unit tests pass, with device/UI verification still pending.
+
+
+## NBC-222: use a regular tab bar for item detail pages
+
+The item detail tab bar should treat Overview like every other tab instead of pinning it in a
+separate leading control.
+
+- [ ] Replace the split Overview/related layout with one regular scrollable tab component.
+- [ ] Keep all tabs, icons, counts, and left/right swipe navigation working on phones and tablets.
+- [ ] Verify device and generic item detail pages on a physical device.
+
+Status: in progress, 2026-08-02 - implementation started.
