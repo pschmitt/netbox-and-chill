@@ -1,0 +1,94 @@
+services:
+  postgres:
+    image: docker.io/postgres:18-alpine
+    environment:
+      POSTGRES_DB: netbox
+      POSTGRES_PASSWORD: ci-db-password
+      POSTGRES_USER: netbox
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: docker.io/valkey/valkey:9.1-alpine
+    command:
+      - sh
+      - -c
+      - valkey-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: ci-redis-password
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli --pass \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  redis-cache:
+    image: docker.io/valkey/valkey:9.1-alpine
+    command:
+      - sh
+      - -c
+      - valkey-server --requirepass "$${REDIS_CACHE_PASSWORD}"
+    environment:
+      REDIS_CACHE_PASSWORD: ci-redis-cache-password
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli --pass \"$$REDIS_CACHE_PASSWORD\" ping | grep -q PONG"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  netbox:
+    # Keep NetBox and netbox-docker versions coupled and explicit. Update this tag deliberately
+    # when the CI fixture needs to move to a newer supported NetBox release.
+    image: docker.io/netboxcommunity/netbox:v4.6-5.0.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    ports:
+      - "8000:8080"
+    environment:
+      ALLOWED_HOSTS: "*"
+      API_TOKEN_PEPPER_1: ci-only-api-token-pepper-0123456789abcdefghijklmnopqrstuvwxyz
+      CORS_ORIGIN_ALLOW_ALL: "true"
+      DB_HOST: postgres
+      DB_NAME: netbox
+      DB_PASSWORD: ci-db-password
+      DB_USER: netbox
+      EMAIL_FROM: netbox@example.invalid
+      EMAIL_PASSWORD: ""
+      EMAIL_PORT: "25"
+      EMAIL_SERVER: localhost
+      EMAIL_USERNAME: netbox
+      EMAIL_USE_SSL: "false"
+      EMAIL_USE_TLS: "false"
+      GRAPHQL_ENABLED: "true"
+      MEDIA_ROOT: /opt/netbox/netbox/media
+      METRICS_ENABLED: "false"
+      REDIS_CACHE_DATABASE: "1"
+      REDIS_CACHE_HOST: redis-cache
+      REDIS_CACHE_PASSWORD: ci-redis-cache-password
+      REDIS_CACHE_SSL: "false"
+      REDIS_DATABASE: "0"
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ci-redis-password
+      REDIS_SSL: "false"
+      SECRET_KEY: ci-only-netbox-secret-key-do-not-use-outside-ci-0123456789
+      SKIP_SUPERUSER: "false"
+      SUPERUSER_API_KEY: CiE2eKey001X
+      SUPERUSER_API_TOKEN: 0123456789abcdef0123456789abcdef01234567
+      SUPERUSER_EMAIL: e2e@example.invalid
+      SUPERUSER_NAME: e2e
+      SUPERUSER_PASSWORD: ci-e2e-password
+      WEBHOOKS_ENABLED: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/login/ || exit 1"]
+      start_period: 240s
+      interval: 10s
+      timeout: 5s
+      retries: 36

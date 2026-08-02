@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -355,6 +356,7 @@ fun Sidebar(
                             Switch(
                                 checked = offlineMode,
                                 onCheckedChange = viewModel::setOfflineMode,
+                                modifier = Modifier.testTag("e2e-offline-toggle"),
                             )
                         },
                     )

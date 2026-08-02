@@ -13,7 +13,12 @@ class AuthInterceptor @Inject constructor(private val settingsRepository: Settin
         val request = chain.request()
         val authorized =
             if (token.isBlank()) request
-            else request.newBuilder().header("Authorization", "Token $token").build()
+            else {
+                // NetBox 4.5+ v2 tokens carry a non-secret key and use Bearer auth. Keep the
+                // legacy 40-character Token form for older instances and existing connections.
+                val scheme = if (token.startsWith("nbt_")) "Bearer" else "Token"
+                request.newBuilder().header("Authorization", "$scheme $token").build()
+            }
         return chain.proceed(authorized)
     }
 }

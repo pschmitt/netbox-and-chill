@@ -3622,13 +3622,17 @@ CI should exercise the most important user journeys against a temporary NetBox i
 to the existing JVM tests and APK build. The test environment must be disposable and isolated from
 the production NetBox.
 
-- [ ] Add an emulator-capable Android instrumentation test target with Compose UI assertions.
-- [ ] Start and seed a temporary NetBox service in CI with a throwaway API token.
-- [ ] Cover onboarding, cached dashboard/detail navigation, global search, offline mode, and
+- [x] Add an emulator-capable Android instrumentation test target with Compose UI assertions.
+- [x] Start and seed a temporary NetBox service in CI with a throwaway API token.
+- [x] Cover onboarding, cached dashboard/detail navigation, global search, offline mode, and
   connection failure handling.
-- [ ] Upload useful failure diagnostics such as screenshots and logcat.
+- [x] Upload useful failure diagnostics such as screenshots and logcat.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; the Compose instrumentation APK compiled on rofl-14 and the pinned
+NetBox 4.6/netbox-docker 5.0.2 fixture was started, seeded, authenticated with a v2 token, and
+cleanly torn down locally. The opt-in GitHub Actions workflow runs the same journey on a Pixel 2
+API 35 emulator and uploads logcat, a screenshot, NetBox logs, and Android test reports on failure.
+The app now sends NetBox `nbt_` tokens with Bearer auth while retaining legacy Token auth.
 
 
 ## NBC-201: make the offline topology view readable on mobile

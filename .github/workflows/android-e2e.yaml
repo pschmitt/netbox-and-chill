@@ -1,0 +1,85 @@
+name: Android E2E (manual)
+
+# This is intentionally opt-in: it starts a disposable NetBox and an Android emulator, so it is
+# useful for release candidates and focused regressions without slowing every push or touching the
+# production NetBox instance.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: android-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Disposable NetBox + Android emulator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      E2E_TOKEN: nbt_CiE2eKey001X.0123456789abcdef0123456789abcdef01234567
+      NETBOX_COMPOSE_FILE: ci/netbox/docker-compose.yml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21.0.11'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Start disposable NetBox
+        run: docker compose -f "$NETBOX_COMPOSE_FILE" up --detach --wait --wait-timeout 600
+
+      - name: Seed deterministic E2E records
+        run: python3 ci/netbox/seed.py --base-url http://127.0.0.1:8000 --token "$E2E_TOKEN"
+
+      - name: Run the Android journey in an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: Pixel_2
+          target: google_apis
+          force-avd-creation: true
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim
+          script: |
+            adb shell pm clear dev.pschmitt.netboxandchill.debug
+            ./gradlew connectedDebugAndroidTest \
+              -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://10.0.2.2:8000 \
+              -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN" \
+              --stacktrace
+
+      - name: Capture emulator diagnostics
+        if: ${{ failure() }}
+        run: |
+          adb logcat -d > e2e-logcat.txt || true
+          adb exec-out screencap -p > e2e-screenshot.png || true
+
+      - name: Capture NetBox diagnostics
+        if: ${{ failure() }}
+        run: docker compose -f "$NETBOX_COMPOSE_FILE" logs --no-color > e2e-netbox.log || true
+
+      - name: Upload E2E diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-e2e-diagnostics-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            e2e-logcat.txt
+            e2e-screenshot.png
+            e2e-netbox.log
+            app/build/reports/androidTests/connected/
+            app/build/outputs/androidTest-results/connected/
+
+      - name: Tear down disposable NetBox
+        if: ${{ always() }}
+        run: docker compose -f "$NETBOX_COMPOSE_FILE" down --volumes --remove-orphans

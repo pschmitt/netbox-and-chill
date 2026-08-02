@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -140,7 +141,7 @@ fun OnboardingScreen(
                         Icon(Icons.Default.OpenInNew, contentDescription = "Open API tokens page")
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-url"),
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
@@ -183,7 +184,7 @@ fun OnboardingScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-token"),
             )
             Spacer(Modifier.height(16.dp))
             val errorState = uiState as? OnboardingUiState.Error
