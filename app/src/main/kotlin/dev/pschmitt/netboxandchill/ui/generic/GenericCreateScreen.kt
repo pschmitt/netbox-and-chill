@@ -131,13 +131,22 @@ fun GenericCreateScreen(
                     items(fields, key = { it.key }) { field ->
                         val options =
                             field.choices.ifEmpty { referenceOptions[field.key].orEmpty() }
-                        CreateFieldInput(
-                            field = field,
-                            value = values[field.key].orEmpty(),
-                            options = options,
-                            localImageFile = viewModel::localImageFile,
-                            onValueChange = viewModel::setValue,
-                        )
+                        Column {
+                            CreateFieldInput(
+                                field = field,
+                                value = values[field.key].orEmpty(),
+                                options = options,
+                                localImageFile = viewModel::localImageFile,
+                                onValueChange = viewModel::setValue,
+                            )
+                            field.helpText?.takeIf { it.isNotBlank() }?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                     item {
                         Button(
@@ -187,7 +196,15 @@ private fun CreateFieldInput(
         return
     }
     if (field.multiple) {
-        if (field.type in setOf("multiple-object", "multiple_object")) {
+        if (options.isEmpty()) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { onValueChange(field.key, it) },
+                label = { Text(label) },
+                supportingText = { Text("Enter comma-separated values or a JSON array") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else if (field.type in setOf("multiple-object", "multiple_object", "multiobject")) {
             OutlinedTextField(
                 value = value,
                 onValueChange = { onValueChange(field.key, it) },
@@ -204,12 +221,17 @@ private fun CreateFieldInput(
         CreateChoiceInput(field, value, options, localImageFile, onValueChange)
         return
     }
-    OutlinedTextField(
-        value = value,
-        onValueChange = { onValueChange(field.key, it) },
-        label = { Text(label) },
-        supportingText =
-            if (field.type == "nested object") ({ Text("Enter the related object ID") }) else null,
+        OutlinedTextField(
+            value = value,
+            onValueChange = { onValueChange(field.key, it) },
+            label = { Text(label) },
+            minLines = if (field.type == "json") 3 else 1,
+            supportingText =
+                when {
+                    field.type == "json" -> ({ Text("Enter a valid JSON value") })
+                    field.type == "nested object" -> ({ Text("Enter the related object ID") })
+                    else -> null
+                },
         keyboardOptions =
             KeyboardOptions(
                 keyboardType =

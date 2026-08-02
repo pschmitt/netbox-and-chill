@@ -8,6 +8,7 @@ import kotlinx.serialization.json.contentOrNull
 enum class EditFieldKind {
     STRING,
     LONG_TEXT,
+    JSON,
     NUMBER,
     INTEGER,
     BOOLEAN,

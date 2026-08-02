@@ -140,6 +140,9 @@ constructor(
                                 _errorMessage.value =
                                     "The created item has no numeric ID"
                             } else {
+                                if (route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
+                                    customFieldRepository.cacheDefinition(createdObject)
+                                }
                                 _createdDisplay.value =
                                     sequenceOf("display", "name", "label", "model", "serial")
                                         .mapNotNull {
@@ -211,6 +214,15 @@ constructor(
                         }
                     if (values.isNotEmpty()) put(field.key, values)
                 }
+            if (
+                route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH &&
+                    definitions.any { it.key == "object_types" }
+            ) {
+                repository
+                    .cachedContentTypeChoices()
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { put("object_types", it) }
+            }
         }
         _referenceOptions.value = options
     }
@@ -221,7 +233,7 @@ constructor(
     private fun initializeFields(definitions: List<CreateFieldDefinition>) {
         _fields.value = definitions
         _values.value = definitions.associate { field ->
-            field.key to ((field.defaultValue as? JsonPrimitive)?.contentOrNull ?: "")
+            field.key to field.defaultValue.asFormValue()
         }
         viewModelScope.launch { loadReferenceOptions(definitions) }
         viewModelScope.launch { loadCustomChoices(definitions) }
@@ -304,5 +316,17 @@ constructor(
         if (parts.size < 2) return null
         val model = parts.last().removeSuffix("s").replace("-", "")
         return "${parts.first()}.$model"
+    }
+
+    private fun kotlinx.serialization.json.JsonElement?.asFormValue(): String =
+        when (this) {
+            null,
+            is kotlinx.serialization.json.JsonNull -> ""
+            is JsonPrimitive -> contentOrNull.orEmpty()
+            else -> toString()
+        }
+
+    private companion object {
+        const val CUSTOM_FIELDS_ENDPOINT_PATH = "api/extras/custom-fields/"
     }
 }

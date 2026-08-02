@@ -31,6 +31,7 @@ private val COPYABLE_KEYS =
 
 private val USER_REFERENCE_KEYS = setOf("created_by", "last_updated_by")
 private val METADATA_KEYS = setOf("created", "last_updated")
+private const val CUSTOM_FIELDS_ENDPOINT_PATH = "api/extras/custom-fields/"
 
 private val MATTER_PAIRING_CODE_PATTERN = Regex("^\\d{4}-\\d{3}-\\d{4}$")
 
@@ -409,14 +410,89 @@ fun buildEditableFields(obj: JsonObject): List<EditableField> =
 fun buildEditableFields(
     obj: JsonObject,
     customFieldDefinitions: List<CustomFieldDefinition>,
+): List<EditableField> = buildEditableFields(obj, customFieldDefinitions, null)
+
+fun buildEditableFields(
+    obj: JsonObject,
+    customFieldDefinitions: List<CustomFieldDefinition>,
+    endpointPath: String?,
 ): List<EditableField> = buildList {
     for ((key, value) in obj) {
         if (key in EDIT_BLOCKLIST) continue
-        editableTopLevelField(key, value)?.let(::add)
+        if (endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
+            customFieldAdminEditableField(key, value)?.let(::add)
+                ?: editableTopLevelField(key, value)?.let(::add)
+        } else {
+            editableTopLevelField(key, value)?.let(::add)
+        }
     }
     val definitions = customFieldDefinitions.associateBy { it.name }
     (obj["custom_fields"] as? JsonObject)?.forEach { (name, value) ->
         customFieldEditableField(name, value, definitions[name])?.let(::add)
+    }
+}
+
+private fun customFieldAdminEditableField(
+    key: String,
+    value: JsonElement,
+): EditableField? {
+    val label = Humanize.label(key)
+
+    fun choiceField(): EditableField {
+        val primitive = value as? JsonPrimitive
+        val objectValue = value as? JsonObject
+        return EditableField(
+            key = key,
+            label = label,
+            kind = EditFieldKind.CHOICE,
+            value =
+                primitive?.contentOrNull
+                    ?: (objectValue?.get("value") as? JsonPrimitive)?.contentOrNull
+                    ?: "",
+            currentDisplay =
+                (objectValue?.get("label") as? JsonPrimitive)?.contentOrNull
+                    ?: (objectValue?.get("display") as? JsonPrimitive)?.contentOrNull,
+        )
+    }
+
+    return when (key) {
+        "type",
+        "related_object_type",
+        "filter_logic",
+        "ui_visible",
+        "ui_editable" -> choiceField()
+        "object_types" ->
+            EditableField(
+                key = key,
+                label = label,
+                kind = EditFieldKind.MULTI_CHOICE,
+                value =
+                    selectedValuesToJson(
+                        (value as? JsonArray).orEmpty().mapNotNull {
+                            (it as? JsonPrimitive)?.contentOrNull
+                        }
+                    ),
+            )
+        "choice_set" -> {
+            val target = (value as? JsonObject)?.let(::asRefTarget)
+            EditableField(
+                key = key,
+                label = label,
+                kind = EditFieldKind.REFERENCE,
+                value = target?.id?.toString().orEmpty(),
+                referenceEndpointPath = "api/extras/custom-field-choice-sets/",
+                currentDisplay = target?.display,
+            )
+        }
+        "default",
+        "related_object_filter" ->
+            EditableField(
+                key = key,
+                label = label,
+                kind = EditFieldKind.JSON,
+                value = value.takeUnless { it is JsonNull }?.toString().orEmpty(),
+            )
+        else -> null
     }
 }
 
@@ -556,6 +632,11 @@ fun EditFieldKind.toJsonElement(text: String): JsonElement =
     when (this) {
         EditFieldKind.STRING,
         EditFieldKind.LONG_TEXT -> JsonPrimitive(text)
+        EditFieldKind.JSON ->
+            runCatching {
+                    Json.decodeFromString(JsonElement.serializer(), text)
+                }
+                .getOrElse { JsonPrimitive(text) }
         EditFieldKind.CHOICE -> text.takeIf { it.isNotBlank() }?.let(::JsonPrimitive) ?: JsonNull
         EditFieldKind.NUMBER -> text.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(text)
         EditFieldKind.INTEGER -> text.toIntOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(text)

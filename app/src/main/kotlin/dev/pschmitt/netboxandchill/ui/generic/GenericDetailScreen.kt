@@ -1316,6 +1316,16 @@ private fun EditFieldControl(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        EditFieldKind.JSON ->
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                label = { Text(field.label) },
+                minLines = 3,
+                maxLines = 8,
+                supportingText = { Text("Enter a valid JSON value") },
+                modifier = Modifier.fillMaxWidth(),
+            )
         EditFieldKind.STRING ->
             OutlinedTextField(
                 value = value,
@@ -1342,20 +1352,38 @@ private fun EditFieldControl(
             )
         EditFieldKind.MULTI_REFERENCE,
         EditFieldKind.MULTI_CHOICE ->
-            EditMultiPickerField(
-                field = field,
-                value = value,
-                options =
-                    if (field.kind == EditFieldKind.MULTI_REFERENCE) {
-                        referenceOptions[field.key].orEmpty()
-                    } else {
-                        choiceOptions[field.key].orEmpty()
-                    },
-                onValueChange = { _, next -> onValueChange(next) },
-                onCreateLinkedItem =
-                    if (field.kind == EditFieldKind.MULTI_REFERENCE) onCreateLinkedItem
-                    else null,
-            )
+            if (
+                (if (field.kind == EditFieldKind.MULTI_REFERENCE) {
+                    referenceOptions[field.key].orEmpty()
+                } else {
+                    choiceOptions[field.key].orEmpty()
+                })
+                    .isEmpty()
+            ) {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    label = { Text(field.label) },
+                    minLines = 2,
+                    supportingText = { Text("Enter comma-separated values or a JSON array") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                EditMultiPickerField(
+                    field = field,
+                    value = value,
+                    options =
+                        if (field.kind == EditFieldKind.MULTI_REFERENCE) {
+                            referenceOptions[field.key].orEmpty()
+                        } else {
+                            choiceOptions[field.key].orEmpty()
+                        },
+                    onValueChange = { _, next -> onValueChange(next) },
+                    onCreateLinkedItem =
+                        if (field.kind == EditFieldKind.MULTI_REFERENCE) onCreateLinkedItem
+                        else null,
+                )
+            }
     }
 }
 

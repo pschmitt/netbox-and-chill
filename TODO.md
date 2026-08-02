@@ -3819,15 +3819,17 @@ The app already renders cached custom-field values and uses cached definitions i
 create/edit forms. It does not yet provide a complete, type-aware administration workflow for the
 definitions themselves.
 
-- [ ] Add a cache-first custom-field management entry/list/detail workflow.
-- [ ] Support creating, editing, and deleting definitions with confirmation and offline-safe
+- [x] Add a cache-first custom-field management entry/list/detail workflow.
+- [x] Support creating, editing, and deleting definitions with confirmation and offline-safe
   reconciliation.
-- [ ] Model the NetBox field types and their relevant metadata (object types, required/default
+- [x] Model the NetBox field types and their relevant metadata (object types, required/default
   values, weight/group, validation, and choice sets) with suitable controls and validation.
-- [ ] Keep custom-field definition cache updates and dependent item forms consistent after changes.
-- [ ] Add unit/UI coverage for each supported field type and destructive-action safeguards.
+- [x] Keep custom-field definition cache updates and dependent item forms consistent after changes.
+- [x] Add unit/UI coverage for each supported field type and destructive-action safeguards.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; verified with remote ktfmt/unit tests, a remote release-bundle
+build, offline custom-field edit inspection on Mi Pad 4, and update-in-place installs on all three
+Android devices. No live NetBox records were changed.
 
 
 ## NBC-215: present copyable runtime crash reports
@@ -3857,3 +3859,19 @@ available according to the other sync settings.
 - [ ] Add tests for enabled/disabled launch behavior and offline mode interaction.
 
 Status: not started, 2026-08-02.
+
+
+## NBC-217: prepare an optional Google Play release pipeline
+
+Prepare the repository and CI for a future Play Store release without enabling publication or
+requiring a Play Console account yet.
+
+- [x] Add a reproducible release bundle/signing configuration that keeps credentials outside git.
+- [x] Add a disabled-by-default CI workflow for bundle validation and Play artifact generation.
+- [x] Document the required Play service-account/secrets setup and the explicit publication gate.
+- [x] Keep the existing debug/release APK workflow unchanged until Play publishing is deliberately
+  enabled.
+
+Status: **done**, 2026-08-02; verified YAML parsing and a remote `bundleRelease` with overridden
+version code/name. Publishing remains disabled because no Play account or service-account secret
+exists.

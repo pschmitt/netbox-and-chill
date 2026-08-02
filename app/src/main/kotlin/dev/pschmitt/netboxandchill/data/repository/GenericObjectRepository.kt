@@ -20,6 +20,9 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
+private const val CONTENT_TYPES_ENDPOINT_PATH = "api/contenttypes/content-types/"
+private val JSON_FORM_KEYS = setOf("default", "related_object_filter")
+
 /** Cache-first list/detail access for any NetBox object type, keyed by its endpoint path. */
 data class CreateChoice(
     val value: String,
@@ -40,6 +43,7 @@ data class CreateFieldDefinition(
     val customFieldName: String? = null,
     val markdown: Boolean = false,
     val multiple: Boolean = false,
+    val helpText: String? = null,
 )
 
 @Singleton
@@ -132,6 +136,34 @@ constructor(
     suspend fun cachedObjects(endpointPath: String): List<NetBoxObjectEntity> =
         dao.getAll(endpointPath)
 
+    /**
+     * Returns content-type choices from the cache for metadata such as custom-field
+     `object_types`. This deliberately does not query the server: an empty cache falls back to
+     * the form's free-form JSON/list input, preserving offline-first behavior.
+     */
+    suspend fun cachedContentTypeChoices(): List<CreateChoice> =
+        cachedObjects(CONTENT_TYPES_ENDPOINT_PATH)
+            .mapNotNull { entity ->
+                val objectJson =
+                    runCatching {
+                            json.decodeFromString(JsonObject.serializer(), entity.json)
+                        }
+                        .getOrNull()
+                        ?: return@mapNotNull null
+                val appLabel =
+                    (objectJson["app_label"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+                val model = (objectJson["model"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+                if (appLabel.isBlank() || model.isBlank()) return@mapNotNull null
+                CreateChoice(
+                    value = "$appLabel.$model",
+                    label =
+                        (objectJson["display"] as? JsonPrimitive)?.contentOrNull
+                            ?: "$appLabel > $model",
+                )
+            }
+            .distinctBy(CreateChoice::value)
+            .sortedBy { it.label.lowercase() }
+
     suspend fun cachedMediaAttachments(): List<OfflineAttachment> =
         dao.getAll().flatMap { entity ->
             val objectJson =
@@ -201,7 +233,11 @@ internal fun parseCreateFieldDefinitions(response: JsonObject): List<CreateField
     val postFields = (actions["POST"] ?: actions["PUT"]) as? JsonObject ?: return emptyList()
     return postFields.mapNotNull { (key, element) ->
         val definition = element as? JsonObject ?: return@mapNotNull null
-        val type = (definition["type"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+        val rawType =
+            (definition["type"] as? JsonPrimitive)?.contentOrNull
+                ?: return@mapNotNull null
+        val type =
+            if (rawType == "field" && key in JSON_FORM_KEYS) "json" else rawType
         val readOnly = (definition["read_only"] as? JsonPrimitive)?.booleanOrNull ?: false
         if (
             readOnly ||
@@ -230,6 +266,20 @@ internal fun parseCreateFieldDefinitions(response: JsonObject): List<CreateField
             defaultValue = definition["default"]?.takeUnless { it is JsonNull },
             choices = choices,
             referenceEndpointPath = createReferenceEndpoint(key, type),
+            markdown = type in setOf("longtext", "markdown"),
+            multiple =
+                key == "object_types" ||
+                    type in
+                        setOf(
+                            "multiple choice",
+                            "multiple_choice",
+                            "multiple-choice",
+                            "multiple object",
+                            "multiple_object",
+                            "multiobject",
+                            "multiselect",
+                        ),
+            helpText = (definition["help_text"] as? JsonPrimitive)?.contentOrNull,
         )
     }
 }
@@ -347,6 +397,7 @@ private fun createReferenceEndpoint(key: String, type: String): String? {
         "tenant" to "api/tenancy/tenants/",
         "cluster" to "api/virtualization/clusters/",
         "owner" to "api/tenancy/contacts/",
+        "choice_set" to "api/extras/custom-field-choice-sets/",
     )[key]
 }
 
@@ -373,6 +424,15 @@ internal fun buildCreateBody(
                                     .map { it.trim() }
                                     .filter { it.isNotBlank() }
                                     .map(::JsonPrimitive)
+                            )
+                        }
+                field.type == "json" ->
+                    runCatching {
+                            Json.decodeFromString(JsonElement.serializer(), value)
+                        }
+                        .getOrElse {
+                            return Result.failure(
+                                IllegalArgumentException("${field.label} must contain valid JSON")
                             )
                         }
                 field.type == "boolean" -> JsonPrimitive(value.toBooleanStrictOrNull() ?: false)

@@ -21,6 +21,20 @@ val appLinkHost =
             }
         }
 
+val configuredVersionCode =
+    providers
+        .gradleProperty("versionCode")
+        .orElse("1")
+        .map { value ->
+            value.toIntOrNull()?.takeIf { it > 0 }
+                ?: error("versionCode must be a positive integer")
+        }
+        .get()
+val configuredVersionName =
+    providers.gradleProperty("versionName").orElse("1.0.0").get().also { name ->
+        require(name.isNotBlank()) { "versionName must not be blank" }
+    }
+
 android {
     namespace = "dev.pschmitt.netboxandchill"
     compileSdk = 36
@@ -31,8 +45,8 @@ android {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = configuredVersionCode
+        versionName = configuredVersionName
         manifestPlaceholders["appLinkHost"] = appLinkHost
 
         val gitRevision = System.getenv("GIT_REVISION") ?: "unknown"

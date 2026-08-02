@@ -160,7 +160,7 @@ constructor(
 
     val editableFields: StateFlow<List<EditableField>> =
         combine(decodedObject, customFieldRepository.observeDefinitions()) { obj, definitions ->
-                obj?.let { buildEditableFields(it, definitions) } ?: emptyList()
+                obj?.let { buildEditableFields(it, definitions, route.endpointPath) } ?: emptyList()
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -335,6 +335,14 @@ constructor(
 
     fun delete() {
         if (_isDeleting.value) return
+        val customFieldName =
+            if (route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
+                decode(objectEntity.value?.json.orEmpty())
+                    ?.get("name")
+                    ?.let { (it as? JsonPrimitive)?.contentOrNull }
+            } else {
+                null
+            }
         viewModelScope.launch {
             _isDeleting.value = true
             pendingEditRepository
@@ -347,6 +355,7 @@ constructor(
                     if (route.endpointPath == DEVICES_ENDPOINT_PATH) {
                         deviceRepository.removeCachedDevice(route.id)
                     }
+                    customFieldName?.let { customFieldRepository.removeDefinition(it) }
                     _deleteResult.value = result
                 }
                 .onFailure { _errorMessage.value = it.message ?: "Couldn't delete item" }
@@ -411,6 +420,13 @@ constructor(
                 pendingEditRepository
                     .submitEdit(route.endpointPath, route.id, baseJson, buildPatchBody(edits))
                     .onSuccess { submission ->
+                        if (route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
+                            repository
+                                .observeObject(route.endpointPath, route.id)
+                                .first()
+                                ?.let { decode(it.json) }
+                                ?.let { customFieldRepository.cacheDefinition(it) }
+                        }
                         _isEditing.value = false
                         editBaseJson = null
                         _editDraftValues.value = emptyMap()
@@ -518,6 +534,16 @@ constructor(
                         ?.let { choices[field.key] = it }
                 }
         }
+        if (route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
+            val contentTypeOptions = repository.cachedContentTypeChoices()
+                .map { EditOption(it.value, it.label) }
+            if (contentTypeOptions.isNotEmpty()) {
+                choices["object_types"] = contentTypeOptions
+            }
+            customFieldAdminChoiceOptions().forEach { (key, options) ->
+                if (choices[key].orEmpty().isEmpty()) choices[key] = options
+            }
+        }
         _choiceOptions.value = choices
     }
 
@@ -564,6 +590,48 @@ constructor(
 
     private fun decode(rawJson: String): JsonObject? =
         runCatching { json.decodeFromString(JsonObject.serializer(), rawJson) }.getOrNull()
+
+    private fun customFieldAdminChoiceOptions(): Map<String, List<EditOption>> =
+        mapOf(
+            "type" to
+                listOf(
+                    "text" to "Text",
+                    "longtext" to "Text (long)",
+                    "integer" to "Integer",
+                    "decimal" to "Decimal",
+                    "boolean" to "Boolean (true/false)",
+                    "date" to "Date",
+                    "datetime" to "Date & time",
+                    "url" to "URL",
+                    "json" to "JSON",
+                    "select" to "Selection",
+                    "multiselect" to "Multiple selection",
+                    "object" to "Object",
+                    "multiobject" to "Multiple objects",
+                ).map { (value, label) -> EditOption(value, label) },
+            "filter_logic" to
+                listOf(
+                    "disabled" to "Disabled",
+                    "loose" to "Loose",
+                    "exact" to "Exact",
+                ).map { (value, label) -> EditOption(value, label) },
+            "ui_visible" to
+                listOf(
+                    "always" to "Always",
+                    "if-set" to "If set",
+                    "hidden" to "Hidden",
+                ).map { (value, label) -> EditOption(value, label) },
+            "ui_editable" to
+                listOf(
+                    "yes" to "Yes",
+                    "no" to "No",
+                    "hidden" to "Hidden",
+                ).map { (value, label) -> EditOption(value, label) },
+        )
+
+    private companion object {
+        const val CUSTOM_FIELDS_ENDPOINT_PATH = "api/extras/custom-fields/"
+    }
 }
 
 internal fun parseChoiceOptions(response: JsonObject): Map<String, List<EditOption>> {

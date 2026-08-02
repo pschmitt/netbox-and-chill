@@ -111,4 +111,108 @@ class CreateObjectTest {
         assertEquals(JsonPrimitive(3), body["site"])
         assertEquals(JsonPrimitive(true), body["active"])
     }
+
+    @Test
+    fun `parses custom field administration metadata into typed controls`() {
+        val fields =
+            parseCreateFieldDefinitions(
+                buildJsonObject {
+                    put(
+                        "actions",
+                        buildJsonObject {
+                            put(
+                                "POST",
+                                buildJsonObject {
+                                    put(
+                                        "object_types",
+                                        buildJsonObject {
+                                            put("type", "field")
+                                            put("required", true)
+                                        },
+                                    )
+                                    put(
+                                        "type",
+                                        buildJsonObject {
+                                            put("type", "field")
+                                            put(
+                                                "choices",
+                                                kotlinx.serialization.json.buildJsonArray {
+                                                    add(
+                                                        buildJsonObject {
+                                                            put("value", "text")
+                                                            put("display_name", "Text")
+                                                        }
+                                                    )
+                                                },
+                                            )
+                                        },
+                                    )
+                                    put(
+                                        "default",
+                                        buildJsonObject {
+                                            put("type", "field")
+                                            put("help_text", "Enter JSON")
+                                        },
+                                    )
+                                    put(
+                                        "choice_set",
+                                        buildJsonObject {
+                                            put("type", "nested object")
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                    )
+                }
+            )
+
+        assertTrue(fields.first { it.key == "object_types" }.multiple)
+        assertEquals("json", fields.first { it.key == "default" }.type)
+        assertEquals(
+            "api/extras/custom-field-choice-sets/",
+            fields.first { it.key == "choice_set" }.referenceEndpointPath,
+        )
+        assertEquals("Enter JSON", fields.first { it.key == "default" }.helpText)
+    }
+
+    @Test
+    fun `builds custom field object types and JSON defaults`() {
+        val fields =
+            listOf(
+                CreateFieldDefinition(
+                    "object_types",
+                    "Object types",
+                    "field",
+                    true,
+                    null,
+                    emptyList(),
+                    null,
+                    multiple = true,
+                ),
+                CreateFieldDefinition(
+                    "default",
+                    "Default",
+                    "json",
+                    false,
+                    null,
+                    emptyList(),
+                    null,
+                ),
+            )
+        val body =
+            buildCreateBody(
+                    fields,
+                    mapOf("object_types" to """["dcim.device","dcim.rack"]""", "default" to "false"),
+                )
+                    .getOrThrow()
+
+        assertEquals(
+            kotlinx.serialization.json.JsonArray(
+                listOf(JsonPrimitive("dcim.device"), JsonPrimitive("dcim.rack"))
+            ),
+            body["object_types"],
+        )
+        assertEquals(JsonPrimitive(false), body["default"])
+    }
 }

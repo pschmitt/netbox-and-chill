@@ -43,6 +43,12 @@ adjust the APK filter regex/prerelease settings, or grab the specific APK from t
 You need your own NetBox instance and an API token (NetBox profile → API Tokens). Enter the
 instance URL and token on first launch.
 
+## Releases
+
+APK releases are published through GitHub Releases. A separate, manual Play Store workflow can
+build a signed AAB for inspection without publishing; Play publication is guarded by an explicit
+workflow input and repository variable. See [docs/releasing.md](docs/releasing.md).
+
 ## License
 
 This project is licensed under [GPLv3](LICENSE).

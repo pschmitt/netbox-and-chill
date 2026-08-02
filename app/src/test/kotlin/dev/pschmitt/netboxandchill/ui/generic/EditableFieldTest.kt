@@ -225,4 +225,44 @@ class EditableFieldTest {
         assertEquals(JsonPrimitive("received"), customFields["purchase_notes"])
         assertEquals(JsonArray(listOf(JsonPrimitive(4), JsonPrimitive(9))), customFields["related"])
     }
+
+    @Test
+    fun `custom field definitions expose object types and nullable JSON settings for editing`() {
+        val fields =
+            buildEditableFields(
+                parse(
+                    """{
+                        "id":8,
+                        "name":"operating_system",
+                        "type":{"value":"select","label":"Selection"},
+                        "object_types":["dcim.device","virtualization.virtualmachine"],
+                        "choice_set":null,
+                        "default":null,
+                        "related_object_filter":null
+                    }"""
+                ),
+                emptyList(),
+                "api/extras/custom-fields/",
+            )
+
+        assertEquals(
+            listOf(
+                "name",
+                "type",
+                "object_types",
+                "choice_set",
+                "default",
+                "related_object_filter",
+            ),
+            fields.map { it.key },
+        )
+        assertEquals(EditFieldKind.CHOICE, fields.first { it.key == "type" }.kind)
+        assertEquals(
+            EditFieldKind.MULTI_CHOICE,
+            fields.first { it.key == "object_types" }.kind,
+        )
+        assertEquals(EditFieldKind.REFERENCE, fields.first { it.key == "choice_set" }.kind)
+        assertEquals(EditFieldKind.JSON, fields.first { it.key == "default" }.kind)
+        assertEquals(JsonPrimitive(false), EditFieldKind.JSON.toJsonElement("false"))
+    }
 }
