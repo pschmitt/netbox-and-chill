@@ -3642,7 +3642,9 @@ test but was interrupted by the notification permission dialog, while later API-
 inside the hosted emulator before or during APK installation (including a broken-pipe failure in
 the runner's post-boot settings command). The workflow waits for boot completion and system
 provisioning in a dedicated script because the emulator runner executes each script line
-individually, and now uses a smaller API-34 Pixel 2 profile with a software GPU; one green hosted
+individually, and now uses a smaller API-34 Pixel 2 profile with a software GPU. The latest run
+reached instrumentation, but the permission grant was ordered before APK installation and was a
+no-op; the workflow now installs the debug APK first so the grant is effective. One green hosted
 journey is still required. The app sends NetBox `nbt_` tokens with Bearer auth while retaining
 legacy Token auth.
 

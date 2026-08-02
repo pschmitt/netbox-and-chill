@@ -55,6 +55,7 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           script: |
             bash ci/android-e2e-wait.sh
+            ./gradlew installDebug
             adb shell pm clear dev.pschmitt.netboxandchill.debug || true
             # MainActivity requests POST_NOTIFICATIONS on API 33+ during startup. Grant it
             # before Compose launches so the permission dialog cannot interrupt the journey on a
