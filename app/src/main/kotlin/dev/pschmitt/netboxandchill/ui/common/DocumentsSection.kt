@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
 import dev.pschmitt.netboxandchill.data.schema.documentTypePresentation
 import coil3.compose.AsyncImage
 import dev.pschmitt.netboxandchill.data.repository.CachedDocument
@@ -202,7 +203,7 @@ private fun renderPdfPreview(file: File?): Bitmap? {
                 try {
                     val scale = minOf(1f, 240f / page.width, 320f / page.height)
                     val bitmap =
-                        Bitmap.createBitmap(
+                        createBitmap(
                             (page.width * scale).toInt().coerceAtLeast(1),
                             (page.height * scale).toInt().coerceAtLeast(1),
                             Bitmap.Config.ARGB_8888,

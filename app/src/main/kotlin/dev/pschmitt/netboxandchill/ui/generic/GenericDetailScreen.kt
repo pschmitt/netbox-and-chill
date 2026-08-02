@@ -3,7 +3,6 @@ package dev.pschmitt.netboxandchill.ui.generic
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
@@ -19,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
@@ -91,7 +90,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
@@ -557,7 +557,7 @@ fun GenericDetailScreen(
                                         },
                                         onClick = {
                                             context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                Intent(Intent.ACTION_VIEW, url.toUri())
                                             )
                                             actionMenuExpanded = false
                                         },
@@ -716,7 +716,7 @@ fun GenericDetailScreen(
                                             }
                                                 ?: document.externalUrl?.let { url ->
                                                     context.startActivity(
-                                                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                        Intent(Intent.ACTION_VIEW, url.toUri())
                                                     )
                                                 }
                                         },
@@ -759,7 +759,7 @@ fun GenericDetailScreen(
                                         viewModel::showRelatedItems,
                                         onOpenUrl = { url ->
                                             context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                Intent(Intent.ACTION_VIEW, url.toUri())
                                             )
                                         },
                                         netboxBaseUrl = netboxBaseUrl,
@@ -2357,7 +2357,7 @@ internal fun LazyListScope.fieldRow(
                 Column(Modifier.padding(vertical = 6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Label,
+                            Icons.AutoMirrored.Filled.Label,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp),
@@ -2378,7 +2378,7 @@ internal fun LazyListScope.fieldRow(
                                 label = { Text(target.display) },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Label,
+                                        Icons.AutoMirrored.Filled.Label,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp),
                                     )

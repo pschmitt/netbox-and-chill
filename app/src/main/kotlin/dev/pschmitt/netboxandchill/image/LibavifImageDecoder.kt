@@ -14,6 +14,8 @@ import coil3.request.maxBitmapSize
 import coil3.size.Precision
 import coil3.util.component1
 import coil3.util.component2
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 import kotlinx.coroutines.sync.Semaphore
@@ -47,7 +49,7 @@ class LibavifImageDecoder(
             "libavif returned invalid AVIF dimensions ${info.width}x${info.height}"
         }
 
-        val decoded = Bitmap.createBitmap(info.width, info.height, Bitmap.Config.ARGB_8888)
+        val decoded = createBitmap(info.width, info.height, Bitmap.Config.ARGB_8888)
         encodedBuffer.rewind()
         check(AvifDecoder.decode(encodedBuffer, encoded.size, decoded)) {
             "libavif could not decode the AVIF image"
@@ -83,7 +85,7 @@ class LibavifImageDecoder(
             return bitmap to false
         }
 
-        val scaled = Bitmap.createScaledBitmap(bitmap, outputWidth, outputHeight, true)
+        val scaled = bitmap.scale(outputWidth, outputHeight, true)
         if (scaled !== bitmap) bitmap.recycle()
         return scaled to true
     }

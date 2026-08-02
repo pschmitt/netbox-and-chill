@@ -11,9 +11,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.core.graphics.drawable.toBitmap
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.R
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
@@ -138,7 +138,7 @@ fun OnboardingScreen(
                         },
                         enabled = baseUrl.isNotBlank(),
                     ) {
-                        Icon(Icons.Default.OpenInNew, contentDescription = "Open API tokens page")
+                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open API tokens page")
                     }
                 },
                 modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-url"),

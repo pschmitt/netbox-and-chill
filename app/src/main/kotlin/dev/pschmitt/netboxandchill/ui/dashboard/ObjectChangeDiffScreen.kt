@@ -16,8 +16,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material.icons.filled.WrapText
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.automirrored.filled.WrapText
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,7 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
@@ -241,13 +241,13 @@ private fun DiffDisplayModeSelector(
         FilterChip(
             selected = !showInlineDiff,
             onClick = { onShowInlineDiffChange(false) },
-            leadingIcon = { Icon(Icons.Default.ViewList, contentDescription = null) },
+            leadingIcon = { Icon(Icons.AutoMirrored.Filled.ViewList, contentDescription = null) },
             label = { Text("Fields") },
         )
         FilterChip(
             selected = showInlineDiff,
             onClick = { onShowInlineDiffChange(true) },
-            leadingIcon = { Icon(Icons.Default.WrapText, contentDescription = null) },
+            leadingIcon = { Icon(Icons.AutoMirrored.Filled.WrapText, contentDescription = null) },
             label = { Text("Inline diff") },
         )
     }

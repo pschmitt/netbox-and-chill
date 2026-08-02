@@ -56,7 +56,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.topology.TopologyGraph
 import dev.pschmitt.netboxandchill.data.topology.TopologyNode
@@ -166,7 +166,7 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
     var pan by remember(graph) { mutableStateOf(Offset.Zero) }
     var initialized by remember(graph) { mutableStateOf(false) }
     val transformState =
-        rememberTransformableState { zoomChange, panChange, _ ->
+        rememberTransformableState { _, zoomChange, panChange, _ ->
             zoom = (zoom * zoomChange).coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
             pan += panChange
         }

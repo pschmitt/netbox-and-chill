@@ -106,7 +106,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.fragment.app.FragmentActivity
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity

@@ -5089,16 +5089,15 @@ Status: not started, 2026-08-03 - static review; baseline counts measured with `
 
 ## NBC-300: clear the remaining non-baselined lint and compiler warnings
 
-The remote `:app:lintDebug` gate succeeds but still reports six non-baselined warnings: one
+The remote `:app:lintDebug` gate initially reported six non-baselined warnings: one
 modifier-parameter ordering warning and KTX suggestions for `String.toUri`, `createBitmap`, and
-`Bitmap.scale`. The unit-test compile also reports four deprecated `hiltViewModel` imports in
-`Sidebar.kt` and `SettingsScreen.kt`; Gradle reports deprecated features that will stop working
-with Gradle 10.
+`Bitmap.scale`. The compiler also reported deprecated Hilt Compose and lifecycle imports, plus
+deprecated mirrored icon and transform APIs.
 
-- [ ] Fix the six current lint warnings and keep the baseline from absorbing them.
-- [ ] Migrate the deprecated Hilt Compose import to `androidx.hilt.lifecycle.viewmodel.compose`.
+- [x] Fix the six current lint warnings and keep the baseline from absorbing them.
+- [x] Migrate the deprecated Hilt Compose import to `androidx.hilt.lifecycle.viewmodel.compose`.
 - [ ] Run the build with full deprecation warnings and remove or document project-owned Gradle
       deprecations.
 
-Status: not started, 2026-08-03 - `just test`, `just lint`, and remote `:app:lintDebug` passed;
-the warning counts were recorded from their output.
+Status: mostly done, 2026-08-03 - `just test`, `just lint`, and remote `:app:lintDebug` pass with
+no new lint issues; the remaining Gradle deprecation report is not caused by a source warning.

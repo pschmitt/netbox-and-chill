@@ -33,8 +33,8 @@ fun ImageAttachmentGallery(
     localImageFile: (url: String, filename: String) -> File?,
     onImageClick: (items: List<ImageViewerItem>, index: Int) -> Unit,
     onAdd: () -> Unit,
-    onAttachmentLongPress: (ImageAttachmentEntity) -> Unit = {},
     modifier: Modifier = Modifier,
+    onAttachmentLongPress: (ImageAttachmentEntity) -> Unit = {},
 ) {
     val viewerItems = attachments.map { it.toImageViewerItem(localImageFile) }
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 6.dp)) {
