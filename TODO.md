@@ -4560,3 +4560,17 @@ ports, and other port families, consistently with object-type rows elsewhere.
 
 Status: **done**, 2026-08-02 - shared tab/list icon wiring is included in the remote validation pass;
 no NetBox data was changed.
+
+
+## NBC-264: prevent rapid back navigation from blanking the app
+
+Rapidly tapping a detail header's Back action can pop both the current screen and the dashboard
+root before Compose recomposes, leaving the navigation host with no destination and a black screen.
+
+- [x] Route header Back actions through a root-safe navigation helper.
+- [x] Keep the dashboard/onboarding roots alive when a second Back tap arrives during recomposition.
+- [x] Reproduce the rapid double-back sequence on the wired Zenfone after the fix.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests and a debug build passed; the rapid double-back
+sequence on the wired Zenfone returned to the dashboard without blanking the NavHost; no NetBox data
+was changed.

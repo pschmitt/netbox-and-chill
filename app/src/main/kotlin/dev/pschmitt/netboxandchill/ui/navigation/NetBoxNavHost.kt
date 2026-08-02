@@ -46,6 +46,23 @@ private fun NavHostController.navigateToObject(endpointPath: String, id: Int) {
     }
 }
 
+/**
+ * Pops a detail/subscreen while keeping the app's root destination alive.
+ *
+ * Header back actions can receive a second tap before the first pop has finished recomposing. A
+ * raw [popBackStack] then removes the dashboard too, leaving the NavHost with no destination and
+ * only a black Compose surface.
+ */
+private fun NavHostController.navigateBackSafely() {
+    if (
+        currentDestination?.hasRoute(Route.Dashboard::class.qualifiedName.orEmpty(), null) == true ||
+            currentDestination?.hasRoute(Route.Onboarding::class.qualifiedName.orEmpty(), null) == true
+    ) {
+        return
+    }
+    popBackStack()
+}
+
 @Composable
 fun NetBoxNavHost(
     navController: NavHostController,
@@ -100,18 +117,18 @@ fun NetBoxNavHost(
         }
         composable<Route.ObjectChangeDiff> {
             ObjectChangeDiffScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onOpenChangedObject = { endpointPath, id ->
                     navController.navigateToObject(endpointPath, id)
                 },
             )
         }
         composable<Route.PendingChanges> {
-            PendingChangesScreen(onBack = { navController.popBackStack() })
+            PendingChangesScreen(onBack = { navController.navigateBackSafely() })
         }
         composable<Route.SyncSummary> { backStackEntry ->
             val route: Route.SyncSummary = backStackEntry.toRoute()
-            SyncSummaryScreen(summary = route.summary, onBack = { navController.popBackStack() })
+            SyncSummaryScreen(summary = route.summary, onBack = { navController.navigateBackSafely() })
         }
         composable<Route.DeviceList> {
             DeviceListScreen(
@@ -132,13 +149,13 @@ fun NetBoxNavHost(
             )
         }
         composable<Route.Topology> {
-            TopologyScreen(onBack = { navController.popBackStack() })
+            TopologyScreen(onBack = { navController.navigateBackSafely() })
         }
         composable<Route.DeviceDetail> { backStackEntry ->
             val route: Route.DeviceDetail = backStackEntry.toRoute()
             DeviceDetailScreen(
                 deviceId = route.deviceId,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onEditClick = {
                     navController.navigate(
                         Route.Generic(
@@ -175,7 +192,7 @@ fun NetBoxNavHost(
                         )
                     )
                 },
-                onDeleted = { navController.popBackStack() },
+                onDeleted = { navController.navigateBackSafely() },
             )
         }
         composable<Route.GenericList> { backStackEntry ->
@@ -202,7 +219,7 @@ fun NetBoxNavHost(
                 onResultClick = { endpointPath, id ->
                     navController.navigateToObject(endpointPath, id)
                 },
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onDashboardClick = {
                     navController.navigate(Route.Dashboard) { launchSingleTop = true }
                 },
@@ -217,7 +234,7 @@ fun NetBoxNavHost(
             val route: Route.Generic = backStackEntry.toRoute()
             GenericDetailScreen(
                 highlightDeviceId = route.highlightDeviceId,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onNavigateToReference = { endpointPath, id, _ ->
                     navController.navigateToObject(endpointPath, id)
                 },
@@ -235,7 +252,7 @@ fun NetBoxNavHost(
         }
         composable<Route.Add> {
             AddItemScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onModelClick = { model ->
                     navController.navigate(
                         Route.GenericCreate(model.endpointPath, model.modelLabel)
@@ -256,7 +273,7 @@ fun NetBoxNavHost(
         composable<Route.GenericCreate> { backStackEntry ->
             val route: Route.GenericCreate = backStackEntry.toRoute()
             GenericCreateScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onCreated = { endpointPath, id, display ->
                     if (route.returnFieldKey != null) {
                         val result =
@@ -301,7 +318,7 @@ fun NetBoxNavHost(
                         popUpTo(Route.Scanner()) { inclusive = true }
                     }
                 },
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onDashboardClick = {
                     navController.navigate(Route.Dashboard) { launchSingleTop = true }
                 },
@@ -317,7 +334,7 @@ fun NetBoxNavHost(
         }
         composable<Route.Settings> {
             SettingsScreen(
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onCategoryClick = { category ->
                     navController.navigate(Route.SettingsCategory(category))
                 },
@@ -327,14 +344,14 @@ fun NetBoxNavHost(
             val route: Route.SettingsCategory = backStackEntry.toRoute()
             SettingsCategoryScreen(
                 category = route.category,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateBackSafely() },
                 onLoggedOut = {
                     navController.navigate(Route.Onboarding) { popUpTo(0) { inclusive = true } }
                 },
             )
         }
         composable<Route.EditConflicts> {
-            EditConflictsScreen(onBack = { navController.popBackStack() })
+            EditConflictsScreen(onBack = { navController.navigateBackSafely() })
         }
     }
 }
