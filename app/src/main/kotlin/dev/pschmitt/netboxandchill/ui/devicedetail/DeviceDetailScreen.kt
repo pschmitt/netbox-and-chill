@@ -423,14 +423,40 @@ fun DeviceDetailScreen(
                     )
                 }
             } else {
-                LazyColumn(
-                    modifier =
-                        Modifier.fillMaxSize().itemTabSwipe(
-                            visibleSelectedTab,
-                            visibleRelatedTabs.size + 1,
-                        ) { tabIndex -> selectedTab = tabIndex },
-                    contentPadding = PaddingValues(16.dp),
-                ) {
+                val tabs =
+                    buildList {
+                        add(ItemDetailTab("Overview", Icons.Default.Info))
+                        visibleRelatedTabs.forEach { tab ->
+                            add(
+                                ItemDetailTab(
+                                    label = tab.label,
+                                    icon = tabIcon(tab),
+                                    count = relatedCounts[DEVICE_RELATED_TABS.indexOf(tab)],
+                                )
+                            )
+                        }
+                    }
+                Column(Modifier.fillMaxSize()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 2.dp,
+                    ) {
+                        ItemDetailTabs(
+                            tabs = tabs,
+                            selectedTab = visibleSelectedTab,
+                            onTabSelected = { selectedTab = it },
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        )
+                    }
+                    LazyColumn(
+                        modifier =
+                            Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                visibleSelectedTab,
+                                visibleRelatedTabs.size + 1,
+                            ) { tabIndex -> selectedTab = tabIndex },
+                        contentPadding = PaddingValues(16.dp),
+                    ) {
                     item {
                         ElevatedCard(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -494,25 +520,6 @@ fun DeviceDetailScreen(
                                 }
                             }
                         }
-                    }
-                    item {
-                        ItemDetailTabs(
-                                tabs =
-                                    buildList {
-                                        add(ItemDetailTab("Overview", Icons.Default.Info))
-                                    visibleRelatedTabs.forEach { tab ->
-                                        add(
-                                            ItemDetailTab(
-                                                label = tab.label,
-                                                icon = tabIcon(tab),
-                                                count = relatedCounts[DEVICE_RELATED_TABS.indexOf(tab)],
-                                            )
-                                        )
-                                    }
-                                },
-                            selectedTab = visibleSelectedTab,
-                            onTabSelected = { selectedTab = it },
-                        )
                     }
                     if (visibleSelectedTab == 0) {
                         item {
@@ -721,6 +728,7 @@ fun DeviceDetailScreen(
                                 )
                             }
                         }
+                    }
                     }
                 }
             }

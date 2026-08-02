@@ -639,10 +639,23 @@ fun GenericDetailScreen(
                                 } else {
                                     emptyList()
                                 }
-                        if (visibleSelectedTab == 0) {
+                        Column(Modifier.fillMaxSize()) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surface,
+                                shadowElevation = 2.dp,
+                            ) {
+                                ItemDetailTabs(
+                                    tabs = tabs,
+                                    selectedTab = visibleSelectedTab,
+                                    onTabSelected = { selectedTab = it },
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                )
+                            }
+                            if (visibleSelectedTab == 0) {
                             LazyColumn(
                                 modifier =
-                                    Modifier.fillMaxSize().itemTabSwipe(
+                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
                                         visibleSelectedTab,
                                         tabCount,
                                     ) { selectedTab = it },
@@ -655,13 +668,6 @@ fun GenericDetailScreen(
                                             statusField = statusField,
                                             detailAccent = detailAccent,
                                         onStatusLongPress = { fieldActionLabel = statusField?.label },
-                                    )
-                                }
-                                item {
-                                    ItemDetailTabs(
-                                        tabs = tabs,
-                                        selectedTab = visibleSelectedTab,
-                                        onTabSelected = { selectedTab = it },
                                     )
                                 }
                                 item { Spacer(Modifier.height(8.dp)) }
@@ -765,7 +771,7 @@ fun GenericDetailScreen(
                         } else {
                             LazyColumn(
                                 modifier =
-                                    Modifier.fillMaxSize().itemTabSwipe(
+                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
                                         visibleSelectedTab,
                                         tabCount,
                                     ) { selectedTab = it },
@@ -778,13 +784,6 @@ fun GenericDetailScreen(
                                         statusField = statusField,
                                         detailAccent = detailAccent,
                                         onStatusLongPress = { fieldActionLabel = statusField?.label },
-                                    )
-                                }
-                                item {
-                                    ItemDetailTabs(
-                                        tabs = tabs,
-                                        selectedTab = visibleSelectedTab,
-                                        onTabSelected = { selectedTab = it },
                                     )
                                 }
                                 if (journalEntries.isEmpty()) {
@@ -807,6 +806,7 @@ fun GenericDetailScreen(
                                         )
                                     }
                                 }
+                            }
                             }
                         }
                     }

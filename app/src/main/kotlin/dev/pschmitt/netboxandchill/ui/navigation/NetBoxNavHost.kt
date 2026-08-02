@@ -54,9 +54,10 @@ private fun NavHostController.navigateToObject(endpointPath: String, id: Int) {
  * only a black Compose surface.
  */
 private fun NavHostController.navigateBackSafely() {
+    val currentRoute = currentDestination?.route
     if (
-        currentDestination?.hasRoute(Route.Dashboard::class.qualifiedName.orEmpty(), null) == true ||
-            currentDestination?.hasRoute(Route.Onboarding::class.qualifiedName.orEmpty(), null) == true
+        currentRoute == Route.Dashboard::class.qualifiedName ||
+            currentRoute == Route.Onboarding::class.qualifiedName
     ) {
         return
     }

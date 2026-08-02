@@ -4574,3 +4574,17 @@ root before Compose recomposes, leaving the navigation host with no destination 
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests and a debug build passed; the rapid double-back
 sequence on the wired Zenfone returned to the dashboard without blanking the NavHost; no NetBox data
 was changed.
+
+
+## NBC-265: keep item detail tabs below the header
+
+Item detail tabs should be the first content visible below the app header and remain available while
+the selected tab's content scrolls.
+
+- [x] Move the shared tab row above the scrollable detail content on device and generic item views.
+- [x] Keep the tab row pinned while overview or journal content scrolls.
+- [x] Verify the layout and tab switching on the wired Zenfone without changing NetBox data.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint and a debug build passed; device and generic
+item views on the wired Zenfone show tabs directly below the header and keep them pinned while content
+scrolls; no NetBox data was changed.
