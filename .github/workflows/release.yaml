@@ -3,7 +3,8 @@ name: Release
 # One pipeline, two release flavors depending on what got pushed:
 # - a push to main moves the rolling "latest" prerelease tag and republishes it (debug + release
 #   APKs, always prerelease, never the repo's "Latest release" badge)
-# - a push of a "vX.Y.Z" tag publishes a real, permanent release at that tag (release APKs only,
+# - a push of a semantic-version tag ("vX.Y.Z" or "X.Y.Z") publishes a real, permanent release at
+#   that tag (release APKs only,
 #   becomes the repo's "Latest release")
 # Both need the identical build/sign/verify/checksum pipeline, so it's one job with a branch
 # partway through rather than two workflows that would only drift apart over time.
@@ -14,6 +15,8 @@ on:
       - main
     tags:
       - v*
+      # Also support unprefixed semantic-version tags such as 1.0.0.
+      - '*.*.*'
   workflow_dispatch:
 
 concurrency:
@@ -51,8 +54,8 @@ jobs:
           encodedString: ${{ secrets.CI_KEYSTORE_BASE64 }}
 
       - name: Determine release parameters
-        # A pushed "vX.Y.Z" tag gets its own permanent release; anything else (a main push, or a
-        # manual dispatch off main) republishes the rolling "latest" prerelease instead.
+        # A pushed semantic-version tag gets its own permanent release; anything else (a main push,
+        # or a manual dispatch off main) republishes the rolling "latest" prerelease instead.
         id: params
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then

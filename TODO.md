@@ -4651,3 +4651,14 @@ Rack elevation should have a dedicated tab instead of occupying the top of the r
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests/lint passed; the wired Zenfone verified that rack
 Overview no longer contains elevation and the separate Elevation tab renders clickable front/rear views;
 no NetBox data was changed.
+
+
+## NBC-271: publish unprefixed tagged releases
+
+The release workflow should publish a proper signed GitHub release when a semantic-version tag is
+created without a `v` prefix, including the release APK variants and checksums.
+
+- [ ] Trigger the release workflow for unprefixed semantic-version tags such as `1.0.0`.
+- [ ] Cut and verify the `1.0.0` GitHub release with signed APKs and checksums.
+
+Status: in progress, 2026-08-02 - workflow trigger support is being added before creating the tag.
