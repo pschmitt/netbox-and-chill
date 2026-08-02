@@ -4832,3 +4832,15 @@ trigger button instead of appearing elsewhere in the dialog.
 
 Status: **done**, 2026-08-02 - Mi Pad 4 verified the selector opens directly below the
 trigger and exposes Front/Rear without selecting or uploading media.
+
+
+## NBC-284: keep launcher artwork inside the adaptive-icon safe zone
+
+The app icon is still slightly cropped on the launcher and splash screen. Reduce the shared
+foreground artwork so the outer connector marks remain inside Android's adaptive-icon mask.
+
+- [x] Reduce the adaptive-icon foreground artwork slightly.
+- [x] Verify the launcher and splash rendering on a physical device.
+
+Status: **done**, 2026-08-03 - adaptive foreground reduced to 0.76; Mi Pad 4 launcher and
+splash screenshots show the full artwork inside the safe area; debug APK installed on all devices.
