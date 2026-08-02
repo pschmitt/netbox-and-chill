@@ -5075,7 +5075,7 @@ Status: not started, 2026-08-03 - static review of `android-e2e.yaml` and test i
 
 ## NBC-299: pay down the Android lint baseline
 
-`app/lint-baseline.xml` is 1,858 lines and includes 53 `UseKtx`, 36
+`app/lint-baseline.xml` is currently 1,814 lines and includes 49 `UseKtx`, 36
 `IntentFilterUniqueDataAttributes`, 21 `GradleDependency`, and 11 `MissingPermission` findings,
 among others. The baseline keeps CI green but hides a large amount of known maintenance debt.
 
@@ -5084,7 +5084,9 @@ among others. The baseline keeps CI green but hides a large amount of known main
 - [ ] Fail CI when new baseline findings are introduced and document the remaining intentional
       suppressions.
 
-Status: not started, 2026-08-03 - static review; baseline counts measured with `rg` on 2026-08-03.
+Status: in progress, 2026-08-03 - regenerated after the warning cleanup; four obsolete entries
+were removed and the current baseline is 1,814 lines / 167 issue entries. Remaining findings still
+need classification and staged removal.
 
 
 ## NBC-300: clear the remaining non-baselined lint and compiler warnings
