@@ -494,7 +494,7 @@ class GenericFieldRendererTest {
     }
 
     @Test
-    fun `renders an array of references as a ReferenceList`() {
+    fun `renders tags as a navigable TagList`() {
         val rows =
             buildFieldRows(
                 parse(
@@ -509,13 +509,50 @@ class GenericFieldRendererTest {
             )
         assertEquals(
             listOf(
-                FieldRow.ReferenceList(
+                FieldRow.TagList(
                     "Tags",
                     listOf(
                         RefTarget("prod", "api/extras/tags/", 1),
                         RefTarget("edge", "api/extras/tags/", 2),
                     ),
                 )
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `renders linked template counts with correct plural labels and endpoints`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"id":244,"power_port_template_count":1,"device_bay_template_count":2}"""
+                ),
+                endpointPath = "api/dcim/device-types/",
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.Count(
+                    "Power Port Templates",
+                    "1",
+                    CountTarget(
+                        "api/dcim/power-port-templates/",
+                        "Power Port Templates",
+                        "device_type",
+                        244,
+                    ),
+                ),
+                FieldRow.Count(
+                    "Device Bay Templates",
+                    "2",
+                    CountTarget(
+                        "api/dcim/device-bay-templates/",
+                        "Device Bay Templates",
+                        "device_type",
+                        244,
+                    ),
+                ),
             ),
             rows,
         )

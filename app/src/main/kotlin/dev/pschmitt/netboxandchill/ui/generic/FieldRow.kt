@@ -41,6 +41,9 @@ sealed interface FieldRow {
 
     data class ReferenceList(override val label: String, val targets: List<RefTarget>) : FieldRow
 
+    /** NetBox tags, rendered as navigable tag chips rather than a plain text list. */
+    data class TagList(override val label: String, val targets: List<RefTarget>) : FieldRow
+
     data class ChipList(override val label: String, val values: List<String>) : FieldRow
 
     /**
@@ -79,6 +82,7 @@ internal fun FieldRow.actionValue(): String? =
         is FieldRow.Markdown -> content
         is FieldRow.Reference -> target.display
         is FieldRow.ReferenceList -> targets.joinToString(", ") { it.display }
+        is FieldRow.TagList -> targets.joinToString(", ") { it.display }
         is FieldRow.ChipList -> values.joinToString(", ")
         is FieldRow.FileAttachment -> url
         is FieldRow.Image -> url

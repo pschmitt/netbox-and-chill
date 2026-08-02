@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
@@ -49,6 +50,8 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Badge
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -83,6 +86,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -175,6 +179,7 @@ fun GenericDetailScreen(
     var routeFocusHandled by remember { mutableStateOf(false) }
     var automaticEditStarted by remember { mutableStateOf(false) }
     val hiddenObjectKey = hiddenFieldObjectKey(viewModel.route.endpointPath)
+    val isRouteFocusedEditor = viewModel.route.focusFieldKey != null
     val hiddenFieldsForObject = hiddenFieldKeys.filter { it.startsWith("$hiddenObjectKey/") }
     val visibleFields =
         visibleFieldRows(
@@ -826,6 +831,7 @@ fun GenericDetailScreen(
                 routeFocusHandled = true
                 viewModel.cancelFieldEditing()
                 focusedEditFieldKey = null
+                if (isRouteFocusedEditor) onBack()
             },
             onReview = { editedValue ->
                 // The route is retained for back-stack/breadcrumb state, but it must not relaunch
@@ -834,6 +840,7 @@ fun GenericDetailScreen(
                 if (editedValue == field.value) {
                     viewModel.cancelFieldEditing()
                     focusedEditFieldKey = null
+                    if (isRouteFocusedEditor) onBack()
                 } else {
                     pendingEdits = mapOf(field.key to (field.kind to editedValue))
                     pendingEditFieldKey = field.key
@@ -850,8 +857,10 @@ fun GenericDetailScreen(
             choiceOptions = choiceOptions,
             onDismiss = {
                 pendingEdits = null
-                if (pendingEditFieldKey != null) viewModel.cancelFieldEditing()
+                val wasFocusedEdit = pendingEditFieldKey != null
+                if (wasFocusedEdit) viewModel.cancelFieldEditing()
                 pendingEditFieldKey = null
+                if (wasFocusedEdit && isRouteFocusedEditor) onBack()
             },
             onConfirm = {
                 viewModel.save(edits)
@@ -1481,27 +1490,28 @@ private fun EditMultiPickerField(
             ?: field.currentDisplay?.takeIf { it.isNotBlank() }
             ?: "None"
     Column {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(field.label) },
-            trailingIcon = {
-                IconButton(
-                    onClick = {
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = selectedLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(field.label) },
+                trailingIcon = {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Box(
+                modifier =
+                    Modifier.matchParentSize().clickable(
+                        onClickLabel = "Choose ${field.label}",
+                        role = Role.Button,
+                    ) {
                         query = ""
                         expanded = true
                     }
-                ) {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
-                }
-            },
-            modifier =
-                Modifier.fillMaxWidth().clickable {
-                    query = ""
-                    expanded = true
-                },
-        )
+            )
+        }
         if (expanded) {
             ModalBottomSheet(
                 onDismissRequest = {
@@ -1603,27 +1613,28 @@ private fun EditPickerField(
             ?: value.takeIf { it.isNotBlank() }
             ?: "None"
     Column {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(field.label) },
-            trailingIcon = {
-                IconButton(
-                    onClick = {
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = selectedLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(field.label) },
+                trailingIcon = {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Box(
+                modifier =
+                    Modifier.matchParentSize().clickable(
+                        onClickLabel = "Choose ${field.label}",
+                        role = Role.Button,
+                    ) {
                         query = ""
                         expanded = true
                     }
-                ) {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
-                }
-            },
-            modifier =
-                Modifier.fillMaxWidth().clickable {
-                    query = ""
-                    expanded = true
-                },
-        )
+            )
+        }
         if (expanded) {
             val filteredOptions = filterEditOptions(options, query)
             ModalBottomSheet(
@@ -1936,11 +1947,13 @@ internal fun LazyListScope.fieldRow(
                             .clickable { onRelatedItems(row.target) },
                 ) {
                     Text(
-                        "${row.label} (${row.value})",
+                        row.label,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f),
                     )
+                    Badge { Text(row.value) }
+                    Spacer(Modifier.width(8.dp))
                     Icon(
                         Icons.Default.FilterList,
                         contentDescription = "Show ${row.label.lowercase()}",
@@ -2026,6 +2039,42 @@ internal fun LazyListScope.fieldRow(
                                     }
                                     .padding(vertical = 2.dp),
                         )
+                    }
+                }
+            }
+        is FieldRow.TagList ->
+            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
+                Column(Modifier.padding(vertical = 6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Label,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        FieldLabel(row.label) { onFieldLongPress(row.label) }
+                    }
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 6.dp),
+                    ) {
+                        row.targets.forEach { target ->
+                            AssistChip(
+                                onClick = {
+                                    onNavigateToReference(target.endpointPath, target.id)
+                                },
+                                label = { Text(target.display) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Label,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }

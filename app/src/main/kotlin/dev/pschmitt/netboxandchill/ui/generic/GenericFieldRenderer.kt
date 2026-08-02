@@ -202,7 +202,10 @@ private val COUNT_MODEL_ENDPOINTS =
         "device_bay" to "api/dcim/device-bays/",
         "device_role" to "api/dcim/device-roles/",
         "device_type" to "api/dcim/device-types/",
+        "console_port_template" to "api/dcim/console-port-templates/",
+        "device_bay_template" to "api/dcim/device-bay-templates/",
         "front_port" to "api/dcim/front-ports/",
+        "front_port_template" to "api/dcim/front-port-templates/",
         "interface" to "api/dcim/interfaces/",
         "ip_address" to "api/ipam/ip-addresses/",
         "ip_range" to "api/ipam/ip-ranges/",
@@ -210,9 +213,11 @@ private val COUNT_MODEL_ENDPOINTS =
         "location" to "api/dcim/locations/",
         "module" to "api/dcim/modules/",
         "module_bay" to "api/dcim/module-bays/",
+        "module_bay_template" to "api/dcim/module-bay-templates/",
         "power_feed" to "api/dcim/power-feeds/",
         "power_outlet" to "api/dcim/power-outlets/",
         "power_port" to "api/dcim/power-ports/",
+        "power_port_template" to "api/dcim/power-port-templates/",
         "prefix" to "api/ipam/prefixes/",
         "provider" to "api/circuits/providers/",
         "provider_network" to "api/circuits/provider-networks/",
@@ -220,6 +225,7 @@ private val COUNT_MODEL_ENDPOINTS =
         "rack_group" to "api/dcim/rack-groups/",
         "rack_role" to "api/dcim/rack-roles/",
         "rear_port" to "api/dcim/rear-ports/",
+        "rear_port_template" to "api/dcim/rear-port-templates/",
         "region" to "api/dcim/regions/",
         "site" to "api/dcim/sites/",
         "tenant" to "api/tenancy/tenants/",
@@ -290,10 +296,12 @@ private fun parentModelKey(endpointPath: String): String {
 
 private fun pluralCollectionSegment(modelKey: String): String {
     val kebab = modelKey.replace('_', '-')
+    val lastWord = kebab.substringAfterLast('-')
     return when {
-        kebab.endsWith("y") -> kebab.dropLast(1) + "ies"
+        lastWord.endsWith("y") && lastWord.length > 1 && lastWord[lastWord.lastIndex - 1] !in "aeiou" ->
+            kebab.dropLast(1) + "ies"
         kebab.endsWith("s") -> kebab
-        else -> "$kebab-s".removeSuffix("-")
+        else -> "${kebab}s"
     }
 }
 
@@ -305,7 +313,7 @@ private fun renderField(key: String, label: String, value: JsonElement): FieldRo
         is JsonNull -> null
         is JsonPrimitive -> renderPrimitive(key, label, value)
         is JsonObject -> renderObject(key, label, value)
-        is JsonArray -> renderArray(label, value)
+        is JsonArray -> renderArray(key, label, value)
     }
 
 private fun renderPrimitive(key: String, label: String, value: JsonPrimitive): FieldRow? {
@@ -376,10 +384,12 @@ private fun userReferenceDisplay(value: JsonElement): String? {
         ?: (user["id"] as? JsonPrimitive)?.contentOrNull
 }
 
-private fun renderArray(label: String, value: JsonArray): FieldRow? {
+private fun renderArray(key: String, label: String, value: JsonArray): FieldRow? {
     if (value.isEmpty()) return null
     val refs = value.mapNotNull { (it as? JsonObject)?.let(::asRefTarget) }
-    if (refs.size == value.size) return FieldRow.ReferenceList(label, refs)
+    if (refs.size == value.size) {
+        return if (key == "tags") FieldRow.TagList(label, refs) else FieldRow.ReferenceList(label, refs)
+    }
     val chips = value.mapNotNull {
         when (it) {
             is JsonPrimitive -> it.contentOrNull

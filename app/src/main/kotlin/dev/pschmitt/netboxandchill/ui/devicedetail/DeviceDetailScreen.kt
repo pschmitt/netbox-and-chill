@@ -523,9 +523,9 @@ fun DeviceDetailScreen(
                                     },
                                 onFieldLongPress = { fieldActionLabel = it },
                             )
-                        if (isFieldVisible("model"))
+                        if (isFieldVisible("device_type") && isFieldVisible("model"))
                             detailField(
-                                "Model",
+                                "Device type",
                                 current.deviceTypeModel,
                                 onClick =
                                     deviceType?.id?.let { id ->
@@ -722,6 +722,7 @@ private fun deviceFieldActionValue(
         "Position" -> current.position?.toString()
         "Role" -> current.roleName
         "Manufacturer" -> current.manufacturerName
+        "Device type",
         "Model" -> current.deviceTypeModel
         "Serial" -> current.serial
         "Asset tag" -> current.assetTag
@@ -758,6 +759,7 @@ private fun visibleDeviceCustomFieldRows(
 
 private fun deviceEditFieldKey(label: String): String =
     when (label) {
+        "Device type",
         "Model" -> "device_type"
         "Asset tag" -> "asset_tag"
         "Primary IP" -> "primary_ip"

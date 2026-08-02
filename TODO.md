@@ -4020,3 +4020,59 @@ images and device-specific tabs.
 - [ ] Verify the Device type → Devices → device path on a physical device.
 
 Status: in progress, 2026-08-02 - implementation started.
+
+
+## NBC-225: polish tags on item detail pages
+
+NetBox tags should read as tags instead of a plain text/reference list, while remaining navigable.
+
+- [ ] Render tags with a tag icon and compact Material 3 chips.
+- [ ] Keep each tag clickable and verify the layout with multiple tags on a physical device.
+
+Status: in progress, 2026-08-02 - implementation started.
+
+
+## NBC-226: polish linked-item count rows
+
+Related-item rows should use correct plural labels and show their count as a compact badge instead
+of appending it to the title.
+
+- [ ] Fix inferred plural collection names such as power-port-templates and device-bay-templates.
+- [ ] Render linked-item counts as badges while keeping the entire row clickable.
+- [ ] Add focused renderer coverage for template labels/endpoints and verify on a physical device.
+
+Status: in progress, 2026-08-02 - implementation started.
+
+
+## NBC-227: label the device type field correctly
+
+The dedicated device detail page currently calls the linked device-type field “Model”, which is
+misleading because the value is the NetBox device type.
+
+- [ ] Rename the field to “Device type” and keep its navigation/edit/hide actions working.
+- [ ] Preserve compatibility with an existing hidden-field preference keyed as “model”.
+
+Status: in progress, 2026-08-02 - implementation started.
+
+
+## NBC-228: make linked-field pickers tappable across the whole field
+
+Reference and choice fields in edit dialogs should open their picker when the field body is
+tapped, not only when the trailing chevron is tapped.
+
+- [ ] Make single- and multi-value linked-field picker surfaces respond to a full-field tap.
+- [ ] Keep the existing search, clear, create-linked-item, and option-selection behavior intact.
+
+Status: in progress, 2026-08-02 - implementation started.
+
+
+## NBC-229: return to the typed device after cancelling focused edits
+
+Long-pressing a field on the dedicated device page and choosing Edit opens a transient generic
+focused-editor route. Cancelling that dialog must return to the original rich device page instead
+of leaving the user on a generic device view.
+
+- [ ] Pop the transient focused-editor route on Cancel/no-change dismissals.
+- [ ] Keep ordinary generic detail editing and full-form cancellation unchanged.
+
+Status: in progress, 2026-08-02 - implementation started.
