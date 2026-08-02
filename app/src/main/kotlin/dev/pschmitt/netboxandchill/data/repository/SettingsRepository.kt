@@ -212,6 +212,16 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _sidebarModelOrders = MutableStateFlow(loadModelOrders())
     val sidebarModelOrders: StateFlow<Map<String, List<String>>> = _sidebarModelOrders.asStateFlow()
 
+    private val _hiddenSidebarApps = MutableStateFlow(loadHiddenSidebarApps())
+    val hiddenSidebarApps: StateFlow<Set<String>> = _hiddenSidebarApps.asStateFlow()
+
+    private val _dashboardSectionOrder = MutableStateFlow(loadOrder(KEY_DASHBOARD_SECTION_ORDER))
+    val dashboardSectionOrder: StateFlow<List<String>> = _dashboardSectionOrder.asStateFlow()
+
+    private val _hiddenDashboardSections = MutableStateFlow(loadHiddenDashboardSections())
+    val hiddenDashboardSections: StateFlow<Set<String>> =
+        _hiddenDashboardSections.asStateFlow()
+
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()
         _syncAttachmentsToDisk.value = enabled
@@ -368,6 +378,27 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _sidebarModelOrders.value = updated
     }
 
+    fun setSidebarAppHidden(appKey: String, hidden: Boolean) {
+        val updated = updateStringSet(_hiddenSidebarApps.value, appKey, hidden)
+        prefs.edit().putStringSet(KEY_HIDDEN_SIDEBAR_APPS, updated).apply()
+        _hiddenSidebarApps.value = updated
+    }
+
+    fun setDashboardSectionOrder(order: List<String>) {
+        val normalized = order.distinct().filter(String::isNotBlank)
+        prefs
+            .edit()
+            .putString(KEY_DASHBOARD_SECTION_ORDER, normalized.joinToString(ORDER_SEPARATOR))
+            .apply()
+        _dashboardSectionOrder.value = normalized
+    }
+
+    fun setDashboardSectionHidden(sectionKey: String, hidden: Boolean) {
+        val updated = updateStringSet(_hiddenDashboardSections.value, sectionKey, hidden)
+        prefs.edit().putStringSet(KEY_HIDDEN_DASHBOARD_SECTIONS, updated).apply()
+        _hiddenDashboardSections.value = updated
+    }
+
     fun togglePinned(endpointPath: String) {
         val current = _pinnedModelPaths.value
         val updated =
@@ -405,6 +436,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _gestureActions.value = defaultGestureActions()
         _gestureTargets.value = emptyMap()
         _hiddenFieldKeys.value = emptySet()
+        _hiddenSidebarApps.value = emptySet()
+        _sidebarAppOrder.value = emptyList()
+        _sidebarModelOrders.value = emptyMap()
+        _dashboardSectionOrder.value = emptyList()
+        _hiddenDashboardSections.value = DEFAULT_HIDDEN_DASHBOARD_SECTIONS
         _changeNotificationsEnabled.value = false
         _changeNotificationFilters.value = setOf(ChangeNotificationFilter.All.storageKey)
         clearSyncIssue()
@@ -532,6 +568,18 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             }
             .toMap()
 
+    private fun loadHiddenSidebarApps(): Set<String> =
+        prefs.getStringSet(KEY_HIDDEN_SIDEBAR_APPS, null).orEmpty().toSet()
+
+    private fun loadHiddenDashboardSections(): Set<String> =
+        prefs
+            .getStringSet(KEY_HIDDEN_DASHBOARD_SECTIONS, null)
+            ?.toSet()
+            ?: DEFAULT_HIDDEN_DASHBOARD_SECTIONS
+
+    private fun updateStringSet(current: Set<String>, key: String, enabled: Boolean): Set<String> =
+        if (key.isBlank()) current else if (enabled) current + key else current - key
+
     private fun encodeModelOrders(orders: Map<String, List<String>>): String =
         orders.entries.joinToString(MODEL_ENTRY_SEPARATOR) { (appKey, modelKeys) ->
             appKey + ORDER_SEPARATOR + modelKeys.joinToString(ITEM_SEPARATOR)
@@ -568,6 +616,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_HIDDEN_FIELDS = "hidden_field_keys"
         const val KEY_SIDEBAR_APP_ORDER = "sidebar_app_order"
         const val KEY_SIDEBAR_MODEL_ORDERS = "sidebar_model_orders"
+        const val KEY_HIDDEN_SIDEBAR_APPS = "hidden_sidebar_apps"
+        const val KEY_DASHBOARD_SECTION_ORDER = "dashboard_section_order"
+        const val KEY_HIDDEN_DASHBOARD_SECTIONS = "hidden_dashboard_sections"
+        val DEFAULT_HIDDEN_DASHBOARD_SECTIONS = setOf("news")
         const val ORDER_SEPARATOR = "\u001F"
         const val ITEM_SEPARATOR = "\u001E"
         const val MODEL_ENTRY_SEPARATOR = "\u001D"

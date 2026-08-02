@@ -35,6 +35,7 @@ constructor(
     val sidebarAppOrder: StateFlow<List<String>> = settingsRepository.sidebarAppOrder
     val sidebarModelOrders: StateFlow<Map<String, List<String>>> =
         settingsRepository.sidebarModelOrders
+    val hiddenSidebarApps: StateFlow<Set<String>> = settingsRepository.hiddenSidebarApps
 
     val pinnedModels: StateFlow<List<NetBoxModelEntity>> =
         settingsRepository.pinnedModelPaths
@@ -56,6 +57,10 @@ constructor(
 
     fun setSidebarModelOrder(appKey: String, order: List<String>) {
         settingsRepository.setSidebarModelOrder(appKey, order)
+    }
+
+    fun setSidebarAppHidden(appKey: String, hidden: Boolean) {
+        settingsRepository.setSidebarAppHidden(appKey, hidden)
     }
 
     fun setOfflineMode(enabled: Boolean) {

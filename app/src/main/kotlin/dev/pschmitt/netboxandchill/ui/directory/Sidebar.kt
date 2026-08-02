@@ -1,33 +1,41 @@
 package dev.pschmitt.netboxandchill.ui.directory
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,6 +58,10 @@ import dev.pschmitt.netboxandchill.BuildConfig
 import dev.pschmitt.netboxandchill.R
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
 import dev.pschmitt.netboxandchill.data.repository.TopologyRepository
+import dev.pschmitt.netboxandchill.ui.common.rememberReorderWiggle
+import dev.pschmitt.netboxandchill.ui.common.rememberSectionReorderState
+import dev.pschmitt.netboxandchill.ui.common.sectionDragOffset
+import dev.pschmitt.netboxandchill.ui.common.sectionReorderGesture
 
 private const val DEVICES_PATH = "api/dcim/devices/"
 
@@ -59,6 +72,7 @@ private fun <T> moveItem(items: List<T>, item: T, offset: Int): List<T>? {
     return items.toMutableList().apply { add(to, removeAt(from)) }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Sidebar(
     onDeviceListClick: () -> Unit,
@@ -73,6 +87,7 @@ fun Sidebar(
     val pinnedPaths by viewModel.settingsRepository.pinnedModelPaths.collectAsStateWithLifecycle()
     val sidebarAppOrder by viewModel.sidebarAppOrder.collectAsStateWithLifecycle()
     val sidebarModelOrders by viewModel.sidebarModelOrders.collectAsStateWithLifecycle()
+    val hiddenSidebarApps by viewModel.hiddenSidebarApps.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
@@ -80,6 +95,9 @@ fun Sidebar(
     // "plugins/netbox-documents", ...), not the humanized labels.
     var expandedApps by remember { mutableStateOf(emptySet<String>()) }
     var reorderMode by remember { mutableStateOf(false) }
+    var showSidebarVisibilityDialog by remember { mutableStateOf(false) }
+    val sidebarListState = rememberLazyListState()
+    val sidebarReorderState = rememberSectionReorderState()
     val context = LocalContext.current
     // ic_launcher is an adaptive icon; render the resolved drawable so the same app artwork is
     // usable inside Compose on every Android version.
@@ -95,10 +113,15 @@ fun Sidebar(
                     models.filter { it.modelLabel.contains(searchQuery, ignoreCase = true) }
                 }
                 .filterValues { it.isNotEmpty() }
+    val visibleFilteredModelsByApp =
+        filteredModelsByApp.filterKeys { it !in hiddenSidebarApps }
+    val visibleSidebarAppKeys =
+        orderSidebarAppKeys(visibleFilteredModelsByApp.keys, sidebarAppOrder)
+    val allSidebarAppKeys = orderSidebarAppKeys(modelsByApp.keys, sidebarAppOrder)
 
     ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
         Column(Modifier.fillMaxHeight()) {
-            LazyColumn(Modifier.weight(1f)) {
+            LazyColumn(state = sidebarListState, modifier = Modifier.weight(1f)) {
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -120,7 +143,22 @@ fun Sidebar(
                             )
                         }
                         Spacer(Modifier.width(12.dp))
-                        Text("NetBox and Chill", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            "NetBox and Chill",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (reorderMode) {
+                            IconButton(onClick = { showSidebarVisibilityDialog = true }) {
+                                Icon(
+                                    Icons.Default.Visibility,
+                                    contentDescription = "Show or hide sidebar groups",
+                                )
+                            }
+                            IconButton(onClick = { reorderMode = false }) {
+                                Icon(Icons.Default.Done, contentDescription = "Finish organizing sidebar")
+                            }
+                        }
                     }
                 }
                 item {
@@ -133,27 +171,6 @@ fun Sidebar(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     )
                     Spacer(Modifier.height(8.dp))
-                }
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            if (reorderMode) "Reorder sidebar" else "Sidebar",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                        )
-                        IconButton(onClick = { reorderMode = !reorderMode }) {
-                            Icon(
-                                if (reorderMode) Icons.Default.ExpandLess else Icons.Default.Edit,
-                                contentDescription =
-                                    if (reorderMode) "Finish reordering sidebar"
-                                    else "Reorder sidebar",
-                            )
-                        }
-                    }
                 }
                 if (searchQuery.isBlank()) {
                     item {
@@ -181,27 +198,45 @@ fun Sidebar(
                     }
                     item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
                 }
-                orderSidebarAppKeys(filteredModelsByApp.keys, sidebarAppOrder).forEach { appKey ->
+                visibleSidebarAppKeys.forEach { appKey ->
                     val models =
                         orderSidebarModels(
                             appKey,
-                            filteredModelsByApp[appKey].orEmpty(),
+                            visibleFilteredModelsByApp[appKey].orEmpty(),
                             sidebarModelOrders[appKey].orEmpty(),
                         )
                     val appLabel = models.firstOrNull()?.appLabel ?: appKey
                     // Searching implicitly expands every matching section - no point collapsing
                     // search results the user is actively looking for.
                     val isExpanded = searchQuery.isNotBlank() || appKey in expandedApps
-                    item {
+                    item(key = "sidebar-app-$appKey") {
+                        val wiggle = rememberReorderWiggle(reorderMode)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier =
                                 Modifier.fillMaxWidth()
-                                    .clickable {
-                                        expandedApps =
-                                            if (appKey in expandedApps) expandedApps - appKey
-                                            else expandedApps + appKey
-                                    }
+                                    .sectionDragOffset("sidebar-app-$appKey", sidebarReorderState)
+                                    .sectionReorderGesture(
+                                        enabled = reorderMode,
+                                        key = "sidebar-app-$appKey",
+                                        order = visibleSidebarAppKeys.map { "sidebar-app-$it" },
+                                        listState = sidebarListState,
+                                        state = sidebarReorderState,
+                                        onOrderChanged = { changed ->
+                                            viewModel.setSidebarAppOrder(
+                                                changed.map { it.removePrefix("sidebar-app-") }
+                                            )
+                                        },
+                                    )
+                                    .graphicsLayer { rotationZ = wiggle }
+                                    .combinedClickable(
+                                        onClick = {
+                                            expandedApps =
+                                                if (appKey in expandedApps) expandedApps - appKey
+                                                else expandedApps + appKey
+                                        },
+                                        onLongClick = { reorderMode = true },
+                                    )
                                     .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
                         ) {
                             Icon(
@@ -219,30 +254,10 @@ fun Sidebar(
                                 modifier = Modifier.weight(1f),
                             )
                             if (reorderMode) {
-                                val orderedApps =
-                                    orderSidebarAppKeys(filteredModelsByApp.keys, sidebarAppOrder)
-                                IconButton(
-                                    onClick = {
-                                        moveItem(orderedApps, appKey, -1)
-                                            ?.let(viewModel::setSidebarAppOrder)
-                                    },
-                                    enabled = orderedApps.firstOrNull() != appKey,
-                                ) {
+                                IconButton(onClick = { viewModel.setSidebarAppHidden(appKey, true) }) {
                                     Icon(
-                                        Icons.Default.ArrowUpward,
-                                        contentDescription = "Move $appLabel up",
-                                    )
-                                }
-                                IconButton(
-                                    onClick = {
-                                        moveItem(orderedApps, appKey, 1)
-                                            ?.let(viewModel::setSidebarAppOrder)
-                                    },
-                                    enabled = orderedApps.lastOrNull() != appKey,
-                                ) {
-                                    Icon(
-                                        Icons.Default.ArrowDownward,
-                                        contentDescription = "Move $appLabel down",
+                                        Icons.Default.VisibilityOff,
+                                        contentDescription = "Hide $appLabel",
                                     )
                                 }
                             }
@@ -354,6 +369,48 @@ fun Sidebar(
             )
         }
     }
+
+    if (showSidebarVisibilityDialog) {
+        SidebarVisibilityDialog(
+            appKeys = allSidebarAppKeys,
+            labels = modelsByApp.mapValues { (_, models) -> models.firstOrNull()?.appLabel },
+            hidden = hiddenSidebarApps,
+            onToggle = viewModel::setSidebarAppHidden,
+            onDismiss = { showSidebarVisibilityDialog = false },
+        )
+    }
+}
+
+@Composable
+private fun SidebarVisibilityDialog(
+    appKeys: List<String>,
+    labels: Map<String, String?>,
+    hidden: Set<String>,
+    onToggle: (String, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Visibility, contentDescription = null) },
+        title = { Text("Sidebar groups") },
+        text = {
+            Column {
+                appKeys.forEach { appKey ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Checkbox(
+                            checked = appKey !in hidden,
+                            onCheckedChange = { visible -> onToggle(appKey, !visible) },
+                        )
+                        Text(labels[appKey] ?: appKey)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+    )
 }
 
 /** Static (non-scrolling) footer pinned to the bottom of the drawer. */

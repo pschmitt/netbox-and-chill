@@ -2,10 +2,13 @@ package dev.pschmitt.netboxandchill.ui.dashboard
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.BarChart
@@ -31,8 +35,13 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,14 +51,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,10 +77,14 @@ import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
-import dev.pschmitt.netboxandchill.ui.common.NetBoxSectionHeader
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.SectionReorderState
 import dev.pschmitt.netboxandchill.ui.common.SyncIssueCard
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
+import dev.pschmitt.netboxandchill.ui.common.rememberReorderWiggle
+import dev.pschmitt.netboxandchill.ui.common.rememberSectionReorderState
+import dev.pschmitt.netboxandchill.ui.common.sectionDragOffset
+import dev.pschmitt.netboxandchill.ui.common.sectionReorderGesture
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
@@ -100,8 +117,20 @@ fun DashboardScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
+    val dashboardSavedOrder by viewModel.dashboardSectionOrder.collectAsStateWithLifecycle()
+    val hiddenDashboardSections by viewModel.hiddenDashboardSections.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val dashboardSections =
+        orderedDashboardSections(
+            savedOrder = dashboardSavedOrder,
+            hidden = hiddenDashboardSections,
+        )
+    val dashboardOrder = dashboardSections.map { it.key }
+    val dashboardListState = rememberLazyListState()
+    val dashboardReorderState = rememberSectionReorderState()
+    var dashboardReorderMode by remember { mutableStateOf(false) }
+    var showDashboardVisibilityDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -118,6 +147,22 @@ fun DashboardScreen(
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Open navigation")
+                    }
+                },
+                actions = {
+                    if (dashboardReorderMode) {
+                        IconButton(onClick = { showDashboardVisibilityDialog = true }) {
+                            Icon(
+                                Icons.Default.Visibility,
+                                contentDescription = "Show or hide dashboard sections",
+                            )
+                        }
+                        IconButton(onClick = { dashboardReorderMode = false }) {
+                            Icon(
+                                Icons.Default.Done,
+                                contentDescription = "Finish organizing dashboard",
+                            )
+                        }
                     }
                 },
             )
@@ -157,7 +202,11 @@ fun DashboardScreen(
                     }
                     .toMap()
 
-            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
+            LazyColumn(
+                state = dashboardListState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+            ) {
                 if (shouldShowSyncIssue(offlineMode)) {
                     syncIssue?.let { issue ->
                         item {
@@ -241,85 +290,240 @@ fun DashboardScreen(
                         Spacer(Modifier.height(24.dp))
                     }
                 }
-                item { NetBoxSectionHeader(Icons.Default.BarChart, "Stats") }
-                item {
-                    if (stats.isEmpty()) {
-                        EmptyHint(isRefreshing, "No stats cached yet - pull to sync")
-                    } else {
-                        StatsRow(stats, onStatClick)
-                    }
-                }
-                item { Spacer(Modifier.height(24.dp)) }
-                item { GlobalSearchCard(onSearchClick) }
-                item { Spacer(Modifier.height(24.dp)) }
-
-                item { NetBoxSectionHeader(Icons.Default.Newspaper, "NetBox news") }
-                if (news.isEmpty()) {
-                    item { EmptyHint(isRefreshing, "No news cached yet - pull to sync") }
-                } else {
-                    items(news, key = { "news-${it.guid}" }) { newsItem ->
-                        NewsRow(newsItem) {
-                            runCatching {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(newsItem.link))
+                items(dashboardSections, key = { "dashboard-section-${it.key}" }) { section ->
+                    DashboardSectionContainer(
+                        section = section,
+                        reorderMode = dashboardReorderMode,
+                        order = dashboardOrder,
+                        listState = dashboardListState,
+                        reorderState = dashboardReorderState,
+                        onEnterReorder = { dashboardReorderMode = true },
+                        onHide = {
+                            viewModel.setDashboardSectionHidden(section.key, true)
+                            dashboardReorderMode = true
+                        },
+                        onOrderChanged = viewModel::setDashboardSectionOrder,
+                    ) {
+                        when (section) {
+                            DashboardSection.Stats -> {
+                                if (stats.isEmpty()) {
+                                    EmptyHint(isRefreshing, "No stats cached yet - pull to sync")
+                                } else {
+                                    StatsRow(stats, onStatClick)
+                                }
+                            }
+                            DashboardSection.Search ->
+                                GlobalSearchCard(
+                                    onClick = onSearchClick,
+                                    reorderMode = dashboardReorderMode,
+                                    onLongPress = { dashboardReorderMode = true },
+                                    onHide = {
+                                        viewModel.setDashboardSectionHidden(section.key, true)
+                                        dashboardReorderMode = true
+                                    },
                                 )
+                            DashboardSection.News -> {
+                                if (news.isEmpty()) {
+                                    EmptyHint(isRefreshing, "No news cached yet - pull to sync")
+                                } else {
+                                    news.forEach { newsItem ->
+                                        NewsRow(newsItem) {
+                                            runCatching {
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse(newsItem.link))
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            DashboardSection.Bookmarks -> {
+                                if (bookmarks.isEmpty()) {
+                                    EmptyHint(isRefreshing, "No bookmarks yet")
+                                } else {
+                                    bookmarks.forEach { bookmark ->
+                                        val thumbnail =
+                                            bookmark.targetEndpointPath?.let { path ->
+                                                bookmark.targetId?.let { id ->
+                                                    viewModel.thumbnailFor(
+                                                        path,
+                                                        id,
+                                                        devicesById,
+                                                        deviceTypesById,
+                                                    )
+                                                }
+                                            }
+                                        BookmarkRow(
+                                            bookmark = bookmark,
+                                            thumbnail = thumbnail,
+                                            localImageFile = viewModel::localImageFile,
+                                        ) {
+                                            bookmarkTargets[bookmark.id]?.let { (path, id) ->
+                                                onNavigateToReference(path, id)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            DashboardSection.RecentChanges -> {
+                                if (changelog.isEmpty()) {
+                                    EmptyHint(isRefreshing, "No changes cached yet - pull to sync")
+                                } else {
+                                    changelog.forEach { change ->
+                                        val thumbnail =
+                                            change.targetEndpointPath?.let { path ->
+                                                change.targetId?.let { id ->
+                                                    viewModel.thumbnailFor(
+                                                        path,
+                                                        id,
+                                                        devicesById,
+                                                        deviceTypesById,
+                                                    )
+                                                }
+                                            }
+                                        ChangeRow(
+                                            change = change,
+                                            thumbnail = thumbnail,
+                                            localImageFile = viewModel::localImageFile,
+                                            onClick = {
+                                                changeTargets[change.id]?.let { (path, id) ->
+                                                    onNavigateToReference(path, id)
+                                                }
+                                            },
+                                            onDiffClick = { onChangeDiffClick(change.id) },
+                                        )
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-                item { Spacer(Modifier.height(24.dp)) }
-
-                item { NetBoxSectionHeader(Icons.Default.Bookmark, "Bookmarks") }
-                if (bookmarks.isEmpty()) {
-                    item { EmptyHint(isRefreshing, "No bookmarks yet") }
-                } else {
-                    items(bookmarks, key = { "bookmark-${it.id}" }) { bookmark ->
-                        val thumbnail =
-                            bookmark.targetEndpointPath?.let { path ->
-                                bookmark.targetId?.let { id ->
-                                    viewModel.thumbnailFor(path, id, devicesById, deviceTypesById)
-                                }
-                            }
-                        BookmarkRow(
-                            bookmark = bookmark,
-                            thumbnail = thumbnail,
-                            localImageFile = viewModel::localImageFile,
-                        ) {
-                            bookmarkTargets[bookmark.id]?.let { (path, id) ->
-                                onNavigateToReference(path, id)
-                            }
-                        }
-                    }
-                }
-                item { Spacer(Modifier.height(24.dp)) }
-
-                item { NetBoxSectionHeader(Icons.Default.History, "Recent changes") }
-                if (changelog.isEmpty()) {
-                    item { EmptyHint(isRefreshing, "No changes cached yet - pull to sync") }
-                } else {
-                    items(changelog, key = { "change-${it.id}" }) { change ->
-                        val thumbnail =
-                            change.targetEndpointPath?.let { path ->
-                                change.targetId?.let { id ->
-                                    viewModel.thumbnailFor(path, id, devicesById, deviceTypesById)
-                                }
-                            }
-                        ChangeRow(
-                            change = change,
-                            thumbnail = thumbnail,
-                            localImageFile = viewModel::localImageFile,
-                            onClick = {
-                                changeTargets[change.id]?.let { (path, id) ->
-                                    onNavigateToReference(path, id)
-                                }
-                            },
-                            onDiffClick = { onChangeDiffClick(change.id) },
-                        )
                     }
                 }
             }
         }
     }
+
+    if (showDashboardVisibilityDialog) {
+        DashboardVisibilityDialog(
+            hidden = hiddenDashboardSections,
+            onToggle = { key, hidden -> viewModel.setDashboardSectionHidden(key, hidden) },
+            onDismiss = { showDashboardVisibilityDialog = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun DashboardSectionContainer(
+    section: DashboardSection,
+    reorderMode: Boolean,
+    order: List<String>,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    reorderState: SectionReorderState,
+    onEnterReorder: () -> Unit,
+    onHide: () -> Unit,
+    onOrderChanged: (List<String>) -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier.fillMaxWidth()
+                .sectionDragOffset("dashboard-section-${section.key}", reorderState)
+                .sectionReorderGesture(
+                    enabled = reorderMode,
+                    key = "dashboard-section-${section.key}",
+                    order = order.map { "dashboard-section-$it" },
+                    listState = listState,
+                    state = reorderState,
+                    onOrderChanged = { changed ->
+                        onOrderChanged(changed.map { it.removePrefix("dashboard-section-") })
+                    },
+                ),
+    ) {
+        if (section != DashboardSection.Search) {
+            DashboardSectionHeader(
+                section = section,
+                reorderMode = reorderMode,
+                onLongPress = onEnterReorder,
+                onHide = onHide,
+            )
+        }
+        content()
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun DashboardSectionHeader(
+    section: DashboardSection,
+    reorderMode: Boolean,
+    onLongPress: () -> Unit,
+    onHide: () -> Unit,
+) {
+    val wiggle = rememberReorderWiggle(reorderMode)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            Modifier.fillMaxWidth()
+                .graphicsLayer { rotationZ = wiggle }
+                .combinedClickable(onClick = {}, onLongClick = onLongPress)
+                .padding(bottom = 8.dp),
+    ) {
+        Icon(
+            when (section) {
+                DashboardSection.Stats -> Icons.Default.BarChart
+                DashboardSection.News -> Icons.Default.Newspaper
+                DashboardSection.Bookmarks -> Icons.Default.Bookmark
+                DashboardSection.RecentChanges -> Icons.Default.History
+                DashboardSection.Search -> Icons.Default.Search
+            },
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            section.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        if (reorderMode) {
+            IconButton(onClick = onHide) {
+                Icon(Icons.Default.VisibilityOff, contentDescription = "Hide ${section.title}")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardVisibilityDialog(
+    hidden: Set<String>,
+    onToggle: (String, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Visibility, contentDescription = null) },
+        title = { Text("Dashboard sections") },
+        text = {
+            Column {
+                DashboardSection.entries.forEach { section ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Checkbox(
+                            checked = section.key !in hidden,
+                            onCheckedChange = { visible -> onToggle(section.key, !visible) },
+                        )
+                        Text(section.title)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+    )
 }
 
 @Composable
@@ -391,14 +595,23 @@ private fun StatTile(stat: DashboardStatEntity, onClick: () -> Unit) {
 }
 
 @Composable
-private fun GlobalSearchCard(onClick: () -> Unit) {
+@OptIn(ExperimentalFoundationApi::class)
+private fun GlobalSearchCard(
+    onClick: () -> Unit,
+    reorderMode: Boolean,
+    onLongPress: () -> Unit,
+    onHide: () -> Unit,
+) {
+    val wiggle = rememberReorderWiggle(reorderMode)
     ElevatedCard(
-        onClick = onClick,
         colors =
             androidx.compose.material3.CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier.fillMaxWidth()
+                .graphicsLayer { rotationZ = wiggle }
+                .combinedClickable(onClick = onClick, onLongClick = onLongPress),
     ) {
         ListItem(
             colors =
@@ -418,6 +631,17 @@ private fun GlobalSearchCard(onClick: () -> Unit) {
                 Text("Search NetBox", style = MaterialTheme.typography.titleLarge)
             },
             supportingContent = { Text("Find devices, IPs, sites, racks, and more") },
+            trailingContent = {
+                if (reorderMode) {
+                    IconButton(onClick = onHide) {
+                        Icon(
+                            Icons.Default.VisibilityOff,
+                            contentDescription = "Hide Search NetBox",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
+            },
         )
     }
 }

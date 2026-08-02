@@ -3547,13 +3547,15 @@ loading and error states remain distinct; remote checks/build passed.
 Dashboard categories and sidebar groups should be user-organizable through long-press editing,
 including reorder, hide, and a brief editing affordance instead of a permanent edit heading.
 
-- [ ] Long-press a dashboard category heading to enter reorder mode.
-- [ ] Allow dragging categories and hiding them through a user preference.
-- [ ] Apply the same long-press reorder/hide interaction to sidebar groups.
-- [ ] Remove the redundant Sidebar heading.
-- [ ] Verify persistence and touch feedback on phone and tablet layouts.
+- [x] Long-press a dashboard category heading to enter reorder mode.
+- [x] Allow dragging categories and hiding them through a user preference.
+- [x] Apply the same long-press reorder/hide interaction to sidebar groups.
+- [x] Remove the redundant Sidebar heading.
+- [x] Verify persistence and touch feedback on phone and tablet layouts.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; remote ktfmt/unit tests and debug build passed. Mi Pad 4 verified
+default-hidden NetBox news, dashboard long-press edit mode plus visibility dialog, and sidebar
+long-press edit mode with group hide controls. Preferences are persisted through SettingsRepository.
 
 
 ## NBC-196: make the sidebar version card open About
@@ -3646,11 +3648,12 @@ Status: not started, 2026-08-02.
 The home dashboard should not show the NetBox News category by default, while still allowing it to
 be enabled later through dashboard customization.
 
-- [ ] Make NetBox News hidden on a fresh install.
-- [ ] Preserve an explicit user preference so it can be shown again.
-- [ ] Keep the dashboard ordering/customization behavior compatible with the setting.
+- [x] Make NetBox News hidden on a fresh install.
+- [x] Preserve an explicit user preference so it can be shown again.
+- [x] Keep the dashboard ordering/customization behavior compatible with the setting.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; the dashboard preference defaults to the hidden `news` section and
+the Mi Pad 4 cached dashboard omitted NetBox news after installing the debug build.
 
 
 ## NBC-203: inspect and improve long-term maintainability

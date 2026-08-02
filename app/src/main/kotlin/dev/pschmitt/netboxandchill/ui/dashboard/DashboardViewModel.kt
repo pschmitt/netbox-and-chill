@@ -38,7 +38,7 @@ constructor(
     private val deviceTypeRepository: DeviceTypeRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     pendingEditRepository: PendingEditRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
 ) : ViewModel() {
@@ -46,6 +46,8 @@ constructor(
     val offlineMode: StateFlow<Boolean> = settingsRepository.offlineMode
     val syncIssue = settingsRepository.syncIssue
     val lastSuccessfulSyncAt = settingsRepository.lastSuccessfulSyncAt
+    val dashboardSectionOrder = settingsRepository.dashboardSectionOrder
+    val hiddenDashboardSections = settingsRepository.hiddenDashboardSections
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(
@@ -109,6 +111,14 @@ constructor(
 
     fun retrySync() {
         if (!offlineMode.value) syncScheduler.syncNow()
+    }
+
+    fun setDashboardSectionOrder(order: List<String>) {
+        settingsRepository.setDashboardSectionOrder(order)
+    }
+
+    fun setDashboardSectionHidden(sectionKey: String, hidden: Boolean) {
+        settingsRepository.setDashboardSectionHidden(sectionKey, hidden)
     }
 
     fun thumbnailFor(
