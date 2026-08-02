@@ -5,6 +5,7 @@ import dev.pschmitt.netboxandchill.data.db.RecentVisitEntity
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GlobalSearchRankingTest {
@@ -74,6 +75,26 @@ class GlobalSearchRankingTest {
     }
 
     @Test
+    fun structuredFiltersAcceptColonEqualsAliasesAndSubstringValues() {
+        val colon = parseGlobalSearchQuery("MANUFACTURER:Shelly router")
+        val spacedColon = parseGlobalSearchQuery("manufacturer: Shelly")
+        val equals = parseGlobalSearchQuery("mac=AA:BB ip:192.0")
+        val spacedEquals = parseGlobalSearchQuery("manufacturer= Shelly")
+
+        assertEquals("router", colon.freeText)
+        assertEquals("manufacturer", colon.filters.single().key)
+        assertEquals("Shelly", colon.filters.single().value)
+        assertEquals("Shelly", spacedColon.filters.single().value)
+        assertEquals("AA:BB 192.0", equals.networkQuery)
+        assertTrue(spacedEquals.filters.isEmpty())
+        assertTrue(searchFieldKeyMatches("ip", "primary_ip"))
+        assertTrue(searchFieldKeyMatches("mac", "mac_address"))
+        assertEquals("IP", formatSearchFieldLabel("ip"))
+        assertEquals("MAC Address", formatSearchFieldLabel("mac_address"))
+        assertTrue("Acme Shelly Labs".contains(colon.filters.single().value, ignoreCase = true))
+    }
+
+    @Test
     fun interfaceAndAssignedIpReferencesResolveToTheirDevice() {
         val interfaceObject =
             JsonObject(
@@ -92,6 +113,14 @@ class GlobalSearchRankingTest {
                     "assigned_object_id" to JsonPrimitive(44),
                 )
             )
+        val macInterface =
+            JsonObject(
+                mapOf(
+                    "id" to JsonPrimitive(44),
+                    "device" to JsonObject(mapOf("id" to JsonPrimitive(7))),
+                    "mac_address" to JsonPrimitive("AA:BB:CC:DD:EE:FF"),
+                )
+            )
 
         assertEquals(
             NetworkDeviceMatch(7, "Interface Ethernet"),
@@ -107,6 +136,14 @@ class GlobalSearchRankingTest {
                 GlobalSearchRepository.IP_ADDRESSES_ENDPOINT_PATH,
                 ipObject,
                 mapOf(44 to 7),
+            ),
+        )
+        assertEquals(
+            NetworkDeviceMatch(7, "MAC AA:BB:CC:DD:EE:FF"),
+            networkDeviceMatch(
+                GlobalSearchRepository.INTERFACES_ENDPOINT_PATH,
+                macInterface,
+                emptyMap(),
             ),
         )
     }

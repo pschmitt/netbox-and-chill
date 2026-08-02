@@ -41,6 +41,90 @@ data class SearchHit(
     val matchHint: String? = null,
 )
 
+data class SearchQueryFilter(
+    val key: String,
+    val value: String,
+    val tokenRange: IntRange,
+    val keyRange: IntRange,
+    val valueRange: IntRange,
+)
+
+data class ParsedGlobalSearchQuery(
+    val raw: String,
+    val freeText: String,
+    val filters: List<SearchQueryFilter>,
+) {
+    val networkQuery: String
+        get() =
+            (filters.map { it.value } + freeText)
+                .filter(String::isNotBlank)
+                .joinToString(" ")
+}
+
+private val SPECIAL_SEARCH_FILTER_REGEX =
+    Regex("(?<!\\S)([a-z][a-z0-9_.-]*)(?::\\s+|=|:)([^\\s]+)", RegexOption.IGNORE_CASE)
+
+private val SUPPORTED_SEARCH_FILTER_KEYS =
+    setOf(
+        "address",
+        "asset",
+        "asset_tag",
+        "comments",
+        "description",
+        "device",
+        "device_type",
+        "display",
+        "id",
+        "ip",
+        "ip_address",
+        "mac",
+        "mac_address",
+        "manufacturer",
+        "model",
+        "name",
+        "platform",
+        "primary_ip",
+        "rack",
+        "role",
+        "serial",
+        "site",
+        "slug",
+        "status",
+        "tag",
+        "tenant",
+        "type",
+        "url",
+    )
+
+fun parseGlobalSearchQuery(queryText: String): ParsedGlobalSearchQuery {
+    val filters =
+        SPECIAL_SEARCH_FILTER_REGEX.findAll(queryText).mapNotNull { match ->
+            val key = match.groupValues[1]
+            val value = match.groupValues[2]
+            if (key.lowercase() !in SUPPORTED_SEARCH_FILTER_KEYS) return@mapNotNull null
+            SearchQueryFilter(
+                key = key.lowercase(),
+                value = value,
+                tokenRange = match.range,
+                keyRange = match.groups[1]!!.range,
+                valueRange = match.groups[2]!!.range,
+            )
+        }.toList()
+    if (filters.isEmpty()) {
+        return ParsedGlobalSearchQuery(queryText, queryText.trim(), emptyList())
+    }
+
+    val freeText = buildString {
+        var cursor = 0
+        filters.forEach { filter ->
+            append(queryText.substring(cursor, filter.tokenRange.first))
+            cursor = filter.tokenRange.last + 1
+        }
+        append(queryText.substring(cursor))
+    }.trim().replace(Regex("\\s+"), " ")
+    return ParsedGlobalSearchQuery(queryText, freeText, filters)
+}
+
 fun recentVisitsToSearchHits(visits: List<RecentVisitEntity>): List<SearchHit> =
     visits.map { visit ->
         SearchHit(
@@ -88,17 +172,42 @@ constructor(
         endpointPath: String? = null,
         limitPerSource: Int = 50,
     ): Flow<List<SearchHit>> =
-        (endpointPath?.let {
-                netBoxObjectDao.searchAllInEndpoint(it, queryText, limitPerSource)
-            } ?: netBoxObjectDao.searchAll(queryText, limitPerSource))
+        parseGlobalSearchQuery(queryText).let { parsedQuery ->
+            val cacheCandidateQuery =
+                parsedQuery.freeText.ifBlank { parsedQuery.filters.firstOrNull()?.value.orEmpty() }
+            val genericSource =
+                endpointPath?.let {
+                    netBoxObjectDao.searchAllInEndpoint(it, cacheCandidateQuery, limitPerSource)
+                } ?: netBoxObjectDao.searchAll(cacheCandidateQuery, limitPerSource)
+            genericSource
             .let { genericRows ->
                 val genericHits =
-                    genericRows.map { rows -> rows.map { it.toSearchHit(queryText) } }
-                val cachedInterfaces = netBoxObjectDao.observeAll(INTERFACES_ENDPOINT_PATH)
+                    genericRows.map { rows ->
+                        rows.filter { it.matches(parsedQuery) }
+                            .map { it.toSearchHit(queryText, parsedQuery) }
+                    }
+                val networkFilterKeys = setOf("ip", "ip_address", "primary_ip", "mac", "mac_address")
+                val networkSearchEnabled =
+                    parsedQuery.filters.isEmpty() ||
+                        parsedQuery.filters.any { it.key in networkFilterKeys }
+                val cachedInterfaces =
+                    if (networkSearchEnabled) {
+                        netBoxObjectDao.observeAll(INTERFACES_ENDPOINT_PATH)
+                    } else {
+                        flowOf(emptyList())
+                    }
                 val directDeviceHits =
                     if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
-                        deviceDao.search(queryText).map { rows ->
-                            rows.take(limitPerSource).map { it.toSearchHit(queryText) }
+                        val deviceSource = deviceDao.search(cacheCandidateQuery)
+                        deviceSource.map { rows ->
+                            rows.filter { it.matches(parsedQuery) }
+                                .take(limitPerSource)
+                                .map {
+                                    it.toSearchHit(
+                                        queryText = queryText,
+                                        parsedQuery = parsedQuery,
+                                    )
+                                }
                         }
                     } else {
                         flowOf(emptyList())
@@ -106,7 +215,10 @@ constructor(
                 val matchingDeviceTypes = genericRows.map { rows ->
                     if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
                         rows
-                            .filter { it.endpointPath == DEVICE_TYPES_ENDPOINT_PATH }
+                            .filter {
+                                it.endpointPath == DEVICE_TYPES_ENDPOINT_PATH &&
+                                    it.matches(parsedQuery)
+                            }
                             .associate { it.id to it.display }
                     } else {
                         emptyMap()
@@ -134,7 +246,10 @@ constructor(
                         flowOf(emptyList())
                     }
                 val devicesMatchingNetworkDetails =
-                    if (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH) {
+                    if (
+                        networkSearchEnabled &&
+                            (endpointPath == null || endpointPath == DEVICES_ENDPOINT_PATH)
+                    ) {
                         combine(genericRows, cachedInterfaces, deviceDao.observeAll()) {
                             matchingObjects,
                             interfaces,
@@ -152,6 +267,7 @@ constructor(
                                 }.toMap()
                             val matchingDevices =
                                 matchingObjects
+                                    .filter { it.matches(parsedQuery) }
                                     .mapNotNull { entity ->
                                         decodeObject(entity.json)?.let {
                                             networkDeviceMatch(
@@ -188,6 +304,7 @@ constructor(
                     generic + direct + recursive + network
                 }
             }
+        }
 
     /**
      * Best-effort live refresh: fans [endpointPaths] out in parallel via `?q=`, upserting
@@ -200,11 +317,13 @@ constructor(
      * already has [observeCached]'s answer regardless of whether this succeeds.
      */
     suspend fun refresh(queryText: String, endpointPaths: List<String>, limitPerModel: Int = 15) {
+        val networkQuery = parseGlobalSearchQuery(queryText).networkQuery
+        if (networkQuery.isBlank()) return
         coroutineScope {
             endpointPaths
                 .filter { it != DEVICES_ENDPOINT_PATH }
                 .map { endpointPath ->
-                    async { refreshOne(endpointPath, queryText, limitPerModel) }
+                    async { refreshOne(endpointPath, networkQuery, limitPerModel) }
                 }
                 .awaitAll()
         }
@@ -226,8 +345,12 @@ constructor(
         }
     }
 
-private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit {
+private fun NetBoxObjectEntity.toSearchHit(
+    queryText: String? = null,
+    parsedQuery: ParsedGlobalSearchQuery = parseGlobalSearchQuery(queryText.orEmpty()),
+): SearchHit {
     val objectJson = decodeObject(json)
+    val searchFields = objectJson?.createChoiceSearchFields().orEmpty()
     val assetTag = objectJson?.assetTagState()
     return SearchHit(
             endpointPath = endpointPath,
@@ -237,13 +360,12 @@ private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit
             assetTag = assetTag?.value,
             hasAssetTagField = assetTag?.hasField == true,
             matchHint =
-                queryText
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { query ->
-                        objectJson?.createChoiceSearchFields()?.let { fields ->
-                            choiceSearchHint(display, id.toString(), fields, query)
-                        }
-                    },
+                structuredSearchHint(searchFields, parsedQuery)
+                    ?: queryText
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { query ->
+                            choiceSearchHint(display, id.toString(), searchFields, query)
+                        },
         )
 }
 
@@ -251,6 +373,7 @@ private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit
         secondaryLine: String? = statusLabel ?: siteName,
         matchHint: String? = null,
         queryText: String? = null,
+        parsedQuery: ParsedGlobalSearchQuery = parseGlobalSearchQuery(queryText.orEmpty()),
     ) =
         SearchHit(
             endpointPath = DEVICES_ENDPOINT_PATH,
@@ -261,6 +384,23 @@ private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit
             hasAssetTagField = true,
             matchHint =
                 matchHint
+                    ?: structuredSearchHint(
+                        mapOf(
+                            "name" to name,
+                            "status" to statusLabel,
+                            "site" to siteName,
+                            "rack" to rackName,
+                            "role" to roleName,
+                            "manufacturer" to manufacturerName,
+                            "device_type" to deviceTypeModel,
+                            "model" to deviceTypeModel,
+                            "serial" to serial,
+                            "asset_tag" to assetTag,
+                            "primary_ip" to primaryIp,
+                            "comments" to comments,
+                        ).filterValues { !it.isNullOrBlank() }.mapValues { it.value!! },
+                        parsedQuery,
+                    )
                     ?: queryText?.let { query ->
                         choiceSearchHint(
                             name,
@@ -280,6 +420,61 @@ private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit
                         )
                     },
         )
+
+    private fun NetBoxObjectEntity.matches(query: ParsedGlobalSearchQuery): Boolean {
+        if (query.filters.isEmpty()) return true
+        if (
+            query.filters.any { it.key == "manufacturer" } &&
+                endpointPath !in setOf(DEVICE_TYPES_ENDPOINT_PATH, DEVICES_ENDPOINT_PATH)
+        ) {
+            return false
+        }
+        val fields = decodeObject(json)?.createChoiceSearchFields().orEmpty()
+        return query.filters.all { filter -> fields.matches(filter) }
+    }
+
+    private fun DeviceEntity.matches(query: ParsedGlobalSearchQuery): Boolean {
+        if (query.filters.isEmpty()) return true
+        val fields =
+            mapOf(
+                "name" to name,
+                "status" to statusLabel,
+                "site" to siteName,
+                "rack" to rackName,
+                "role" to roleName,
+                "manufacturer" to manufacturerName,
+                "device_type" to deviceTypeModel,
+                "model" to deviceTypeModel,
+                "serial" to serial,
+                "asset_tag" to assetTag,
+                "primary_ip" to primaryIp,
+                "comments" to comments,
+            )
+                .filterValues { !it.isNullOrBlank() }
+                .mapValues { it.value!! }
+        return query.filters.all { filter -> fields.matches(filter) }
+    }
+
+    private fun Map<String, String>.matches(filter: SearchQueryFilter): Boolean =
+        entries.any { (key, value) ->
+            searchFieldKeyMatches(filter.key, key) &&
+                value.contains(filter.value, ignoreCase = true)
+        }
+
+    private fun structuredSearchHint(
+        fields: Map<String, String>,
+        query: ParsedGlobalSearchQuery,
+    ): String? =
+        query.filters.firstNotNullOfOrNull { filter ->
+            fields.entries
+                .firstOrNull { (key, value) ->
+                    searchFieldKeyMatches(filter.key, key) &&
+                        value.contains(filter.value, ignoreCase = true)
+                }
+                ?.let { (_, value) ->
+                    "${formatSearchFieldLabel(filter.key)}: $value"
+                }
+        }?.takeIf(String::isNotBlank)
 
     private fun decodeObject(raw: String): JsonObject? =
         runCatching { json.decodeFromString(JsonObject.serializer(), raw) }.getOrNull()
@@ -309,6 +504,32 @@ private fun NetBoxObjectEntity.toSearchHit(queryText: String? = null): SearchHit
     }
 }
 
+internal fun searchFieldKeyMatches(filterKey: String, fieldKey: String): Boolean {
+    val filter = normalizeSearchFieldKey(filterKey)
+    val actual = normalizeSearchFieldKey(fieldKey.substringAfterLast('.'))
+    return when (filter) {
+        "ip" ->
+            actual == "ip" || actual == "address" || actual.endsWith("ip") ||
+                actual.contains("ipaddress")
+        "mac" -> actual == "mac" || actual.contains("mac")
+        "asset" -> actual == "asset" || actual == "assettag"
+        else -> actual == filter || actual.endsWith(filter)
+    }
+}
+
+internal fun formatSearchFieldLabel(key: String): String {
+    val acronyms = mapOf("api" to "API", "dns" to "DNS", "id" to "ID", "ip" to "IP", "mac" to "MAC", "url" to "URL", "usb" to "USB")
+    return key.split('_', '-', '.')
+        .filter(String::isNotBlank)
+        .joinToString(" ") { segment ->
+            acronyms[segment.lowercase()]
+                ?: segment.replaceFirstChar { it.titlecase() }
+        }
+}
+
+private fun normalizeSearchFieldKey(key: String): String =
+    key.lowercase().replace(Regex("[^a-z0-9]"), "")
+
 internal fun JsonObject.assetTag(): String? = assetTagState().value
 
 data class NetworkDeviceMatch(val deviceId: Int, val source: String)
@@ -321,6 +542,12 @@ internal fun networkDeviceMatch(
     if (endpointPath == GlobalSearchRepository.INTERFACES_ENDPOINT_PATH) {
         val deviceId = (objectJson["device"] as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
         if (deviceId != null) {
+            val macAddress =
+                objectJson["mac_address"]?.jsonPrimitive?.contentOrNull
+                    ?: objectJson["mac"]?.jsonPrimitive?.contentOrNull
+            if (!macAddress.isNullOrBlank()) {
+                return NetworkDeviceMatch(deviceId, "MAC $macAddress")
+            }
             val display =
                 objectJson["display"]?.jsonPrimitive?.contentOrNull
                     ?: objectJson["name"]?.jsonPrimitive?.contentOrNull

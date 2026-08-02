@@ -42,13 +42,20 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.NetBoxModelEntity
+import dev.pschmitt.netboxandchill.data.repository.parseGlobalSearchQuery
 import dev.pschmitt.netboxandchill.data.repository.SearchHit
 import dev.pschmitt.netboxandchill.data.repository.GlobalSearchRepository
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
@@ -123,6 +130,8 @@ fun GlobalSearchScreen(
                         placeholder = { Text("Search all NetBox objects") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true,
+                        visualTransformation =
+                            SearchQueryVisualTransformation(MaterialTheme.colorScheme.primary),
                         modifier =
                             Modifier.fillMaxWidth()
                                 .focusRequester(focusRequester)
@@ -388,6 +397,28 @@ private fun SearchEmptyState(title: String, message: String) {
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
+    }
+}
+
+private class SearchQueryVisualTransformation(private val accent: Color) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val query = parseGlobalSearchQuery(text.text)
+        if (query.filters.isEmpty()) return TransformedText(text, OffsetMapping.Identity)
+
+        val styled = AnnotatedString.Builder(text)
+        query.filters.forEach { filter ->
+            styled.addStyle(
+                SpanStyle(background = accent.copy(alpha = 0.14f)),
+                filter.tokenRange.first,
+                filter.tokenRange.last + 1,
+            )
+            styled.addStyle(
+                SpanStyle(color = accent, fontWeight = FontWeight.SemiBold),
+                filter.keyRange.first,
+                filter.keyRange.last + 1,
+            )
+        }
+        return TransformedText(styled.toAnnotatedString(), OffsetMapping.Identity)
     }
 }
 

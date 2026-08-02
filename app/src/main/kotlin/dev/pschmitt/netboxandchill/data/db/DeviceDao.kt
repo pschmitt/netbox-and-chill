@@ -18,6 +18,13 @@ interface DeviceDao {
            OR serial LIKE '%' || :query || '%'
            OR assetTag LIKE '%' || :query || '%'
            OR primaryIp LIKE '%' || :query || '%'
+           OR statusLabel LIKE '%' || :query || '%'
+           OR siteName LIKE '%' || :query || '%'
+           OR rackName LIKE '%' || :query || '%'
+           OR roleName LIKE '%' || :query || '%'
+           OR manufacturerName LIKE '%' || :query || '%'
+           OR deviceTypeModel LIKE '%' || :query || '%'
+           OR comments LIKE '%' || :query || '%'
         ORDER BY name COLLATE NOCASE
         """
     )
