@@ -137,8 +137,15 @@ constructor(
     private val _fileToOpen = MutableStateFlow<File?>(null)
     val fileToOpen: StateFlow<File?> = _fileToOpen.asStateFlow()
 
-    private val _journalEntries = MutableStateFlow<List<JournalEntryUi>>(emptyList())
-    val journalEntries: StateFlow<List<JournalEntryUi>> = _journalEntries.asStateFlow()
+    val journalEntries: StateFlow<List<JournalEntryUi>> =
+        journalEntryRepository
+            .observeJournalEntries(route.endpointPath, route.id)
+            .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _journalMutationState = MutableStateFlow(JournalMutationUiState())
+    val journalMutationState: StateFlow<JournalMutationUiState> =
+        _journalMutationState.asStateFlow()
 
     private val objectFlow = repository.observeObject(route.endpointPath, route.id)
 
@@ -305,6 +312,7 @@ constructor(
                 }
             }
         }
+        viewModelScope.launch { loadJournalEntries() }
     }
 
     fun refresh(showConfirmation: Boolean = false) {
@@ -320,13 +328,56 @@ constructor(
 
     private fun loadJournalEntries() {
         viewModelScope.launch {
-            journalEntryRepository.fetchJournalEntries(route.endpointPath, route.id).onSuccess {
-                entries ->
-                _journalEntries.value = entries.mapNotNull { it.toJournalEntryUi() }
-            }
+            journalEntryRepository.fetchJournalEntries(route.endpointPath, route.id)
             // Silently no-op on failure - the journal is a secondary panel, not core object data,
             // and content-type resolution can legitimately come up empty for unusual object types.
         }
+    }
+
+    fun saveJournalEntry(entry: JournalEntryUi?, kind: String, comments: String) {
+        if (_journalMutationState.value.isSaving) return
+        viewModelScope.launch {
+            _journalMutationState.value = JournalMutationUiState(isSaving = true)
+            val result =
+                if (entry == null) {
+                    journalEntryRepository.createJournalEntry(
+                        endpointPath = route.endpointPath,
+                        objectId = route.id,
+                        kind = kind,
+                        comments = comments,
+                        offline = settingsRepository.offlineMode.value,
+                    )
+                } else {
+                    journalEntryRepository.updateJournalEntry(
+                        id = entry.id,
+                        baseJson = entry.baseJson,
+                        kind = kind,
+                        comments = comments,
+                    )
+                }
+            result
+                .onSuccess { mutation ->
+                    _journalMutationState.value =
+                        JournalMutationUiState(
+                            message =
+                                if (mutation.queued) {
+                                    "Journal entry saved locally; will sync when online"
+                                } else {
+                                    "Journal entry saved"
+                                }
+                        )
+                }
+                .onFailure { error ->
+                    _journalMutationState.value =
+                        JournalMutationUiState(
+                            error = error.message ?: "Couldn't save journal entry"
+                        )
+                }
+        }
+    }
+
+    fun journalMutationMessageShown() {
+        _journalMutationState.update { it.copy(message = null, error = null) }
     }
 
     fun errorShown() {

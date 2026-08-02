@@ -15,6 +15,14 @@ data class JournalEntryUi(
     val kind: String,
     val kindLabel: String,
     val comments: String,
+    /** Raw cached object used as the optimistic-edit base for the durable journal outbox. */
+    val baseJson: String = "",
+)
+
+data class JournalMutationUiState(
+    val isSaving: Boolean = false,
+    val error: String? = null,
+    val message: String? = null,
 )
 
 fun JsonObject.toJournalEntryUi(): JournalEntryUi? {
@@ -24,5 +32,5 @@ fun JsonObject.toJournalEntryUi(): JournalEntryUi? {
     val kind = kindObj?.get("value")?.jsonPrimitive?.contentOrNull ?: "info"
     val kindLabel = kindObj?.get("label")?.jsonPrimitive?.contentOrNull ?: "Info"
     val comments = this["comments"]?.jsonPrimitive?.contentOrNull ?: ""
-    return JournalEntryUi(id, created, kind, kindLabel, comments)
+    return JournalEntryUi(id, created, kind, kindLabel, comments, toString())
 }

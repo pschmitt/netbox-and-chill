@@ -4107,3 +4107,44 @@ actions by using the theme error color for its leading icon.
 
 Status: **done**, 2026-08-02; both overflow-menu Delete icons now use the theme error color and
 the existing confirmation/deletion paths are unchanged.
+
+
+## NBC-232: show attached documents on item overview pages
+
+Item overview pages should include a cache-first Documents section so files attached through the
+NetBox Documents plugin are visible and openable without navigating away from the item.
+
+- [ ] Resolve cached Documents records for the current item and avoid live lookups while viewing.
+- [ ] Show document names/types and allow opening the cached/downloadable file.
+- [ ] Render the section consistently on dedicated device and generic item pages.
+- [ ] Verify populated and empty states offline on a physical device.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-233: hide empty item-detail tabs
+
+Item detail tab bars should not offer secondary tabs whose cached content count is zero. Overview
+remains available, and changing the visible tab set must not break selection, swipes, or related
+item navigation.
+
+- [ ] Hide empty related tabs on dedicated device pages.
+- [ ] Hide empty secondary tabs on generic item pages.
+- [ ] Keep selection and left/right swipe indices valid as content appears or disappears.
+- [ ] Verify populated and empty tab sets on a physical device.
+
+Status: not started, 2026-08-02.
+
+
+## NBC-234: add and edit journal entries from item pages
+
+The item overflow menu should offer a journal-entry creation action, and existing journal entries
+should expose an edit action with the same kind/comments form.
+
+- [ ] Add a cache-first, offline-safe journal create flow for generic and dedicated item pages.
+- [ ] Add an edit action and update flow for existing entries.
+- [ ] Keep journal entries visible immediately from the local cache and queue offline mutations.
+- [ ] Verify the editor, Markdown rendering, and online/offline behavior without mutating unrelated
+  production records.
+
+Status: not started, 2026-08-02.

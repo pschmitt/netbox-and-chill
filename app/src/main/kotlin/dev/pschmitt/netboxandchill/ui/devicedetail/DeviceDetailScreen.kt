@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -76,16 +74,18 @@ import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
-import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
+import dev.pschmitt.netboxandchill.ui.common.ImageAttachmentGallery
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
+import dev.pschmitt.netboxandchill.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
+import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
 import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelDialog
 import dev.pschmitt.netboxandchill.ui.common.PrintLabelRequest
@@ -132,6 +132,7 @@ fun DeviceDetailScreen(
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val interfaceIpAddresses by viewModel.interfaceIpAddresses.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val customFieldRows by viewModel.customFieldRows.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
@@ -169,6 +170,9 @@ fun DeviceDetailScreen(
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var showMediaUpload by remember { mutableStateOf(false) }
+    var showJournalEditor by remember { mutableStateOf(false) }
+    var journalEditorEntry by remember { mutableStateOf<JournalEntryUi?>(null) }
     var showHiddenFields by remember { mutableStateOf(false) }
     var fieldActionLabel by remember { mutableStateOf<String?>(null) }
     val hiddenFieldsForDevice = hiddenFieldKeys.filter { it.startsWith("device/") }
@@ -198,6 +202,14 @@ fun DeviceDetailScreen(
         refreshToastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.refreshToastShown()
+        }
+    }
+
+    LaunchedEffect(journalMutationState.message) {
+        journalMutationState.message?.let {
+            showJournalEditor = false
+            snackbarHostState.showSnackbar(it)
+            viewModel.journalMutationMessageShown()
         }
     }
 
@@ -265,6 +277,18 @@ fun DeviceDetailScreen(
                                 enabled = !isRefreshing,
                                 onClick = {
                                     viewModel.refresh(showConfirmation = true)
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add journal entry") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.History, contentDescription = null)
+                                },
+                                enabled = !isRefreshing,
+                                onClick = {
+                                    journalEditorEntry = null
+                                    showJournalEditor = true
                                     actionMenuExpanded = false
                                 },
                             )
@@ -467,10 +491,13 @@ fun DeviceDetailScreen(
                         deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index ->
                             imageViewer = items to index
                         }
-                        imageAttachmentRow(imageAttachments, viewModel::localImageFile) {
-                            items,
-                            index ->
-                            imageViewer = items to index
+                        item {
+                            ImageAttachmentGallery(
+                                attachments = imageAttachments,
+                                localImageFile = viewModel::localImageFile,
+                                onImageClick = { items, index -> imageViewer = items to index },
+                                onAdd = { showMediaUpload = true },
+                            )
                         }
                         if (isFieldVisible("site"))
                             detailField(
@@ -610,7 +637,13 @@ fun DeviceDetailScreen(
                         val tab = DEVICE_RELATED_TABS[selectedTab - 1]
                         item {
                             if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
-                                DeviceJournalEntries(journalEntries)
+                                DeviceJournalEntries(
+                                    entries = journalEntries,
+                                    onEdit = {
+                                        journalEditorEntry = it
+                                        showJournalEditor = true
+                                    },
+                                )
                             } else {
                                 DeviceRelatedObjects(
                                     tab = tab,
@@ -687,6 +720,29 @@ fun DeviceDetailScreen(
     }
     printRequest?.let { request ->
         PrintLabelDialog(request = request, onDismiss = { printRequest = null })
+    }
+    if (showMediaUpload) {
+        MediaUploadDialog(
+            endpointPath = "api/dcim/devices/",
+            objectId = deviceId,
+            onDismiss = { showMediaUpload = false },
+            onUploaded = {
+                showMediaUpload = false
+                viewModel.refresh(showConfirmation = false)
+            },
+        )
+    }
+    if (showJournalEditor) {
+        JournalEntryEditorDialog(
+            entry = journalEditorEntry,
+            state = journalMutationState,
+            onDismiss = {
+                if (!journalMutationState.isSaving) showJournalEditor = false
+            },
+            onSave = { kind, comments ->
+                viewModel.saveJournalEntry(journalEditorEntry, kind, comments)
+            },
+        )
     }
     fieldActionLabel?.let { label ->
         FieldActionDialog(
@@ -854,7 +910,10 @@ private fun DeviceRelatedObjects(
 }
 
 @Composable
-private fun DeviceJournalEntries(entries: List<JournalEntryUi>) {
+private fun DeviceJournalEntries(
+    entries: List<JournalEntryUi>,
+    onEdit: (JournalEntryUi) -> Unit,
+) {
     if (entries.isEmpty()) {
         Text(
             "No journal entries found for this device.",
@@ -887,6 +946,10 @@ private fun DeviceJournalEntries(entries: List<JournalEntryUi>) {
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { onEdit(entry) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit journal entry")
+                    }
                 }
                 Spacer(Modifier.height(4.dp))
                 CommentCard(content = entry.comments, modifier = Modifier.fillMaxWidth())
@@ -975,82 +1038,6 @@ private fun deviceTypeImageMetadata(
     add("View" to view)
     add("Device type" to "#${deviceType.id}")
 }
-
-/**
- * Uploaded `extras.ImageAttachment` image attachments for this device - tap one to open the
- * full-screen zoomable viewer (NBC-20), opened to the tapped index with horizontal swipe between
- * the rest of the row.
- */
-private fun LazyListScope.imageAttachmentRow(
-    attachments: List<ImageAttachmentEntity>,
-    localImageFile: (String, String) -> File?,
-    onImageClick: (List<ImageViewerItem>, Int) -> Unit,
-) {
-    if (attachments.isEmpty()) return
-    val items = attachments.map { it.toViewerItem(localImageFile) }
-    item {
-        Column(Modifier.padding(vertical = 6.dp)) {
-            Text(
-                "Image attachments",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                itemsIndexed(attachments, key = { _, attachment -> attachment.id }) {
-                    index,
-                    attachment ->
-                    RemoteThumbnail(
-                        imageUrl = attachment.imageUrl,
-                        contentDescription = attachment.name,
-                        localFile =
-                            attachment.imageUrl?.let {
-                                localImageFile(it, attachment.fileName())
-                            },
-                        modifier =
-                            Modifier.size(100.dp).padding(end = 8.dp).clickable {
-                                onImageClick(items, index)
-                            },
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Maps the real `extras.ImageAttachment` fields NetBox actually returns (confirmed live, see
- * NBC-20) into the viewer's generic metadata rows - no `size`/`content_type` field exists on this
- * serializer to show, unlike the TODO's original wishlist.
- */
-private fun ImageAttachmentEntity.toViewerItem(
-    localImageFile: (String, String) -> File?
-): ImageViewerItem {
-    val title =
-        name?.takeIf { it.isNotBlank() }
-            ?: display?.takeIf { it.isNotBlank() }
-            ?: "Image attachment #$id"
-    val metadata = buildList {
-        if (!description.isNullOrBlank()) add("Description" to description)
-        if (imageWidth != null && imageHeight != null)
-            add("Dimensions" to "$imageWidth × $imageHeight")
-        created?.takeIf { it.isNotBlank() }?.let { add("Created" to formatNetBoxDateTime(it)) }
-        lastUpdated
-            ?.takeIf { it.isNotBlank() && it != created }
-            ?.let { add("Last updated" to formatNetBoxDateTime(it)) }
-    }
-    val url = imageUrl.orEmpty()
-    return ImageViewerItem(
-        url = url,
-        title = title,
-        metadata = metadata,
-        localFile = imageUrl?.let { localImageFile(it, fileName()) },
-    )
-}
-
-private fun ImageAttachmentEntity.fileName(): String =
-    name?.takeIf { it.isNotBlank() }
-        ?: display?.takeIf { it.isNotBlank() }
-        ?: "image-attachment-$id"
 
 /** Pull the useful network identity into interface list subtitles when NetBox includes it. */
 private fun dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity.interfaceMacAddresses(): List<String> {

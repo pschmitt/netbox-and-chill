@@ -23,6 +23,7 @@ import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.ui.generic.FieldRow
 import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
+import dev.pschmitt.netboxandchill.ui.generic.JournalMutationUiState
 import dev.pschmitt.netboxandchill.ui.generic.buildFieldRows
 import dev.pschmitt.netboxandchill.ui.generic.toJournalEntryUi
 import dev.pschmitt.netboxandchill.ui.common.REFRESH_QUEUED_TOAST
@@ -43,6 +44,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -230,8 +232,15 @@ constructor(
             .observeFor(DEVICE_OBJECT_TYPE, deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _journalEntries = MutableStateFlow<List<JournalEntryUi>>(emptyList())
-    val journalEntries: StateFlow<List<JournalEntryUi>> = _journalEntries.asStateFlow()
+    val journalEntries: StateFlow<List<JournalEntryUi>> =
+        journalEntryRepository
+            .observeJournalEntries("api/dcim/devices/", deviceId)
+            .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _journalMutationState = MutableStateFlow(JournalMutationUiState())
+    val journalMutationState: StateFlow<JournalMutationUiState> =
+        _journalMutationState.asStateFlow()
 
     val relatedObjects: Map<String, StateFlow<List<NetBoxObjectEntity>>> =
         DEVICE_RELATED_TABS.associate { tab ->
@@ -270,6 +279,7 @@ constructor(
         viewModelScope.launch {
             device.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
+        viewModelScope.launch { refreshJournal() }
     }
 
     fun refresh(showConfirmation: Boolean = false) {
@@ -304,11 +314,54 @@ constructor(
 
     fun refreshJournal() {
         viewModelScope.launch {
-            journalEntryRepository.fetchJournalEntries("api/dcim/devices/", deviceId).onSuccess {
-                entries ->
-                _journalEntries.value = entries.mapNotNull { it.toJournalEntryUi() }
-            }
+            journalEntryRepository.fetchJournalEntries("api/dcim/devices/", deviceId)
         }
+    }
+
+    fun saveJournalEntry(entry: JournalEntryUi?, kind: String, comments: String) {
+        if (_journalMutationState.value.isSaving) return
+        viewModelScope.launch {
+            _journalMutationState.value = JournalMutationUiState(isSaving = true)
+            val result =
+                if (entry == null) {
+                    journalEntryRepository.createJournalEntry(
+                        endpointPath = "api/dcim/devices/",
+                        objectId = deviceId,
+                        kind = kind,
+                        comments = comments,
+                        offline = settingsRepository.offlineMode.value,
+                    )
+                } else {
+                    journalEntryRepository.updateJournalEntry(
+                        id = entry.id,
+                        baseJson = entry.baseJson,
+                        kind = kind,
+                        comments = comments,
+                    )
+                }
+            result
+                .onSuccess { mutation ->
+                    _journalMutationState.value =
+                        JournalMutationUiState(
+                            message =
+                                if (mutation.queued) {
+                                    "Journal entry saved locally; will sync when online"
+                                } else {
+                                    "Journal entry saved"
+                                }
+                        )
+                }
+                .onFailure { error ->
+                    _journalMutationState.value =
+                        JournalMutationUiState(
+                            error = error.message ?: "Couldn't save journal entry"
+                        )
+                }
+        }
+    }
+
+    fun journalMutationMessageShown() {
+        _journalMutationState.update { it.copy(message = null, error = null) }
     }
 
     fun errorShown() {

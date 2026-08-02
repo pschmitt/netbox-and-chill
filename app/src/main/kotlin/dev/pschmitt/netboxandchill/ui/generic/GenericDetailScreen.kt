@@ -107,6 +107,7 @@ import dev.pschmitt.netboxandchill.ui.common.ImageViewerDialog
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
+import dev.pschmitt.netboxandchill.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
 import dev.pschmitt.netboxandchill.ui.common.itemTabSwipe
@@ -149,6 +150,7 @@ fun GenericDetailScreen(
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
     val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val frontElevation by viewModel.frontElevation.collectAsStateWithLifecycle()
@@ -166,6 +168,8 @@ fun GenericDetailScreen(
     var copiedMessage by remember { mutableStateOf<String?>(null) }
     var printRequest by remember { mutableStateOf<PrintLabelRequest?>(null) }
     var showMediaUpload by remember { mutableStateOf(false) }
+    var showJournalEditor by remember { mutableStateOf(false) }
+    var journalEditorEntry by remember { mutableStateOf<JournalEntryUi?>(null) }
     var imageViewerItem by remember { mutableStateOf<ImageViewerItem?>(null) }
     var matterPairingCode by remember { mutableStateOf<String?>(null) }
     var actionMenuExpanded by remember { mutableStateOf(false) }
@@ -281,6 +285,14 @@ fun GenericDetailScreen(
         refreshToastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.refreshToastShown()
+        }
+    }
+
+    LaunchedEffect(journalMutationState.message) {
+        journalMutationState.message?.let {
+            showJournalEditor = false
+            snackbarHostState.showSnackbar(it)
+            viewModel.journalMutationMessageShown()
         }
     }
 
@@ -413,6 +425,18 @@ fun GenericDetailScreen(
                                     enabled = !isRefreshing,
                                     onClick = {
                                         showMediaUpload = true
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Add journal entry") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.History, contentDescription = null)
+                                    },
+                                    enabled = !isRefreshing,
+                                    onClick = {
+                                        journalEditorEntry = null
+                                        showJournalEditor = true
                                         actionMenuExpanded = false
                                     },
                                 )
@@ -712,7 +736,13 @@ fun GenericDetailScreen(
                                         }
                                     } else {
                                         items(journalEntries, key = { it.id }) { entry ->
-                                            JournalEntryItem(entry)
+                                            JournalEntryItem(
+                                                entry,
+                                                onEdit = {
+                                                    journalEditorEntry = entry
+                                                    showJournalEditor = true
+                                                },
+                                            )
                                         }
                                     }
                                 }
@@ -775,6 +805,18 @@ fun GenericDetailScreen(
             objectId = viewModel.route.id,
             onDismiss = { showMediaUpload = false },
             onUploaded = { viewModel.refresh(showConfirmation = false) },
+        )
+    }
+    if (showJournalEditor) {
+        JournalEntryEditorDialog(
+            entry = journalEditorEntry,
+            state = journalMutationState,
+            onDismiss = {
+                if (!journalMutationState.isSaving) showJournalEditor = false
+            },
+            onSave = { kind, comments ->
+                viewModel.saveJournalEntry(journalEditorEntry, kind, comments)
+            },
         )
     }
     imageViewerItem?.let { item ->
@@ -2148,7 +2190,7 @@ private fun String.attachmentFilename(): String =
     substringAfterLast('/').substringBefore('?').ifBlank { "attachment" }
 
 @Composable
-private fun JournalEntryItem(entry: JournalEntryUi) {
+private fun JournalEntryItem(entry: JournalEntryUi, onEdit: () -> Unit) {
     val (icon, tint) =
         when (entry.kind) {
             "success" -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.primary
@@ -2170,6 +2212,10 @@ private fun JournalEntryItem(entry: JournalEntryUi) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit journal entry")
+            }
         }
         Spacer(Modifier.height(4.dp))
         CommentCard(content = entry.comments, modifier = Modifier.fillMaxWidth())
