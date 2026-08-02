@@ -17,7 +17,7 @@ jobs:
   e2e:
     name: Disposable NetBox + Android emulator
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     env:
       E2E_TOKEN: nbt_CiE2eKey001X.0123456789abcdef0123456789abcdef01234567
       NETBOX_COMPOSE_FILE: ci/netbox/docker-compose.yml
@@ -48,6 +48,9 @@ jobs:
           profile: pixel_7_pro
           target: google_apis
           force-avd-creation: true
+          # GitHub-hosted software emulators are inconsistent: this API-35 image has taken
+          # more than twelve minutes to boot on a cold runner.
+          emulator-boot-timeout: 1800
           # The runner's post-boot animation-setting commands can race a slow software
           # emulator's adb service. The journey has explicit waits, so leave animations
           # enabled and avoid making runner setup itself the test failure.
