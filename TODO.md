@@ -3676,9 +3676,10 @@ the focused tickets below.
 
 - [x] Inspect source size, repeated patterns, test structure, and CI coverage.
 - [x] Record only actionable refactoring findings as separate tickets.
-- [ ] Work through the focused refactoring tickets without changing behavior accidentally.
+- [x] Work through the focused refactoring tickets without changing behavior accidentally.
 
-Status: in progress, 2026-08-02 - inspection completed; focused follow-up tickets recorded.
+Status: **done**, 2026-08-02 - focused tickets NBC-204 through NBC-208 were completed with
+behavior-preserving refactors, targeted unit coverage, remote ktfmt/tests, and hosted CI checks.
 
 
 ## NBC-204: split monolithic Compose screens
@@ -3740,9 +3741,10 @@ for Kotlin/Compose maintainability and no repeatable UI-quality check beyond man
 - [x] Keep lightweight Compose accessibility/state regression checks alongside the Android E2E
   workflow.
 
-Status: in progress, 2026-08-02 - Android Lint is wired into CI with a baseline; the baseline
-contains existing findings and future findings fail the gate. Broader Compose accessibility
-coverage remains part of the hosted E2E follow-up.
+Status: **done**, 2026-08-02 - Android Lint is wired into CI with a checked-in baseline and
+future findings fail the gate. Hosted E2E run `30741945664` passed the disposable NetBox journey,
+including Compose semantics/content-description assertions and cached/offline state transitions;
+lint run `30746979777` passed ktfmt and Android Lint.
 
 
 ## NBC-208: replace ad-hoc UI state flags with explicit screen state
