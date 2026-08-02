@@ -35,9 +35,23 @@ constructor(
         return PersistentStats(files.size, files.sumOf { it.length() })
     }
 
-    /** Returns a previously synced durable copy, if one exists for this exact media URL. */
-    fun persistentFile(url: String, filename: String): File? =
-        persistentPath(url, filename).takeIf { it.isFile }
+    /**
+     * Returns a previously synced durable copy, if one exists for this exact media URL.
+     *
+     * Some callers use a generated logical name (for example, `device-type-72-front`) while the
+     * sync worker uses that same name to derive the stored extension from the downloaded media.
+     * Resolve the URL hash independently of the requested display name so those callers still
+     * find `hash.png`/`hash.avif` in the offline cache.
+     */
+    fun persistentFile(url: String, filename: String): File? {
+        val exact = persistentPath(url, filename)
+        if (exact.isFile) return exact
+
+        val hash = persistentHash(url)
+        return exact.parentFile
+            ?.listFiles()
+            ?.firstOrNull { it.isFile && it.name.substringBeforeLast('.', it.name) == hash }
+    }
 
     /** Downloads an attachment into filesDir so Android's cache eviction cannot remove it. */
     suspend fun downloadToPersistent(url: String, filename: String): Result<File> =
@@ -91,13 +105,17 @@ constructor(
         }
 
     private fun persistentPath(url: String, filename: String): File {
-        val digest = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
-        val hash = digest.joinToString("") { "%02x".format(it) }
+        val hash = persistentHash(url)
         val extension =
             filename
                 .substringAfterLast('.', "")
                 .takeIf { it.length in 1..10 && it.all(Char::isLetterOrDigit) }
                 ?.let { ".${it.lowercase()}" } ?: ""
         return File(File(context.filesDir, "offline-attachments"), "$hash$extension")
+    }
+
+    private fun persistentHash(url: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
+        return digest.joinToString("") { "%02x".format(it) }
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -54,7 +55,7 @@ fun RemoteThumbnail(
         val request =
             remember(imageUrl, localFile) {
                 ImageRequest.Builder(context)
-                    .data(localFile ?: imageUrl)
+                    .data(localFile?.toUri() ?: imageUrl)
                     .transformations(TransparentPaddingTransformation())
                     .build()
             }

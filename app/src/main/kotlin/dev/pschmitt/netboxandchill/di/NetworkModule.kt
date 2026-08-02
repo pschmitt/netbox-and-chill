@@ -2,7 +2,9 @@ package dev.pschmitt.netboxandchill.di
 
 import android.content.Context
 import coil3.ImageLoader
+import coil3.decode.BitmapFactoryDecoder
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.serviceLoaderEnabled
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -18,6 +20,7 @@ import dev.pschmitt.netboxandchill.data.api.MediaNetBoxApi
 import dev.pschmitt.netboxandchill.data.api.OfflineModeInterceptor
 import dev.pschmitt.netboxandchill.data.api.TopologyApi
 import dev.pschmitt.netboxandchill.image.LibavifImageDecoder
+import dev.pschmitt.netboxandchill.image.LocalFileFetcher
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -139,8 +142,16 @@ object NetworkModule {
         @DownloadClient okHttpClient: OkHttpClient,
     ): ImageLoader =
         ImageLoader.Builder(context)
+            // Keep Coil's platform file/URI mappers and fetchers available in debug and release;
+            // the custom registry below only adds NetBox authentication and AVIF support.
+            .serviceLoaderEnabled(true)
             .components {
+                add(LocalFileFetcher.Factory())
                 add(LibavifImageDecoder.Factory())
+                // The app uses coil-core directly through Compose. Register the standard Android
+                // decoder explicitly so cached PNG/JPEG images work even when service-loader
+                // components are unavailable on older devices.
+                add(BitmapFactoryDecoder.Factory())
                 add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient }))
             }
             .build()

@@ -4754,11 +4754,12 @@ transparent margins do not appear unnecessarily tiny.
 - [x] Detect transparent padding for locally decoded thumbnails without damaging image content.
 - [x] Apply a bounded crop/scale treatment consistently to device-type and related thumbnails.
 - [x] Keep fallback rendering safe for formats without alpha.
-- [ ] Visually verify the crop against device `#SNF-0004`.
+- [x] Ensure cached local images are decoded and rendered by the app's image loader.
+- [x] Visually verify the crop against device `#SNF-0004`.
 
-Status: mostly done, 2026-08-02 - thumbnail-only Coil transformation uses bounded alpha bounds
-with unit coverage; full-size viewer framing and non-alpha fallback remain unchanged. Visual
-verification against `#SNF-0004` remains pending.
+Status: **done**, 2026-08-02 - extension-aware durable-media lookup plus an explicit local-file Coil
+fetcher render cached PNGs offline; Mi Pad 4 visually verified both `#SNF-0004` thumbnails and the
+full-screen viewer. No NetBox data was changed.
 
 
 ## NBC-279: use acronym-aware global-search match labels
