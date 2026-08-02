@@ -20,6 +20,7 @@ fun NetBoxSectionHeader(
     icon: ImageVector,
     title: String,
     modifier: Modifier = Modifier,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -37,5 +38,9 @@ fun NetBoxSectionHeader(
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
         )
+        trailingContent?.let {
+            Spacer(Modifier.width(6.dp))
+            it()
+        }
     }
 }

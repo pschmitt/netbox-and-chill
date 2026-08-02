@@ -14,13 +14,26 @@ class GenericFieldRendererTest {
         Json.decodeFromString(JsonObject.serializer(), rawJson)
 
     @Test
-    fun `shortens displayed absolute urls to their path and suffix`() {
+    fun `shortens displayed urls from the configured netbox origin`() {
         assertEquals(
             "/dcim/device-types/244/?tab=details#photos",
             shortenDisplayedUrl(
-                "https://netbox.brkn.lol/dcim/device-types/244/?tab=details#photos"
+                "https://netbox.brkn.lol/dcim/device-types/244/?tab=details#photos",
+                "https://netbox.brkn.lol",
             ),
         )
+    }
+
+    @Test
+    fun `keeps external urls fully qualified`() {
+        val external = "https://vendor.example.com/support/device"
+        assertEquals(external, shortenDisplayedUrl(external, "https://netbox.brkn.lol"))
+    }
+
+    @Test
+    fun `keeps urls unchanged when the netbox origin is unknown`() {
+        val url = "https://netbox.brkn.lol/dcim/device-types/244/"
+        assertEquals(url, shortenDisplayedUrl(url))
     }
 
     @Test
@@ -135,6 +148,7 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
                 FieldRow.ExternalLink("Vendor Support URL", "https://vendor.example.com/x"),
             ),
             rows,
@@ -176,6 +190,7 @@ class GenericFieldRendererTest {
             listOf(
                 FieldRow.PlainText("Name", "x"),
                 FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
                 FieldRow.PlainText("Warranty Expires", "2027-01-01"),
                 FieldRow.PlainText("Internal Owner", "NetOps"),
             ),
@@ -200,6 +215,7 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
                 FieldRow.Markdown("Purchase Store", "[Store](https://store.example)"),
             ),
             rows,
@@ -258,6 +274,7 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
                 FieldRow.Markdown("Store", "[Store](https://store.example)"),
                 FieldRow.Markdown("Notes", "**Received**"),
             ),
@@ -276,6 +293,7 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
                 FieldRow.PlainText("Anything", "0439-591-1333", matterPairingCode = true),
             ),
             rows,
@@ -295,7 +313,26 @@ class GenericFieldRendererTest {
         assertEquals(
             listOf(
                 FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
                 FieldRow.Reference("Owner Contact", RefTarget("Jane", "api/tenancy/contacts/", 9)),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `ungrouped custom fields are grouped under Other`() {
+        val rows =
+            buildFieldRows(
+                parse("""{"custom_fields":{"asset_owner":"NetOps","notes":"Ready"}}""")
+            )
+
+        assertEquals(
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
+                FieldRow.PlainText("Asset Owner", "NetOps"),
+                FieldRow.PlainText("Notes", "Ready"),
             ),
             rows,
         )

@@ -100,7 +100,9 @@ import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
 import dev.pschmitt.netboxandchill.data.schema.Humanize
+import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.CachedBadge
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
@@ -110,6 +112,7 @@ import dev.pschmitt.netboxandchill.ui.common.ImageAttachmentGallery
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
 import dev.pschmitt.netboxandchill.ui.common.JournalEntryEditorDialog
+import dev.pschmitt.netboxandchill.ui.common.journalKindPresentation
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadKind
@@ -150,6 +153,7 @@ fun GenericDetailScreen(
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
     val refreshToastMessage by viewModel.refreshToastMessage.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
+    val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
@@ -650,6 +654,7 @@ fun GenericDetailScreen(
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
+                                        CachedBadge()
                                     }
                                 }
                             }
@@ -764,6 +769,7 @@ fun GenericDetailScreen(
                                                     Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                                 )
                                             },
+                                            netboxBaseUrl = netboxBaseUrl,
                                             onDownloadAttachment = viewModel::downloadAttachment,
                                             localAttachmentFile = viewModel::localAttachmentFile,
                                             onImageClick = { imageViewer = listOf(it) to 0 },
@@ -1882,6 +1888,7 @@ internal fun LazyListScope.fieldRow(
     onNavigateToReference: (String, Int) -> Unit,
     onRelatedItems: (CountTarget) -> Unit,
     onOpenUrl: (String) -> Unit,
+    netboxBaseUrl: String?,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
     localAttachmentFile: (url: String, filename: String) -> java.io.File?,
     onImageClick: (ImageViewerItem) -> Unit,
@@ -2065,7 +2072,7 @@ internal fun LazyListScope.fieldRow(
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    CommentCard(content = row.content, modifier = Modifier.fillMaxWidth())
+                    CollapsibleCommentCard(content = row.content, modifier = Modifier.fillMaxWidth())
                 }
             }
         is FieldRow.Reference ->
@@ -2195,7 +2202,7 @@ internal fun LazyListScope.fieldRow(
                         modifier = Modifier.clickable { onOpenUrl(row.url) },
                     ) {
                         Text(
-                            shortenDisplayedUrl(row.url),
+                            shortenDisplayedUrl(row.url, netboxBaseUrl),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -2246,19 +2253,13 @@ private fun String.attachmentFilename(): String =
 
 @Composable
 private fun JournalEntryItem(entry: JournalEntryUi, onEdit: () -> Unit) {
-    val (icon, tint) =
-        when (entry.kind) {
-            "success" -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.primary
-            "warning" -> Icons.Default.Warning to MaterialTheme.colorScheme.tertiary
-            "danger" -> Icons.Default.Error to MaterialTheme.colorScheme.error
-            else -> Icons.Default.Info to MaterialTheme.colorScheme.onSurfaceVariant
-        }
+    val kindPresentation = journalKindPresentation(entry.kind)
     Column(Modifier.padding(vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                icon,
+                kindPresentation.option.icon,
                 contentDescription = entry.kindLabel,
-                tint = tint,
+                tint = kindPresentation.foreground,
                 modifier = Modifier.size(16.dp),
             )
             Spacer(Modifier.width(6.dp))

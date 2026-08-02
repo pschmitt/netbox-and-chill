@@ -75,7 +75,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
+import dev.pschmitt.netboxandchill.ui.common.CachedBadge
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.DocumentsSection
 import dev.pschmitt.netboxandchill.ui.common.FieldActionDialog
@@ -85,6 +87,7 @@ import dev.pschmitt.netboxandchill.ui.common.ImageAttachmentGallery
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTab
 import dev.pschmitt.netboxandchill.ui.common.ItemDetailTabs
 import dev.pschmitt.netboxandchill.ui.common.JournalEntryEditorDialog
+import dev.pschmitt.netboxandchill.ui.common.journalKindPresentation
 import dev.pschmitt.netboxandchill.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadDialog
 import dev.pschmitt.netboxandchill.ui.common.MediaUploadKind
@@ -129,6 +132,7 @@ fun DeviceDetailScreen(
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
+    val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
     val manufacturerId by viewModel.manufacturerId.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
@@ -423,57 +427,71 @@ fun DeviceDetailScreen(
                         ) { tabIndex -> selectedTab = tabIndex },
                     contentPadding = PaddingValues(16.dp),
                 ) {
-                    item {
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Surface(
-                                    color = detailAccent.copy(alpha = 0.18f),
-                                    shape =
-                                        androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-                                    modifier = Modifier.size(52.dp),
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.Cable,
-                                            contentDescription = null,
-                                            tint = detailAccent,
-                                            modifier = Modifier.size(28.dp),
-                                        )
-                                    }
-                                }
-                                Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                                    Text(
-                                        current.name,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                    )
-                                    current.deviceTypeModel?.let {
-                                        Text(
-                                            it,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
-                                if (isFieldVisible("Status")) {
-                                    Box(
-                                        modifier =
-                                            Modifier.combinedClickable(
-                                                onClick = {},
-                                                onLongClick = { fieldActionLabel = "Status" },
-                                            )
+                    stickyHeader {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(Modifier.fillMaxWidth()) {
+                                ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        StatusChip(
-                                            label = current.statusLabel,
-                                            value = current.statusValue,
-                                        )
+                                        Surface(
+                                            color = detailAccent.copy(alpha = 0.18f),
+                                            shape =
+                                                androidx.compose.foundation.shape.RoundedCornerShape(
+                                                    14.dp
+                                                ),
+                                            modifier = Modifier.size(52.dp),
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Cable,
+                                                    contentDescription = null,
+                                                    tint = detailAccent,
+                                                    modifier = Modifier.size(28.dp),
+                                                )
+                                            }
+                                        }
+                                        Column(Modifier.padding(start = 14.dp).weight(1f)) {
+                                            Text(
+                                                current.name,
+                                                style = MaterialTheme.typography.headlineSmall,
+                                            )
+                                            current.deviceTypeModel?.let {
+                                                Text(
+                                                    it,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                        CachedBadge()
+                                        Spacer(Modifier.width(8.dp))
+                                        if (isFieldVisible("Status")) {
+                                            Box(
+                                                modifier =
+                                                    Modifier.combinedClickable(
+                                                        onClick = {},
+                                                        onLongClick = {
+                                                            fieldActionLabel = "Status"
+                                                        },
+                                                    )
+                                            ) {
+                                                StatusChip(
+                                                    label = current.statusLabel,
+                                                    value = current.statusValue,
+                                                )
+                                            }
+                                        }
                                     }
                                 }
+                                Spacer(Modifier.height(12.dp))
                             }
                         }
-                        Spacer(Modifier.height(12.dp))
                     }
                     item {
                         ItemDetailTabs(
@@ -653,6 +671,7 @@ fun DeviceDetailScreen(
                                         Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                     )
                                 },
+                                netboxBaseUrl = netboxBaseUrl,
                                 onDownloadAttachment = viewModel::downloadAttachment,
                                 localAttachmentFile = viewModel::localImageFile,
                                 onImageClick = { item -> imageViewer = listOf(item) to 0 },
@@ -964,19 +983,13 @@ private fun DeviceJournalEntries(
     }
     Column {
         entries.forEach { entry ->
-            val (icon, tint) =
-                when (entry.kind) {
-                    "success" -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.primary
-                    "warning" -> Icons.Default.Warning to MaterialTheme.colorScheme.tertiary
-                    "danger" -> Icons.Default.Error to MaterialTheme.colorScheme.error
-                    else -> Icons.Default.Info to MaterialTheme.colorScheme.onSurfaceVariant
-                }
+            val kindPresentation = journalKindPresentation(entry.kind)
             Column(Modifier.padding(vertical = 6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        icon,
+                        kindPresentation.option.icon,
                         contentDescription = entry.kindLabel,
-                        tint = tint,
+                        tint = kindPresentation.foreground,
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(6.dp))
@@ -1203,7 +1216,7 @@ private fun LazyListScope.detailMarkdownField(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                CommentCard(content = value, modifier = Modifier.fillMaxWidth())
+                CollapsibleCommentCard(content = value, modifier = Modifier.fillMaxWidth())
             }
         }
     }

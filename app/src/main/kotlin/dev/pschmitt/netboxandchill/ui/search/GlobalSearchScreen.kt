@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -199,6 +202,12 @@ fun GlobalSearchScreen(
                             item(key = "active-type-filter") {
                                 ActiveTypeFilter(
                                     model = model,
+                                    accent =
+                                        visualColorForEndpointPath(
+                                            model.endpointPath,
+                                            objectTypeAccents[model.endpointPath.trim('/')],
+                                            MaterialTheme.colorScheme,
+                                        ),
                                     onClear = viewModel::clearTypeFilter,
                                 )
                             }
@@ -278,19 +287,69 @@ fun GlobalSearchScreen(
 }
 
 @Composable
-private fun ActiveTypeFilter(model: NetBoxModelEntity, onClear: () -> Unit) {
-    ListItem(
-        leadingContent = {
-            Icon(AppIcons.forAppKey(model.appKey), contentDescription = null)
-        },
-        headlineContent = { Text("Object type filter") },
-        supportingContent = { Text(model.modelLabel) },
-        trailingContent = {
+private fun ActiveTypeFilter(
+    model: NetBoxModelEntity,
+    accent: Color,
+    onClear: () -> Unit,
+) {
+    Surface(
+        color = accent.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.32f)),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                color = accent.copy(alpha = 0.16f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        AppIcons.forAppKey(model.appKey),
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.FilterAlt,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Active filter",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = accent,
+                    )
+                }
+                Text(
+                    model.modelLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "Only ${model.modelLabel.lowercase()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             IconButton(onClick = onClear) {
                 Icon(Icons.Default.Clear, contentDescription = "Clear object type filter")
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable

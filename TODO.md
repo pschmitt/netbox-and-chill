@@ -4221,3 +4221,139 @@ colored badge. Labels from the Documents plugin should be normalized so values s
 Status: **done**, 2026-08-02 - 208 remote unit tests, remote ktfmt, and `lintDebug` passed. The
 wired Zenfone showed the cached PDF preview with a purple `Purchase order` badge and corrected
 two-word label; no upload or production record change was made.
+
+
+## NBC-239: unify item-page media section headings
+
+The Image attachments section heading should use the same visual treatment as the other section
+headings on item overview pages.
+
+- [x] Reuse the shared section-heading component for image attachments and documents.
+- [x] Preserve attachment counts, previews, upload actions, and document badges.
+- [ ] Verify the consistent headings on the wired Zenfone without changing production data.
+
+Status: in progress
+
+
+## NBC-248: preserve external URL origins in item views
+
+Only URLs served by the configured NetBox origin should be displayed in shortened `/path` form;
+external links must retain their full scheme and host.
+
+- [x] Compare displayed URLs against the configured NetBox scheme, host, and port.
+- [x] Keep external and unqualified URLs fully qualified while preserving click behavior.
+- [x] Add focused same-origin, external-origin, and unknown-origin tests.
+- [ ] Verify an external URL field on the wired Zenfone without changing production data.
+
+Status: in progress
+
+
+## NBC-240: improve the journal entry editor
+
+The journal entry dialog should be easier to use on phones, show semantic colors for each journal
+kind, and provide the same Markdown editing and live preview experience as other Markdown fields.
+
+- [x] Make the dialog wider and keep its contents scrollable on compact screens.
+- [x] Give Info, Success, Warning, and Danger/Failed kinds distinct semantic colors and icons.
+- [x] Reuse the Markdown formatting toolbar and rendered preview for journal comments.
+- [ ] Verify add/edit flows on the wired Zenfone without saving a production journal entry.
+
+Status: in progress
+
+
+## NBC-241: use one media upload action style
+
+The Upload document action should use the same compact add tile visual treatment as image
+attachments.
+
+- [x] Share the compact add-tile component between image and document sections.
+- [x] Keep document upload and image upload actions at the end of their respective lists.
+- [ ] Verify both action tiles on the wired Zenfone without uploading production media.
+
+Status: in progress
+
+
+## NBC-242: keep the dedicated device identity card sticky
+
+The dedicated device detail page should keep its name/device-type identity card visible while
+the overview and related tabs scroll, matching the generic item detail layout.
+
+- [x] Render the device identity card as a sticky lazy-list header.
+- [x] Preserve status long-press editing, device-type navigation, and tab swipe behavior.
+- [ ] Verify scrolling on the wired Zenfone without changing production data.
+
+Status: in progress
+
+
+## NBC-243: mark locally cached document previews
+
+Document previews that are available from local storage should make their offline availability
+obvious at a glance.
+
+- [x] Show a compact Cached badge on document previews with a real local file.
+- [x] Avoid claiming a document is cached when only its metadata is cached.
+- [ ] Verify the badge on a populated cached document section on the wired Zenfone.
+
+Status: in progress
+
+
+## NBC-244: collapse very long item comments
+
+Large Markdown comment values on item pages should not consume the entire overview by default.
+
+- [x] Collapse long comments above a line/character threshold with a visible fade.
+- [x] Provide Show more and Collapse actions while leaving short comments unchanged.
+- [x] Apply the behavior to dedicated device comments and generic Markdown fields.
+- [ ] Verify the FNUC device comments on the wired Zenfone without changing production data.
+
+Status: in progress
+
+
+## NBC-245: create sanitized README screenshots
+
+The README should show the app’s main workflows without exposing real NetBox names, hosts,
+identifiers, comments, or tokens.
+
+- [ ] Create clearly named temporary demo records (or an isolated local fixture) for screenshots.
+- [ ] Capture sanitized dashboard, device/detail, search, scan, and settings/media screenshots.
+- [ ] Add only sanitized images and captions to the README.
+- [ ] Remove temporary records and verify no production demo data remains.
+
+Status: in progress
+
+
+## NBC-246: indicate cached item detail pages
+
+Item detail identity cards should make it clear when the displayed item comes from the local
+offline cache.
+
+- [x] Add a shared compact Cached badge to dedicated device and generic item identity cards.
+- [x] Keep the badge independent of network availability and avoid changing item data.
+- [ ] Verify the indicator on cached device and generic item pages on the wired Zenfone.
+
+Status: in progress
+
+
+## NBC-247: polish active global-search filters
+
+The active object-type filter in global search should be visually clear, compact, and easy to
+remove without changing the existing cache-first search behavior.
+
+- [x] Replace the plain active-filter list row with an accented filter card.
+- [x] Show the selected object type, filter meaning, matching icon, and accessible clear action.
+- [ ] Verify the active filter and clear action in the installed UI on the wired Zenfone.
+
+Status: in progress
+
+
+## NBC-249: group ungrouped custom fields under Other
+
+Custom fields without a configured group should still have a visible section heading on item
+overview pages.
+
+- [x] Render ungrouped custom fields under an `Other` heading.
+- [x] Keep configured groups, ordering, and empty-field handling unchanged.
+- [x] Add focused renderer coverage for the fallback group.
+- [ ] Verify the heading in the installed UI on the wired Zenfone without changing production data.
+
+Status: in progress

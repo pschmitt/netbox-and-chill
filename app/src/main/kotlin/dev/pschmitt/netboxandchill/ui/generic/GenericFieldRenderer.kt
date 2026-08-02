@@ -142,7 +142,7 @@ fun buildFieldRows(
             var activeGroup: String? = null
             for ((key, value) in sortedFields) {
                 val definition = definitions[key]
-                val group = definition?.group?.trim()?.takeIf { it.isNotBlank() }
+                val group = definition?.group?.trim()?.takeIf { it.isNotBlank() } ?: "Other"
                 val label = definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key)
                 val textValue = (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
                 val fieldRow =
@@ -156,7 +156,7 @@ fun buildFieldRows(
                 // Add the heading only when this field produces a visible row. This prevents an
                 // empty/hidden field from leaving an orphaned group heading above the next group.
                 fieldRow?.let {
-                    if (group != null && group != activeGroup) add(FieldRow.CustomGroup(group))
+                    if (group != activeGroup) add(FieldRow.CustomGroup(group))
                     activeGroup = group
                     add(it)
                 }
@@ -328,9 +328,17 @@ private fun renderPrimitive(key: String, label: String, value: JsonPrimitive): F
 private fun isHttpUrl(text: String): Boolean =
     (text.startsWith("http://") || text.startsWith("https://")) && text.toHttpUrlOrNull() != null
 
-/** Visible URL text omits the repeated scheme/host; callers still retain the original URL. */
-fun shortenDisplayedUrl(url: String): String {
+/** Shortens only URLs served by the configured NetBox origin; external links stay complete. */
+fun shortenDisplayedUrl(url: String, netboxBaseUrl: String? = null): String {
     val parsed = url.toHttpUrlOrNull() ?: return url
+    val configured = netboxBaseUrl?.toHttpUrlOrNull() ?: return url
+    if (
+        !parsed.scheme.equals(configured.scheme, ignoreCase = true) ||
+            !parsed.host.equals(configured.host, ignoreCase = true) ||
+            parsed.port != configured.port
+    ) {
+        return url
+    }
     return buildString {
         append(parsed.encodedPath.ifBlank { "/" })
         parsed.encodedQuery?.let { append('?').append(it) }

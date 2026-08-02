@@ -29,11 +29,13 @@ fun MarkdownEditor(
     label: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
+            enabled = enabled,
             label = { Text(label) },
             minLines = 4,
             maxLines = 12,
@@ -43,14 +45,29 @@ fun MarkdownEditor(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            MarkdownShortcut("Bold", Icons.Default.FormatBold, "**bold**", value, onValueChange)
-            MarkdownShortcut("Italic", Icons.Default.FormatItalic, "*italic*", value, onValueChange)
+            MarkdownShortcut(
+                "Bold",
+                Icons.Default.FormatBold,
+                "**bold**",
+                value,
+                onValueChange,
+                enabled,
+            )
+            MarkdownShortcut(
+                "Italic",
+                Icons.Default.FormatItalic,
+                "*italic*",
+                value,
+                onValueChange,
+                enabled,
+            )
             MarkdownShortcut(
                 "List",
                 Icons.Default.FormatListBulleted,
                 "\n- item",
                 value,
                 onValueChange,
+                enabled,
             )
             MarkdownShortcut(
                 "Link",
@@ -58,8 +75,9 @@ fun MarkdownEditor(
                 "[label](https://example.com)",
                 value,
                 onValueChange,
+                enabled,
             )
-            MarkdownShortcut("Code", Icons.Default.Code, "`code`", value, onValueChange)
+            MarkdownShortcut("Code", Icons.Default.Code, "`code`", value, onValueChange, enabled)
         }
         if (value.isNotBlank()) {
             HorizontalDivider()
@@ -81,8 +99,10 @@ private fun MarkdownShortcut(
     insertion: String,
     value: String,
     onValueChange: (String) -> Unit,
+    enabled: Boolean,
 ) {
     IconButton(
+        enabled = enabled,
         onClick = { onValueChange(value + if (value.isBlank()) insertion else "\n$insertion") }
     ) {
         Icon(icon, contentDescription = "Insert $description")
