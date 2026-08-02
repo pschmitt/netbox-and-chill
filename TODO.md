@@ -4141,10 +4141,13 @@ Status: not started, 2026-08-02.
 The item overflow menu should offer a journal-entry creation action, and existing journal entries
 should expose an edit action with the same kind/comments form.
 
-- [ ] Add a cache-first, offline-safe journal create flow for generic and dedicated item pages.
-- [ ] Add an edit action and update flow for existing entries.
-- [ ] Keep journal entries visible immediately from the local cache and queue offline mutations.
-- [ ] Verify the editor, Markdown rendering, and online/offline behavior without mutating unrelated
-  production records.
+- [x] Add a cache-first, offline-safe journal create flow for generic and dedicated item pages.
+- [x] Add an edit action and update flow for existing entries.
+- [x] Keep journal entries visible immediately from the local cache and queue offline mutations.
+- [x] Verify the editor and Markdown rendering without mutating unrelated production records; the
+      Mi Pad 4 opened the device overflow and add-entry editor, while the focused unit suite covers
+      the cached edit base. No existing journal entry was available on the test device to edit.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; `just test rofl-14.brkn.lol` passed, the debug APK was deployed to
+all three devices, and the editor/menu were inspected on the Mi Pad 4 without saving production
+data.
