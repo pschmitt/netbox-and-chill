@@ -4470,3 +4470,19 @@ the row.
 Status: **done**, 2026-08-02 - remote ktfmt/unit tests/debug build passed; the wired Zenfone's
 cached device-type document card showed the configured document name once, with its PDF preview,
 type badge, and download action intact; no NetBox data was changed.
+
+
+## NBC-258: compact item identity cards
+
+The top identity card on item and dedicated device views should retain the requested icon/text
+layout while using less vertical space on phones.
+
+- [x] Reduce card padding, icon surface size, and inter-row spacing on both variants.
+- [x] Keep the identity text and status badge to the right of the identity icon.
+- [x] Keep the green downloaded indicator in the card's top-right corner.
+- [x] Verify both compact card variants on the wired Zenfone without changing production data.
+
+Status: **done**, 2026-08-02 - remote ktfmt/unit tests/debug build passed; the compact typed device
+and generic device-type cards rendered on the wired Zenfone with the identity text and status kept
+beside the larger icon and the green downloaded indicator still in the top-right; the same APK was
+installed on the Mi Pad 4 and PX5; no NetBox data was changed.

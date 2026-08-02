@@ -437,29 +437,29 @@ fun DeviceDetailScreen(
                                 ElevatedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                                     Box(Modifier.fillMaxWidth()) {
                                         Column(
-                                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(12.dp),
                                         ) {
                                             Row(verticalAlignment = Alignment.Top) {
                                                 Surface(
                                                     color = detailAccent.copy(alpha = 0.18f),
                                                     shape =
                                                         androidx.compose.foundation.shape.RoundedCornerShape(
-                                                            18.dp,
+                                                            16.dp,
                                                         ),
-                                                        modifier = Modifier.size(72.dp),
+                                                    modifier = Modifier.size(64.dp),
                                                 ) {
                                                     Box(contentAlignment = Alignment.Center) {
                                                         Icon(
                                                             Icons.Default.Cable,
                                                             contentDescription = null,
                                                             tint = detailAccent,
-                                                            modifier = Modifier.size(40.dp),
+                                                            modifier = Modifier.size(36.dp),
                                                         )
                                                     }
                                                 }
                                                 Column(
-                                                    Modifier.padding(start = 16.dp)
-                                                        .padding(end = 32.dp)
+                                                    Modifier.padding(start = 12.dp)
+                                                        .padding(end = 28.dp)
                                                         .weight(1f),
                                                 ) {
                                                     Text(
@@ -476,7 +476,7 @@ fun DeviceDetailScreen(
                                                         )
                                                     }
                                                     if (isFieldVisible("Status")) {
-                                                        Spacer(Modifier.height(10.dp))
+                                                        Spacer(Modifier.height(6.dp))
                                                         Box(
                                                             modifier =
                                                                 Modifier.combinedClickable(
@@ -497,7 +497,7 @@ fun DeviceDetailScreen(
                                         }
                                         DownloadedIndicator(
                                             Modifier.align(Alignment.TopEnd)
-                                                .padding(top = 12.dp, end = 12.dp)
+                                                .padding(top = 10.dp, end = 10.dp)
                                         )
                                     }
                                 }
