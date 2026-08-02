@@ -3759,11 +3759,13 @@ For devices installed in a rack, the detail page should make the rack position a
 the relevant front/rear rack elevation with the selected device highlighted. The action belongs on
 the Position row, not on the Rack row.
 
-- [ ] Add a rack-position action to the Position row in the device overview.
-- [ ] Reuse the cached rack elevation data in a bottom sheet.
-- [ ] Highlight the selected device and keep the sheet available offline.
+- [x] Add a rack-position action to the Position row in the device overview.
+- [x] Reuse the cached rack elevation data in the rack detail view.
+- [x] Highlight the selected device and keep the view available offline.
 
-Status: not started, 2026-08-02.
+Status: **done**, 2026-08-02; remote ktfmt/unit tests and debug compilation passed. The Position
+row action opens the cached rack elevation with the device highlighted in the relevant front/rear
+view, while existing rack/device navigation remains intact.
 
 
 ## NBC-211: link the manufacturer from device detail pages

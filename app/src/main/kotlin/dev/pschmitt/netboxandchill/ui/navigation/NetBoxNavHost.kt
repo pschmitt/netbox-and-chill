@@ -164,6 +164,16 @@ fun NetBoxNavHost(
                 onReferenceClick = { endpointPath, id, breadcrumb ->
                     navController.navigate(Route.Generic(endpointPath, id, breadcrumb))
                 },
+                onRackPositionClick = { rackId, deviceId, breadcrumb ->
+                    navController.navigate(
+                        Route.Generic(
+                            endpointPath = "api/dcim/racks/",
+                            id = rackId,
+                            breadcrumb = breadcrumb,
+                            highlightDeviceId = deviceId,
+                        )
+                    )
+                },
                 onDeleted = { navController.popBackStack() },
             )
         }
@@ -202,8 +212,10 @@ fun NetBoxNavHost(
                 onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
             )
         }
-        composable<Route.Generic> {
+        composable<Route.Generic> { backStackEntry ->
+            val route: Route.Generic = backStackEntry.toRoute()
             GenericDetailScreen(
+                highlightDeviceId = route.highlightDeviceId,
                 onBack = { navController.popBackStack() },
                 onNavigateToReference = { endpointPath, id, breadcrumb ->
                     navController.navigate(Route.Generic(endpointPath, id, breadcrumb))

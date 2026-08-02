@@ -56,6 +56,7 @@ sealed interface Route {
         val breadcrumb: String? = null,
         val focusFieldKey: String? = null,
         val startInEdit: Boolean = false,
+        val highlightDeviceId: Int? = null,
     ) : Route
 
     @Serializable

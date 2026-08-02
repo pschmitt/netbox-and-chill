@@ -11,6 +11,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 /** Fixed two-slot action area shared by typed and generic detail rows. */
@@ -20,6 +21,7 @@ fun DetailTrailingActions(
     onCopy: (() -> Unit)? = null,
     openLabel: String? = null,
     onOpen: (() -> Unit)? = null,
+    openIcon: ImageVector = Icons.AutoMirrored.Filled.OpenInNew,
 ) {
     Row(
         modifier = Modifier.width(96.dp),
@@ -33,7 +35,7 @@ fun DetailTrailingActions(
         }
         if (openLabel != null && onOpen != null) {
             IconButton(modifier = Modifier.size(48.dp), onClick = onOpen) {
-                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open $openLabel")
+                Icon(openIcon, contentDescription = "Open $openLabel")
             }
         }
     }

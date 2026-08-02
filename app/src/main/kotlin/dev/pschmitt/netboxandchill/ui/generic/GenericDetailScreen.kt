@@ -116,6 +116,7 @@ import dev.pschmitt.netboxandchill.ui.common.shareIntent
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun GenericDetailScreen(
+    highlightDeviceId: Int? = null,
     onBack: () -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int, breadcrumb: String?) -> Unit,
     onCreateLinkedItem: (
@@ -634,6 +635,7 @@ fun GenericDetailScreen(
                                                 rear = rearElevation,
                                                 previews = rackDevicePreviews,
                                                 localImageFile = viewModel::localAttachmentFile,
+                                                highlightDeviceId = highlightDeviceId,
                                                 onDeviceClick = { id ->
                                                     onNavigateToReference(
                                                         "api/dcim/devices/",
@@ -991,6 +993,7 @@ private fun RackElevationOverview(
     rear: List<RackElevationEntity>,
     previews: Map<Int, RackDevicePreview>,
     localImageFile: (String, String) -> java.io.File?,
+    highlightDeviceId: Int? = null,
     onDeviceClick: (Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1010,8 +1013,22 @@ private fun RackElevationOverview(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            RackFaceOverview(RackFace.FRONT, front, previews, localImageFile, onDeviceClick)
-            RackFaceOverview(RackFace.REAR, rear, previews, localImageFile, onDeviceClick)
+            RackFaceOverview(
+                RackFace.FRONT,
+                front,
+                previews,
+                localImageFile,
+                highlightDeviceId,
+                onDeviceClick,
+            )
+            RackFaceOverview(
+                RackFace.REAR,
+                rear,
+                previews,
+                localImageFile,
+                highlightDeviceId,
+                onDeviceClick,
+            )
         }
         Spacer(Modifier.height(8.dp))
     }
@@ -1023,6 +1040,7 @@ private fun RackFaceOverview(
     slots: List<RackElevationEntity>,
     previews: Map<Int, RackDevicePreview>,
     localImageFile: (String, String) -> java.io.File?,
+    highlightDeviceId: Int?,
     onDeviceClick: (Int) -> Unit,
 ) {
     Column {
@@ -1045,6 +1063,7 @@ private fun RackFaceOverview(
                     val firstSlot = block.slots.first()
                     val lastSlot = block.slots.last()
                     val deviceId = block.deviceId
+                    val highlighted = deviceId != null && deviceId == highlightDeviceId
                     val preview = deviceId?.let(previews::get)
                     val imageUrl =
                         if (face == RackFace.FRONT) preview?.frontUrl ?: preview?.rearUrl
@@ -1074,7 +1093,15 @@ private fun RackFaceOverview(
                                     enabled = deviceId != null
                                 ) {
                                     deviceId?.let(onDeviceClick)
-                                },
+                                }.then(
+                                    if (highlighted) {
+                                        Modifier.border(
+                                            width = 3.dp,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = RoundedCornerShape(4.dp),
+                                        )
+                                    } else Modifier
+                                ),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,

@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -120,6 +121,7 @@ fun DeviceDetailScreen(
     onEditFieldClick: (fieldKey: String) -> Unit,
     onDeviceTypeClick: (id: Int, breadcrumb: String) -> Unit,
     onReferenceClick: (endpointPath: String, id: Int, breadcrumb: String) -> Unit,
+    onRackPositionClick: (rackId: Int, deviceId: Int, breadcrumb: String) -> Unit,
     onDeleted: () -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
@@ -521,6 +523,13 @@ fun DeviceDetailScreen(
                             detailField(
                                 "Position",
                                 current.position?.toString(),
+                                onClick =
+                                    current.rackId?.let { rackId ->
+                                        {
+                                            onRackPositionClick(rackId, current.id, current.name)
+                                        }
+                                    },
+                                openIcon = Icons.Default.Visibility,
                                 onFieldLongPress = { fieldActionLabel = it },
                             )
                         if (isFieldVisible("role"))
@@ -1125,6 +1134,7 @@ private fun LazyListScope.detailField(
     copyable: Boolean = false,
     onCopyValue: (label: String, value: String) -> Unit = { _, _ -> },
     onClick: (() -> Unit)? = null,
+    openIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.AutoMirrored.Filled.OpenInNew,
     onFieldLongPress: (label: String) -> Unit = {},
 ) {
     if (value.isNullOrBlank()) return
@@ -1161,6 +1171,7 @@ private fun LazyListScope.detailField(
                         onCopy = { onCopyValue(label, value) }.takeIf { copyable },
                         openLabel = label.takeIf { onClick != null },
                         onOpen = onClick,
+                        openIcon = openIcon,
                     )
                 }
             }
