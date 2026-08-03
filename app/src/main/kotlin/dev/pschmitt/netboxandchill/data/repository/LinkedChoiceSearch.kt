@@ -137,9 +137,19 @@ fun choiceSearchHint(
 ): String? =
     choiceSearchMatches(label, value, searchFields, query)
         .firstOrNull()
-        ?.let { match -> "${choiceSearchFieldLabel(match.fieldKey)}: ${match.fieldValue}" }
+        ?.let { match ->
+            "${choiceSearchFieldLabel(match.fieldKey)}: ${compactSearchMatchValue(match.fieldValue)}"
+        }
         ?.takeIf(String::isNotBlank)
         ?.let { if (it.length > MAX_CHOICE_SEARCH_HINT_LENGTH) it.take(MAX_CHOICE_SEARCH_HINT_LENGTH - 1) + "…" else it }
+
+internal fun compactSearchMatchValue(value: String): String {
+    val seen = mutableSetOf<String>()
+    return value
+        .split(Regex("\\s+"))
+        .filter { token -> token.isNotBlank() && seen.add(token.lowercase()) }
+        .joinToString(" ")
+}
 
 internal fun choiceSearchFieldLabel(key: String): String =
     key.split('.')

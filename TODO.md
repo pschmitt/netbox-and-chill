@@ -5440,3 +5440,16 @@ NetBox object collection, including compact values such as `type:dev`, `type:dt`
 
 Status: **done**, 2026-08-03 - type filters support compact device/device-type/IP aliases and
 generic cached collections, compose with other filters, and are covered by parser/scope tests.
+
+
+## NBC-323: avoid duplicate values in structured search hints
+
+Structured manufacturer matches can expose both a relation's display name and slug, producing
+awkward text such as `Matched Manufacturer: Shelly shelly`.
+
+- [x] Keep relation aliases available for matching.
+- [x] Deduplicate repeated case-insensitive words in the displayed match hint.
+- [x] Cover the formatting regression with a focused unit test.
+
+Status: **done**, 2026-08-03 - search hints now collapse repeated words while preserving the full
+cache-backed search index; remote unit/lint/compile validation passed.

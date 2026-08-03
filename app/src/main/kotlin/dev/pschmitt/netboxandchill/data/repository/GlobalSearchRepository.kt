@@ -587,7 +587,7 @@ private fun NetBoxObjectEntity.toSearchHit(
                         value.contains(filter.value, ignoreCase = true)
                 }
                 ?.let { (_, value) ->
-                    "${formatSearchFieldLabel(filter.key)}: $value"
+                    "${formatSearchFieldLabel(filter.key)}: ${compactSearchMatchValue(value)}"
                 }
         }?.takeIf(String::isNotBlank)
 

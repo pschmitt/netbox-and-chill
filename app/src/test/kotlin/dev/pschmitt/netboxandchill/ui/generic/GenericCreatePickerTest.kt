@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.generic
 
 import dev.pschmitt.netboxandchill.data.repository.CreateChoice
+import dev.pschmitt.netboxandchill.data.repository.compactSearchMatchValue
 import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
 import dev.pschmitt.netboxandchill.data.repository.createChoiceSearchFields
 import kotlinx.serialization.json.Json
@@ -85,6 +86,15 @@ class GenericCreatePickerTest {
                 deviceTypes[0].searchFields,
                 "shelly",
             ),
+        )
+    }
+
+    @Test
+    fun `removes repeated case-insensitive words from match hints`() {
+        assertEquals("Shelly", compactSearchMatchValue("Shelly shelly"))
+        assertEquals(
+            "Shelly Plus 1PM shelly-plus-1pm",
+            compactSearchMatchValue("Shelly Plus 1PM shelly-plus-1pm"),
         )
     }
 }
