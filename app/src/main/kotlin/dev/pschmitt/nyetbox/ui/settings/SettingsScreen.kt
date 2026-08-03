@@ -103,6 +103,9 @@ fun SettingsCategoryScreen(
     printSettingsViewModel: PrintSettingsViewModel = hiltViewModel(),
 ) {
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val isLoadingCurrentUser by viewModel.isLoadingCurrentUser.collectAsStateWithLifecycle()
+    val connectionTest by viewModel.connectionTest.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     val isUpdatingBaseUrl by viewModel.isUpdatingBaseUrl.collectAsStateWithLifecycle()
     val cachedDeviceCount by viewModel.cachedDeviceCount.collectAsStateWithLifecycle()
@@ -298,6 +301,9 @@ fun SettingsCategoryScreen(
                 state =
                     SettingsCategoryState(
                         credentials = credentials,
+                        currentUser = currentUser,
+                        isLoadingCurrentUser = isLoadingCurrentUser,
+                        connectionTest = connectionTest,
                         tokenVisible = tokenVisible,
                         isSyncing = isSyncing,
                         syncIssue = syncIssue,
@@ -329,6 +335,7 @@ fun SettingsCategoryScreen(
                 actions =
                     SettingsCategoryActions(
                         onEditServer = { showEditServerDialog = true },
+                        onTestConnection = viewModel::testConnection,
                         onDisconnect = {
                             viewModel.logOut()
                             onLoggedOut()

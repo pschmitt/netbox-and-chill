@@ -17,6 +17,20 @@ data class NetBoxCredentials(val baseUrl: String, val token: String) {
         get() = baseUrl.isNotBlank() && token.isNotBlank()
 }
 
+data class NetBoxUserIdentity(
+    val username: String,
+    val fullName: String? = null,
+    val email: String? = null,
+) {
+    val displayName: String
+        get() = fullName?.takeIf { it.isNotBlank() } ?: username
+
+    val summary: String
+        get() =
+            if (displayName.equals(username, ignoreCase = true)) username
+            else "$displayName ($username)"
+}
+
 data class PrintSettings(
     val defaultPrinterName: String? = null,
     val defaultPrinterAddress: String? = null,
@@ -171,6 +185,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private val _credentials = MutableStateFlow(loadCredentials())
     val credentials: StateFlow<NetBoxCredentials> = _credentials.asStateFlow()
+
+    private val _currentUser = MutableStateFlow(loadCurrentUser())
+    val currentUser: StateFlow<NetBoxUserIdentity?> = _currentUser.asStateFlow()
 
     val isConfigured: Boolean
         get() = _credentials.value.isValid
@@ -522,12 +539,36 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             .putString(KEY_BASE_URL, normalizedBaseUrl)
             .putString(KEY_TOKEN, trimmedToken)
             .apply()
+        clearCurrentUser()
         _credentials.value = NetBoxCredentials(normalizedBaseUrl, trimmedToken)
+    }
+
+    fun setCurrentUser(user: NetBoxUserIdentity) {
+        prefs
+            .edit()
+            .putString(KEY_CURRENT_USER_BASE_URL, credentials.value.baseUrl)
+            .putString(KEY_CURRENT_USER_NAME, user.username)
+            .putString(KEY_CURRENT_USER_FULL_NAME, user.fullName)
+            .putString(KEY_CURRENT_USER_EMAIL, user.email)
+            .apply()
+        _currentUser.value = user
+    }
+
+    fun clearCurrentUser() {
+        prefs
+            .edit()
+            .remove(KEY_CURRENT_USER_BASE_URL)
+            .remove(KEY_CURRENT_USER_NAME)
+            .remove(KEY_CURRENT_USER_FULL_NAME)
+            .remove(KEY_CURRENT_USER_EMAIL)
+            .apply()
+        _currentUser.value = null
     }
 
     fun clear() {
         prefs.edit().clear().apply()
         _credentials.value = NetBoxCredentials("", "")
+        _currentUser.value = null
         _offlineMode.value = false
         _printSettings.value = PrintSettings()
         _themeMode.value = ThemeMode.FollowSystem
@@ -553,6 +594,18 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             baseUrl = prefs.getString(KEY_BASE_URL, "") ?: "",
             token = prefs.getString(KEY_TOKEN, "") ?: "",
         )
+
+    private fun loadCurrentUser(): NetBoxUserIdentity? {
+        val baseUrl = prefs.getString(KEY_BASE_URL, "").orEmpty()
+        val storedBaseUrl = prefs.getString(KEY_CURRENT_USER_BASE_URL, null)
+        val username = prefs.getString(KEY_CURRENT_USER_NAME, null)?.takeIf { it.isNotBlank() }
+        if (baseUrl.isBlank() || storedBaseUrl != baseUrl || username == null) return null
+        return NetBoxUserIdentity(
+            username = username,
+            fullName = prefs.getString(KEY_CURRENT_USER_FULL_NAME, null),
+            email = prefs.getString(KEY_CURRENT_USER_EMAIL, null),
+        )
+    }
 
     private fun loadSyncIssue(): SyncIssue? {
         val message = prefs.getString(KEY_SYNC_ISSUE_MESSAGE, null)?.takeIf { it.isNotBlank() }
@@ -731,6 +784,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private companion object {
         const val KEY_BASE_URL = "base_url"
         const val KEY_TOKEN = "token"
+        const val KEY_CURRENT_USER_BASE_URL = "current_user_base_url"
+        const val KEY_CURRENT_USER_NAME = "current_user_name"
+        const val KEY_CURRENT_USER_FULL_NAME = "current_user_full_name"
+        const val KEY_CURRENT_USER_EMAIL = "current_user_email"
         const val KEY_PINNED_MODELS = "pinned_model_paths"
         const val DEFAULT_PINNED_MODEL_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
         const val MAX_PINNED_MODEL_PATHS = 5

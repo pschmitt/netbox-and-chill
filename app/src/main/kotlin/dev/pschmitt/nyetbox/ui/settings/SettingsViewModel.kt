@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.AppDatabase
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
+import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.repository.ChangeNotificationFilter
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
@@ -17,6 +18,8 @@ import dev.pschmitt.nyetbox.data.repository.GestureTarget
 import dev.pschmitt.nyetbox.data.repository.PrintSettings
 import dev.pschmitt.nyetbox.data.repository.ScannerLens
 import dev.pschmitt.nyetbox.data.repository.ScannerRearLens
+import dev.pschmitt.nyetbox.data.repository.NetBoxCredentials
+import dev.pschmitt.nyetbox.data.repository.NetBoxUserIdentity
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
@@ -32,6 +35,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+
+sealed interface ConnectionTestState {
+    data object Idle : ConnectionTestState
+
+    data object Testing : ConnectionTestState
+
+    data class Success(val message: String) : ConnectionTestState
+
+    data class Failure(val message: String) : ConnectionTestState
+}
 
 @HiltViewModel
 class SettingsViewModel
@@ -39,6 +55,7 @@ class SettingsViewModel
 constructor(
     val settingsRepository: SettingsRepository,
     private val deviceRepository: DeviceRepository,
+    private val api: GenericNetBoxApi,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
     private val directoryRepository: DirectoryRepository,
@@ -46,6 +63,14 @@ constructor(
     private val appDatabase: AppDatabase,
     private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
+
+    private val _isLoadingCurrentUser = MutableStateFlow(false)
+    val isLoadingCurrentUser: StateFlow<Boolean> = _isLoadingCurrentUser.asStateFlow()
+
+    val currentUser: StateFlow<NetBoxUserIdentity?> = settingsRepository.currentUser
+
+    private val _connectionTest = MutableStateFlow<ConnectionTestState>(ConnectionTestState.Idle)
+    val connectionTest: StateFlow<ConnectionTestState> = _connectionTest.asStateFlow()
 
     val isSyncing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(
@@ -94,6 +119,14 @@ constructor(
     init {
         refreshCacheCounts()
         viewModelScope.launch {
+            settingsRepository.credentials
+                .map { it.isValid }
+                .distinctUntilChanged()
+                .collect { configured ->
+                    if (configured) refreshCurrentUser() else settingsRepository.clearCurrentUser()
+                }
+        }
+        viewModelScope.launch {
             isSyncing.drop(1).distinctUntilChanged().collect { syncing ->
                 if (!syncing) refreshCacheCounts()
             }
@@ -104,6 +137,82 @@ constructor(
         if (settingsRepository.offlineMode.value) return
         syncScheduler.syncNow()
     }
+
+    fun testConnection() {
+        if (_connectionTest.value == ConnectionTestState.Testing) return
+        val credentials = settingsRepository.credentials.value
+        if (!credentials.isValid) {
+            _connectionTest.value = ConnectionTestState.Failure("Configure a NetBox connection first")
+            return
+        }
+        if (settingsRepository.offlineMode.value) {
+            _connectionTest.value =
+                ConnectionTestState.Failure("Offline mode is enabled. Turn it off to test the connection.")
+            return
+        }
+        viewModelScope.launch {
+            _connectionTest.value = ConnectionTestState.Testing
+            runCatching { api.getApiRoot() }
+                .onSuccess {
+                    refreshCurrentUser()
+                    val user = settingsRepository.currentUser.value
+                    _connectionTest.value =
+                        ConnectionTestState.Success(
+                            user?.let { "Connected as ${it.summary}" } ?: "Connection successful",
+                        )
+                }
+                .onFailure {
+                    _connectionTest.value =
+                        ConnectionTestState.Failure(it.connectionMessage())
+                }
+        }
+    }
+
+    private fun refreshCurrentUser() {
+        if (settingsRepository.offlineMode.value) return
+        viewModelScope.launch {
+            val credentials = settingsRepository.credentials.value
+            if (!credentials.isValid) return@launch
+            _isLoadingCurrentUser.value = true
+            lookupCurrentUser(credentials)
+                .onSuccess { settingsRepository.setCurrentUser(it) }
+            _isLoadingCurrentUser.value = false
+        }
+    }
+
+    private suspend fun lookupCurrentUser(credentials: NetBoxCredentials): Result<NetBoxUserIdentity> =
+        runCatching {
+            val tokenKey = tokenKey(credentials.token) ?: error("Token owner lookup is unavailable")
+            val tokenPage =
+                api.listObjects(
+                    url = "api/users/tokens/",
+                    query = mapOf("key" to tokenKey, "limit" to "1"),
+                )
+            val user = tokenPage.results.firstOrNull()?.get("user") as? JsonObject
+                ?: error("The NetBox API did not return the token owner")
+            val username = user.stringValue("username") ?: error("The token owner has no username")
+            NetBoxUserIdentity(
+                username = username,
+                fullName =
+                    listOfNotNull(user.stringValue("first_name"), user.stringValue("last_name"))
+                        .joinToString(" ")
+                        .takeIf { it.isNotBlank() },
+                email = user.stringValue("email"),
+            )
+        }
+
+    private fun tokenKey(token: String): String? =
+        Regex("^nb[a-z]+_([^.]*)\\..+$", RegexOption.IGNORE_CASE)
+            .matchEntire(token)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.takeIf { it.isNotBlank() }
+
+    private fun Throwable.connectionMessage(): String =
+        message?.takeIf { it.isNotBlank() } ?: "Couldn't reach that NetBox instance"
+
+    private fun JsonObject.stringValue(key: String): String? =
+        this[key]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
 
     fun errorShown() {
         _errorMessage.value = null
@@ -191,7 +300,10 @@ constructor(
 
     fun setOfflineMode(enabled: Boolean) {
         settingsRepository.setOfflineMode(enabled)
-        if (!enabled) syncScheduler.syncNow()
+        if (!enabled) {
+            refreshCurrentUser()
+            syncScheduler.syncNow()
+        }
     }
 
     fun addHiddenField(key: String) {

@@ -46,6 +46,9 @@ private val THREE_FINGER_SHORTCUTS =
 
 internal data class SettingsCategoryState(
     val credentials: NetBoxCredentials,
+    val currentUser: NetBoxUserIdentity?,
+    val isLoadingCurrentUser: Boolean,
+    val connectionTest: ConnectionTestState,
     val tokenVisible: Boolean,
     val isSyncing: Boolean,
     val syncIssue: SyncIssue?,
@@ -77,6 +80,7 @@ internal data class SettingsCategoryState(
 
 internal data class SettingsCategoryActions(
     val onEditServer: () -> Unit,
+    val onTestConnection: () -> Unit,
     val onDisconnect: () -> Unit,
     val onShowToken: () -> Unit,
     val onHideToken: () -> Unit,
@@ -145,6 +149,23 @@ private fun ConnectionSettingsContent(
         },
     )
     ListItem(
+        leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
+        headlineContent = { Text("Signed in as") },
+        supportingContent = {
+            Text(
+                when {
+                    state.currentUser != null ->
+                        buildString {
+                            append(state.currentUser.summary)
+                            state.currentUser.email?.let { append(" · ").append(it) }
+                        }
+                    state.isLoadingCurrentUser -> "Checking NetBox credentials…"
+                    else -> "Not available from this API token"
+                }
+            )
+        },
+    )
+    ListItem(
         leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
         headlineContent = { Text("API token") },
         supportingContent = {
@@ -193,6 +214,45 @@ private fun ConnectionSettingsContent(
             }
         },
     )
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        OutlinedButton(
+            onClick = actions.onTestConnection,
+            enabled =
+                state.credentials.isValid && state.connectionTest !is ConnectionTestState.Testing,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                if (state.connectionTest is ConnectionTestState.Testing) Icons.Default.Sync
+                else Icons.Default.NetworkCheck,
+                contentDescription = null,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (state.connectionTest is ConnectionTestState.Testing) {
+                    "Testing connection…"
+                } else {
+                    "Test connection"
+                }
+            )
+        }
+        when (val result = state.connectionTest) {
+            is ConnectionTestState.Success ->
+                Text(
+                    result.message,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            is ConnectionTestState.Failure ->
+                Text(
+                    result.message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            ConnectionTestState.Idle, ConnectionTestState.Testing -> Unit
+        }
+    }
     Column(Modifier.padding(16.dp)) {
         OutlinedButton(onClick = actions.onDisconnect, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)

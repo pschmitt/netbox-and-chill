@@ -5641,3 +5641,17 @@ with NetBox Labs.
 - [x] Keep the wording clear without implying endorsement or affiliation.
 
 Status: **done**, 2026-08-03 - disclaimer added to the onboarding screen; verified by remote lint.
+
+
+## NBC-337: show current NetBox user and test the connection
+
+Settings → Connection should identify the NetBox user associated with the configured API token and
+offer a lightweight connection test without starting a full synchronization.
+
+- [x] Resolve and cache the token owner for offline display.
+- [x] Show the current user and optional email on the Connection screen.
+- [x] Add an icon-bearing Test connection button with success and failure feedback.
+- [x] Bump the app version to 1.1.1.
+
+Status: **done**, 2026-08-03 - remote formatting/lint and unit tests passed; no NetBox data was
+modified.
