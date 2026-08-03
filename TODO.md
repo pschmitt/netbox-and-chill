@@ -5542,7 +5542,9 @@ retain a real extension whenever the provider supplies a useful MIME type.
 
 - [x] Infer common image, PDF, office, archive, and text extensions from MIME types.
 - [x] Apply the normalized filename to image attachments, device-type photos, and documents.
-- [x] Use safe fallbacks for extensionless uploads when the MIME type is unavailable.
+- [x] Leave extensionless uploads without an extension when the MIME type is unavailable; do not
+  invent a `.bin` or image suffix.
 
-Status: **done**, 2026-08-03 - upload requests now preserve existing extensions and infer missing
-ones from the selected content MIME type; no live upload was performed during verification.
+Status: **done**, 2026-08-03 - upload requests now preserve existing extensions, infer missing ones
+from the selected content MIME type, and leave unknown types extensionless; no live upload was
+performed during verification.

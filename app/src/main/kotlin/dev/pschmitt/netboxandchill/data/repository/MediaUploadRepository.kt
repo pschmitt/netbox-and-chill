@@ -186,7 +186,6 @@ constructor(
 
         private val MIME_EXTENSIONS =
             mapOf(
-                "application/octet-stream" to "bin",
                 "application/pdf" to "pdf",
                 "application/msword" to "doc",
                 "application/rtf" to "rtf",

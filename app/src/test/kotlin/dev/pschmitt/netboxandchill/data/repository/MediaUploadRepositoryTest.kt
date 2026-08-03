@@ -40,5 +40,12 @@ class MediaUploadRepositoryTest {
             "already.png",
             MediaUploadRepository.filenameWithMimeExtension("already.png", "image/jpeg"),
         )
+        assertEquals(
+            "unknown-type",
+            MediaUploadRepository.filenameWithMimeExtension(
+                "unknown-type",
+                "application/octet-stream",
+            ),
+        )
     }
 }

@@ -77,7 +77,6 @@ fun MediaUploadDialog(
                 filenameForUpload(
                     it,
                     initialMimeType ?: initialUri?.let(context.contentResolver::getType),
-                    kind,
                 )
             }
         )
@@ -97,7 +96,7 @@ fun MediaUploadDialog(
     fun setSelected(uri: Uri) {
         selectedUri = uri
         selectedFilename =
-            filenameForUpload(displayName(context, uri), context.contentResolver.getType(uri), kind)
+            filenameForUpload(displayName(context, uri), context.contentResolver.getType(uri))
         viewModel.clearMessage()
     }
 
@@ -298,11 +297,7 @@ fun MediaUploadDialog(
                         objectId = objectId,
                         uri = uri,
                         filename =
-                            filenameForUpload(
-                                selectedFilename ?: "upload",
-                                selectedMimeType,
-                                kind,
-                            ),
+                            filenameForUpload(selectedFilename ?: "upload", selectedMimeType),
                         documentEndpointPath = documentEndpointPath,
                         documentTypeValue = documentTypeValue,
                         imageAttachmentId = imageAttachmentId,
@@ -345,9 +340,6 @@ private fun displayName(context: Context, uri: Uri): String =
 private fun filenameForUpload(
     filename: String,
     mimeType: String?,
-    kind: MediaUploadKind,
 ): String {
-    val withMime = MediaUploadRepository.filenameWithMimeExtension(filename, mimeType)
-    if (withMime.substringAfterLast('.', "").isNotBlank()) return withMime
-    return "$withMime.${if (kind == MediaUploadKind.Document) "bin" else "jpg"}"
+    return MediaUploadRepository.filenameWithMimeExtension(filename, mimeType)
 }
