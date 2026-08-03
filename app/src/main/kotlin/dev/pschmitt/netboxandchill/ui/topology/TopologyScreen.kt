@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
@@ -51,8 +52,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -175,7 +178,7 @@ fun TopologyScreen(
                         showDeviceTypeImages = state.showDeviceTypeImages,
                         focusedNodeId = state.focusedNodeId,
                         onNodeClick = { selectedNodeId = it },
-                        onNodeDrag = { nodeId, delta -> viewModel.moveNode(nodeId, delta) },
+                        onNodeDragEnd = viewModel::moveNode,
                         modifier = Modifier.fillMaxSize().padding(8.dp),
                     )
                 }
@@ -254,22 +257,34 @@ private fun TopologyGraphCanvas(
     showDeviceTypeImages: Boolean,
     focusedNodeId: String?,
     onNodeClick: (String) -> Unit,
-    onNodeDrag: (String, TopologyPosition) -> Unit,
+    onNodeDragEnd: (String, TopologyPosition) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var viewportSize by remember(graph) { mutableStateOf(IntSize.Zero) }
     var zoom by remember(graph) { mutableFloatStateOf(1f) }
     var pan by remember(graph) { mutableStateOf(Offset.Zero) }
+    val dragOffsets = remember(graph) { mutableStateMapOf<String, Offset>() }
+    val latestOnNodeDragEnd by rememberUpdatedState(onNodeDragEnd)
+    val latestOnNodeClick by rememberUpdatedState(onNodeClick)
     var ctrlPressed by remember { mutableStateOf(false) }
     var initialized by remember(graph) { mutableStateOf(false) }
     val transformState =
         rememberTransformableState { _, zoomChange, panChange, _ ->
             zoom = (zoom * zoomChange).coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
             pan += panChange
-        }
+    }
     val density = LocalDensity.current
-    val graphBounds = remember(graph) { graph.bounds() }
     val colorScheme = MaterialTheme.colorScheme
+    val labelPaint = remember(colorScheme.onSurface, density.density) {
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = colorScheme.onSurface.toArgb()
+            textAlign = Paint.Align.CENTER
+        }
+    }
+    val renderData = remember(graph, colorScheme.outline) {
+        buildTopologyRenderData(graph, colorScheme.outline)
+    }
+    val graphBounds = renderData.bounds
     val focusedPoint =
         focusedNodeId?.let { id ->
             graph.nodes.firstOrNull { it.id == id }?.let {
@@ -303,7 +318,14 @@ private fun TopologyGraphCanvas(
         }
     }
 
-    val layouts = topologyNodeLayouts(graph, viewportSize, zoom, pan)
+    val totalScale = topologyTotalScale(renderData.bounds, viewportSize, zoom)
+    val imageLayouts =
+        if (showDeviceTypeImages && totalScale >= TOPOLOGY_IMAGE_SCALE) {
+            topologyNodeLayouts(renderData, viewportSize, zoom, pan, dragOffsets)
+                .filter { nodeInfo[it.node.id]?.localImageFile != null }
+        } else {
+            emptyList()
+        }
 
     Box(
         modifier =
@@ -337,79 +359,151 @@ private fun TopologyGraphCanvas(
                         "Topology graph with ${graph.nodes.size} nodes and ${graph.edges.size} connections"
                 },
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().transformable(transformState)) {
-        val availableWidth = (size.width - 32f).coerceAtLeast(1f)
-        val availableHeight = (size.height - 32f).coerceAtLeast(1f)
-        val fitScale = topologyFitScale(graphBounds, availableWidth, availableHeight)
-        val totalScale = fitScale * zoom
-        val graphCenter = graphBounds.center
-        val screenCenter = Offset(size.width / 2f, size.height / 2f) + pan
-
-        fun map(point: Offset): Offset = screenCenter + (point - graphCenter) * totalScale
-        val nodeCenters = graph.nodes.associate { node ->
-            node.id to map(Offset(node.x + node.width / 2f, node.y + node.height / 2f))
-        }
-
-        graph.edges.forEach { edge ->
-            val start = nodeCenters[edge.source] ?: return@forEach
-            val end = nodeCenters[edge.target] ?: return@forEach
-            drawLine(
-                color = parseColor(edge.color, colorScheme.outline),
-                start = start,
-                end = end,
-                strokeWidth = max(1.5f, 2.5f * totalScale),
-            )
-        }
-
-        val fill = colorScheme.surfaceContainerHighest
-        val border = colorScheme.primary
-        val focusedBorder = colorScheme.tertiary
-        graph.nodes.forEach { node ->
-            val topLeft = map(Offset(node.x, node.y))
-            val nodeSize = Size(node.width * totalScale, node.height * totalScale)
-            drawRoundRect(
-                color = fill,
-                topLeft = topLeft,
-                size = nodeSize,
-                cornerRadius = CornerRadius(8f * totalScale.coerceAtLeast(0.5f)),
-            )
-            drawRoundRect(
-                color = if (node.id == focusedNodeId) focusedBorder else border,
-                topLeft = topLeft,
-                size = nodeSize,
-                cornerRadius = CornerRadius(8f * totalScale.coerceAtLeast(0.5f)),
-                style = Stroke(width = max(1f, 1.5f * totalScale)),
-            )
-            drawTopologyNodeIcon(
-                kind = topologyNodeIconKind(node.label),
-                center = topLeft + Offset(nodeSize.width / 2f, nodeSize.height / 2f),
-                radius = max(3f, min(nodeSize.width, nodeSize.height) * 0.26f),
-                color = border,
-            )
-            val labelLines = topologyLabelLines(node.label, totalScale)
-            if (labelLines.isNotEmpty()) {
-                drawIntoCanvas { canvas ->
-                    val paint =
-                        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            color = colorScheme.onSurface.toArgb()
-                            textAlign = Paint.Align.CENTER
-                            textSize = (10f * density.density * totalScale).coerceIn(8f, 24f)
+        Canvas(
+            modifier =
+                Modifier.fillMaxSize()
+                    .pointerInput(renderData, viewportSize, zoom, pan) {
+                        detectTapGestures { position ->
+                            topologyNodeAt(
+                                    position,
+                                    renderData,
+                                    viewportSize,
+                                    zoom,
+                                    pan,
+                                    dragOffsets,
+                                )
+                                ?.let { latestOnNodeClick(it.node.id) }
                         }
-                    labelLines.forEachIndexed { index, line ->
-                        canvas.nativeCanvas.drawText(
-                            line,
-                            topLeft.x + nodeSize.width / 2f,
-                            topLeft.y + nodeSize.height + paint.textSize * (index + 1.2f),
-                            paint,
+                    }
+                    .pointerInput(renderData, viewportSize, zoom, pan) {
+                        var activeNodeId: String? = null
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { position ->
+                                activeNodeId =
+                                    topologyNodeAt(
+                                            position,
+                                            renderData,
+                                            viewportSize,
+                                            zoom,
+                                            pan,
+                                            dragOffsets,
+                                        )
+                                        ?.node
+                                        ?.id
+                            },
+                            onDrag = { change, dragAmount ->
+                                val nodeId = activeNodeId ?: return@detectDragGesturesAfterLongPress
+                                change.consume()
+                                val delta = dragAmount / totalScale.coerceAtLeast(0.001f)
+                                val current = dragOffsets[nodeId] ?: Offset.Zero
+                                dragOffsets[nodeId] = current + delta
+                            },
+                            onDragEnd = {
+                                val nodeId = activeNodeId
+                                activeNodeId = null
+                                if (nodeId != null) {
+                                    val delta = dragOffsets.remove(nodeId) ?: Offset.Zero
+                                    if (delta != Offset.Zero) {
+                                        latestOnNodeDragEnd(
+                                            nodeId,
+                                            TopologyPosition(delta.x, delta.y),
+                                        )
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                activeNodeId?.let(dragOffsets::remove)
+                                activeNodeId = null
+                            },
                         )
+                    }
+                    .transformable(transformState),
+        ) {
+            val availableWidth = (size.width - 32f).coerceAtLeast(1f)
+            val availableHeight = (size.height - 32f).coerceAtLeast(1f)
+            val fitScale = topologyFitScale(graphBounds, availableWidth, availableHeight)
+            val totalScale = fitScale * zoom
+            val graphCenter = graphBounds.center
+            val screenCenter = Offset(size.width / 2f, size.height / 2f) + pan
+
+            fun map(x: Float, y: Float): Offset =
+                screenCenter + (Offset(x, y) - graphCenter) * totalScale
+
+            renderData.edges.forEach { edge ->
+                val source = renderData.nodes[edge.sourceIndex]
+                val target = renderData.nodes[edge.targetIndex]
+                val sourceOffset = dragOffsets[source.node.id] ?: Offset.Zero
+                val targetOffset = dragOffsets[target.node.id] ?: Offset.Zero
+                drawLine(
+                    color = edge.color,
+                    start =
+                        map(
+                            source.node.x + sourceOffset.x + source.node.width / 2f,
+                            source.node.y + sourceOffset.y + source.node.height / 2f,
+                        ),
+                    end =
+                        map(
+                            target.node.x + targetOffset.x + target.node.width / 2f,
+                            target.node.y + targetOffset.y + target.node.height / 2f,
+                        ),
+                    strokeWidth = max(1.5f, 2.5f * totalScale),
+                )
+            }
+
+            val fill = colorScheme.surfaceContainerHighest
+            val border = colorScheme.primary
+            val focusedBorder = colorScheme.tertiary
+            renderData.nodes.forEach { renderNode ->
+                val node = renderNode.node
+                val offset = dragOffsets[node.id] ?: Offset.Zero
+                val topLeft = map(node.x + offset.x, node.y + offset.y)
+                val nodeSize = Size(node.width * totalScale, node.height * totalScale)
+                drawRoundRect(
+                    color = fill,
+                    topLeft = topLeft,
+                    size = nodeSize,
+                    cornerRadius = CornerRadius(8f * totalScale.coerceAtLeast(0.5f)),
+                )
+                drawRoundRect(
+                    color = if (node.id == focusedNodeId) focusedBorder else border,
+                    topLeft = topLeft,
+                    size = nodeSize,
+                    cornerRadius = CornerRadius(8f * totalScale.coerceAtLeast(0.5f)),
+                    style = Stroke(width = max(1f, 1.5f * totalScale)),
+                )
+                drawTopologyNodeIcon(
+                    kind = renderNode.iconKind,
+                    center = topLeft + Offset(nodeSize.width / 2f, nodeSize.height / 2f),
+                    radius = max(3f, min(nodeSize.width, nodeSize.height) * 0.26f),
+                    color = border,
+                )
+            }
+
+            if (totalScale >= TOPOLOGY_LABEL_SCALE) {
+                drawIntoCanvas { canvas ->
+                    labelPaint.textSize = (10f * density.density * totalScale).coerceIn(8f, 24f)
+                    renderData.nodes.forEach { renderNode ->
+                        val node = renderNode.node
+                        val offset = dragOffsets[node.id] ?: Offset.Zero
+                        val topLeft = map(node.x + offset.x, node.y + offset.y)
+                        val nodeSize = Size(node.width * totalScale, node.height * totalScale)
+                        val lineCount =
+                            if (totalScale < TOPOLOGY_DETAIL_SCALE) 1
+                            else renderNode.labelLines.size
+                        repeat(lineCount.coerceAtMost(renderNode.labelLines.size)) { index ->
+                            canvas.nativeCanvas.drawText(
+                                renderNode.labelLines[index],
+                                topLeft.x + nodeSize.width / 2f,
+                                topLeft.y + nodeSize.height + labelPaint.textSize * (index + 1.2f),
+                                labelPaint,
+                            )
+                        }
                     }
                 }
             }
         }
 
-        }
-
-        layouts.forEach { layout ->
+        imageLayouts.forEach { layout ->
             val info = nodeInfo[layout.node.id]
             Box(
                 modifier =
@@ -423,21 +517,6 @@ private fun TopologyGraphCanvas(
                             with(density) { layout.size.width.toDp() },
                             with(density) { layout.size.height.toDp() },
                         )
-                        .pointerInput(layout.node.id, layout.totalScale) {
-                            detectDragGesturesAfterLongPress(
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    onNodeDrag(
-                                        layout.node.id,
-                                        TopologyPosition(
-                                            dragAmount.x / layout.totalScale,
-                                            dragAmount.y / layout.totalScale,
-                                        ),
-                                    )
-                                },
-                            )
-                        }
-                        .clickable { onNodeClick(layout.node.id) }
                         .semantics {
                             contentDescription =
                                 "Topology node ${info?.displayName ?: layout.node.label}"
@@ -646,6 +725,50 @@ private fun TopologyDeviceSearchSheet(
     }
 }
 
+internal data class TopologyRenderNode(
+    val node: TopologyNode,
+    val iconKind: TopologyNodeIconKind,
+    val labelLines: List<String>,
+)
+
+internal data class TopologyRenderEdge(
+    val sourceIndex: Int,
+    val targetIndex: Int,
+    val color: Color,
+)
+
+internal data class TopologyRenderData(
+    val nodes: List<TopologyRenderNode>,
+    val edges: List<TopologyRenderEdge>,
+    val bounds: Rect,
+)
+
+internal fun buildTopologyRenderData(
+    graph: TopologyGraph,
+    fallbackEdgeColor: Color,
+): TopologyRenderData {
+    val nodes =
+        graph.nodes.map { node ->
+            TopologyRenderNode(
+                node = node,
+                iconKind = topologyNodeIconKind(node.label),
+                labelLines = topologyLabelParts(node.label),
+            )
+        }
+    val indexById = nodes.mapIndexed { index, node -> node.node.id to index }.toMap()
+    val edges =
+        graph.edges.mapNotNull { edge ->
+            val sourceIndex = indexById[edge.source] ?: return@mapNotNull null
+            val targetIndex = indexById[edge.target] ?: return@mapNotNull null
+            TopologyRenderEdge(
+                sourceIndex = sourceIndex,
+                targetIndex = targetIndex,
+                color = parseColor(edge.color, fallbackEdgeColor),
+            )
+        }
+    return TopologyRenderData(nodes = nodes, edges = edges, bounds = graph.bounds())
+}
+
 private data class TopologyNodeLayout(
     val node: TopologyNode,
     val topLeft: Offset,
@@ -654,24 +777,63 @@ private data class TopologyNodeLayout(
 )
 
 private fun topologyNodeLayouts(
-    graph: TopologyGraph,
+    renderData: TopologyRenderData,
     viewportSize: IntSize,
     zoom: Float,
     pan: Offset,
+    dragOffsets: Map<String, Offset>,
 ): List<TopologyNodeLayout> {
     if (viewportSize == IntSize.Zero) return emptyList()
-    val bounds = graph.bounds()
+    val bounds = renderData.bounds
     val fitScale = topologyFitScale(bounds, (viewportSize.width - 32).coerceAtLeast(1).toFloat(), (viewportSize.height - 32).coerceAtLeast(1).toFloat())
     val totalScale = fitScale * zoom
     val screenCenter = Offset(viewportSize.width / 2f, viewportSize.height / 2f) + pan
-    return graph.nodes.map { node ->
-        val topLeft = screenCenter + (Offset(node.x, node.y) - bounds.center) * totalScale
+    return renderData.nodes.map { renderNode ->
+        val node = renderNode.node
+        val offset = dragOffsets[node.id] ?: Offset.Zero
+        val topLeft =
+            screenCenter +
+                (Offset(node.x + offset.x, node.y + offset.y) - bounds.center) * totalScale
         TopologyNodeLayout(
             node = node,
             topLeft = topLeft,
             size = Size(node.width * totalScale, node.height * totalScale),
             totalScale = totalScale,
         )
+    }
+}
+
+private fun topologyTotalScale(bounds: Rect, viewportSize: IntSize, zoom: Float): Float {
+    if (viewportSize == IntSize.Zero) return 0f
+    return topologyFitScale(
+            bounds,
+            (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
+            (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
+        ) * zoom
+}
+
+private fun topologyNodeAt(
+    position: Offset,
+    renderData: TopologyRenderData,
+    viewportSize: IntSize,
+    zoom: Float,
+    pan: Offset,
+    dragOffsets: Map<String, Offset>,
+): TopologyRenderNode? {
+    val totalScale = topologyTotalScale(renderData.bounds, viewportSize, zoom)
+    if (totalScale <= 0f) return null
+    val screenCenter = Offset(viewportSize.width / 2f, viewportSize.height / 2f) + pan
+    val boundsCenter = renderData.bounds.center
+    return renderData.nodes.asReversed().firstOrNull { renderNode ->
+        val node = renderNode.node
+        val offset = dragOffsets[node.id] ?: Offset.Zero
+        val topLeft =
+            screenCenter +
+                (Offset(node.x + offset.x, node.y + offset.y) - boundsCenter) * totalScale
+        position.x >= topLeft.x &&
+            position.x <= topLeft.x + node.width * totalScale &&
+            position.y >= topLeft.y &&
+            position.y <= topLeft.y + node.height * totalScale
     }
 }
 
@@ -721,6 +883,7 @@ private const val MAX_TOPOLOGY_ZOOM = 8f
 private const val ZOOM_STEP = 1.4f
 private const val TOPOLOGY_LABEL_SCALE = 0.55f
 private const val TOPOLOGY_DETAIL_SCALE = 1.4f
+private const val TOPOLOGY_IMAGE_SCALE = 1.4f
 
 internal enum class TopologyNodeIconKind {
     Generic,
@@ -784,16 +947,18 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTopologyNodeIco
         }
         TopologyNodeIconKind.Network -> {
             drawCircle(color = color, radius = radius * 0.35f, center = center)
-            listOf(
-                    center + Offset(0f, -radius),
-                    center + Offset(radius, 0f),
-                    center + Offset(0f, radius),
-                    center + Offset(-radius, 0f),
-                )
-                .forEach { spoke ->
-                    drawLine(color = color, start = center, end = spoke, strokeWidth = strokeWidth)
-                    drawCircle(color = color, radius = radius * 0.24f, center = spoke)
-                }
+            val top = center + Offset(0f, -radius)
+            val right = center + Offset(radius, 0f)
+            val bottom = center + Offset(0f, radius)
+            val left = center + Offset(-radius, 0f)
+            drawLine(color = color, start = center, end = top, strokeWidth = strokeWidth)
+            drawCircle(color = color, radius = radius * 0.24f, center = top)
+            drawLine(color = color, start = center, end = right, strokeWidth = strokeWidth)
+            drawCircle(color = color, radius = radius * 0.24f, center = right)
+            drawLine(color = color, start = center, end = bottom, strokeWidth = strokeWidth)
+            drawCircle(color = color, radius = radius * 0.24f, center = bottom)
+            drawLine(color = color, start = center, end = left, strokeWidth = strokeWidth)
+            drawCircle(color = color, radius = radius * 0.24f, center = left)
         }
         TopologyNodeIconKind.Power -> {
             drawLine(
@@ -813,7 +978,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTopologyNodeIco
             )
         }
         TopologyNodeIconKind.Wireless -> {
-            listOf(0.35f, 0.65f, 0.95f).forEach { scale ->
+            repeat(3) { index ->
+                val scale = when (index) {
+                    0 -> 0.35f
+                    1 -> 0.65f
+                    else -> 0.95f
+                }
                 drawArc(
                     color = color,
                     startAngle = 225f,
@@ -848,9 +1018,12 @@ internal fun topologyFitScale(bounds: Rect, availableWidth: Float, availableHeig
 internal fun topologyLabelLines(label: String, totalScale: Float): List<String> {
     if (totalScale < TOPOLOGY_LABEL_SCALE) return emptyList()
 
-    val lines = label.lines().map { it.take(32) }.filter(String::isNotBlank)
+    val lines = topologyLabelParts(label)
     return lines.take(if (totalScale < TOPOLOGY_DETAIL_SCALE) 1 else 3)
 }
+
+private fun topologyLabelParts(label: String): List<String> =
+    label.lines().map { it.take(32) }.filter(String::isNotBlank).take(3)
 
 private fun TopologyGraph.bounds(): Rect {
     if (nodes.isEmpty()) return Rect(0f, 0f, 1f, 1f)

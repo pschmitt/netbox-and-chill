@@ -5494,16 +5494,20 @@ The topology view redraws a full custom canvas for every pan/zoom event and curr
 layout, edge lookup, node classification, and text measurement work in the composition path. On
 older devices this makes gestures feel sluggish, especially for larger graphs.
 
-- [ ] Profile frame time and identify the dominant cost on Mi Pad 4 and Pixel 5.
-- [ ] Precompute immutable edge paths, node classifications, and label layouts when the graph
+- [x] Profile frame time and identify the dominant cost on Mi Pad 4; Pixel 5 UI profiling was
+  intentionally skipped because it is reserved for installation-only checks.
+- [x] Precompute immutable edge paths, node classifications, and label layouts when the graph
   changes instead of during every canvas draw.
-- [ ] Avoid allocating per-frame lists/objects and use a level-of-detail policy for distant nodes
+- [x] Avoid allocating per-frame lists/objects and use a level-of-detail policy for distant nodes
   and labels.
-- [ ] Keep drag/pan/zoom state local to the canvas and persist node positions only after gestures
+- [x] Keep drag/pan/zoom state local to the canvas and persist node positions only after gestures
   settle.
-- [ ] Add a regression fixture or benchmark for a representative large topology graph.
+- [x] Add a regression fixture for a representative 500-node/900-edge topology graph.
 
-Status: not started
+Status: **done**, 2026-08-03 - remote lint/unit tests/build passed; the Mi Pad 4 rendered its
+cached 392-node/231-connection topology and a gfxinfo gesture sample improved from roughly 450ms
+median frames with per-node overlays to roughly 77ms after the indexed renderer and graph-level
+input/LOD changes. Pixel 5 UI profiling was skipped per device-testing preference.
 
 
 ## NBC-327: delete NetBox documents from item pages

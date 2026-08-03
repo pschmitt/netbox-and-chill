@@ -2,7 +2,11 @@ package dev.pschmitt.netboxandchill.ui.topology
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
+import dev.pschmitt.netboxandchill.data.topology.TopologyEdge
+import dev.pschmitt.netboxandchill.data.topology.TopologyGraph
+import dev.pschmitt.netboxandchill.data.topology.TopologyNode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -72,5 +76,35 @@ class TopologyViewportTest {
         assertTrue(topologyZoomForScroll(1f, -1f, ctrlPressed = true) > 1f)
         assertTrue(topologyZoomForScroll(1f, 1f, ctrlPressed = true) < 1f)
         assertEquals(1f, topologyZoomForScroll(1f, -1f, ctrlPressed = false))
+    }
+
+    @Test
+    fun largeTopologyFixtureBuildsIndexedRenderData() {
+        val nodes =
+            List(500) { index ->
+                TopologyNode(
+                    id = "node-$index",
+                    label = "Device $index\nserver",
+                    x = (index % 25) * 120f,
+                    y = (index / 25) * 100f,
+                    width = 50f,
+                    height = 50f,
+                )
+            }
+        val edges =
+            List(900) { index ->
+                TopologyEdge(
+                    source = "node-${index % nodes.size}",
+                    target = "node-${(index * 17 + 3) % nodes.size}",
+                    color = "#808080",
+                )
+            }
+
+        val renderData = buildTopologyRenderData(TopologyGraph(nodes, edges), Color.Gray)
+
+        assertEquals(nodes.size, renderData.nodes.size)
+        assertEquals(edges.size, renderData.edges.size)
+        assertTrue(renderData.edges.all { it.sourceIndex in nodes.indices })
+        assertTrue(renderData.edges.all { it.targetIndex in nodes.indices })
     }
 }

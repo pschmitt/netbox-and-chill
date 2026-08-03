@@ -5,6 +5,12 @@ NetBox and Chill is a native Android companion app for a self-hosted
 with QR/barcode scanning of the device-sticker links NetBox prints for you (e.g.
 `https://netbox.example.com/dcim/devices/393/`).
 
+NetBox and Chill is an independent community project. It is not a NetBox Labs project and is not
+affiliated with, sponsored by, maintained by, or endorsed by NetBox Labs, Inc. The NetBox name and
+logo, including the logo used by this app, are the intellectual property and trademarks of NetBox
+Labs, Inc.; their use here identifies compatibility only and does not imply an official
+relationship.
+
 **This project is in its early stages** - it covers device browsing/lookup only, not the rest of
 NetBox's data model (IPAM, circuits, cabling, etc).
 
@@ -70,5 +76,4 @@ App Link host configuration and the limits of runtime host registration are docu
 This project is licensed under [GPLv3](LICENSE).
 
 Android is a trademark of Google LLC. Google Play and the Google Play logo are trademarks of
-Google LLC. NetBox is a registered trademark of NetBox Labs, Inc. This project is not affiliated
-with or endorsed by NetBox Labs.
+Google LLC. NetBox is a registered trademark of NetBox Labs, Inc.

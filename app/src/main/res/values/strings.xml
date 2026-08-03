@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">NetBox and Chill</string>
+    <string name="launcher_name">nbxc</string>
 </resources>
