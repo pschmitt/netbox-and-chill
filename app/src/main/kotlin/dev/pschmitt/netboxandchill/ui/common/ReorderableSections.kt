@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 
@@ -79,25 +78,23 @@ fun Modifier.sectionReorderGesture(
     state: SectionReorderState,
     onOrderChanged: (List<String>) -> Unit,
 ): Modifier =
-    composed {
-        pointerInput(enabled, key, order) {
-            if (!enabled) return@pointerInput
-            detectDragGesturesAfterLongPress(
-                onDragStart = { state.begin(key) },
-                onDrag = { change, dragAmount ->
-                    change.consume()
-                    state.update(
-                        key = key,
-                        deltaY = dragAmount.y,
-                        order = order,
-                        layoutInfo = listState.layoutInfo,
-                        onOrderChanged = onOrderChanged,
-                    )
-                },
-                onDragEnd = state::end,
-                onDragCancel = state::end,
-            )
-        }
+    pointerInput(enabled, key, order) {
+        if (!enabled) return@pointerInput
+        detectDragGesturesAfterLongPress(
+            onDragStart = { state.begin(key) },
+            onDrag = { change, dragAmount ->
+                change.consume()
+                state.update(
+                    key = key,
+                    deltaY = dragAmount.y,
+                    order = order,
+                    layoutInfo = listState.layoutInfo,
+                    onOrderChanged = onOrderChanged,
+                )
+            },
+            onDragEnd = state::end,
+            onDragCancel = state::end,
+        )
     }
 
 fun Modifier.sectionDragOffset(key: String, state: SectionReorderState): Modifier =

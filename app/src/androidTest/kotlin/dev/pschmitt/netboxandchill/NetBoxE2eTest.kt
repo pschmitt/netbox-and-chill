@@ -55,6 +55,11 @@ class NetBoxE2eTest {
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", timeoutMillis = 45_000)
 
+        // A configured activity must survive recreation without falling back to onboarding or
+        // blocking the cached dashboard while its best-effort refresh runs.
+        composeRule.activityRule.scenario.recreate()
+        waitForText("Dashboard", timeoutMillis = 45_000)
+
         // Exercise a warm deep link and the notification-to-summary route after onboarding has
         // configured the instance. The target ID comes from the disposable seed response.
         composeRule.activity.runOnUiThread {

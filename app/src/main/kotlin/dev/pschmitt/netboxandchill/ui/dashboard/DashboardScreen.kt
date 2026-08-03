@@ -1,7 +1,7 @@
 package dev.pschmitt.netboxandchill.ui.dashboard
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -336,7 +336,7 @@ fun DashboardScreen(
                                         NewsRow(newsItem) {
                                             runCatching {
                                                 context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, Uri.parse(newsItem.link))
+                                                    Intent(Intent.ACTION_VIEW, newsItem.link.toUri())
                                                 )
                                             }
                                         }

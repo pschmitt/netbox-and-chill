@@ -1,6 +1,7 @@
 package dev.pschmitt.netboxandchill.sync
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -22,6 +23,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /** Owns the progress and failure notifications for the background WorkManager sync. */
+// Every notification path is guarded by notificationsAllowed(); lint does not infer that helper
+// through WorkManager callbacks, so keep this boundary suppression next to the guard contract.
+@SuppressLint("MissingPermission")
 @Singleton
 class SyncNotifier @Inject constructor(@ApplicationContext private val context: Context) {
 

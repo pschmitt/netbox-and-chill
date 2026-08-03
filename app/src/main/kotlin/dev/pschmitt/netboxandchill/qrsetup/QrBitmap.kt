@@ -2,6 +2,8 @@ package dev.pschmitt.netboxandchill.qrsetup
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.set
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
@@ -18,10 +20,10 @@ object QrBitmap {
                     size,
                     mapOf(EncodeHintType.MARGIN to 1),
                 )
-        return Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bitmap ->
+        return createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bitmap ->
             for (y in 0 until size) {
                 for (x in 0 until size) {
-                    bitmap.setPixel(x, y, if (matrix[x, y]) Color.BLACK else Color.WHITE)
+                    bitmap[x, y] = if (matrix[x, y]) Color.BLACK else Color.WHITE
                 }
             }
         }

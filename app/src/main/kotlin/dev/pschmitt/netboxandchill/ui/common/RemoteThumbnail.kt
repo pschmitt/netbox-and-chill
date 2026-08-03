@@ -31,8 +31,8 @@ import java.io.File
 fun RemoteThumbnail(
     imageUrl: String?,
     contentDescription: String?,
-    localFile: File? = null,
     modifier: Modifier = Modifier,
+    localFile: File? = null,
     contentScale: ContentScale = ContentScale.Crop,
     fallbackTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {

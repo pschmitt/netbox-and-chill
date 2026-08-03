@@ -1,5 +1,6 @@
 package dev.pschmitt.netboxandchill.ui.settings
 
+import androidx.annotation.Keep
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Dns
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
 
 @Serializable
+@Keep
 enum class SettingsCategory(val title: String, val subtitle: String) {
     Connection("Connection", "NetBox server and credentials"),
     Sync("Sync", "Cached data and refresh policy"),

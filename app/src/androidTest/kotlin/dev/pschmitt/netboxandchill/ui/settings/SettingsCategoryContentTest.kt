@@ -1,10 +1,13 @@
 package dev.pschmitt.netboxandchill.ui.settings
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.pschmitt.netboxandchill.data.repository.*
 import dev.pschmitt.netboxandchill.ui.theme.NetBoxAndChillTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +29,28 @@ class SettingsCategoryContentTest {
 
         composeRule.onNodeWithText("Build").assertExists()
         composeRule.onNodeWithText("GitHub repository").assertExists()
+    }
+
+    @Test
+    fun categoryPickerWiresPreferenceChangesToTheActionBoundary() {
+        var updated: ScannerLens? = null
+        composeRule.setContent {
+            NetBoxAndChillTheme(
+                themeMode = ThemeMode.Light,
+                accent = ThemeAccent.Teal,
+            ) {
+                SettingsCategoryContent(
+                    SettingsCategory.Camera,
+                    state(),
+                    actions().copy(onSetScannerLens = { updated = it }),
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Configure scanner camera").performClick()
+        composeRule.onNodeWithText("Front camera").performClick()
+
+        assertEquals(ScannerLens.Front, updated)
     }
 
     private fun state() =

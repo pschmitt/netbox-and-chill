@@ -6,6 +6,9 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Typeface
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
+import androidx.core.graphics.set
 import dev.pschmitt.netboxandchill.qrsetup.QrBitmap
 import kotlin.math.ceil
 
@@ -40,16 +43,12 @@ object BrotherLabelRenderer {
         // printer's 1-bit head cannot represent anti-aliased interpolation; filtering makes
         // small glyphs lose their stems and produces the garbled right-side text seen on paper.
         val padded =
-            Bitmap.createBitmap(BrotherPtcBp.RASTER_WIDTH, source.width, Bitmap.Config.ARGB_8888)
+            createBitmap(BrotherPtcBp.RASTER_WIDTH, source.width, Bitmap.Config.ARGB_8888)
         Canvas(padded).drawColor(Color.WHITE)
         val horizontalPadding = (BrotherPtcBp.RASTER_WIDTH - source.height) / 2
         for (sourceY in 0 until source.height) {
             for (sourceX in 0 until source.width) {
-                padded.setPixel(
-                    horizontalPadding + sourceY,
-                    sourceX,
-                    source.getPixel(sourceX, sourceY),
-                )
+                padded[horizontalPadding + sourceY, sourceX] = source[sourceX, sourceY]
             }
         }
         source.recycle()
@@ -58,7 +57,7 @@ object BrotherLabelRenderer {
         val raster = ByteArray(padded.height * bytesPerLine)
         for (y in 0 until padded.height) {
             for (x in 0 until BrotherPtcBp.RASTER_WIDTH) {
-                val pixel = padded.getPixel(x, y)
+                val pixel = padded[x, y]
                 val sourcePixelIsWhite = Color.red(pixel) > 127
                 if (printerWhiteBit(sourcePixelIsWhite, invert))
                     raster[y * bytesPerLine + x / 8] =
@@ -84,16 +83,13 @@ object BrotherLabelRenderer {
         val source = renderSource(objectUrl, labelText, vertical, qrSize)
         if (!invert) return source
 
-        return Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888).also {
+        return createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888).also {
             bitmap ->
             for (y in 0 until source.height) {
                 for (x in 0 until source.width) {
-                    val pixel = source.getPixel(x, y)
-                    bitmap.setPixel(
-                        x,
-                        y,
-                        Color.rgb(255 - Color.red(pixel), 255 - Color.green(pixel), 255 - Color.blue(pixel)),
-                    )
+                    val pixel = source[x, y]
+                    bitmap[x, y] =
+                        Color.rgb(255 - Color.red(pixel), 255 - Color.green(pixel), 255 - Color.blue(pixel))
                 }
             }
             source.recycle()
@@ -181,7 +177,7 @@ object BrotherLabelRenderer {
     ): Bitmap {
         val textStart = LABEL_END_PADDING + qr.width + QR_TEXT_GAP
         val sourceWidth = textStart + layout.width + TEXT_PADDING
-        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap
+        return createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap
             ->
             Canvas(bitmap).apply {
                 drawColor(Color.WHITE)
@@ -199,7 +195,7 @@ object BrotherLabelRenderer {
         val textSourceWidth = layout.width + TEXT_PADDING * 2
         val textSourceHeight = layout.height + TEXT_PADDING * 2
         val textSource =
-            Bitmap.createBitmap(textSourceWidth, textSourceHeight, Bitmap.Config.ARGB_8888)
+            createBitmap(textSourceWidth, textSourceHeight, Bitmap.Config.ARGB_8888)
         Canvas(textSource).apply {
             drawColor(Color.WHITE)
             drawTextBlock(this, paint, layout, textSourceWidth / 2f, textSourceHeight / 2f)
@@ -219,7 +215,7 @@ object BrotherLabelRenderer {
 
         val textStart = LABEL_END_PADDING + qr.width + QR_TEXT_GAP
         val sourceWidth = textStart + textColumn.width + TEXT_PADDING
-        return Bitmap.createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap
+        return createBitmap(sourceWidth, LABEL_HEIGHT, Bitmap.Config.ARGB_8888).also { bitmap
             ->
             Canvas(bitmap).apply {
                 drawColor(Color.WHITE)

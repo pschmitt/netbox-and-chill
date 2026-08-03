@@ -2,7 +2,7 @@ package dev.pschmitt.netboxandchill.ui.onboarding
 
 import android.content.ClipboardManager
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -134,7 +134,7 @@ fun OnboardingScreen(
                     IconButton(
                         onClick = {
                             val tokensUrl = baseUrl.trim().trimEnd('/') + "/user/api-tokens/"
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tokensUrl)))
+                            context.startActivity(Intent(Intent.ACTION_VIEW, tokensUrl.toUri()))
                         },
                         enabled = baseUrl.isNotBlank(),
                     ) {

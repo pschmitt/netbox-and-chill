@@ -2,6 +2,7 @@ package dev.pschmitt.netboxandchill.crash
 
 import android.content.Context
 import android.os.Build
+import androidx.core.content.edit
 import dev.pschmitt.netboxandchill.BuildConfig
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -18,13 +19,13 @@ class CrashReportStore(context: Context) {
     fun save(report: String) {
         // The process may be killed immediately after an uncaught exception; apply() is not
         // sufficient here because its asynchronous write could be lost.
-        preferences.edit().putString(PENDING_REPORT, report).commit()
+        preferences.edit(commit = true) { putString(PENDING_REPORT, report) }
     }
 
     fun takePending(): String? {
         val report = preferences.getString(PENDING_REPORT, null)
         if (report != null) {
-            preferences.edit().remove(PENDING_REPORT).commit()
+            preferences.edit(commit = true) { remove(PENDING_REPORT) }
         }
         return report
     }

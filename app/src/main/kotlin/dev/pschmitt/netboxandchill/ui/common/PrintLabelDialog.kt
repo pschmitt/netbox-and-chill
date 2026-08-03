@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -87,6 +88,9 @@ private data class PrinterOption(
     val pairedPrinter: PairedPrinter?,
 )
 
+// Bluetooth calls are all reached after hasBluetoothPermission is true; lint cannot follow the
+// Compose callback and the permission result through the local reload/pairing lambdas.
+@SuppressLint("MissingPermission")
 @Composable
 fun PrintLabelDialog(
     request: PrintLabelRequest,
@@ -119,7 +123,7 @@ fun PrintLabelDialog(
         mutableStateOf(savedPrintSettings.copies.toString())
     }
     var qrSize by remember(savedPrintSettings.qrSize) {
-        mutableStateOf(savedPrintSettings.qrSize)
+        mutableIntStateOf(savedPrintSettings.qrSize)
     }
     var qrSizeMenuExpanded by remember { mutableStateOf(false) }
     val pairedAddresses = printers.mapTo(mutableSetOf()) { it.address }

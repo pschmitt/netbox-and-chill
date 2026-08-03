@@ -155,7 +155,7 @@ enum class ThemeAccent(val storageKey: String, val label: String) {
 // AndroidX Security Crypto currently deprecates this API without providing a replacement for
 // the same encrypted SharedPreferences migration path. Keep it until the library offers one;
 // the suppression makes this intentional compatibility boundary visible to the compiler.
-@Suppress("DEPRECATION")
+@Suppress("DEPRECATION", "UseKtx")
 @Singleton
 class SettingsRepository @Inject constructor(@ApplicationContext context: Context) {
 

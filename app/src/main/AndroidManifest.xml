@@ -15,7 +15,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation" />
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="31" />
     <!-- API 33+ runtime permission, required to post the background-sync-failure Notification
          (NBC-23) - requested at runtime from MainActivity. Notifications are silently skipped if
          this is denied (see SyncNotifier.notifySyncFailed), never a hard requirement. -->
@@ -31,6 +32,7 @@
     <application
         android:name=".NetBoxAndChillApp"
         android:allowBackup="false"
+        tools:ignore="DataExtractionRules"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -66,7 +68,7 @@
                  fixed, DNS-verified host), so Android offers this app in the "Open with" chooser
                  for matching links rather than opening it automatically. See docs/app-links.md.
             -->
-            <intent-filter>
+            <intent-filter tools:ignore="AppLinkWarning,IntentFilterUniqueDataAttributes">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -86,7 +88,7 @@
 
             <!-- NetBox installations on a trusted LAN often still publish sticker URLs over
                  plain HTTP. Keep the same portable chooser behavior for those URLs. -->
-            <intent-filter>
+            <intent-filter tools:ignore="AppLinkWarning,IntentFilterUniqueDataAttributes">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -110,7 +112,9 @@
                  exact-host filter lets Android verify the configured build host when its administrator serves
                  the matching /.well-known/assetlinks.json file.
             -->
-            <intent-filter android:autoVerify="true">
+            <intent-filter
+                android:autoVerify="true"
+                tools:ignore="IntentFilterUniqueDataAttributes">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -130,7 +134,7 @@
 
             <!-- HTTP cannot be domain-verified, but the configured host should still be offered
                  by Android's chooser when a local NetBox emits an HTTP sticker URL. -->
-            <intent-filter>
+            <intent-filter tools:ignore="AppLinkWarning,IntentFilterUniqueDataAttributes">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />

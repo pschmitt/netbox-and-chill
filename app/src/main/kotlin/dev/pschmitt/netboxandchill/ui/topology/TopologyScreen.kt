@@ -46,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -325,4 +326,4 @@ private fun TopologyGraph.bounds(): Rect {
 }
 
 private fun parseColor(value: String, fallback: Color): Color =
-    runCatching { Color(android.graphics.Color.parseColor(value)) }.getOrDefault(fallback)
+    runCatching { Color(value.toColorInt()) }.getOrDefault(fallback)

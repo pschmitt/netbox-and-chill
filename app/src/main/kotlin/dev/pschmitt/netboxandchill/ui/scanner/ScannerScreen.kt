@@ -1,9 +1,11 @@
+@file:Suppress("UnsafeOptInUsageError")
+
 package dev.pschmitt.netboxandchill.ui.scanner
 
 import android.Manifest
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
-import android.util.Log
+import android.os.Build
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -46,6 +48,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,6 +74,7 @@ import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.ui.common.BottomTab
 import dev.pschmitt.netboxandchill.ui.common.NetBoxBottomBar
 import dev.pschmitt.netboxandchill.ui.common.NetBoxResponsiveScaffold
+import timber.log.Timber
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -96,7 +100,7 @@ fun ScannerScreen(
     var availableCameras by remember { mutableStateOf<List<ScannerCameraOption>>(emptyList()) }
     var selectedRearCameraId by remember { mutableStateOf<String?>(null) }
     var torchOn by remember { mutableStateOf(false) }
-    var zoomRatio by remember { mutableStateOf(1f) }
+    var zoomRatio by remember { mutableFloatStateOf(1f) }
 
     val rearCameras = availableCameras.filter { it.lens == ScannerLens.Back }
     val canSwitchFacing =
@@ -441,13 +445,15 @@ private fun CameraPreview(
                 val analysisBuilder =
                     ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                activeCamera.physicalCameraId?.let { physicalCameraId ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    activeCamera.physicalCameraId?.let { physicalCameraId ->
                     // CameraSelector carries the physical ID through CameraX's lifecycle
                     // binding. Set it on each use-case as well: this is the Camera2 interop
                     // path that writes OutputConfiguration.setPhysicalCameraId(), which is
                     // required by logical multi-camera implementations such as Pixel's.
                     Camera2Interop.Extender(previewBuilder).setPhysicalCameraId(physicalCameraId)
                     Camera2Interop.Extender(analysisBuilder).setPhysicalCameraId(physicalCameraId)
+                    }
                 }
                 val preview =
                     previewBuilder.build().also { it.surfaceProvider = view.surfaceProvider }
@@ -478,10 +484,10 @@ private fun CameraPreview(
                         onCameraReady(it)
                     }
                     .onFailure {
-                        Log.e("ScannerCamera", "Unable to bind ${activeCamera.id}", it)
+                        Timber.e(it, "Unable to bind ${activeCamera.id}")
                     }
             } else {
-                Log.w("ScannerCamera", "No camera available for lens $desiredLens")
+                Timber.w("No camera available for lens %s", desiredLens)
             }
             onDispose {
                 boundCamera.value = null

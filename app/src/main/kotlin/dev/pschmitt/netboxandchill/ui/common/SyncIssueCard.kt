@@ -29,9 +29,9 @@ import dev.pschmitt.netboxandchill.data.repository.SyncIssue
 @Composable
 fun SyncIssueCard(
     issue: SyncIssue,
+    modifier: Modifier = Modifier,
     onRetry: (() -> Unit)? = null,
     isSyncing: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     var retryRequested by remember(issue.occurredAt) { mutableStateOf(false) }
     val retryActive = retryRequested || isSyncing
