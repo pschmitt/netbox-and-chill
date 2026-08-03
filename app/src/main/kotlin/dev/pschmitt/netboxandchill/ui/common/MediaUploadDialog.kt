@@ -44,6 +44,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.netboxandchill.data.repository.MediaUploadRepository
 import java.io.File
 
 @Composable
@@ -54,6 +55,9 @@ fun MediaUploadDialog(
     onUploaded: () -> Unit,
     initialKind: MediaUploadKind? = null,
     imageAttachmentId: Int? = null,
+    initialUri: Uri? = null,
+    initialFilename: String? = null,
+    initialMimeType: String? = null,
     viewModel: MediaUploadViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -66,16 +70,34 @@ fun MediaUploadDialog(
     var kind by remember(endpointPath, initialKind) {
         mutableStateOf(initialKind ?: defaultKind)
     }
-    var photoKindMenuExpanded by remember { mutableStateOf(false) }
-    var selectedUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedFilename by remember { mutableStateOf<String?>(null) }
+    var selectedUri by remember(initialUri) { mutableStateOf(initialUri) }
+    var selectedFilename by remember(initialUri, initialFilename) {
+        mutableStateOf(
+            (initialFilename ?: initialUri?.let { displayName(context, it) })?.let {
+                filenameForUpload(
+                    it,
+                    initialMimeType ?: initialUri?.let(context.contentResolver::getType),
+                    kind,
+                )
+            }
+        )
+    }
+    val selectedMimeType =
+        remember(selectedUri, initialUri, initialMimeType) {
+            selectedUri?.let { uri ->
+                if (uri == initialUri) initialMimeType ?: context.contentResolver.getType(uri)
+                else context.contentResolver.getType(uri)
+            }
+        }
     var captureUri by remember { mutableStateOf<Uri?>(null) }
     var documentTypeValue by remember { mutableStateOf<String?>(null) }
     var documentTypeMenuExpanded by remember { mutableStateOf(false) }
+    var deviceTypeKindMenuExpanded by remember { mutableStateOf(false) }
 
     fun setSelected(uri: Uri) {
         selectedUri = uri
-        selectedFilename = displayName(context, uri)
+        selectedFilename =
+            filenameForUpload(displayName(context, uri), context.contentResolver.getType(uri), kind)
         viewModel.clearMessage()
     }
 
@@ -153,42 +175,36 @@ fun MediaUploadDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(dialogDescription, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
-                if (isDeviceTypePhoto) {
+                if (!isDocument && endpointPath == "api/dcim/device-types/") {
                     // Anchor the popup to the face button rather than to the dialog's scrolling
                     // column. This keeps it directly below the trigger on phones and tablets.
                     Box(Modifier.fillMaxWidth()) {
                         OutlinedButton(
-                            onClick = { photoKindMenuExpanded = true },
+                            onClick = { deviceTypeKindMenuExpanded = true },
                             enabled = !state.isUploading,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(Icons.Default.Image, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text(
-                                if (kind == MediaUploadKind.DeviceTypeFront) "Front photo"
-                                else "Rear photo"
-                            )
+                            Text(kind.label)
                         }
                         DropdownMenu(
-                            expanded = photoKindMenuExpanded,
-                            onDismissRequest = { photoKindMenuExpanded = false },
+                            expanded = deviceTypeKindMenuExpanded,
+                            onDismissRequest = { deviceTypeKindMenuExpanded = false },
                         ) {
                             listOf(
+                                    MediaUploadKind.ImageAttachment,
                                     MediaUploadKind.DeviceTypeFront,
                                     MediaUploadKind.DeviceTypeRear,
                                 )
                                 .forEach { option ->
                                     DropdownMenuItem(
                                         text = {
-                                            Text(
-                                                if (option == MediaUploadKind.DeviceTypeFront) "Front photo"
-                                                else "Rear photo"
-                                            )
+                                            Text(option.label)
                                         },
                                         onClick = {
                                             kind = option
-                                            photoKindMenuExpanded = false
-                                            selectedUri = null
+                                            deviceTypeKindMenuExpanded = false
                                         },
                                         leadingIcon = {
                                             Icon(Icons.Default.Image, contentDescription = null)
@@ -250,6 +266,13 @@ fun MediaUploadDialog(
                         }
                     }
                 }
+                selectedUri?.let { uri ->
+                    SharedMediaPreview(
+                        uri = uri,
+                        mimeType = selectedMimeType,
+                        filename = selectedFilename,
+                    )
+                }
                 selectedFilename?.let { Text("Selected: $it") }
                 state.error?.let { Text(it) }
                 state.message?.let { Text(it) }
@@ -274,7 +297,12 @@ fun MediaUploadDialog(
                         endpointPath = endpointPath,
                         objectId = objectId,
                         uri = uri,
-                        filename = selectedFilename ?: "upload",
+                        filename =
+                            filenameForUpload(
+                                selectedFilename ?: "upload",
+                                selectedMimeType,
+                                kind,
+                            ),
                         documentEndpointPath = documentEndpointPath,
                         documentTypeValue = documentTypeValue,
                         imageAttachmentId = imageAttachmentId,
@@ -313,3 +341,13 @@ private fun displayName(context: Context, uri: Uri): String =
         ?.takeIf(String::isNotBlank)
         ?: uri.lastPathSegment?.substringAfterLast('/')?.takeIf(String::isNotBlank)
         ?: "upload"
+
+private fun filenameForUpload(
+    filename: String,
+    mimeType: String?,
+    kind: MediaUploadKind,
+): String {
+    val withMime = MediaUploadRepository.filenameWithMimeExtension(filename, mimeType)
+    if (withMime.substringAfterLast('.', "").isNotBlank()) return withMime
+    return "$withMime.${if (kind == MediaUploadKind.Document) "bin" else "jpg"}"
+}

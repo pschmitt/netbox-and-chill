@@ -43,7 +43,11 @@ constructor(
                     fields(
                         "object_type" to objectType,
                         "object_id" to objectId.toString(),
-                        "name" to filename,
+                        "name" to
+                            filenameWithMimeExtension(
+                                filename,
+                                context.contentResolver.getType(uri),
+                            ),
                     ),
                 )
             },
@@ -101,7 +105,11 @@ constructor(
                     documentEndpointPath,
                     filePart("file", uri, filename),
                     fields(
-                        "name" to filename,
+                        "name" to
+                            filenameWithMimeExtension(
+                                filename,
+                                context.contentResolver.getType(uri),
+                            ),
                         "document_type" to documentTypeValue,
                         "object_type" to contentTypeForEndpoint(objectEndpointPath),
                         "object_id" to objectId.toString(),
@@ -131,7 +139,9 @@ constructor(
 
     private fun filePart(field: String, uri: Uri, filename: String): MultipartBody.Part {
         val resolver = context.contentResolver
-        val mediaType = resolver.getType(uri)?.toMediaTypeOrNull()
+        val mediaTypeName = resolver.getType(uri)
+        val mediaType = mediaTypeName?.toMediaTypeOrNull()
+        val uploadFilename = filenameWithMimeExtension(filename, mediaTypeName)
         val body =
             object : RequestBody() {
                 override fun contentType() = mediaType
@@ -147,7 +157,7 @@ constructor(
                     }
                 }
             }
-        return MultipartBody.Part.createFormData(field, filename.safeFilename(), body)
+        return MultipartBody.Part.createFormData(field, uploadFilename.safeFilename(), body)
     }
 
     private fun String.safeFilename(): String =
@@ -163,6 +173,42 @@ constructor(
             val model = segments.last().removeSuffix("s").replace("-", "").replace("_", "")
             return "$app.$model"
         }
+
+        /** Preserve a provider's filename, adding a MIME-derived extension when it is absent. */
+        fun filenameWithMimeExtension(filename: String, mimeType: String?): String {
+            val clean =
+                filename.substringAfterLast('/').substringAfterLast('\\').ifBlank { "upload" }
+            if (clean.substringAfterLast('.', "").isNotBlank()) return clean
+            val extension = MIME_EXTENSIONS[mimeType?.substringBefore(';')?.lowercase()]
+                ?: return clean
+            return "$clean.$extension"
+        }
+
+        private val MIME_EXTENSIONS =
+            mapOf(
+                "application/octet-stream" to "bin",
+                "application/pdf" to "pdf",
+                "application/msword" to "doc",
+                "application/rtf" to "rtf",
+                "application/zip" to "zip",
+                "application/x-7z-compressed" to "7z",
+                "application/vnd.ms-excel" to "xls",
+                "application/vnd.ms-powerpoint" to "ppt",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" to "xlsx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document" to "docx",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation" to "pptx",
+                "image/avif" to "avif",
+                "image/bmp" to "bmp",
+                "image/gif" to "gif",
+                "image/heic" to "heic",
+                "image/heif" to "heif",
+                "image/jpeg" to "jpg",
+                "image/jpg" to "jpg",
+                "image/png" to "png",
+                "image/webp" to "webp",
+                "text/csv" to "csv",
+                "text/plain" to "txt",
+            )
     }
 }
 

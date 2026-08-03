@@ -124,6 +124,9 @@ constructor(
     private val _deleteResult = MutableStateFlow<DeleteSubmission?>(null)
     val deleteResult: StateFlow<DeleteSubmission?> = _deleteResult.asStateFlow()
 
+    private val _documentDeleteResult = MutableStateFlow<DeleteSubmission?>(null)
+    val documentDeleteResult: StateFlow<DeleteSubmission?> = _documentDeleteResult.asStateFlow()
+
     // Keep the edit session in the ViewModel so opening a linked-item create form cannot lose
     // unrelated unsaved fields when navigation temporarily removes this composable.
     private val _editSession = MutableStateFlow(EditSessionState.Idle)
@@ -465,6 +468,22 @@ constructor(
 
     fun deleteResultShown() {
         _deleteResult.value = null
+    }
+
+    fun deleteDocument(document: CachedDocument) {
+        if (_isDeleting.value) return
+        viewModelScope.launch {
+            _isDeleting.value = true
+            documentRepository
+                .delete(document.id, settingsRepository.offlineMode.value)
+                .onSuccess { _documentDeleteResult.value = it }
+                .onFailure { _errorMessage.value = it.message ?: "Couldn't delete document" }
+            _isDeleting.value = false
+        }
+    }
+
+    fun documentDeleteResultShown() {
+        _documentDeleteResult.value = null
     }
 
     fun startEditing() {

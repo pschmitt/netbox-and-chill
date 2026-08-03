@@ -80,6 +80,77 @@ jobs:
         id: git_revision
         run: echo "value=$(git describe --always --abbrev=12 --dirty)" >> "$GITHUB_OUTPUT"
 
+      - name: Generate release summary
+        if: steps.params.outputs.tag_name != 'latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          previous_tag=""
+          while IFS= read -r candidate
+          do
+            if [[ "$candidate" != latest && "$candidate" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]
+            then
+              previous_tag="$candidate"
+              break
+            fi
+          done < <(git tag --merged "${GITHUB_SHA}^" --sort=-version:refname)
+          if [[ -n "$previous_tag" ]]
+          then
+            release_range="$previous_tag..$GITHUB_SHA"
+          else
+            release_range="$GITHUB_SHA"
+          fi
+
+          generated_notes="$(mktemp)"
+          trap 'rm -f "$generated_notes"' EXIT
+          api_args=(
+            --method POST
+            "repos/$GITHUB_REPOSITORY/releases/generate-notes"
+            -f "tag_name=${{ steps.params.outputs.tag_name }}"
+            -f "target_commitish=$GITHUB_SHA"
+          )
+          if [[ -n "$previous_tag" ]]
+          then
+            api_args+=(-f "previous_tag_name=$previous_tag")
+          fi
+
+          if ! gh api "${api_args[@]}" --jq '.body' > "$generated_notes"
+          then
+            : > "$generated_notes"
+          fi
+
+          {
+            echo "# NetBox and Chill ${{ steps.params.outputs.release_name }}"
+            echo
+            if [[ -n "$previous_tag" ]]
+            then
+              echo "Changes since [$previous_tag](https://github.com/$GITHUB_REPOSITORY/releases/tag/$previous_tag):"
+            else
+              echo "Changes included in this release:"
+            fi
+            echo
+            echo "## Summary"
+            echo
+            git log --no-merges --format='- %s (%h)' "$release_range"
+            echo
+            if [[ -s "$generated_notes" ]]
+            then
+              echo "## GitHub details"
+              echo
+              cat "$generated_notes"
+              echo
+            fi
+            echo "## Installation"
+            echo
+            echo "Signed with the same CI key as every other build here, so upgrades work cleanly over"
+            echo 'an existing `dev.pschmitt.netboxandchill` install.'
+            echo
+            printf '%s\n' "\`SHA256SUMS\` covers every APK. Each APK embeds commit \`$GITHUB_SHA\`, visible in"
+            echo "Settings > About."
+          } > release-notes.md
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
@@ -174,17 +245,7 @@ jobs:
         with:
           tag_name: ${{ steps.params.outputs.tag_name }}
           name: ${{ steps.params.outputs.release_name }}
-          # Let GitHub prepend its categorized commit/PR changelog to the install and artifact
-          # notes below. The rolling `latest` prerelease intentionally keeps its concise build
-          # description instead of pretending to be a versioned changelog.
-          generate_release_notes: true
-          body: |
-            Signed with the same CI key as every other build here - upgrades cleanly over an
-            existing `dev.pschmitt.netboxandchill` install (the `latest` prerelease, an older
-            tagged release, or this one reinstalled).
-
-            `SHA256SUMS` covers every APK above. Each APK also embeds this exact commit
-            (`${{ github.sha }}`) as `BuildConfig.GIT_REVISION`, checkable via Settings in the app.
+          body_path: release-notes.md
           files: ${{ steps.apks.outputs.dir }}/*
           prerelease: false
           make_latest: true

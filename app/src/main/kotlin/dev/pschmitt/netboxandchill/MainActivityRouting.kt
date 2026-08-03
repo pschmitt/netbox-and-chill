@@ -1,12 +1,19 @@
 package dev.pschmitt.netboxandchill
 
 import android.content.Intent
+import android.net.Uri
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
 import dev.pschmitt.netboxandchill.data.repository.GestureTarget
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
 import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
 import dev.pschmitt.netboxandchill.ui.navigation.Route
+
+data class SharedMediaPayload(
+    val uri: String,
+    val mimeType: String?,
+    val filename: String? = null,
+)
 
 /** Extracts a NetBox deep-link/setup payload from the intent shapes Android can deliver. */
 internal fun extractNetBoxTarget(intent: Intent?): NetBoxTarget? {
@@ -30,6 +37,29 @@ internal fun extractNetBoxTargetText(
         }
     return text?.let(NetBoxUrlParser::parse)
 }
+
+internal fun extractSharedMedia(intent: Intent?): SharedMediaPayload? {
+    if (intent?.action != Intent.ACTION_SEND) return null
+    @Suppress("DEPRECATION")
+    val streamUri: Uri? =
+        intent.getParcelableExtra(Intent.EXTRA_STREAM) ?: intent.clipData?.getItemAt(0)?.uri
+    return sharedMediaPayload(
+        action = intent.action,
+        streamUri = streamUri?.toString(),
+        mimeType = intent.type,
+    )
+}
+
+internal fun sharedMediaPayload(
+    action: String?,
+    streamUri: String?,
+    mimeType: String?,
+): SharedMediaPayload? =
+    if (action == Intent.ACTION_SEND) {
+        streamUri?.takeIf(String::isNotBlank)?.let { SharedMediaPayload(it, mimeType) }
+    } else {
+        null
+    }
 
 /** Maps a parsed target to a route when the target needs no repository lookup. */
 internal fun routeForTarget(target: NetBoxTarget): Route? =

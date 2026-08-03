@@ -43,6 +43,25 @@ sealed interface Route {
      */
     @Serializable data object GlobalSearch : Route
 
+    /** Search for a cached target for a file shared into the app. */
+    @Serializable
+    data class SharedMedia(
+        val uri: String,
+        val mimeType: String? = null,
+        val filename: String? = null,
+    ) : Route
+
+    /** Upload a previously shared file after the user selected its cached NetBox target. */
+    @Serializable
+    data class SharedMediaUpload(
+        val endpointPath: String,
+        val objectId: Int,
+        val targetLabel: String,
+        val uri: String,
+        val mimeType: String? = null,
+        val filename: String? = null,
+    ) : Route
+
     /** Generated list/detail screens for any NetBox object type - see NBC-6/DirectoryRepository. */
     @Serializable
     data class GenericList(

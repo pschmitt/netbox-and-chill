@@ -35,6 +35,7 @@ class DocumentRepository
 constructor(
     private val directoryRepository: DirectoryRepository,
     private val genericObjectRepository: GenericObjectRepository,
+    private val pendingEditRepository: PendingEditRepository,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -59,6 +60,17 @@ constructor(
                     .sortedWith(compareByDescending<CachedDocumentWithTarget> { it.created }.thenBy { it.document.name })
                     .map { it.document }
             }
+
+    /** Deletes a cached document immediately when possible, or queues it for offline sync. */
+    suspend fun delete(documentId: Int, offline: Boolean): Result<DeleteSubmission> {
+        val endpointPath =
+            directoryRepository
+                .cachedModels()
+                .firstOrNull(::isDocumentsPluginModel)
+                ?.endpointPath
+                ?: return Result.failure(IllegalStateException("Documents plugin is unavailable"))
+        return pendingEditRepository.deleteObject(endpointPath, documentId, offline)
+    }
 
     private fun parseDocument(entity: NetBoxObjectEntity): CachedDocumentWithTarget? {
         val objectJson = runCatching {

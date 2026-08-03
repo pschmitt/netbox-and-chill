@@ -152,11 +152,13 @@
                 <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/plugins/.*" />
             </intent-filter>
 
-            <!-- Share a device link into the app from any other app's share sheet. -->
+            <!-- Share links, images, and arbitrary files into the cache-first attachment workflow. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="*/*" />
             </intent-filter>
 
             <!-- Setup QR payloads are self-identifying custom-scheme URIs, so another QR reader

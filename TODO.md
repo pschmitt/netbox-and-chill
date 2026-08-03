@@ -5173,9 +5173,12 @@ the release.
 
 - [x] Enable generated release notes for permanent semantic-version releases.
 - [x] Keep the existing signed-build, APK, and checksum instructions alongside the generated notes.
+- [x] Write an explicit readable summary with the release commit range and GitHub-generated details,
+      instead of relying on the action to merge a sparse generated body with static notes.
 
-Status: **done**, 2026-08-03 - the release workflow now asks GitHub to prepend categorized notes
-for tagged releases; workflow YAML validation and remote Android checks pass.
+Status: **done**, 2026-08-03 - tagged releases now publish an explicit Markdown summary containing
+the commit range, GitHub-generated details when available, installation notes, and checksum/build
+metadata; workflow YAML validation and remote Android checks pass.
 
 
 ## NBC-304: use gravity-based topology layout
@@ -5442,6 +5445,21 @@ Status: **done**, 2026-08-03 - type filters support compact device/device-type/I
 generic cached collections, compose with other filters, and are covered by parser/scope tests.
 
 
+## NBC-324: receive shared media for attachment uploads
+
+Images and arbitrary files shared from another Android app should open a cache-first target picker,
+then upload to the selected NetBox item as an image attachment or NetBox document. Device types
+should additionally offer front/rear photo replacement for shared images.
+
+- [x] Register image/file share intents and preserve the content URI through navigation.
+- [x] Reuse global cached search for selecting any supported NetBox object, not only devices.
+- [x] Preselect image attachments/documents and expose device-type front/rear replacement.
+- [x] Add routing coverage and verify the shared-image target/upload flow on Mi Pad 4.
+
+Status: **done**, 2026-08-03 - Android SEND intents now open the cache-first target picker and
+upload screen for generic objects; media uploads are installed and verified on Mi Pad 4.
+
+
 ## NBC-323: avoid duplicate values in structured search hints
 
 Structured manufacturer matches can expose both a relation's display name and slug, producing
@@ -5453,3 +5471,78 @@ awkward text such as `Matched Manufacturer: Shelly shelly`.
 
 Status: **done**, 2026-08-03 - search hints now collapse repeated words while preserving the full
 cache-backed search index; remote unit/lint/compile validation passed.
+
+
+## NBC-325: preview media received through Android sharing
+
+The shared-media upload flow should show what is about to be uploaded before the target is
+selected and confirmed. Images should render as thumbnails, PDFs should render their first page
+when Android can open the content URI, and other document types should have a useful fallback.
+
+- [x] Show a local image thumbnail for shared and newly selected images.
+- [x] Render the first page of shared PDFs when the content provider supports random access.
+- [x] Display filename/type metadata and a clear fallback for non-previewable documents.
+- [x] Cover image detection when a sharing app omits the MIME type.
+
+Status: **done**, 2026-08-03 - shared-image and PDF previews are rendered from the content URI in
+the target/upload flow; unknown document types retain a clear document preview fallback.
+
+
+## NBC-326: improve topology rendering performance on older devices
+
+The topology view redraws a full custom canvas for every pan/zoom event and currently performs
+layout, edge lookup, node classification, and text measurement work in the composition path. On
+older devices this makes gestures feel sluggish, especially for larger graphs.
+
+- [ ] Profile frame time and identify the dominant cost on Mi Pad 4 and Pixel 5.
+- [ ] Precompute immutable edge paths, node classifications, and label layouts when the graph
+  changes instead of during every canvas draw.
+- [ ] Avoid allocating per-frame lists/objects and use a level-of-detail policy for distant nodes
+  and labels.
+- [ ] Keep drag/pan/zoom state local to the canvas and persist node positions only after gestures
+  settle.
+- [ ] Add a regression fixture or benchmark for a representative large topology graph.
+
+Status: not started
+
+
+## NBC-327: delete NetBox documents from item pages
+
+Long-pressing a document in the item overview should expose document actions, including a confirmed
+delete operation. The cache should hide the document immediately and offline deletion should use the
+durable mutation queue.
+
+- [x] Add a long-press actions dialog with open and delete actions.
+- [x] Require explicit confirmation before deleting a document.
+- [x] Reuse the generic pending-delete path for online and offline document deletion.
+- [x] Show completion feedback for deleted and queued documents.
+
+Status: **done**, 2026-08-03 - generic and device item pages now support confirmed cache-first
+document deletion; no live NetBox document was deleted during verification.
+
+
+## NBC-328: show object-type icons on linked item rows
+
+Linked values such as a device's device type, rack, manufacturer, site, and IP address should carry
+the same object-type icon used elsewhere in the app, before the linked item's display name.
+
+- [x] Add endpoint-derived icons to generic reference and reference-list rows.
+- [x] Add endpoint-derived icons to linked rows on the device detail page.
+- [x] Reuse the shared AppIcons mapping so the visual language stays consistent.
+
+Status: **done**, 2026-08-03 - generic linked rows and device detail references now render the
+corresponding endpoint icon before the linked value.
+
+
+## NBC-329: preserve media filename extensions during uploads
+
+Some Android sharing providers expose a content URI or display name without an extension. NetBox
+Documents relies on the stored filename extension to select the right viewer, so uploads should
+retain a real extension whenever the provider supplies a useful MIME type.
+
+- [x] Infer common image, PDF, office, archive, and text extensions from MIME types.
+- [x] Apply the normalized filename to image attachments, device-type photos, and documents.
+- [x] Use safe fallbacks for extensionless uploads when the MIME type is unavailable.
+
+Status: **done**, 2026-08-03 - upload requests now preserve existing extensions and infer missing
+ones from the selected content MIME type; no live upload was performed during verification.

@@ -101,6 +101,7 @@ import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
 import dev.pschmitt.netboxandchill.data.db.RackElevationEntity
 import dev.pschmitt.netboxandchill.data.repository.RackFace
+import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.data.repository.choiceSearchHint
@@ -168,6 +169,7 @@ fun GenericDetailScreen(
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
+    val documentDeleteResult by viewModel.documentDeleteResult.collectAsStateWithLifecycle()
     val documentPluginAvailable by
         viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
@@ -307,6 +309,15 @@ fun GenericDetailScreen(
             snackbarHostState.showSnackbar(message)
             viewModel.errorShown()
         }
+    }
+
+    LaunchedEffect(documentDeleteResult) {
+        val result = documentDeleteResult ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            if (result == DeleteSubmission.Queued) "Document deletion queued"
+            else "Document deleted"
+        )
+        viewModel.documentDeleteResultShown()
     }
 
     LaunchedEffect(refreshedMessage) {
@@ -768,6 +779,7 @@ fun GenericDetailScreen(
                                                 viewModel.localAttachmentFile(it, document.filename)
                                             }
                                         },
+                                        onDeleteDocument = viewModel::deleteDocument,
                                     )
                                 }
                                 item {

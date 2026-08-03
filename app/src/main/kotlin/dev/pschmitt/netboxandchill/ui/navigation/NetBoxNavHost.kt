@@ -20,6 +20,7 @@ import dev.pschmitt.netboxandchill.ui.generic.GenericListScreen
 import dev.pschmitt.netboxandchill.ui.generic.LINKED_CREATE_RESULT_KEY
 import dev.pschmitt.netboxandchill.ui.generic.LinkedCreateResult
 import dev.pschmitt.netboxandchill.ui.generic.encodeForSavedState
+import dev.pschmitt.netboxandchill.ui.common.SharedMediaUploadScreen
 import dev.pschmitt.netboxandchill.ui.onboarding.OnboardingScreen
 import dev.pschmitt.netboxandchill.ui.pending.PendingChangesScreen
 import dev.pschmitt.netboxandchill.ui.scanner.ScannerScreen
@@ -73,6 +74,7 @@ fun NetBoxNavHost(
     setup: NetBoxTarget.Setup?,
     onSetupImport: (NetBoxTarget.Setup) -> Unit,
     onSetupConsumed: () -> Unit,
+    onSetupCompleted: () -> Unit,
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable<Route.Onboarding> {
@@ -84,6 +86,7 @@ fun NetBoxNavHost(
                     navController.navigate(Route.Dashboard) {
                         popUpTo(Route.Onboarding) { inclusive = true }
                     }
+                    onSetupCompleted()
                 },
             )
         }
@@ -243,7 +246,7 @@ fun NetBoxNavHost(
         }
         composable<Route.GlobalSearch> {
             GlobalSearchScreen(
-                onResultClick = { endpointPath, id ->
+                onResultClick = { endpointPath, id, _ ->
                     navController.navigateToObject(endpointPath, id)
                 },
                 onBack = { navController.navigateBackSafely() },
@@ -255,6 +258,47 @@ fun NetBoxNavHost(
                     navController.navigate(Route.Settings) { launchSingleTop = true }
                 },
                 onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
+            )
+        }
+        composable<Route.SharedMedia> { backStackEntry ->
+            val route: Route.SharedMedia = backStackEntry.toRoute()
+            GlobalSearchScreen(
+                selectionPrompt =
+                    "Choose an item for ${route.filename?.takeIf(String::isNotBlank) ?: "the shared file"}",
+                onResultClick = { endpointPath, id, display ->
+                    navController.navigate(
+                        Route.SharedMediaUpload(
+                            endpointPath = endpointPath,
+                            objectId = id,
+                            targetLabel = display,
+                            uri = route.uri,
+                            mimeType = route.mimeType,
+                            filename = route.filename,
+                        )
+                    )
+                },
+                onBack = { navController.navigateBackSafely() },
+                onDashboardClick = {
+                    navController.navigate(Route.Dashboard) { launchSingleTop = true }
+                },
+                onScanClick = { navController.navigate(Route.Scanner()) },
+                onSettingsClick = {
+                    navController.navigate(Route.Settings) { launchSingleTop = true }
+                },
+                onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
+            )
+        }
+        composable<Route.SharedMediaUpload> { backStackEntry ->
+            val route: Route.SharedMediaUpload = backStackEntry.toRoute()
+            SharedMediaUploadScreen(
+                endpointPath = route.endpointPath,
+                objectId = route.objectId,
+                targetLabel = route.targetLabel,
+                uri = route.uri,
+                mimeType = route.mimeType,
+                filename = route.filename,
+                onBack = { navController.navigateBackSafely() },
+                onUploaded = { navController.popBackStack(Route.SharedMedia, inclusive = true) },
             )
         }
         composable<Route.Generic> { backStackEntry ->

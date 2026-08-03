@@ -75,12 +75,13 @@ import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalSearchScreen(
-    onResultClick: (endpointPath: String, id: Int) -> Unit,
+    onResultClick: (endpointPath: String, id: Int, display: String) -> Unit,
     onBack: () -> Unit,
     onDashboardClick: () -> Unit,
     onScanClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onAddClick: () -> Unit,
+    selectionPrompt: String? = null,
     viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -125,7 +126,9 @@ fun GlobalSearchScreen(
                     OutlinedTextField(
                         value = query,
                         onValueChange = viewModel::onQueryChange,
-                        placeholder = { Text("Search all NetBox objects") },
+                        placeholder = {
+                            Text(selectionPrompt ?: "Search all NetBox objects")
+                        },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true,
                         visualTransformation =
@@ -192,7 +195,9 @@ fun GlobalSearchScreen(
                                             devicesById[hit.id] != null),
                                 localImageFile = viewModel::localImageFile,
                                 isRecent = true,
-                                onClick = { onResultClick(hit.endpointPath, hit.id) },
+                                onClick = {
+                                    onResultClick(hit.endpointPath, hit.id, hit.display)
+                                },
                             )
                         }
                     }
@@ -270,7 +275,9 @@ fun GlobalSearchScreen(
                                             devicesById[hit.id] != null),
                                 localImageFile = viewModel::localImageFile,
                                 isRecent = searchHitKey(hit) in recentKeys,
-                                onClick = { onResultClick(hit.endpointPath, hit.id) },
+                                onClick = {
+                                    onResultClick(hit.endpointPath, hit.id, hit.display)
+                                },
                             )
                         }
                     }

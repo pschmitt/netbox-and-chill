@@ -3,7 +3,8 @@ package dev.pschmitt.netboxandchill.ui.common
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,9 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Badge
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,9 +29,11 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -42,13 +48,21 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DocumentsSection(
     documents: List<CachedDocument>,
     onOpenDocument: (CachedDocument) -> Unit,
     onAddDocument: (() -> Unit)? = null,
     localFileFor: ((CachedDocument) -> File?)? = null,
+    onDeleteDocument: ((CachedDocument) -> Unit)? = null,
 ) {
+    var actionDocument by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<CachedDocument?>(null)
+    }
+    var deleteDocument by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<CachedDocument?>(null)
+    }
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         NetBoxSectionHeader(
             Icons.Default.Description,
@@ -71,9 +85,12 @@ fun DocumentsSection(
                     modifier =
                         Modifier.fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .then(
-                                if (canOpen) Modifier.clickable { onOpenDocument(document) }
-                                else Modifier
+                            .combinedClickable(
+                                onClick = { if (canOpen) onOpenDocument(document) },
+                                onLongClick =
+                                    if (onDeleteDocument != null) {
+                                        { actionDocument = document }
+                                    } else null,
                             )
                 ) {
                     ListItem(
@@ -113,6 +130,84 @@ fun DocumentsSection(
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
+    }
+    actionDocument?.let { document ->
+        val canOpen = !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
+        AlertDialog(
+            onDismissRequest = { actionDocument = null },
+            icon = { Icon(Icons.Default.Description, contentDescription = null) },
+            title = { Text(document.name) },
+            text = {
+                Column {
+                    if (canOpen) {
+                        TextButton(
+                            onClick = {
+                                actionDocument = null
+                                onOpenDocument(document)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
+                            Text("Open document", modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            actionDocument = null
+                            deleteDocument = document
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors =
+                            ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null)
+                        Text("Delete document", modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { actionDocument = null }) { Text("Cancel") }
+            },
+        )
+    }
+    deleteDocument?.let { document ->
+        AlertDialog(
+            onDismissRequest = { deleteDocument = null },
+            icon = {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
+            title = { Text("Delete document?") },
+            text = {
+                Text(
+                    "Delete ${document.name} from NetBox? The cached copy is removed immediately; " +
+                        "offline deletions are uploaded when sync resumes."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        deleteDocument = null
+                        onDeleteDocument?.invoke(document)
+                    },
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Text("Delete", modifier = Modifier.padding(start = 8.dp))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteDocument = null }) { Text("Cancel") }
+            },
+        )
     }
 }
 

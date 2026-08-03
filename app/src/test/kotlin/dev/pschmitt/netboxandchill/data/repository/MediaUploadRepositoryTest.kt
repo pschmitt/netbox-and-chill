@@ -25,4 +25,20 @@ class MediaUploadRepositoryTest {
             ),
         )
     }
+
+    @Test
+    fun `adds MIME extension only when the provider name has none`() {
+        assertEquals(
+            "shared-file.pdf",
+            MediaUploadRepository.filenameWithMimeExtension("shared-file", "application/pdf"),
+        )
+        assertEquals(
+            "photo.jpg",
+            MediaUploadRepository.filenameWithMimeExtension("photo", "image/jpeg"),
+        )
+        assertEquals(
+            "already.png",
+            MediaUploadRepository.filenameWithMimeExtension("already.png", "image/jpeg"),
+        )
+    }
 }

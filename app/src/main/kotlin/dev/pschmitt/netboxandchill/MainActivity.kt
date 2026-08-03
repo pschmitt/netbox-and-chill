@@ -55,6 +55,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var syncScheduler: SyncScheduler
 
     private var pendingTarget by mutableStateOf<NetBoxTarget?>(null)
+    private var pendingSharedMedia by mutableStateOf<SharedMediaPayload?>(null)
     private var pendingSetup by mutableStateOf<NetBoxTarget.Setup?>(null)
     private var pendingReconciliationSummary by mutableStateOf<String?>(null)
     private var pendingCrashReport by mutableStateOf<String?>(null)
@@ -66,6 +67,7 @@ class MainActivity : FragmentActivity() {
 
         pendingCrashReport = CrashReportStore(applicationContext).takePending()
         pendingTarget = extractNetBoxTarget(intent)
+        pendingSharedMedia = extractSharedMedia(intent)
         pendingReconciliationSummary =
             intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
 
@@ -134,6 +136,20 @@ class MainActivity : FragmentActivity() {
                     pendingTarget = null
                 }
 
+                LaunchedEffect(pendingSharedMedia) {
+                    val sharedMedia = pendingSharedMedia ?: return@LaunchedEffect
+                    if (settingsRepository.isConfigured) {
+                        navController.navigate(
+                            Route.SharedMedia(
+                                uri = sharedMedia.uri,
+                                mimeType = sharedMedia.mimeType,
+                                filename = sharedMedia.filename,
+                            )
+                        )
+                        pendingSharedMedia = null
+                    }
+                }
+
                 LaunchedEffect(pendingReconciliationSummary) {
                     val summary = pendingReconciliationSummary ?: return@LaunchedEffect
                     if (settingsRepository.isConfigured) {
@@ -183,6 +199,18 @@ class MainActivity : FragmentActivity() {
                                 pendingSetup = setup
                             },
                             onSetupConsumed = { pendingSetup = null },
+                            onSetupCompleted = {
+                                pendingSharedMedia?.let { sharedMedia ->
+                                    navController.navigate(
+                                        Route.SharedMedia(
+                                            uri = sharedMedia.uri,
+                                            mimeType = sharedMedia.mimeType,
+                                            filename = sharedMedia.filename,
+                                        )
+                                    )
+                                    pendingSharedMedia = null
+                                }
+                            },
                         )
                     }
                 }
@@ -202,6 +230,7 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingTarget = extractNetBoxTarget(intent)
+        pendingSharedMedia = extractSharedMedia(intent)
         pendingReconciliationSummary =
             intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
     }

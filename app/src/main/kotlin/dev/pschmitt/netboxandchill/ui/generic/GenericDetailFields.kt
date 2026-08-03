@@ -25,6 +25,7 @@ import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
 import dev.pschmitt.netboxandchill.ui.common.ImageViewerItem
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.formatNetBoxDateTime
+import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 internal fun visibleFieldRows(
     rows: List<FieldRow>,
@@ -286,6 +287,13 @@ internal fun LazyListScope.fieldRow(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        Icon(
+                            AppIcons.forEndpointPath(row.target.endpointPath),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Text(
                             row.target.display,
                             style = MaterialTheme.typography.bodyLarge,
@@ -340,16 +348,27 @@ internal fun LazyListScope.fieldRow(
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     row.targets.forEach { target ->
-                        Text(
-                            "• " + target.display,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier =
                                 Modifier.clickable {
                                         onNavigateToReference(target.endpointPath, target.id)
                                     }
                                     .padding(vertical = 2.dp),
-                        )
+                        ) {
+                            Icon(
+                                AppIcons.forEndpointPath(target.endpointPath),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                target.display,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                 }
             }

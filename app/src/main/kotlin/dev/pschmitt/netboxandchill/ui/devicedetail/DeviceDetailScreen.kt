@@ -83,6 +83,7 @@ import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.ui.common.CollapsibleCommentCard
 import dev.pschmitt.netboxandchill.ui.common.CommentCard
 import dev.pschmitt.netboxandchill.ui.common.DetailTrailingActions
@@ -154,6 +155,7 @@ fun DeviceDetailScreen(
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val connectedDevices by viewModel.connectedDevices.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
+    val documentDeleteResult by viewModel.documentDeleteResult.collectAsStateWithLifecycle()
     val documentPluginAvailable by
         viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
     val topologyPluginAvailable by
@@ -231,6 +233,15 @@ fun DeviceDetailScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
         }
+    }
+
+    LaunchedEffect(documentDeleteResult) {
+        val result = documentDeleteResult ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            if (result == DeleteSubmission.Queued) "Document deletion queued"
+            else "Document deleted"
+        )
+        viewModel.documentDeleteResultShown()
     }
 
     LaunchedEffect(refreshedMessage) {
@@ -612,12 +623,14 @@ fun DeviceDetailScreen(
                                         viewModel.localAttachmentFile(it, document.filename)
                                     }
                                 },
+                                onDeleteDocument = viewModel::deleteDocument,
                             )
                         }
                         if (isFieldVisible("site"))
                             detailField(
                                 "Site",
                                 current.siteName,
+                                leadingIcon = AppIcons.forEndpointPath("api/dcim/sites/"),
                                 onClick =
                                     current.siteId?.let { id ->
                                         { onReferenceClick("api/dcim/sites/", id, current.name) }
@@ -628,6 +641,7 @@ fun DeviceDetailScreen(
                             detailField(
                                 "Rack",
                                 current.rackName,
+                                leadingIcon = AppIcons.forEndpointPath("api/dcim/racks/"),
                                 onClick =
                                     current.rackId?.let { id ->
                                         { onReferenceClick("api/dcim/racks/", id, current.name) }
@@ -657,6 +671,7 @@ fun DeviceDetailScreen(
                             detailField(
                                 "Manufacturer",
                                 current.manufacturerName,
+                                leadingIcon = AppIcons.forEndpointPath("api/dcim/manufacturers/"),
                                 onClick =
                                     manufacturerId?.let { id ->
                                         {
@@ -673,6 +688,7 @@ fun DeviceDetailScreen(
                             detailField(
                                 "Device type",
                                 current.deviceTypeModel,
+                                leadingIcon = AppIcons.forEndpointPath("api/dcim/device-types/"),
                                 onClick =
                                     deviceType?.id?.let { id ->
                                         { onDeviceTypeClick(id, current.name) }
@@ -699,6 +715,7 @@ fun DeviceDetailScreen(
                             detailField(
                                 "Primary IP",
                                 current.primaryIp,
+                                leadingIcon = AppIcons.forEndpointPath("api/ipam/ip-addresses/"),
                                 copyable = true,
                                 onCopyValue = onCopyValue,
                                 onClick =
@@ -1323,6 +1340,7 @@ private fun JsonElement.displayValue(): String? =
 private fun LazyListScope.detailField(
     label: String,
     value: String?,
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     copyable: Boolean = false,
     onCopyValue: (label: String, value: String) -> Unit = { _, _ -> },
     onClick: (() -> Unit)? = null,
@@ -1353,6 +1371,15 @@ private fun LazyListScope.detailField(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    leadingIcon?.let { icon ->
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
                     Text(
                         value,
                         style = MaterialTheme.typography.bodyLarge,

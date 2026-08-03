@@ -190,6 +190,9 @@ constructor(
     private val _deleteResult = MutableStateFlow<DeleteSubmission?>(null)
     val deleteResult: StateFlow<DeleteSubmission?> = _deleteResult.asStateFlow()
 
+    private val _documentDeleteResult = MutableStateFlow<DeleteSubmission?>(null)
+    val documentDeleteResult: StateFlow<DeleteSubmission?> = _documentDeleteResult.asStateFlow()
+
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
 
     val documentPluginAvailable: StateFlow<Boolean> =
@@ -485,6 +488,22 @@ constructor(
 
     fun deleteResultShown() {
         _deleteResult.value = null
+    }
+
+    fun deleteDocument(document: CachedDocument) {
+        if (_isDeleting.value) return
+        viewModelScope.launch {
+            _isDeleting.value = true
+            documentRepository
+                .delete(document.id, settingsRepository.offlineMode.value)
+                .onSuccess { _documentDeleteResult.value = it }
+                .onFailure { Timber.w(it, "Couldn't delete NetBox document %d", document.id) }
+            _isDeleting.value = false
+        }
+    }
+
+    fun documentDeleteResultShown() {
+        _documentDeleteResult.value = null
     }
 
     fun downloadAttachment(url: String, filename: String) {
