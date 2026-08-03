@@ -1,11 +1,11 @@
-# NetBox and Chill task runner.
+# Nyetbox task runner.
 #
 # Gradle must never run on this machine directly - every build/test/lint recipe here shells out to
 # a remote host (rofl-13.brkn.lol or rofl-14.brkn.lol) over SSH instead. See AGENTS.md.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-application_id := "dev.pschmitt.netboxandchill"
+application_id := "dev.pschmitt.nyetbox"
 
 remote_host := env_var_or_default("NBC_REMOTE_HOST", "rofl-13.brkn.lol")
 
@@ -14,7 +14,7 @@ remote_host := env_var_or_default("NBC_REMOTE_HOST", "rofl-13.brkn.lol")
 # from clobbering each other's remote sync directory mid-build.
 worktree_suffix := `gd=$(git rev-parse --git-dir); gcd=$(git rev-parse --git-common-dir); if [ "$gd" != "$gcd" ]; then basename "$(git rev-parse --show-toplevel)" | sed 's/^/-/'; fi`
 
-remote_path := env_var_or_default("NBC_REMOTE_PATH", "~/build/netbox-and-chill" + worktree_suffix)
+remote_path := env_var_or_default("NBC_REMOTE_PATH", "~/build/nyetbox" + worktree_suffix)
 local_dist := env_var_or_default("NBC_DIST_DIR", "./dist")
 
 default_abi := env_var_or_default("NBC_ABI", "arm64-v8a")
@@ -73,30 +73,30 @@ build variant="debug" host=remote_host:
     fi
     tmpdir=$(mktemp -d)
     trap 'rm -rf "$tmpdir"' EXIT
-    rbw attachment get "NetBox and Chill CI Signing Keystore" --attachment netboxandchill-ci.jks --output "$tmpdir/netboxandchill-ci.jks"
-    rbw attachment get "NetBox and Chill CI Signing Keystore" --attachment netboxandchill-ci-keystore.env --output "$tmpdir/netboxandchill-ci-keystore.env"
+    rbw attachment get "NetBox and Chill CI Signing Keystore" --attachment netboxandchill-ci.jks --output "$tmpdir/nyetbox-ci.jks"
+    rbw attachment get "NetBox and Chill CI Signing Keystore" --attachment netboxandchill-ci-keystore.env --output "$tmpdir/nyetbox-ci-keystore.env"
     just sync "{{host}}"
-    ssh "{{host}}" 'mkdir -p ~/.netboxandchill-ci-tmp && chmod 700 ~/.netboxandchill-ci-tmp'
-    scp -q "$tmpdir/netboxandchill-ci.jks" "$tmpdir/netboxandchill-ci-keystore.env" "{{host}}:.netboxandchill-ci-tmp/"
+    ssh "{{host}}" 'mkdir -p ~/.nyetbox-ci-tmp && chmod 700 ~/.nyetbox-ci-tmp'
+    scp -q "$tmpdir/nyetbox-ci.jks" "$tmpdir/nyetbox-ci-keystore.env" "{{host}}:.nyetbox-ci-tmp/"
     # The keystore is shredded on the host whether or not the build succeeds.
     ssh "{{host}}" "
       artifact={{remote_path}}/app/build/outputs/apk/release/app-{{default_abi}}-release.apk
       previous_mtime=0
       [[ -f \"\$artifact\" ]] && previous_mtime=\$(stat -c %Y \"\$artifact\")
       set -a
-      . ~/.netboxandchill-ci-tmp/netboxandchill-ci-keystore.env
+      . ~/.nyetbox-ci-tmp/nyetbox-ci-keystore.env
       set +a
-      export CI_KEYSTORE_PATH=\$HOME/.netboxandchill-ci-tmp/netboxandchill-ci.jks
+      export CI_KEYSTORE_PATH=\$HOME/.nyetbox-ci-tmp/nyetbox-ci.jks
       export GIT_REVISION='$git_revision'
       export BUILD_DATE='$build_date'
-      cd {{remote_path}} && nix develop --command ./gradlew ':app:assembleRelease' --rerun-tasks 2>&1 | tee ~/netboxandchill-release-build.log
+      cd {{remote_path}} && nix develop --command ./gradlew ':app:assembleRelease' --rerun-tasks 2>&1 | tee ~/nyetbox-release-build.log
       rc=\$?
       if [[ \$rc -eq 0 && (! -f \"\$artifact\" || \$(stat -c %Y \"\$artifact\") -le \$previous_mtime) ]]; then
         echo 'release build did not refresh its APK artifact' >&2
         rc=1
       fi
-      shred -u ~/.netboxandchill-ci-tmp/* 2>/dev/null || true
-      rmdir ~/.netboxandchill-ci-tmp 2>/dev/null || true
+      shred -u ~/.nyetbox-ci-tmp/* 2>/dev/null || true
+      rmdir ~/.nyetbox-ci-tmp 2>/dev/null || true
       exit \$rc
     "
 

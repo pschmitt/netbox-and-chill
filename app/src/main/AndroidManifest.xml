@@ -30,14 +30,14 @@
         android:required="false" />
 
     <application
-        android:name=".NetBoxAndChillApp"
+        android:name=".NyetboxApp"
         android:allowBackup="false"
         tools:ignore="DataExtractionRules"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.NetBoxAndChill"
+        android:theme="@style/Theme.Nyetbox"
         android:usesCleartextTraffic="true"
         tools:targetApi="34">
 
@@ -48,9 +48,9 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/launcher_name"
+            android:label="@string/app_name"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.NetBoxAndChill.Splash"
+            android:theme="@style/Theme.Nyetbox.Splash"
             android:windowSoftInputMode="adjustResize">
 
             <intent-filter>
@@ -168,22 +168,22 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="netboxandchill" android:host="setup" />
+                <data android:scheme="nyetbox" android:host="setup" />
             </intent-filter>
 
-            <!-- App-owned shortcuts such as nbxc://device/393 and
-                 nbxc://device/asset_tag/%23CZN-0001. The parser also accepts generic built-in
+            <!-- App-owned shortcuts such as nyetbox://device/393 and
+                 nyetbox://device/asset_tag/%23CZN-0001. The parser also accepts generic built-in
                  and API-style object routes; keeping the filter scheme-only lets it evolve without
                  having to enumerate every NetBox model in the manifest. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="nbxc" />
+                <data android:scheme="nyetbox" />
             </intent-filter>
         </activity>
 
-        <!-- WorkManager is initialized manually in NetBoxAndChillApp (Configuration.Provider) so
+        <!-- WorkManager is initialized manually in NyetboxApp (Configuration.Provider) so
              Hilt can inject HiltWorkerFactory into it - disable the default ContentProvider-based
              auto-init to avoid double initialization. -->
         <provider

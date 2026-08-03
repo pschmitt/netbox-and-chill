@@ -1,0 +1,15 @@
+package dev.pschmitt.nyetbox.data.db
+
+import androidx.room.Entity
+
+@Entity(tableName = "custom_fields", primaryKeys = ["name"])
+data class CustomFieldEntity(
+    val name: String,
+    val type: String,
+    val label: String?,
+    val groupName: String?,
+    val weight: Int,
+    val objectTypes: String?,
+    val choiceSetUrl: String?,
+    val syncedAt: Long,
+)

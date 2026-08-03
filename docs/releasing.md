@@ -1,4 +1,4 @@
-# Releasing NetBox and Chill
+# Releasing Nyetbox
 
 The normal [`Release`](../.github/workflows/release.yaml) workflow publishes APKs to GitHub
 Releases. The Play Store workflow is separate and is intentionally manual:

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Repository instructions for AI coding agents working on NetBox and Chill.
+Repository instructions for AI coding agents working on Nyetbox.
 
 ## Task tracking
 

@@ -122,7 +122,7 @@ jobs:
           fi
 
           {
-            echo "# NetBox and Chill ${{ steps.params.outputs.release_name }}"
+            echo "# Nyetbox ${{ steps.params.outputs.release_name }}"
             echo
             if [[ -n "$previous_tag" ]]
             then
@@ -145,7 +145,7 @@ jobs:
             echo "## Installation"
             echo
             echo "Signed with the same CI key as every other build here, so upgrades work cleanly over"
-            echo 'an existing `dev.pschmitt.netboxandchill` install.'
+            echo 'an existing `dev.pschmitt.nyetbox` install.'
             echo
             printf '%s\n' "\`SHA256SUMS\` covers every APK. Each APK embeds commit \`$GITHUB_SHA\`, visible in"
             echo "Settings > About."
@@ -181,7 +181,7 @@ jobs:
       - name: Collect and rename APKs
         id: apks
         run: |
-          label="netbox-and-chill-${{ steps.params.outputs.tag_name }}"
+          label="nyetbox-${{ steps.params.outputs.tag_name }}"
           dir="/tmp/$label"
           mkdir -p "$dir"
 
@@ -230,8 +230,8 @@ jobs:
             Automated build of the latest main (${{ github.sha }}), built ${{ steps.date.outputs.date }}. Not a stable release.
 
             Two variants are provided, both signed with the same CI key so upgrades between them work:
-            - `*-debug.apk` — debuggable, uses the `dev.pschmitt.netboxandchill.debug` applicationId so it installs side by side with a release install for testing.
-            - `*-release.apk` — minified/optimized like a real release build, uses the same `dev.pschmitt.netboxandchill` applicationId as every tagged release, so it upgrades cleanly over (or is upgraded by) any of them.
+            - `*-debug.apk` — debuggable, uses the `dev.pschmitt.nyetbox.debug` applicationId so it installs side by side with a release install for testing.
+            - `*-release.apk` — minified/optimized like a real release build, uses the same `dev.pschmitt.nyetbox` applicationId as every tagged release, so it upgrades cleanly over (or is upgraded by) any of them.
 
             `SHA256SUMS` covers every APK above. Each APK also embeds this exact commit
             (`${{ github.sha }}`) as `BuildConfig.GIT_REVISION`, checkable via Settings in the app.

@@ -1,4 +1,4 @@
-rootProject.name = "netbox-and-chill"
+rootProject.name = "nyetbox"
 
 include(":app")
 

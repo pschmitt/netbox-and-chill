@@ -29,19 +29,19 @@ val appLinkHost =
 val configuredVersionCode =
     providers
         .gradleProperty("versionCode")
-        .orElse("3")
+        .orElse("4")
         .map { value ->
             value.toIntOrNull()?.takeIf { it > 0 }
                 ?: error("versionCode must be a positive integer")
         }
         .get()
 val configuredVersionName =
-    providers.gradleProperty("versionName").orElse("1.0.2").get().also { name ->
+    providers.gradleProperty("versionName").orElse("1.1.0").get().also { name ->
         require(name.isNotBlank()) { "versionName must not be blank" }
     }
 
 android {
-    namespace = "dev.pschmitt.netboxandchill"
+    namespace = "dev.pschmitt.nyetbox"
     compileSdk = 36
     buildToolsVersion = "36.1.0"
 
@@ -52,7 +52,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.pschmitt.netboxandchill"
+        applicationId = "dev.pschmitt.nyetbox"
         minSdk = 26
         targetSdk = 36
 

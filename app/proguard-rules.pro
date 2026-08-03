@@ -6,15 +6,15 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Keep class names of all classes for easy debugging (and fix navigation route checking)
--keepnames class dev.pschmitt.netboxandchill.** { *; }
+-keepnames class dev.pschmitt.nyetbox.** { *; }
 
 # kotlinx.serialization: keep serializers for our DTOs (they're reflectively looked up)
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt
--keepclassmembers class dev.pschmitt.netboxandchill.data.api.dto.** {
+-keepclassmembers class dev.pschmitt.nyetbox.data.api.dto.** {
     *** Companion;
 }
--keepclasseswithmembers class dev.pschmitt.netboxandchill.data.api.dto.** {
+-keepclasseswithmembers class dev.pschmitt.nyetbox.data.api.dto.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 

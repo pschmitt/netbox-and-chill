@@ -1,4 +1,4 @@
-NetBox and Chill is a native Android companion app for your self-hosted NetBox instance.
+Nyetbox is a native Android companion app for your self-hosted NetBox instance.
 
 Point the camera at the QR/barcode sticker on a physical device (the same sticker that links to
 its public NetBox URL, e.g. https://netbox.example.com/dcim/devices/393/) and jump straight to

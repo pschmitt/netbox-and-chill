@@ -1,6 +1,6 @@
 # TODO
 
-Running backlog/changelog for NetBox and Chill. One `## NBC-N:` entry per feature or fix,
+Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
 ## NBC-1: Initial project scaffold + MVP
@@ -9,7 +9,7 @@ Offline-first NetBox companion app: token login, device list with a Room cache, 
 scanning of the device-sticker URLs (`https://<netbox>/dcim/devices/<id>/`), Material 3 UI,
 Obtainium distribution.
 
-- [x] Public GitHub repo (pschmitt/netbox-and-chill), GPL-3.0
+- [x] Public GitHub repo (pschmitt/nyetbox), GPL-3.0
 - [x] flake.nix (JDK 21, Android SDK, just, ktfmt, git-hooks pre-commit)
 - [x] justfile (remote build on rofl-13/rofl-14, install to Zenfone 10 / Mi Pad 4, logcat, format/lint)
 - [x] Gradle project skeleton (single `:app` module, AGP/Kotlin/KSP/Hilt wiring, version catalog)
@@ -91,7 +91,7 @@ extension of this entry.
 "show the image" half - the offline-sync/download-to-disk half above is still not started, see
 follow-ups. Added Coil3 (`coil-compose` + `coil-network-okhttp`, pinned 3.5.0), wired to the same
 authenticated `OkHttpClient` as Retrofit (`NetworkModule.provideImageLoader`, set as the app-wide
-default via `NetBoxAndChillApp : SingletonImageLoader.Factory`) - confirms the TODO's own note
+default via `NyetboxApp : SingletonImageLoader.Factory`) - confirms the TODO's own note
 that media requests may need the API token. Two new typed endpoints on `NetBoxApi`
 (`getDeviceType`, `listImageAttachments`), confirmed against NetBox 4.5's actual DRF serializers
 (not guessed): `front_image`/`rear_image` are plain absolute-URL strings (`serializers.ImageField`),
@@ -139,7 +139,7 @@ verification against current NetBox media remains a physical-device follow-up.
 ## NBC-4: New app icon - NetBox logo x raised-eyebrow emoji mashup
 
 Current launcher icon is a placeholder (plain stroked box glyph on teal). User wants a proper
-icon combining the NetBox logo with a raised-eyebrow emoji (🤨), matching the "NetBox and Chill"
+icon combining the NetBox logo with a raised-eyebrow emoji (🤨), matching the "Nyetbox"
 branding.
 
 **Why:** user's explicit design direction, replacing the placeholder from NBC-1.
@@ -298,7 +298,7 @@ path for any host in the meantime.
 
 Status: **done**, 2026-08-01 - the exact-host app filter and the generated Nix/nginx Digital Asset
 Links route are in place; the live host returned `200 application/json` with package
-`dev.pschmitt.netboxandchill` and the release certificate fingerprint.
+`dev.pschmitt.nyetbox` and the release certificate fingerprint.
 
 ## NBC-11: QR-code app configuration sharing (like findroidplus's setup codes)
 
@@ -312,7 +312,7 @@ across devices without retyping the URL/token, and referenced findroidplus as th
 follow.
 **How to apply:** look at findroidplus's actual `QrConfigCodec` implementation
 (`~/devel/private/pschmitt/findroid.git`) for the encoding scheme/format to mirror. Needs a
-custom URI scheme intent-filter (e.g. `netboxandchill://setup?...`) alongside the existing
+custom URI scheme intent-filter (e.g. `nyetbox://setup?...`) alongside the existing
 onboarding flow, plus a way to *generate*/display the QR code from Settings for the sharing side
 (scanning is already covered by the existing camera scanner, assuming the encoded payload is
 recognized by NetBoxUrlParser/a new parser branch). Sensitive: the payload includes the API
@@ -1001,7 +1001,7 @@ than as a fully separate feature.
   top bar, since several of those screens (`DeviceListScreen`, `DeviceDetailScreen`,
   `DashboardScreen`, `Sidebar`) had other in-flight changes elsewhere this session.
 - [x] `sync/SyncNotifier.kt` - new `@Singleton`, creates a `background_sync` `NotificationChannel`
-  (called once from `NetBoxAndChillApp.onCreate`, idempotent) and posts a `Notification` (tapping
+  (called once from `NyetboxApp.onCreate`, idempotent) and posts a `Notification` (tapping
   it opens `MainActivity`) via `notifySyncFailed(message)`. Silently no-ops if `POST_NOTIFICATIONS`
   isn't granted on API 33+ instead of crashing the worker - this is a nice-to-have surface, not a
   hard requirement.
@@ -1590,7 +1590,7 @@ exposed `Switch camera`, and switched lenses without camera errors.
 
 ## NBC-47: share/import complete connection setup QR codes
 
-The setup QR code must represent a complete NetBox and Chill connection, not a token-only export.
+The setup QR code must represent a complete Nyetbox connection, not a token-only export.
 It should contain the server URL and API token, be generated from Settings behind device auth, and
 be scannable directly from the login screen on another device.
 
@@ -2591,7 +2591,7 @@ editor and its review/revert flow without submitting.
 
 ## NBC-125: open NetBox asset-tag QR URLs from other camera apps
 
-NetBox sticker QR codes should offer NetBox and Chill when scanned by the device's regular camera
+NetBox sticker QR codes should offer Nyetbox when scanned by the device's regular camera
 or another QR reader. Support both HTTPS and HTTP NetBox object URLs; a bare asset-tag string is
 not an Android URL and can only be resolved by the in-app scanner (or a reader's share action).
 
@@ -3150,7 +3150,7 @@ Mi Pad 4, and PX5.
 
 ## NBC-166: move the app icon to the sidebar header
 
-The sidebar should show the app icon beside the “NetBox and Chill” label at the top, rather than
+The sidebar should show the app icon beside the “Nyetbox” label at the top, rather than
 placing the icon in the footer.
 
 - [x] Move the app icon into the sidebar header.
@@ -3419,21 +3419,21 @@ focused edit dialog must stay closed instead of being relaunched by the route ef
 Status: **done**, 2026-08-02 - the Mi Pad 4 long-press → Edit → Review → Confirm flow closes the
 focused editor; confirmation now explicitly clears the focused state, with remote tests passing.
 
-## NBC-185: add nbxc deep links for cached NetBox objects
+## NBC-185: add nyetbox deep links for cached NetBox objects
 
-The app should accept its own `nbxc://` links so shortcuts, QR codes, and other apps can open a
+The app should accept its own `nyetbox://` links so shortcuts, QR codes, and other apps can open a
 specific NetBox page directly. Device IDs and asset tags should be supported, along with a generic
 form for other built-in and plugin object types.
 
-- [x] Parse `nbxc://device/<id>` and `nbxc://device/asset_tag/<tag>` targets.
+- [x] Parse `nyetbox://device/<id>` and `nyetbox://device/asset_tag/<tag>` targets.
 - [x] Parse generic built-in and API-style object targets for other item types.
 - [x] Resolve asset-tag links through the cache-first device repository.
 - [x] Register the custom scheme in the Android manifest and route cold/warm intents.
 - [x] Add parser tests and verify a device deep link on a physical device.
 
 Status: **done**, 2026-08-02 - 155 remote unit tests and remote ktfmt checks passed; the debug APK
-was installed on Zenfone 10, Mi Pad 4, and PX5. On the Mi Pad, both `nbxc://device/246` and
-`nbxc://device/asset_tag/%23SLY-3006` opened the cached Shelly 1 device while offline.
+was installed on Zenfone 10, Mi Pad 4, and PX5. On the Mi Pad, both `nyetbox://device/246` and
+`nyetbox://device/asset_tag/%23SLY-3006` opened the cached Shelly 1 device while offline.
 
 ## NBC-186: resolve linked IDs in changelog diffs
 
@@ -4688,7 +4688,7 @@ configuration flow.
 - [x] Implement the least surprising maintainable option and verify it on a non-default host build.
 
 Status: **done**, 2026-08-02 - documented the wildcard chooser, compile-time verified-host
-placeholder, and `nbxc://` fallback; a remote Gradle manifest build confirmed `netbox.example`.
+placeholder, and `nyetbox://` fallback; a remote Gradle manifest build confirmed `netbox.example`.
 
 
 ## NBC-274: link diff-view item rows
@@ -5552,3 +5552,21 @@ retain a real extension whenever the provider supplies a useful MIME type.
 Status: **done**, 2026-08-03 - upload requests now preserve existing extensions, infer missing ones
 from the selected content MIME type, and leave unknown types extensionless; no live upload was
 performed during verification.
+
+
+## NBC-330: rebrand the application as Nyetbox
+
+Rename the Android application identity from NetBox and Chill to Nyetbox, including its package
+names, launcher/deep-link branding, build and release metadata, documentation, and GitHub
+repository slug. Keep references to NetBox where they describe the compatible upstream product.
+
+- [x] Rename the Android namespace, application ID, source packages, and technical app classes.
+- [x] Replace app labels, themes, custom URI schemes, build scripts, CI, and release metadata.
+- [x] Update README, privacy policy, store metadata, and repository links while documenting the
+  former name.
+- [x] Set the application version to 1.1.0 and verify the debug package on Mi Pad 4 and PX5.
+- [x] Rename the GitHub repository and update local remotes/documentation.
+
+Status: **done**, 2026-08-03 - remote ktfmt, unit tests, and debug build passed; the 1.1.0 debug
+package was installed on Mi Pad 4, PX5, and Zenfone 10 before the Zenfone disconnected during
+post-install verification; GitHub was renamed to `pschmitt/nyetbox` and the local origin updated.

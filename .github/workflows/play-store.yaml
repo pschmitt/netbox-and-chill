@@ -107,7 +107,7 @@ jobs:
       - name: Upload Play artifact
         uses: actions/upload-artifact@v7
         with:
-          name: netbox-and-chill-${{ inputs.version_name }}-${{ inputs.version_code }}-aab
+          name: nyetbox-${{ inputs.version_name }}-${{ inputs.version_code }}-aab
           path: app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
@@ -132,7 +132,7 @@ jobs:
       - name: Download Play artifact
         uses: actions/download-artifact@v7
         with:
-          name: netbox-and-chill-${{ inputs.version_name }}-${{ inputs.version_code }}-aab
+          name: nyetbox-${{ inputs.version_name }}-${{ inputs.version_code }}-aab
           path: play-artifact
 
       - name: Check publication credentials
@@ -148,7 +148,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: dev.pschmitt.netboxandchill
+          packageName: dev.pschmitt.nyetbox
           releaseFiles: play-artifact/app-release.aab
           tracks: internal
           status: completed

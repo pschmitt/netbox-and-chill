@@ -1,5 +1,5 @@
 {
-  description = "NetBox and Chill Android development environment";
+  description = "Nyetbox Android development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -71,7 +71,7 @@
           ];
 
           shellHook = pre-commit-check.shellHook + ''
-            echo "🥂 NetBox and Chill development environment"
+            echo "🥂 Nyetbox development environment"
 
             # Set JAVA_HOME for Gradle
             export JAVA_HOME=${pkgs.jdk21}/lib/openjdk
