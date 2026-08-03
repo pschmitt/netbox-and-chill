@@ -5283,3 +5283,15 @@ centered and selected, so users can quickly understand its connected devices.
 - [ ] Add navigation and focused-node tests.
 
 Status: not started, 2026-08-03 - captured from the device-detail usability review.
+
+
+## NBC-312: keep topology button zoom focused on graph content
+
+The topology zoom-in and zoom-out buttons can move the viewport toward empty space instead of
+keeping useful nodes under the user's focus.
+
+- [ ] Anchor button zoom to the visible graph content or a stable focused node.
+- [ ] Keep the graph usable at both overview and detail scales without jumping into empty space.
+- [ ] Add viewport tests for repeated button zoom and reset behavior.
+
+Status: not started, 2026-08-03 - captured from the topology zoom usability review.
