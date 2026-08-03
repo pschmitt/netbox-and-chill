@@ -382,12 +382,41 @@ internal fun fallbackCreateFieldDefinitions(endpointPath: String): List<CreateFi
                     null,
                 ),
             )
+        in DEVICE_COMPONENT_ENDPOINTS ->
+            listOf(
+                CreateFieldDefinition(
+                    "device",
+                    "Device",
+                    "nested object",
+                    true,
+                    null,
+                    emptyList(),
+                    "api/dcim/devices/",
+                ),
+                CreateFieldDefinition("name", "Name", "string", true, null, emptyList(), null),
+                CreateFieldDefinition("label", "Label", "string", false, null, emptyList(), null),
+                CreateFieldDefinition("type", "Type", "string", false, null, emptyList(), null),
+            )
         else -> emptyList()
     }
+
+private val DEVICE_COMPONENT_ENDPOINTS =
+    setOf(
+        "api/dcim/interfaces/",
+        "api/dcim/front-ports/",
+        "api/dcim/rear-ports/",
+        "api/dcim/console-ports/",
+        "api/dcim/power-ports/",
+        "api/dcim/power-outlets/",
+        "api/dcim/module-bays/",
+        "api/dcim/device-bays/",
+        "api/dcim/inventory-items/",
+    )
 
 private fun createReferenceEndpoint(key: String, type: String): String? {
     if (type != "nested object") return null
     return mapOf(
+        "device" to "api/dcim/devices/",
         "device_type" to "api/dcim/device-types/",
         "manufacturer" to "api/dcim/manufacturers/",
         "site" to "api/dcim/sites/",

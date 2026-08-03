@@ -61,6 +61,30 @@ class DashboardJsonAdaptersTest {
     }
 
     @Test
+    fun `change adapter projects the cache query key for a live object`() {
+        val payload =
+            Json.parseToJsonElement(
+                """
+                {
+                  "id": 9,
+                  "time": "2026-08-03T10:00:00Z",
+                  "changed_object": {
+                    "id": 19,
+                    "url": "https://netbox.test/api/dcim/devices/19/"
+                  },
+                  "action": {"value": "update", "label": "Updated"}
+                }
+                """
+            ) as JsonObject
+
+        val change = payload.toObjectChangeEntity(syncedAt = 101L)
+
+        requireNotNull(change)
+        assertEquals("api/dcim/devices/", change.targetEndpointPath)
+        assertEquals(19, change.targetId)
+    }
+
+    @Test
     fun `adapters reject records without numeric ids`() {
         val payload = Json.parseToJsonElement("""{"id":"unknown"}""") as JsonObject
 

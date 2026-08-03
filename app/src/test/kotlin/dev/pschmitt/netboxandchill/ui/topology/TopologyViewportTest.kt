@@ -8,8 +8,8 @@ import org.junit.Test
 class TopologyViewportTest {
     @Test
     fun mobileViewStartsMoreZoomedInThanTabletView() {
-        assertTrue(initialTopologyZoom(nodeCount = 12, viewportWidth = 400f) >
-            initialTopologyZoom(nodeCount = 12, viewportWidth = 1200f))
+        assertEquals(1f, initialTopologyZoom(nodeCount = 12, viewportWidth = 400f))
+        assertEquals(1f, initialTopologyZoom(nodeCount = 12, viewportWidth = 1200f))
     }
 
     @Test

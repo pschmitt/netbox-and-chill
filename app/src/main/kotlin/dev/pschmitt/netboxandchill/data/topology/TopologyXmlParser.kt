@@ -36,13 +36,12 @@ fun parseTopologyXml(xml: String): TopologyGraph {
         for (index in 0 until cells.length) {
             val cell = cells.item(index) as? Element ?: continue
             if (cell.getAttribute("vertex") != "1") continue
-            val id = cell.getAttribute("id")
-            if (!id.startsWith("node_")) continue
-            val geometry = cell.getElementsByTagName("mxGeometry").item(0) as? Element ?: continue
-            val x = geometry.getAttribute("x").toFloatOrNull() ?: continue
-            val y = geometry.getAttribute("y").toFloatOrNull() ?: continue
-            val width = geometry.getAttribute("width").toFloatOrNull() ?: 50f
-            val height = geometry.getAttribute("height").toFloatOrNull() ?: 50f
+            val id = cell.getAttribute("id").takeIf(String::isNotBlank) ?: continue
+            val geometry = cell.getElementsByTagName("mxGeometry").item(0) as? Element
+            val x = geometry?.getAttribute("x")?.toFloatOrNull() ?: 0f
+            val y = geometry?.getAttribute("y")?.toFloatOrNull() ?: 0f
+            val width = geometry?.getAttribute("width")?.toFloatOrNull()?.takeIf { it > 0 } ?: 50f
+            val height = geometry?.getAttribute("height")?.toFloatOrNull()?.takeIf { it > 0 } ?: 50f
             add(
                 TopologyNode(
                     id = id,
@@ -55,7 +54,8 @@ fun parseTopologyXml(xml: String): TopologyGraph {
             )
         }
     }
-    val nodeIds = nodes.mapTo(mutableSetOf(), TopologyNode::id)
+    val positionedNodes = nodes.usablePositions()
+    val nodeIds = positionedNodes.mapTo(mutableSetOf(), TopologyNode::id)
     val edges = buildList {
         for (index in 0 until cells.length) {
             val cell = cells.item(index) as? Element ?: continue
@@ -73,5 +73,24 @@ fun parseTopologyXml(xml: String): TopologyGraph {
             add(TopologyEdge(source = source, target = target, color = color))
         }
     }
-    return TopologyGraph(nodes = nodes, edges = edges)
+    return TopologyGraph(nodes = positionedNodes, edges = edges)
 }
+
+/**
+ * Some plugin versions omit geometry coordinates, while others use ids such as `device-42`
+ * instead of the older `node_42` convention. In the former case every node would otherwise be
+ * painted on top of the first one, producing the misleading giant-square-with-a-dot view.
+ */
+private fun List<TopologyNode>.usablePositions(): List<TopologyNode> {
+    if (size < 2 || distinctBy { it.x to it.y }.size > 1) return this
+    val columns = kotlin.math.ceil(kotlin.math.sqrt(size.toDouble())).toInt().coerceAtLeast(1)
+    return mapIndexed { index, node ->
+        node.copy(
+            x = (index % columns) * GRID_X,
+            y = (index / columns) * GRID_Y,
+        )
+    }
+}
+
+private const val GRID_X = 220f
+private const val GRID_Y = 150f

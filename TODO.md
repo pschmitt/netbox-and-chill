@@ -5125,3 +5125,38 @@ Status: **done**, 2026-08-03 - `just test`, `just lint`, and remote `:app:lintDe
 AndroidX Security Crypto deprecation is documented at its compatibility boundary, the mirrored
 Markdown icon and new KTX opportunities were fixed, and the remaining baseline findings are
 tracked under NBC-299; no unbaselined project-owned compiler warning remains.
+
+
+## NBC-301: show cached item changelog and add an explicit changelog tab
+
+Item detail pages should expose the cached NetBox object changes for the current item. A long press
+on a detail row should offer a changelog action, and the item should also have a dedicated
+Changelog tab. Selecting a cached change opens the existing colored diff view; the feature must
+remain useful offline and must not perform a live lookup just to open the list.
+
+- [x] Add a cache-first changelog repository query keyed by endpoint and object id.
+- [x] Add a generic detail Changelog tab with change rows and an empty state.
+- [x] Add a long-press Changelog action to field rows and route each result to the diff screen.
+- [x] Add focused tests for changelog filtering, tab visibility, and long-press routing.
+- [x] Add a device overflow action that opens a component-type picker and pre-fills the parent
+      device in the generic offline-capable creation form.
+
+Status: **done**, 2026-08-03 - cache-first DAO/repository flows, typed and generic detail tabs,
+field actions, component picker/create routing, parser tests, Compose tests, remote unit/lint/
+compile checks, and Mi Pad launch verification completed.
+
+
+## NBC-302: make the cached topology view usable on mobile
+
+The netbox-topology view is currently unusable on a phone: the rendered graph appears as a giant
+square with a dot in the middle, and only that surface responds usefully to zoom. The cached
+topology needs to render its actual nodes and connections at a useful initial scale, with reliable
+pan and pinch/button zoom controls.
+
+- [x] Parse the topology export robustly enough to retain the plugin's actual node and edge ids.
+- [x] Make the graph viewport fit real graph bounds and support intuitive pan/zoom on phones.
+- [x] Add focused parser and viewport tests for multi-node exports and empty/malformed geometry.
+
+Status: **done**, 2026-08-03 - removed the old `node_*` id restriction, added a deterministic
+fallback layout for missing/degenerate coordinates, capped pathological fit scaling, and passed
+remote unit/lint/compile checks plus a Mi Pad launch sanity check.

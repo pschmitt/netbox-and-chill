@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.History
@@ -108,6 +109,7 @@ import dev.pschmitt.netboxandchill.ui.common.shareIntent
 import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 import dev.pschmitt.netboxandchill.ui.generic.FieldRow
 import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
+import dev.pschmitt.netboxandchill.ui.generic.GenericDetailChangelogRow
 import dev.pschmitt.netboxandchill.ui.generic.actionValue
 import dev.pschmitt.netboxandchill.ui.generic.fieldRow
 import java.io.File
@@ -133,6 +135,8 @@ fun DeviceDetailScreen(
     onDeviceTypeClick: (id: Int, breadcrumb: String) -> Unit,
     onReferenceClick: (endpointPath: String, id: Int, breadcrumb: String) -> Unit,
     onRackPositionClick: (rackId: Int, deviceId: Int, breadcrumb: String) -> Unit,
+    onAddComponent: () -> Unit,
+    onChangeDiffClick: (changeId: Int) -> Unit,
     onDeleted: () -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
@@ -144,6 +148,7 @@ fun DeviceDetailScreen(
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val interfaceIpAddresses by viewModel.interfaceIpAddresses.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val customFieldRows by viewModel.customFieldRows.collectAsStateWithLifecycle()
@@ -160,12 +165,14 @@ fun DeviceDetailScreen(
     }
     val visibleRelatedTabs =
         DEVICE_RELATED_TABS.filterIndexed { index, _ -> relatedCounts[index] > 0 }
-    val visibleSelectedTab = selectedTab.coerceIn(0, visibleRelatedTabs.size)
+    val changelogTabIndex = visibleRelatedTabs.size + 1
+    val tabCount = changelogTabIndex + 1
+    val visibleSelectedTab = selectedTab.coerceIn(0, tabCount - 1)
     LaunchedEffect(visibleRelatedTabs) {
         selectedTab = visibleSelectedTab
     }
     val selectedRelatedObjects =
-        if (visibleSelectedTab > 0) {
+        if (visibleSelectedTab in 1..visibleRelatedTabs.size) {
             val endpointPath = visibleRelatedTabs[visibleSelectedTab - 1].endpointPath
             viewModel.relatedObjects[endpointPath]?.collectAsStateWithLifecycle()?.value.orEmpty()
         } else {
@@ -316,6 +323,17 @@ fun DeviceDetailScreen(
                                 },
                             )
                             DropdownMenuItem(
+                                text = { Text("Add component") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Cable, contentDescription = null)
+                                },
+                                enabled = device != null && !isRefreshing,
+                                onClick = {
+                                    onAddComponent()
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Edit") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Edit, contentDescription = null)
@@ -440,6 +458,7 @@ fun DeviceDetailScreen(
                                 )
                             )
                         }
+                        add(ItemDetailTab("Changelog", Icons.Default.Difference, changelog.size))
                     }
                 Column(Modifier.fillMaxSize()) {
                     Surface(
@@ -458,7 +477,7 @@ fun DeviceDetailScreen(
                         modifier =
                             Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
                                 visibleSelectedTab,
-                                visibleRelatedTabs.size + 1,
+                                tabCount,
                             ) { tabIndex -> selectedTab = tabIndex },
                         contentPadding = PaddingValues(16.dp),
                     ) {
@@ -704,6 +723,26 @@ fun DeviceDetailScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    } else if (visibleSelectedTab == changelogTabIndex) {
+                        if (changelog.isEmpty()) {
+                            item {
+                                Text(
+                                    "No changelog entries found for this device.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontStyle = FontStyle.Italic,
+                                    modifier = Modifier.padding(vertical = 16.dp),
+                                )
+                            }
+                        } else {
+                            changelog.forEach { change ->
+                                item(key = "changelog-${change.id}") {
+                                    GenericDetailChangelogRow(
+                                        change = change,
+                                        onClick = { onChangeDiffClick(change.id) },
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         val tab = visibleRelatedTabs[visibleSelectedTab - 1]
                         item {
@@ -834,6 +873,10 @@ fun DeviceDetailScreen(
                     onCopyValue(label, it)
                 }
                 fieldActionLabel = null
+            },
+            onChangelog = {
+                fieldActionLabel = null
+                selectedTab = changelogTabIndex
             },
             onEdit = {
                 fieldActionLabel = null

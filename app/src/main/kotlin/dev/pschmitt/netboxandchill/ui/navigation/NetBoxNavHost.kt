@@ -13,6 +13,7 @@ import dev.pschmitt.netboxandchill.ui.dashboard.ObjectChangeDiffScreen
 import dev.pschmitt.netboxandchill.ui.devicedetail.DeviceDetailScreen
 import dev.pschmitt.netboxandchill.ui.devices.DeviceListScreen
 import dev.pschmitt.netboxandchill.ui.generic.AddItemScreen
+import dev.pschmitt.netboxandchill.ui.generic.AddComponentScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericCreateScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericDetailScreen
 import dev.pschmitt.netboxandchill.ui.generic.GenericListScreen
@@ -152,6 +153,21 @@ fun NetBoxNavHost(
         composable<Route.Topology> {
             TopologyScreen(onBack = { navController.navigateBackSafely() })
         }
+        composable<Route.AddComponent> { backStackEntry ->
+            val route: Route.AddComponent = backStackEntry.toRoute()
+            AddComponentScreen(
+                onBack = { navController.navigateBackSafely() },
+                onComponentClick = { component ->
+                    navController.navigate(
+                        Route.GenericCreate(
+                            endpointPath = component.endpointPath,
+                            label = component.label,
+                            parentDeviceId = route.deviceId,
+                        )
+                    )
+                },
+            )
+        }
         composable<Route.DeviceDetail> { backStackEntry ->
             val route: Route.DeviceDetail = backStackEntry.toRoute()
             DeviceDetailScreen(
@@ -192,6 +208,10 @@ fun NetBoxNavHost(
                             highlightDeviceId = deviceId,
                         )
                     )
+                },
+                onAddComponent = { navController.navigate(Route.AddComponent(route.deviceId)) },
+                onChangeDiffClick = { changeId ->
+                    navController.navigate(Route.ObjectChangeDiff(changeId))
                 },
                 onDeleted = { navController.navigateBackSafely() },
             )
@@ -248,6 +268,10 @@ fun NetBoxNavHost(
                             reopenFocusedEditor = reopenFocusedEditor,
                         )
                     )
+                },
+                onAddComponent = { navController.navigate(Route.AddComponent(route.id)) },
+                onChangeDiffClick = { changeId ->
+                    navController.navigate(Route.ObjectChangeDiff(changeId))
                 },
             )
         }

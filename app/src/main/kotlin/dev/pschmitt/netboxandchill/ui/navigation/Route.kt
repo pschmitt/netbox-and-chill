@@ -15,6 +15,9 @@ sealed interface Route {
 
     @Serializable data object Topology : Route
 
+    /** Component type picker for adding a device component from a device detail page. */
+    @Serializable data class AddComponent(val deviceId: Int) : Route
+
     @Serializable data class DeviceDetail(val deviceId: Int) : Route
 
     @Serializable data class Scanner(val fromOnboarding: Boolean = false) : Route
@@ -65,6 +68,7 @@ sealed interface Route {
         val label: String,
         val returnFieldKey: String? = null,
         val reopenFocusedEditor: Boolean = false,
+        val parentDeviceId: Int? = null,
     ) : Route
 
     /**

@@ -32,4 +32,23 @@ class TopologyXmlParserTest {
         assertEquals("#ff0000", graph.edges.first().color)
         assertTrue(graph.edges.first().source in graph.nodes.map { it.id })
     }
+
+    @Test
+    fun acceptsPluginIdsAndLaysOutNodesWhenGeometryIsMissing() {
+        val graph =
+            parseTopologyXml(
+                """
+                <mxfile><diagram><mxGraphModel><root>
+                  <mxCell id="0"/>
+                  <mxCell id="edge-device" edge="1" source="device-1" target="device-2"/>
+                  <mxCell id="device-1" value="One" vertex="1"/>
+                  <mxCell id="device-2" value="Two" vertex="1"/>
+                </root></mxGraphModel></diagram></mxfile>
+                """.trimIndent()
+            )
+
+        assertEquals(listOf("device-1", "device-2"), graph.nodes.map { it.id })
+        assertEquals(1, graph.edges.size)
+        assertTrue(graph.nodes.map { it.x to it.y }.distinct().size > 1)
+    }
 }

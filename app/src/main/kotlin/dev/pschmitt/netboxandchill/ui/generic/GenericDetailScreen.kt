@@ -27,8 +27,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
@@ -79,6 +81,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -141,6 +144,8 @@ fun GenericDetailScreen(
         label: String,
         reopenFocusedEditor: Boolean,
     ) -> Unit,
+    onAddComponent: () -> Unit,
+    onChangeDiffClick: (changeId: Int) -> Unit,
     viewModel: GenericDetailViewModel = hiltViewModel(),
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
@@ -161,6 +166,7 @@ fun GenericDetailScreen(
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+    val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
@@ -198,6 +204,8 @@ fun GenericDetailScreen(
     var focusedEditValue by remember { mutableStateOf("") }
     var routeFocusHandled by remember { mutableStateOf(false) }
     var automaticEditStarted by remember { mutableStateOf(false) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var openChangelogRequested by remember { mutableStateOf(false) }
     val hiddenObjectKey = hiddenFieldObjectKey(viewModel.route.endpointPath)
     val isRouteFocusedEditor = viewModel.route.focusFieldKey != null
     val hiddenFieldsForObject = hiddenFieldKeys.filter { it.startsWith("$hiddenObjectKey/") }
@@ -469,6 +477,19 @@ fun GenericDetailScreen(
                                 )
                                 if (viewModel.isPrintableDevice) {
                                     DropdownMenuItem(
+                                        text = { Text("Add component") },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Cable, contentDescription = null)
+                                        },
+                                        enabled = !isRefreshing,
+                                        onClick = {
+                                            onAddComponent()
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
+                                if (viewModel.isPrintableDevice) {
+                                    DropdownMenuItem(
                                         text = { Text("Print label") },
                                         leadingIcon = {
                                             Icon(Icons.Default.Print, contentDescription = null)
@@ -630,13 +651,13 @@ fun GenericDetailScreen(
                         }
                     else -> {
                         val hasJournal = journalEntries.isNotEmpty()
-                        var selectedTab by remember { mutableIntStateOf(0) }
                         val tabCount =
                             1 +
                                 (if (viewModel.isRack) 1 else 0) +
-                                (if (hasJournal) 1 else 0)
+                                (if (hasJournal) 1 else 0) +
+                                1
                         val visibleSelectedTab = selectedTab.coerceIn(0, tabCount - 1)
-                        LaunchedEffect(viewModel.isRack, hasJournal) {
+                        LaunchedEffect(viewModel.isRack, hasJournal, changelog.size) {
                             selectedTab = visibleSelectedTab
                         }
                         val tabs =
@@ -654,7 +675,22 @@ fun GenericDetailScreen(
                                         )
                                     )
                                 }
+                                add(
+                                    ItemDetailTab(
+                                        "Changelog",
+                                        Icons.Default.Difference,
+                                        changelog.size,
+                                    )
+                                )
                             }
+                        val changelogTabIndex = tabs.lastIndex
+                        LaunchedEffect(openChangelogRequested, changelogTabIndex) {
+                            if (openChangelogRequested) {
+                                selectedTab = changelogTabIndex
+                                openChangelogRequested = false
+                            }
+                        }
+                        val journalTabIndex = tabs.indexOfFirst { it.label == "Journal" }
                         Column(Modifier.fillMaxSize()) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
@@ -810,7 +846,7 @@ fun GenericDetailScreen(
                                     )
                                 }
                             }
-                        } else {
+                        } else if (visibleSelectedTab == journalTabIndex) {
                             LazyColumn(
                                 modifier =
                                     Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
@@ -845,6 +881,42 @@ fun GenericDetailScreen(
                                                 journalEditorEntry = entry
                                                 showJournalEditor = true
                                             },
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier =
+                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                        visibleSelectedTab,
+                                        tabCount,
+                                    ) { selectedTab = it },
+                                contentPadding = PaddingValues(16.dp),
+                            ) {
+                                item {
+                                    GenericDetailIdentityCard(
+                                        id = viewModel.route.id,
+                                        endpointPath = viewModel.route.endpointPath,
+                                        statusField = statusField,
+                                        detailAccent = detailAccent,
+                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
+                                    )
+                                }
+                                if (changelog.isEmpty()) {
+                                    item {
+                                        Text(
+                                            "No changelog entries found for this item.",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontStyle = FontStyle.Italic,
+                                            modifier = Modifier.padding(vertical = 16.dp),
+                                        )
+                                    }
+                                } else {
+                                    items(changelog, key = { it.id }) { change ->
+                                        GenericDetailChangelogRow(
+                                            change = change,
+                                            onClick = { onChangeDiffClick(change.id) },
                                         )
                                     }
                                 }
@@ -955,6 +1027,10 @@ fun GenericDetailScreen(
                     onCopyValue(label, it)
                 }
                 fieldActionLabel = null
+            },
+            onChangelog = {
+                fieldActionLabel = null
+                openChangelogRequested = true
             },
             onEdit = {
                 val photoKind = deviceTypePhotoUploadKind(label)

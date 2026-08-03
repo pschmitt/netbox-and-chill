@@ -44,6 +44,10 @@ constructor(
 
     fun observeChangelog(): Flow<List<ObjectChangeEntity>> = objectChangeDao.observeAll()
 
+    /** Cached changes for one object; opening a detail page never needs a live changelog lookup. */
+    fun observeChangelog(endpointPath: String, id: Int): Flow<List<ObjectChangeEntity>> =
+        objectChangeDao.observeForTarget(endpointPath, id)
+
     fun observeStats(): Flow<List<DashboardStatEntity>> = statDao.observeAll()
 
     fun observeNews(): Flow<List<NewsItemEntity>> = newsRepository.observeLatest()

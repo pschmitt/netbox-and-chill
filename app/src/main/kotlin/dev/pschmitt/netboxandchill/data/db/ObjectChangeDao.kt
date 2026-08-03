@@ -12,6 +12,13 @@ interface ObjectChangeDao {
     @Query("SELECT * FROM object_changes ORDER BY time DESC")
     fun observeAll(): Flow<List<ObjectChangeEntity>>
 
+    @Query(
+        "SELECT * FROM object_changes " +
+            "WHERE targetEndpointPath = :endpointPath AND targetId = :id " +
+            "ORDER BY time DESC"
+    )
+    fun observeForTarget(endpointPath: String, id: Int): Flow<List<ObjectChangeEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(changes: List<ObjectChangeEntity>)
 

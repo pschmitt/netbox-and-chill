@@ -8,11 +8,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.netboxandchill.data.api.GenericNetBoxApi
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
 import dev.pschmitt.netboxandchill.data.repository.CachedDocument
 import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.DocumentRepository
 import dev.pschmitt.netboxandchill.data.repository.EditSubmission
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
@@ -78,6 +80,7 @@ constructor(
     private val repository: GenericObjectRepository,
     private val deviceRepository: DeviceRepository,
     private val settingsRepository: SettingsRepository,
+    private val dashboardRepository: DashboardRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
     private val documentRepository: DocumentRepository,
@@ -149,6 +152,12 @@ constructor(
         journalEntryRepository
             .observeJournalEntries(route.endpointPath, route.id)
             .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** The dashboard sync already owns the cached changelog; do not fan out a network request here. */
+    val changelog: StateFlow<List<ObjectChangeEntity>> =
+        dashboardRepository
+            .observeChangelog(route.endpointPath, route.id)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val documents: StateFlow<List<CachedDocument>> =

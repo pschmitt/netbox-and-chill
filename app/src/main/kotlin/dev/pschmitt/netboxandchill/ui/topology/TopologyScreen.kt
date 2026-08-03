@@ -304,9 +304,9 @@ private const val ZOOM_STEP = 1.4f
 
 internal fun initialTopologyZoom(nodeCount: Int, viewportWidth: Float): Float =
     when {
-        viewportWidth < 720f -> if (nodeCount > 40) 1.35f else 1.7f
-        viewportWidth < 1200f -> if (nodeCount > 40) 1.2f else 1.45f
-        else -> if (nodeCount > 40) 1.1f else 1.25f
+        viewportWidth < 720f -> if (nodeCount > 40) 0.85f else 1f
+        viewportWidth < 1200f -> if (nodeCount > 40) 0.95f else 1f
+        else -> 1f
     }
 
 internal fun topologyFitScale(bounds: Rect, availableWidth: Float, availableHeight: Float): Float =
@@ -314,7 +314,9 @@ internal fun topologyFitScale(bounds: Rect, availableWidth: Float, availableHeig
             availableWidth / bounds.width.coerceAtLeast(1f),
             availableHeight / bounds.height.coerceAtLeast(1f),
         )
-        .coerceIn(0.08f, 4f)
+        // A fit scale already makes the whole graph visible. Capping it prevents a one-node or
+        // malformed export from becoming a giant square before the user has interacted with it.
+        .coerceIn(0.15f, 2f)
 
 private fun TopologyGraph.bounds(): Rect {
     if (nodes.isEmpty()) return Rect(0f, 0f, 1f, 1f)

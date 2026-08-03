@@ -212,7 +212,25 @@ constructor(
                                         .orEmpty(),
                             )
                         }
-                    if (values.isNotEmpty()) put(field.key, values)
+                    val parentDevice =
+                        if (
+                            field.referenceEndpointPath == "api/dcim/devices/" &&
+                                route.parentDeviceId != null
+                        ) {
+                            deviceRepository.observeDevice(route.parentDeviceId).first()
+                        } else {
+                            null
+                        }
+                    val withParent =
+                        if (
+                            parentDevice != null &&
+                                values.none { it.value == parentDevice.id.toString() }
+                        ) {
+                            values + CreateChoice(parentDevice.id.toString(), parentDevice.name)
+                        } else {
+                            values
+                        }
+                    if (withParent.isNotEmpty()) put(field.key, withParent)
                 }
             if (
                 route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH &&
@@ -233,7 +251,13 @@ constructor(
     private fun initializeFields(definitions: List<CreateFieldDefinition>) {
         _fields.value = definitions
         _values.value = definitions.associate { field ->
-            field.key to field.defaultValue.asFormValue()
+            field.key to
+                when {
+                    route.parentDeviceId != null &&
+                        field.key in setOf("device", "device_id") ->
+                        route.parentDeviceId.toString()
+                    else -> field.defaultValue.asFormValue()
+                }
         }
         viewModelScope.launch { loadReferenceOptions(definitions) }
         viewModelScope.launch { loadCustomChoices(definitions) }

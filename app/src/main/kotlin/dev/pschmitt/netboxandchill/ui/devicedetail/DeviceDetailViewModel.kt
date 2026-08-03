@@ -9,7 +9,9 @@ import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.db.NetBoxObjectEntity
+import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.repository.CustomFieldRepository
+import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.CachedDocument
 import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
@@ -130,6 +132,7 @@ constructor(
     private val journalEntryRepository: JournalEntryRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val genericObjectRepository: GenericObjectRepository,
+    private val dashboardRepository: DashboardRepository,
     private val pendingEditRepository: PendingEditRepository,
     private val recentVisitRepository: RecentVisitRepository,
     private val settingsRepository: SettingsRepository,
@@ -244,6 +247,11 @@ constructor(
         journalEntryRepository
             .observeJournalEntries("api/dcim/devices/", deviceId)
             .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val changelog: StateFlow<List<ObjectChangeEntity>> =
+        dashboardRepository
+            .observeChangelog(NetBoxRef.DEVICES_ENDPOINT_PATH, deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _journalMutationState = MutableStateFlow(JournalMutationUiState())

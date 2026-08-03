@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,6 +29,7 @@ fun FieldActionDialog(
     onEdit: () -> Unit,
     onHide: () -> Unit,
     onCopy: (() -> Unit)? = null,
+    onChangelog: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     editLabel: String = "Edit field",
     showHide: Boolean = true,
@@ -56,6 +58,15 @@ fun FieldActionDialog(
                             Icon(Icons.Default.ContentCopy, contentDescription = null)
                             Text("Copy value", modifier = Modifier.padding(start = 8.dp))
                         }
+                    }
+                }
+                onChangelog?.let { onClick ->
+                    OutlinedButton(
+                        onClick = onClick,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null)
+                        Text("View changelog", modifier = Modifier.padding(start = 8.dp))
                     }
                 }
                 Button(
