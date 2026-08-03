@@ -5591,9 +5591,10 @@ decorative framing so it reads cleanly on the page.
 
 - [x] Remove the opaque background and outer border from the README SVG.
 - [x] Keep the face artwork visible on a light README background with a restrained blue face fill.
+- [x] Add a circular launcher-style background while keeping the image corners transparent.
 
-Status: **done**, 2026-08-03 - README SVG now contains transparent surrounding space and a
-restrained blue face panel with dark contrast strokes; no build or device changes were required.
+Status: **done**, 2026-08-03 - README SVG now contains transparent corners, a circular launcher-
+style background, and a restrained blue face panel; no build or device changes were required.
 
 
 ## NBC-333: install Nyetbox through the homelab Android config
