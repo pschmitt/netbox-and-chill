@@ -152,6 +152,10 @@ enum class ThemeAccent(val storageKey: String, val label: String) {
  * Base URL and API token, backed by [EncryptedSharedPreferences] (Android Keystore-tied, hence
  * `allowBackup=false` in the manifest - a restored backup couldn't decrypt these anyway).
  */
+// AndroidX Security Crypto currently deprecates this API without providing a replacement for
+// the same encrypted SharedPreferences migration path. Keep it until the library offers one;
+// the suppression makes this intentional compatibility boundary visible to the compiler.
+@Suppress("DEPRECATION")
 @Singleton
 class SettingsRepository @Inject constructor(@ApplicationContext context: Context) {
 

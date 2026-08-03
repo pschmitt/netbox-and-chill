@@ -1,10 +1,14 @@
-name: Android E2E (manual)
+name: Android E2E
 
-# This is intentionally opt-in: it starts a disposable NetBox and an Android emulator, so it is
-# useful for release candidates and focused regressions without slowing every push or touching the
-# production NetBox instance.
+# Pull requests run the short smoke journey; manual dispatch runs the longer cache/offline journey.
+# Both use a disposable NetBox and never touch the production instance.
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'ci/**'
+      - '.github/workflows/android-e2e.yaml'
 
 concurrency:
   group: android-e2e-${{ github.ref }}
@@ -65,7 +69,12 @@ jobs:
             # before Compose launches so the permission dialog cannot interrupt the journey on a
             # slow software emulator after the first composition has already started.
             adb shell pm grant dev.pschmitt.netboxandchill.debug android.permission.POST_NOTIFICATIONS || true
-            ./gradlew connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://127.0.0.1:8000 -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN"
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              TEST_CLASS=dev.pschmitt.netboxandchill.NetBoxE2eSmokeTest
+            else
+              TEST_CLASS=dev.pschmitt.netboxandchill.NetBoxE2eTest
+            fi
+            ./gradlew connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.class="$TEST_CLASS" -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://127.0.0.1:8000 -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN"
 
       - name: Capture emulator diagnostics
         if: ${{ failure() }}

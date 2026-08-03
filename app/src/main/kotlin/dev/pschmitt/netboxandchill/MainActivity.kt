@@ -15,7 +15,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,19 +31,15 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.GestureAction
-import dev.pschmitt.netboxandchill.data.repository.GestureShortcut
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.crash.CrashReportStore
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.scanner.NetBoxTarget
-import dev.pschmitt.netboxandchill.scanner.NetBoxUrlParser
 import dev.pschmitt.netboxandchill.sync.SyncNotifier
-import dev.pschmitt.netboxandchill.ui.directory.Sidebar
 import dev.pschmitt.netboxandchill.ui.common.CrashReportDialog
-import dev.pschmitt.netboxandchill.ui.gestures.SwipeDirection
-import dev.pschmitt.netboxandchill.ui.gestures.multiFingerSwipe
+import dev.pschmitt.netboxandchill.ui.gestures.withConfiguredGestures
 import dev.pschmitt.netboxandchill.ui.navigation.NetBoxNavHost
-import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.ui.navigation.MainNavigationDrawer
 import dev.pschmitt.netboxandchill.ui.navigation.Route
 import dev.pschmitt.netboxandchill.ui.settings.SettingsCategory
 import dev.pschmitt.netboxandchill.ui.theme.NetBoxAndChillTheme
@@ -70,7 +65,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
 
         pendingCrashReport = CrashReportStore(applicationContext).takePending()
-        pendingTarget = extractTarget(intent)
+        pendingTarget = extractNetBoxTarget(intent)
         pendingReconciliationSummary =
             intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
 
@@ -124,13 +119,7 @@ class MainActivity : FragmentActivity() {
                         is NetBoxTarget.Device,
                         is NetBoxTarget.Object -> {
                             if (settingsRepository.isConfigured) {
-                                val destination =
-                                    when (target) {
-                                        is NetBoxTarget.Device -> Route.DeviceDetail(target.id)
-                                        is NetBoxTarget.Object ->
-                                            Route.Generic(target.endpointPath, target.id)
-                                        is NetBoxTarget.Setup -> error("unreachable")
-                                    }
+                                val destination = routeForTarget(target) ?: return@LaunchedEffect
                                 navController.navigate(destination)
                             }
                         }
@@ -153,132 +142,36 @@ class MainActivity : FragmentActivity() {
                     pendingReconciliationSummary = null
                 }
 
-                ModalNavigationDrawer(
+                MainNavigationDrawer(
                     drawerState = drawerState,
-                    drawerContent = {
-                        Sidebar(
-                            onDeviceListClick = {
-                                coroutineScope.launch { drawerState.close() }
-                                navController.navigate(Route.DeviceList) { launchSingleTop = true }
-                            },
-                            onModelClick = { model ->
-                                coroutineScope.launch { drawerState.close() }
-                                navController.navigate(
-                                    Route.GenericList(model.endpointPath, model.modelLabel)
-                                ) {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onTopologyClick = {
-                                coroutineScope.launch { drawerState.close() }
-                                navController.navigate(Route.Topology) { launchSingleTop = true }
-                            },
-                            onSettingsClick = {
-                                coroutineScope.launch { drawerState.close() }
-                                navController.navigate(Route.Settings)
-                            },
-                            onAboutClick = {
-                                coroutineScope.launch { drawerState.close() }
-                                navController.navigate(Route.SettingsCategory(SettingsCategory.About))
-                            },
-                        )
+                    onDeviceListClick = {
+                        navController.navigate(Route.DeviceList) { launchSingleTop = true }
+                    },
+                    onModelClick = { model ->
+                        navController.navigate(Route.GenericList(model.endpointPath, model.modelLabel)) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onTopologyClick = {
+                        navController.navigate(Route.Topology) { launchSingleTop = true }
+                    },
+                    onSettingsClick = { navController.navigate(Route.Settings) },
+                    onAboutClick = {
+                        navController.navigate(Route.SettingsCategory(SettingsCategory.About))
                     },
                 ) {
-                    val performGestureAction: (GestureShortcut, GestureAction) -> Unit =
-                        { shortcut, action ->
-                        when (action) {
-                            GestureAction.GlobalSearch ->
-                                navController.navigate(Route.GlobalSearch) {
-                                    launchSingleTop = true
-                                }
-                            GestureAction.Scanner -> navController.navigate(Route.Scanner())
-                            GestureAction.Settings -> navController.navigate(Route.Settings)
-                            GestureAction.Add -> navController.navigate(Route.Add)
-                            GestureAction.AddSpecific ->
-                                gestureTargets[shortcut]?.let { target ->
-                                    navController.navigate(
-                                        Route.GenericCreate(target.endpointPath, target.label)
-                                    )
-                                }
-                                    ?: navController.navigate(Route.Add)
-                            GestureAction.Sync -> syncScheduler.syncNow()
-                            GestureAction.OfflineOn -> settingsRepository.setOfflineMode(true)
-                            GestureAction.OfflineOff -> settingsRepository.setOfflineMode(false)
-                            GestureAction.DeviceList -> navController.navigate(Route.DeviceList)
-                            GestureAction.ListSpecific ->
-                                gestureTargets[shortcut]?.let { target ->
-                                    navController.navigate(
-                                        Route.GenericList(target.endpointPath, target.label)
-                                    )
-                                }
-                            GestureAction.DetailSpecific ->
-                                gestureTargets[shortcut]?.let { target ->
-                                    val id = target.id ?: return@let
-                                    val destination =
-                                        if (target.endpointPath == NetBoxRef.DEVICES_ENDPOINT_PATH && id > 0) {
-                                            Route.DeviceDetail(id)
-                                        } else {
-                                            Route.Generic(target.endpointPath, id, target.label)
-                                        }
-                                    navController.navigate(destination)
-                                }
-                            GestureAction.Off -> Unit
-                        }
-                    }
                     val gestureModifier =
-                        if (!settingsRepository.isConfigured) {
-                            Modifier
-                        } else {
-                            Modifier
-                                .multiFingerSwipe(2, SwipeDirection.Down) {
-                                    performGestureAction(
-                                        GestureShortcut.TwoFingerDown,
-                                        gestureActions[GestureShortcut.TwoFingerDown]
-                                            ?: GestureAction.Off
-                                    )
-                                }
-                                .multiFingerSwipe(2, SwipeDirection.Left) {
-                                    performGestureAction(
-                                        GestureShortcut.TwoFingerLeft,
-                                        gestureActions[GestureShortcut.TwoFingerLeft]
-                                            ?: GestureAction.Off
-                                    )
-                                }
-                                .multiFingerSwipe(2, SwipeDirection.Right) {
-                                    performGestureAction(
-                                        GestureShortcut.TwoFingerRight,
-                                        gestureActions[GestureShortcut.TwoFingerRight]
-                                            ?: GestureAction.Off
-                                    )
-                                }
-                                .multiFingerSwipe(3, SwipeDirection.Up) {
-                                    performGestureAction(
-                                        GestureShortcut.ThreeFingerUp,
-                                        gestureActions[GestureShortcut.ThreeFingerUp]
-                                            ?: GestureAction.Off
-                                    )
-                                }
-                                .multiFingerSwipe(3, SwipeDirection.Down) {
-                                    performGestureAction(
-                                        GestureShortcut.ThreeFingerDown,
-                                        gestureActions[GestureShortcut.ThreeFingerDown]
-                                            ?: GestureAction.Off
-                                    )
-                                }
-                                .multiFingerSwipe(3, SwipeDirection.Left) {
-                                    performGestureAction(
-                                        GestureShortcut.ThreeFingerLeft,
-                                        gestureActions[GestureShortcut.ThreeFingerLeft]
-                                            ?: GestureAction.Off
-                                    )
-                                }
-                                .multiFingerSwipe(3, SwipeDirection.Right) {
-                                    performGestureAction(
-                                        GestureShortcut.ThreeFingerRight,
-                                        gestureActions[GestureShortcut.ThreeFingerRight]
-                                            ?: GestureAction.Off
-                                    )
-                                }
+                        Modifier.withConfiguredGestures(
+                            enabled = settingsRepository.isConfigured,
+                            actions = gestureActions,
+                            targets = gestureTargets,
+                        ) { shortcut, action, target ->
+                            when (action) {
+                                GestureAction.Sync -> syncScheduler.syncNow()
+                                GestureAction.OfflineOn -> settingsRepository.setOfflineMode(true)
+                                GestureAction.OfflineOff -> settingsRepository.setOfflineMode(false)
+                                else -> routeForGesture(action, target)?.let(navController::navigate)
+                            }
                         }
                     Box(Modifier.fillMaxSize().then(gestureModifier)) {
                         NetBoxNavHost(
@@ -308,7 +201,7 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingTarget = extractTarget(intent)
+        pendingTarget = extractNetBoxTarget(intent)
         pendingReconciliationSummary =
             intent.getStringExtra(SyncNotifier.EXTRA_RECONCILIATION_SUMMARY)
     }
@@ -321,16 +214,6 @@ class MainActivity : FragmentActivity() {
     override fun onStop() {
         syncNotifier.onAppBackground()
         super.onStop()
-    }
-
-    private fun extractTarget(intent: Intent?): NetBoxTarget? {
-        val text =
-            when (intent?.action) {
-                Intent.ACTION_VIEW -> intent.dataString
-                Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
-                else -> null
-            }
-        return text?.let { NetBoxUrlParser.parse(it) }
     }
 
     private fun copyCrashReport(report: String) {

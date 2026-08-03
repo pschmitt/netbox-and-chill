@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
-import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -63,7 +63,7 @@ fun MarkdownEditor(
             )
             MarkdownShortcut(
                 "List",
-                Icons.Default.FormatListBulleted,
+                Icons.AutoMirrored.Filled.FormatListBulleted,
                 "\n- item",
                 value,
                 onValueChange,

@@ -11,15 +11,13 @@ import dev.pschmitt.netboxandchill.data.db.NewsItemEntity
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeDao
 import dev.pschmitt.netboxandchill.data.db.ObjectChangeEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxEndpointCatalog
-import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.data.schema.jsonInt
+import dev.pschmitt.netboxandchill.data.schema.jsonString
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
 /**
@@ -84,7 +82,8 @@ constructor(
                 "api/extras/bookmarks/",
                 mapOf("limit" to "50", "ordering" to "-created"),
             )
-        val entities = page.results.mapNotNull { it.toBookmarkEntity() }
+        val entities =
+            page.results.mapNotNull { it.toBookmarkEntity(syncedAt = System.currentTimeMillis()) }
         bookmarkDao.replaceAll(entities)
         entities.size
     }
@@ -97,7 +96,10 @@ constructor(
             )
         runCatching { changeNotificationRepository.process(page.results) }
             .onFailure { Timber.w(it, "Couldn't process NetBox change notifications") }
-        val entities = page.results.mapNotNull { it.toObjectChangeEntity() }
+        val entities =
+            page.results.mapNotNull {
+                it.toObjectChangeEntity(syncedAt = System.currentTimeMillis())
+            }
         objectChangeDao.replaceAll(entities)
         cacheObjectChangeDetails(page.results)
         entities.size
@@ -106,7 +108,7 @@ constructor(
     private suspend fun cacheObjectChangeDetails(summaries: List<JsonObject>) {
         val details =
             summaries.mapNotNull { summary ->
-                val id = summary["id"]?.jsonPrimitive?.intOrNull ?: return@mapNotNull null
+                val id = summary.jsonInt("id") ?: return@mapNotNull null
                 val detail =
                     if (summary.hasChangeSnapshots()) {
                         summary
@@ -136,62 +138,10 @@ constructor(
         entities.size
     }
 
-    private fun JsonObject.toBookmarkEntity(): BookmarkEntity? {
-        val id = this["id"]?.jsonPrimitive?.intOrNull ?: return null
-        val objectType = this["object_type"]?.jsonPrimitive?.contentOrNull ?: ""
-        val created = this["created"]?.jsonPrimitive?.contentOrNull ?: ""
-        val target = this["object"] as? JsonObject
-        val targetUrl = target?.get("url")?.jsonPrimitive?.contentOrNull
-        val targetId = target?.get("id")?.jsonPrimitive?.intOrNull
-        val targetDisplay = target?.get("display")?.jsonPrimitive?.contentOrNull
-        val display =
-            this["display"]?.jsonPrimitive?.contentOrNull ?: targetDisplay ?: "Bookmark #$id"
-        val targetEndpointPath = targetUrl?.let(NetBoxRef::endpointFromDetailUrl)
-        return BookmarkEntity(
-            id = id,
-            display = display,
-            objectType = objectType,
-            targetEndpointPath = targetEndpointPath,
-            targetId = targetId,
-            created = created,
-            syncedAt = System.currentTimeMillis(),
-        )
-    }
-
-    private fun JsonObject.toObjectChangeEntity(): ObjectChangeEntity? {
-        val id = this["id"]?.jsonPrimitive?.intOrNull ?: return null
-        val time = this["time"]?.jsonPrimitive?.contentOrNull ?: ""
-        val userDisplay =
-            (this["user"] as? JsonObject)?.get("display")?.jsonPrimitive?.contentOrNull
-                ?: this["user_name"]?.jsonPrimitive?.contentOrNull
-                ?: "Unknown"
-        val actionObj = this["action"] as? JsonObject
-        val actionValue = actionObj?.get("value")?.jsonPrimitive?.contentOrNull ?: ""
-        val actionLabel = actionObj?.get("label")?.jsonPrimitive?.contentOrNull ?: actionValue
-        val objectRepr = this["object_repr"]?.jsonPrimitive?.contentOrNull ?: "#$id"
-        // Null for deletes - the changed object no longer exists to derive a reference from.
-        val target = this["changed_object"] as? JsonObject
-        val targetUrl = target?.get("url")?.jsonPrimitive?.contentOrNull
-        val targetId = target?.get("id")?.jsonPrimitive?.intOrNull
-        val targetEndpointPath = targetUrl?.let(NetBoxRef::endpointFromDetailUrl)
-        return ObjectChangeEntity(
-            id = id,
-            time = time,
-            userDisplay = userDisplay,
-            actionValue = actionValue,
-            actionLabel = actionLabel,
-            objectRepr = objectRepr,
-            targetEndpointPath = targetEndpointPath,
-            targetId = targetId,
-            syncedAt = System.currentTimeMillis(),
-        )
-    }
-
     private fun JsonObject.toObjectChangeCacheEntity(): NetBoxObjectEntity? {
-        val id = this["id"]?.jsonPrimitive?.intOrNull ?: return null
-        val objectRepr = this["object_repr"]?.jsonPrimitive?.contentOrNull ?: "#$id"
-        val actionLabel =
-            (this["action"] as? JsonObject)?.get("label")?.jsonPrimitive?.contentOrNull
+        val id = jsonInt("id") ?: return null
+        val objectRepr = jsonString("object_repr") ?: "#$id"
+        val actionLabel = (this["action"] as? JsonObject)?.jsonString("label")
         return NetBoxObjectEntity(
             endpointPath = OBJECT_CHANGE_CACHE_PATH,
             id = id,

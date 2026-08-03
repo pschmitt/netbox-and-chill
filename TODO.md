@@ -4967,12 +4967,15 @@ existing Mi Pad 4 rack-elevation screenshot path is the manual tablet regression
 rack elevation, related-item sheets, field rendering, edit forms, diff dialogs, and journal rows.
 This makes changes to one item type's view risky and makes focused UI tests difficult to place.
 
-- [ ] Extract identity/media/related-item/rack sections into focused composables/files.
-- [ ] Extract field/edit state and dialog coordination from the screen function.
-- [ ] Keep shared presentation helpers in `ui/common` or a clearly scoped generic-detail package.
+- [x] Extract identity/media/related-item/rack sections into focused composables/files.
+- [x] Extract field/edit controls and modal implementations from the screen function; keep the
+      remaining route-level coordination in the screen host.
+- [x] Keep shared presentation helpers in `ui/common` or a clearly scoped generic-detail package.
 - [ ] Add screen-level tests for the extracted states before removing the old coupling.
 
-Status: not started, 2026-08-03 - static review; file measured at 2,494 lines.
+Status: mostly done, 2026-08-03 - identity/media/relations/rack, field rendering, and edit dialogs
+were split into focused files; remote unit tests and ktfmt pass. Screen-level Compose coverage is
+still open, and the host remains intentionally responsible for route/lifecycle coordination.
 
 
 ## NBC-293: split the settings screen and dialog implementations
@@ -4982,13 +4985,15 @@ category screen, printing UI, gesture rows, hidden-field and notification dialog
 QR setup, and object-type colors. The file has become a second application shell rather than a
 stable composition boundary.
 
-- [ ] Move each settings category into its own screen/component file while keeping one navigation
+- [x] Move each settings category into its own screen/component file while keeping one navigation
       model.
-- [ ] Move modal editors and picker dialogs beside the state they edit.
-- [ ] Keep preference persistence in `SettingsViewModel`/repositories, not in UI helpers.
+- [x] Move modal editors and picker dialogs beside the state they edit.
+- [x] Keep preference persistence in `SettingsViewModel`/repositories, not in UI helpers.
 - [ ] Add focused tests for category navigation and preference save/cancel behavior.
 
-Status: not started, 2026-08-03 - static review; file measured at 1,677 lines.
+Status: mostly done, 2026-08-03 - category rendering, printing/gesture sections, and modal editors
+were split into focused files; remote unit tests and ktfmt pass. Focused settings navigation and
+save/cancel UI coverage remains open.
 
 
 ## NBC-294: reduce MainActivity orchestration responsibilities
@@ -4998,13 +5003,14 @@ report presentation, notification permission, foreground/background notification
 drawer, the complete navigation host, and all global gesture dispatch. This coupling makes lifecycle
 and intent regressions hard to test independently.
 
-- [ ] Extract the app shell/drawer and gesture action dispatcher into testable Compose/application
-      components.
-- [ ] Centralize incoming-intent routing and make cold-start/warm-start behavior table-driven.
+- [x] Extract the app shell/drawer and gesture modifier/dispatcher into testable
+      Compose/application components.
+- [x] Centralize incoming-intent routing and make cold-start/warm-start target behavior table-driven.
 - [ ] Add instrumentation coverage for deep links, reconciliation summaries, and activity restart.
 
-Status: not started, 2026-08-03 - static review; `MainActivity.kt` measured at 351 lines with
-multiple unrelated lifecycle responsibilities.
+Status: mostly done, 2026-08-03 - drawer, global gesture modifier, and pure intent/route helpers
+were extracted; `MainActivityRoutingTest` and the remote unit suite pass. Lifecycle/deep-link and
+reconciliation restart coverage remains part of the Android smoke work.
 
 
 ## NBC-295: replace destructive Room migration fallback
@@ -5055,8 +5061,9 @@ partial rendering.
       including missing/null/changed fields.
 
 Status: mostly done, 2026-08-03 - added the shared null-safe JSON projection in
-`data/schema/NetBoxJson.kt`, migrated generic cache/search reference parsing, and added fixture-style
-compatibility tests. Dashboard diff and device-specific parsers still have local specialized logic.
+`data/schema/NetBoxJson.kt`, migrated generic cache/search and dashboard bookmark/change parsing,
+and added fixture-style compatibility tests. Device-specific parsers still retain local
+specialized logic where their payloads are not shared projections.
 
 
 ## NBC-298: expand route-level UI coverage and CI smoke coverage
@@ -5067,16 +5074,15 @@ tests for the many route-level screens and dialogs; the E2E workflow is manual-o
 cover useful pure logic, but they cannot catch navigation, tablet layout, accessibility, or dialog
 regressions.
 
-- [ ] Add a disposable-NetBox Compose journey for list/detail/edit cancellation, linked creation,
+- [ ] Add disposable-NetBox Compose journeys for list/detail/edit cancellation, linked creation,
       scanner, media, settings, pending changes, conflicts, topology, and change diffs.
 - [ ] Add route-level empty/loading/error/offline assertions and tablet screenshots where practical.
-- [ ] Decide which short smoke journey should run on pull requests while keeping the full suite
-      opt-in if runtime is too high.
+- [x] Run a short disposable-NetBox onboarding/detail/settings smoke journey on pull requests;
+      keep the longer cache/search/offline journey manual.
 
-Status: not started, 2026-08-03 - static review of `android-e2e.yaml` and test inventory; the
-existing disposable-NetBox journey and the new linked-field Compose test are the only
-instrumented UI coverage. Local API-36 execution also exposed an Espresso/InputManager
-compatibility gap that should be resolved or documented before adding more device tests.
+Status: in progress, 2026-08-03 - added `NetBoxE2eSmokeTest` and wired the disposable API-34
+workflow to run it on pull requests while preserving the longer manual journey. Broad route and
+tablet coverage, plus the API-36 Espresso/InputManager compatibility gap, remain open.
 
 
 ## NBC-299: pay down the Android lint baseline
@@ -5090,9 +5096,11 @@ among others. The baseline keeps CI green but hides a large amount of known main
 - [ ] Fail CI when new baseline findings are introduced and document the remaining intentional
       suppressions.
 
-Status: in progress, 2026-08-03 - regenerated after the warning cleanup; four obsolete entries
-were removed and the current baseline is 1,814 lines / 167 issue entries. Remaining findings still
-need classification and staged removal.
+Status: in progress, 2026-08-03 - the baseline is now checked by CI via
+`updateLintBaselineDebug` plus a clean-worktree diff check; the refactor also removed the obsolete
+settings tap-count/URL entries. The remaining 1,792-line / 165-entry baseline is grouped by issue
+type, but still needs classification and staged removal (notably 48 `UseKtx`, 36 manifest
+`IntentFilterUniqueDataAttributes`, 21 dependency updates, and 18 intentional Compose opt-ins).
 
 
 ## NBC-300: clear the remaining non-baselined lint and compiler warnings
@@ -5107,7 +5115,7 @@ deprecated mirrored icon and transform APIs.
 - [x] Run the build with full deprecation warnings and remove or document project-owned Gradle
       deprecations.
 
-Status: **done**, 2026-08-03 - `just test`, `just lint`, remote `:app:lintDebug`, and a remote
-`assembleDebug --warning-mode=all` pass. The only remaining warning is Gradle's project-dependency
-notation warning emitted by the Android/tooling build environment; no project-owned occurrence is
-present in the repository.
+Status: **done**, 2026-08-03 - `just test`, `just lint`, and remote `:app:lintDebug` pass. The
+AndroidX Security Crypto deprecation is documented at its compatibility boundary, the mirrored
+Markdown icon and new KTX opportunities were fixed, and the remaining baseline findings are
+tracked under NBC-299; no unbaselined project-owned compiler warning remains.

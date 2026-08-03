@@ -1233,17 +1233,6 @@
     </issue>
 
     <issue
-        id="AutoboxingStateCreation"
-        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
-        errorLine1="            var buildTapCount by remember { mutableStateOf(0) }"
-        errorLine2="                                            ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/settings/SettingsScreen.kt"
-            line="896"
-            column="45"/>
-    </issue>
-
-    <issue
         id="UnusedResources"
         message="The resource `R.drawable.ic_launcher_foreground` appears to be unused">
         <location
@@ -1455,7 +1444,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="211"
+            line="215"
             column="13"/>
     </issue>
 
@@ -1466,7 +1455,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="268"
+            line="272"
             column="9"/>
     </issue>
 
@@ -1477,7 +1466,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="273"
+            line="277"
             column="9"/>
     </issue>
 
@@ -1488,7 +1477,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="278"
+            line="282"
             column="9"/>
     </issue>
 
@@ -1499,7 +1488,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="283"
+            line="287"
             column="9"/>
     </issue>
 
@@ -1510,7 +1499,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="293"
+            line="297"
             column="9"/>
     </issue>
 
@@ -1521,7 +1510,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="319"
+            line="323"
             column="9"/>
     </issue>
 
@@ -1532,7 +1521,7 @@
         errorLine2="        ^">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="324"
+            line="328"
             column="9"/>
     </issue>
 
@@ -1543,7 +1532,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="332"
+            line="336"
             column="9"/>
     </issue>
 
@@ -1554,7 +1543,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="337"
+            line="341"
             column="9"/>
     </issue>
 
@@ -1565,7 +1554,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="342"
+            line="346"
             column="9"/>
     </issue>
 
@@ -1576,7 +1565,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="347"
+            line="351"
             column="9"/>
     </issue>
 
@@ -1587,7 +1576,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="352"
+            line="356"
             column="9"/>
     </issue>
 
@@ -1598,7 +1587,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="361"
+            line="365"
             column="13"/>
     </issue>
 
@@ -1609,7 +1598,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="364"
+            line="368"
             column="13"/>
     </issue>
 
@@ -1620,7 +1609,7 @@
         errorLine2="        ^">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="372"
+            line="376"
             column="9"/>
     </issue>
 
@@ -1631,7 +1620,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="386"
+            line="390"
             column="9"/>
     </issue>
 
@@ -1642,7 +1631,7 @@
         errorLine2="        ^">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="403"
+            line="407"
             column="9"/>
     </issue>
 
@@ -1653,7 +1642,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="412"
+            line="416"
             column="9"/>
     </issue>
 
@@ -1664,7 +1653,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="418"
+            line="422"
             column="9"/>
     </issue>
 
@@ -1675,7 +1664,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="425"
+            line="429"
             column="9"/>
     </issue>
 
@@ -1686,7 +1675,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="431"
+            line="435"
             column="9"/>
     </issue>
 
@@ -1697,7 +1686,7 @@
         errorLine2="        ^">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="437"
+            line="441"
             column="9"/>
     </issue>
 
@@ -1708,7 +1697,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="448"
+            line="452"
             column="9"/>
     </issue>
 
@@ -1719,7 +1708,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="454"
+            line="458"
             column="9"/>
     </issue>
 
@@ -1730,7 +1719,7 @@
         errorLine2="        ^">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="460"
+            line="464"
             column="9"/>
     </issue>
 
@@ -1741,7 +1730,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="469"
+            line="473"
             column="9"/>
     </issue>
 
@@ -1752,7 +1741,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="482"
+            line="486"
             column="9"/>
     </issue>
 
@@ -1763,7 +1752,7 @@
         errorLine2="        ^">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="494"
+            line="498"
             column="9"/>
     </issue>
 
@@ -1774,7 +1763,7 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="503"
+            line="507"
             column="9"/>
     </issue>
 
@@ -1785,19 +1774,8 @@
         errorLine2="        ~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/dev/pschmitt/netboxandchill/data/repository/SettingsRepository.kt"
-            line="640"
+            line="644"
             column="9"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))"
-        errorLine2="                                                     ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/dev/pschmitt/netboxandchill/ui/settings/SettingsScreen.kt"
-            line="144"
-            column="54"/>
     </issue>
 
     <issue

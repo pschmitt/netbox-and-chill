@@ -28,6 +28,10 @@ jobs:
         run: ./gradlew ktfmtCheck
       - name: Run Android Lint
         run: ./gradlew lintDebug
+      - name: Reject unreviewed lint-baseline changes
+        run: |
+          ./gradlew updateLintBaselineDebug
+          git diff --exit-code -- app/lint-baseline.xml
       - name: Upload Android Lint report
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
