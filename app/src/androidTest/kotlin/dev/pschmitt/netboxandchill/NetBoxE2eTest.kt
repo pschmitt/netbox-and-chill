@@ -1,5 +1,7 @@
 package dev.pschmitt.netboxandchill
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -11,6 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import dev.pschmitt.netboxandchill.sync.SyncNotifier
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,6 +40,9 @@ class NetBoxE2eTest {
     private val validToken: String
         get() = arguments.getString("e2e_token") ?: error("e2e_token is required")
 
+    private val deviceId: String
+        get() = arguments.getString("e2e_device_id") ?: error("e2e_device_id is required")
+
     @Test
     fun onboardingSyncSearchAndOfflineCache() {
         composeRule.onNodeWithTag("e2e-onboarding-url").performTextInput(baseUrl)
@@ -48,6 +54,34 @@ class NetBoxE2eTest {
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(validToken)
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", timeoutMillis = 45_000)
+
+        // Exercise a warm deep link and the notification-to-summary route after onboarding has
+        // configured the instance. The target ID comes from the disposable seed response.
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("$baseUrl/dcim/devices/$deviceId/"),
+                ).setClass(composeRule.activity, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            )
+        }
+        waitForText("CI E2E Device", timeoutMillis = 30_000)
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Dashboard", timeoutMillis = 30_000)
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.startActivity(
+                Intent(composeRule.activity, MainActivity::class.java)
+                    .putExtra(
+                        SyncNotifier.EXTRA_RECONCILIATION_SUMMARY,
+                        "CI E2E reconciliation",
+                    )
+                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            )
+        }
+        waitForText("Uploaded changes", timeoutMillis = 30_000)
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Dashboard", timeoutMillis = 30_000)
 
         // The startup WorkManager job must populate the typed device cache before this list is
         // usable. This also exercises the directory/sidebar discovery path used after onboarding.

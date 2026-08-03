@@ -42,7 +42,10 @@ jobs:
         run: docker compose -f "$NETBOX_COMPOSE_FILE" up --detach --wait --wait-timeout 600
 
       - name: Seed deterministic E2E records
-        run: python3 ci/netbox/seed.py --base-url http://127.0.0.1:8000 --token "$E2E_TOKEN"
+        run: |
+          seed_result="$(python3 ci/netbox/seed.py --base-url http://127.0.0.1:8000 --token "$E2E_TOKEN")"
+          echo "$seed_result"
+          echo "E2E_DEVICE_ID=$(python3 -c 'import json, sys; print(json.loads(sys.argv[1])["device"])' "$seed_result")" >> "$GITHUB_ENV"
 
       - name: Run the Android journey in an emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -70,11 +73,11 @@ jobs:
             # slow software emulator after the first composition has already started.
             adb shell pm grant dev.pschmitt.netboxandchill.debug android.permission.POST_NOTIFICATIONS || true
             if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-              TEST_CLASS=dev.pschmitt.netboxandchill.NetBoxE2eSmokeTest
+              TEST_CLASS=dev.pschmitt.netboxandchill.NetBoxPullRequestSmokeSuite
             else
-              TEST_CLASS=dev.pschmitt.netboxandchill.NetBoxE2eTest
+              TEST_CLASS=dev.pschmitt.netboxandchill.NetBoxFullE2eSuite
             fi
-            ./gradlew connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.class="$TEST_CLASS" -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://127.0.0.1:8000 -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN"
+            ./gradlew connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.class="$TEST_CLASS" -Pandroid.testInstrumentationRunnerArguments.e2e_base_url=http://127.0.0.1:8000 -Pandroid.testInstrumentationRunnerArguments.e2e_token="$E2E_TOKEN" -Pandroid.testInstrumentationRunnerArguments.e2e_device_id="$E2E_DEVICE_ID"
 
       - name: Capture emulator diagnostics
         if: ${{ failure() }}

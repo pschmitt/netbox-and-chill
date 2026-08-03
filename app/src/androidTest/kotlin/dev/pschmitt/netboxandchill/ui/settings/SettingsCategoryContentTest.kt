@@ -1,0 +1,90 @@
+package dev.pschmitt.netboxandchill.ui.settings
+
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.pschmitt.netboxandchill.data.repository.*
+import dev.pschmitt.netboxandchill.ui.theme.NetBoxAndChillTheme
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class SettingsCategoryContentTest {
+    @get:Rule val composeRule = createComposeRule()
+
+    @Test
+    fun aboutCategoryRendersThroughExtractedContent() {
+        composeRule.setContent {
+            NetBoxAndChillTheme(
+                themeMode = ThemeMode.Light,
+                accent = ThemeAccent.Teal,
+            ) {
+                SettingsCategoryContent(SettingsCategory.About, state(), actions())
+            }
+        }
+
+        composeRule.onNodeWithText("Build").assertExists()
+        composeRule.onNodeWithText("GitHub repository").assertExists()
+    }
+
+    private fun state() =
+        SettingsCategoryState(
+            credentials = NetBoxCredentials("https://netbox.test", "nbp_test.value"),
+            tokenVisible = false,
+            isSyncing = false,
+            syncIssue = null,
+            cachedDeviceCount = 0,
+            cachedObjectCount = 0,
+            cachedImageCount = 0,
+            persistentCacheBytes = 0,
+            persistentCacheFiles = 0,
+            syncAttachmentsToDisk = false,
+            syncOnlyOnWifi = false,
+            syncWhileRoaming = false,
+            syncOnAppLaunch = true,
+            changeNotificationsEnabled = false,
+            changeNotificationFilters = emptySet(),
+            gestureActions = emptyMap(),
+            gestureTargets = emptyMap(),
+            gestureModels = emptyList(),
+            gestureObjects = emptyList(),
+            scannerLens = ScannerLens.Back,
+            scannerRearLens = ScannerRearLens.Automatic,
+            printSettings = PrintSettings(),
+            hiddenFieldKeys = emptySet(),
+            pinnedModelPaths = emptySet(),
+            themeMode = ThemeMode.Light,
+            themeAccent = ThemeAccent.Teal,
+            objectTypeAccents = emptyMap(),
+        )
+
+    private fun actions() =
+        SettingsCategoryActions(
+            onEditServer = {},
+            onDisconnect = {},
+            onShowToken = {},
+            onHideToken = {},
+            onCopyToken = {},
+            onShareSetup = {},
+            onSync = {},
+            onSetSyncAttachmentsToDisk = {},
+            onSetSyncOnlyOnWifi = {},
+            onSetSyncWhileRoaming = {},
+            onSetSyncOnAppLaunch = {},
+            onSetThemeMode = {},
+            onSetThemeAccent = {},
+            onShowObjectTypeColors = {},
+            onShowHiddenFields = {},
+            onSetScannerLens = {},
+            onSetScannerRearLens = {},
+            onUpdatePrintSettings = { transform -> transform(PrintSettings()) },
+            onSetDefaultPrinter = { _, _ -> },
+            onClearDefaultPrinter = {},
+            onSetChangeNotificationsEnabled = {},
+            onShowChangeNotifications = {},
+            onSetGestureAction = { _, _ -> },
+            onSetGestureTarget = { _, _ -> },
+            onSetGestureDetailTarget = { _, _ -> },
+        )
+}
