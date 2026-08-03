@@ -5590,11 +5590,10 @@ The README icon should show only the Nyetbox face artwork. Remove the blue backg
 decorative framing so it reads cleanly on the page.
 
 - [x] Remove the opaque background and outer border from the README SVG.
-- [x] Keep the face artwork visible on a light README background with a restrained blue face fill.
-- [x] Add a circular launcher-style background while keeping the image corners transparent.
+- [x] Match the actual adaptive launcher icon: solid circular background and original face artwork.
 
-Status: **done**, 2026-08-03 - README SVG now contains transparent corners, a circular launcher-
-style background, and a restrained blue face panel; no build or device changes were required.
+Status: **done**, 2026-08-03 - README SVG matches the Mi Pad launcher composition, including its
+solid circular `#011226` mask and original white/teal foreground artwork.
 
 
 ## NBC-333: install Nyetbox through the homelab Android config

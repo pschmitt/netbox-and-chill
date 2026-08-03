@@ -1,33 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
   <title id="title">Nyetbox app icon</title>
-  <desc id="desc">The Nyetbox network box face on a transparent background.</desc>
-  <defs>
-    <radialGradient id="launcherBackground" cx="50%" cy="38%" r="72%">
-      <stop offset="0" stop-color="#07304b" />
-      <stop offset="1" stop-color="#011226" />
-    </radialGradient>
-  </defs>
-  <circle cx="54" cy="54" r="52" fill="url(#launcherBackground)" />
-  <circle cx="54" cy="54" r="50.5" fill="none" stroke="#00e5d6" stroke-opacity=".24" stroke-width="1" />
+  <desc id="desc">The Nyetbox adaptive launcher icon.</desc>
+  <circle cx="54" cy="54" r="54" fill="#011226" />
   <g transform="translate(19.44 19.44) scale(.64)" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="26" y="35" width="51" height="42" rx="3" fill="#07304b" />
     <path d="M28 37h47v38H28z" fill="none" stroke="#00e5d6" stroke-width="5" />
-    <path d="M28 37v38h47" fill="none" stroke="#011226" stroke-width="5" />
-    <path d="M45 37V24M75 37l12-12M28 75L18 85" fill="none" stroke="#011226" stroke-width="4" />
+    <path d="M28 37v38h47" fill="none" stroke="#f4f7f8" stroke-width="5" />
+    <path d="M45 37V24M75 37l12-12M28 75L18 85" fill="none" stroke="#f4f7f8" stroke-width="4" />
     <path d="M75 37l12-12" fill="none" stroke="#00e5d6" stroke-width="4" />
-    <circle cx="45" cy="20" r="5" fill="#011226" />
+    <circle cx="45" cy="20" r="5" fill="#f4f7f8" />
     <circle cx="87" cy="25" r="5" fill="#00e5d6" />
-    <circle cx="18" cy="85" r="5" fill="#011226" />
+    <circle cx="18" cy="85" r="5" fill="#f4f7f8" />
     <circle cx="28" cy="37" r="6" fill="#00e5d6" />
     <circle cx="75" cy="37" r="6" fill="#00e5d6" />
     <circle cx="75" cy="75" r="6" fill="#00e5d6" />
-    <circle cx="28" cy="75" r="6" fill="#011226" />
-    <path d="M37 49h12M57 49l11-4" fill="none" stroke="#011226" stroke-width="4" />
+    <circle cx="28" cy="75" r="6" fill="#f4f7f8" />
+    <path d="M37 49h12M57 49l11-4" fill="none" stroke="#f4f7f8" stroke-width="4" />
     <path d="M57 49l11-4" fill="none" stroke="#00e5d6" stroke-width="4" />
-    <circle cx="38" cy="57" r="5" fill="#011226" />
-    <circle cx="38" cy="57" r="2" fill="#00e5d6" />
-    <circle cx="62" cy="57" r="5" fill="#011226" />
-    <circle cx="62" cy="57" r="2" fill="#00e5d6" />
-    <path d="M47 67h12" fill="none" stroke="#011226" stroke-width="3" />
+    <circle cx="38" cy="57" r="5" fill="#f4f7f8" />
+    <circle cx="38" cy="57" r="2" fill="#011226" />
+    <circle cx="62" cy="57" r="5" fill="#f4f7f8" />
+    <circle cx="62" cy="57" r="2" fill="#011226" />
+    <path d="M47 67h12" fill="none" stroke="#f4f7f8" stroke-width="3" />
   </g>
 </svg>
