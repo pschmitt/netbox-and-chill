@@ -5671,3 +5671,16 @@ users and future store distribution.
 
 Status: **done**, 2026-08-03 - policy updated and linked to the repository document; remote lint
 and unit tests used for verification.
+
+
+## NBC-339: keep the GitHub Actions lint gate green
+
+The lint workflow was failing because two newly reported warnings changed the checked-in Android
+Lint baseline on every run.
+
+- [x] Remove the redundant activity label already inherited from the application.
+- [x] Use AndroidX's `String.toUri()` extension in the shared-media screen.
+- [x] Confirm the lint baseline remains unchanged after the fixes.
+
+Status: **done**, 2026-08-03 - remote ktfmt, Android Lint, and unit tests passed locally; GitHub
+Actions rerun pending after push.

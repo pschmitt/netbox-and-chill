@@ -38,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
+import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -55,7 +56,7 @@ fun SharedMediaUploadScreen(
     onUploaded: () -> Unit,
 ) {
     val context = LocalContext.current
-    val sharedUri = remember(uri) { Uri.parse(uri) }
+    val sharedUri = remember(uri) { uri.toUri() }
     val isImage = isSharedImage(mimeType, filename, sharedUri)
     val initialKind =
         if (isImage) MediaUploadKind.ImageAttachment else MediaUploadKind.Document
