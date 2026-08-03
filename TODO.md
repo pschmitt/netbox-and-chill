@@ -5295,3 +5295,15 @@ keeping useful nodes under the user's focus.
 - [ ] Add viewport tests for repeated button zoom and reset behavior.
 
 Status: not started, 2026-08-03 - captured from the topology zoom usability review.
+
+
+## NBC-313: support keyboard-assisted topology zoom
+
+On desktop-style devices, topology zoom should also be available through Ctrl plus mouse-wheel
+scrolling, matching the graph's button and pinch controls.
+
+- [ ] Handle Ctrl+mouse-wheel up/down as graph zoom gestures.
+- [ ] Keep ordinary mouse-wheel scrolling and panning behavior unchanged.
+- [ ] Add focused input tests for zoom direction and modifier handling.
+
+Status: not started, 2026-08-03 - captured from the topology input review.
