@@ -119,7 +119,7 @@ internal fun PrintingSettingsSection(
     }
     SettingsListItem(
         modifier = Modifier.clickable { printerMenuExpanded = true },
-        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        leadingContent = { Icon(Icons.Default.Bluetooth, contentDescription = null) },
         headlineContent = { Text("Default printer") },
         supportingContent = { Text(defaultPrinterLabel) },
         trailingContent = {
@@ -177,21 +177,21 @@ internal fun PrintingSettingsSection(
     SettingsToggleItem(
         checked = settings.invertColors,
         onCheckedChange = { value -> onUpdate { it.copy(invertColors = value) } },
-        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        leadingContent = { Icon(Icons.Default.InvertColors, contentDescription = null) },
         headlineContent = { Text("Invert print colors") },
         supportingContent = { Text("Disable if printing on black tape") },
     )
     SettingsToggleItem(
         checked = settings.verticalText,
         onCheckedChange = { value -> onUpdate { it.copy(verticalText = value) } },
-        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        leadingContent = { Icon(Icons.Default.TextFields, contentDescription = null) },
         headlineContent = { Text("Vertical label text") },
         supportingContent = { Text("Rotate text for narrow labels") },
     )
     SettingsToggleItem(
         checked = settings.longLabel,
         onCheckedChange = { value -> onUpdate { it.copy(longLabel = value) } },
-        leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
+        leadingContent = { Icon(Icons.Default.FormatSize, contentDescription = null) },
         headlineContent = { Text("Long label") },
         supportingContent = { Text("Use the extended name, asset tag, and serial layout") },
     )

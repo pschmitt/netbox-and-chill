@@ -5,6 +5,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +37,22 @@ internal fun GestureShortcutRow(
         target?.let { configured -> "${action.label}: ${configured.label}" } ?: action.label
     SettingsListItem(
         modifier = Modifier.clickable { expanded = true },
-        leadingContent = { Icon(Icons.Default.TouchApp, contentDescription = null) },
+        leadingContent = {
+            Icon(
+                when {
+                    shortcut.label.contains("down", ignoreCase = true) ->
+                        Icons.Default.KeyboardArrowDown
+                    shortcut.label.contains("up", ignoreCase = true) ->
+                        Icons.Default.KeyboardArrowUp
+                    shortcut.label.contains("left", ignoreCase = true) ->
+                        Icons.AutoMirrored.Filled.KeyboardArrowLeft
+                    shortcut.label.contains("right", ignoreCase = true) ->
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight
+                    else -> Icons.Default.TouchApp
+                },
+                contentDescription = null,
+            )
+        },
         headlineContent = { Text(shortcut.label) },
         supportingContent = { Text(actionLabel) },
         trailingContent = {

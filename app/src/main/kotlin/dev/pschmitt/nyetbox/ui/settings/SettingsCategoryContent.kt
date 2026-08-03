@@ -147,7 +147,7 @@ private fun ConnectionSettingsContent(
         ) {
             SettingsListItem(
                 modifier = Modifier.clickable(onClick = actions.onEditServer),
-                leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
+                leadingContent = { Icon(Icons.Default.Cloud, contentDescription = null) },
                 headlineContent = { Text("NetBox instance") },
                 supportingContent = { Text(state.credentials.baseUrl) },
                 trailingContent = {
@@ -417,7 +417,7 @@ private fun DisplaySettingsContent(
             )
             SettingsListItem(
                 modifier = Modifier.clickable { themeAccentMenuExpanded = true },
-                leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
+                leadingContent = { Icon(Icons.Default.Colorize, contentDescription = null) },
                 headlineContent = { Text("Accent color") },
                 supportingContent = { Text(state.themeAccent.label) },
                 trailingContent = {
@@ -525,7 +525,7 @@ private fun CameraSettingsContent(
     ) {
         SettingsListItem(
             modifier = Modifier.clickable { scannerLensMenuExpanded = true },
-            leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+            leadingContent = { Icon(Icons.Default.PhotoCamera, contentDescription = null) },
             headlineContent = { Text("Scanner default camera") },
             supportingContent = { Text("${state.scannerLens.label}; falls back when unavailable") },
             trailingContent = {
@@ -551,7 +551,7 @@ private fun CameraSettingsContent(
         )
         SettingsListItem(
             modifier = Modifier.clickable { scannerRearLensMenuExpanded = true },
-            leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+                leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
             headlineContent = { Text("Default rear lens") },
             supportingContent = {
                 Text("${state.scannerRearLens.label}; uses the closest available lens when unavailable")
@@ -670,9 +670,9 @@ private fun AboutSettingsContent() {
             icon = Icons.Default.Info,
         ) {
             SettingsListItem(
-        leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
-        headlineContent = { Text("Nyetbox") },
-        supportingContent = { Text("Version " + BuildConfig.VERSION_NAME + " · GPLv3") },
+                leadingContent = { Icon(Icons.Default.Apps, contentDescription = null) },
+                headlineContent = { Text("Version") },
+                supportingContent = { Text(BuildConfig.VERSION_NAME + " · GPLv3") },
             )
             SettingsListItem(
         modifier =
@@ -700,12 +700,12 @@ private fun AboutSettingsContent() {
         SettingsGroupCard(
             title = "Project",
             subtitle = "Source code, support, and privacy information",
-            icon = Icons.Default.Code,
+        icon = Icons.Default.Code,
         ) {
             ExternalLinkRow(
         context = context,
         url = "https://github.com/pschmitt/nyetbox",
-        icon = Icons.Default.Code,
+        icon = Icons.Default.Public,
         title = "GitHub repository",
         subtitle = "View the source code and report issues",
             )

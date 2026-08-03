@@ -5741,6 +5741,18 @@ Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instr
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-345: differentiate Settings group and row icons
+
+Settings group headers and their first rows should not repeat the same icon when a more specific
+icon is available for the setting itself.
+
+- [x] Replace repeated header/row icons with role-specific icons.
+- [x] Verify the updated Settings presentation through remote compilation and device installation.
+
+Status: **done**, 2026-08-04 - remote ktfmt and Kotlin compilation passed without warnings; the
+debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
+
+
 ## NBC-344: avoid redundant headers on single-setting cards
 
 Cards containing one setting or action should let that row carry the title and icon instead of
