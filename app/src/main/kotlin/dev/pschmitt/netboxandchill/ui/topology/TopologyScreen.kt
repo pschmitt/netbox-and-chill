@@ -234,10 +234,11 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
                 cornerRadius = CornerRadius(8f * totalScale.coerceAtLeast(0.5f)),
                 style = Stroke(width = max(1f, 1.5f * totalScale)),
             )
-            drawCircle(
-                color = border,
-                radius = max(3f, min(nodeSize.width, nodeSize.height) * 0.16f),
+            drawTopologyNodeIcon(
+                kind = topologyNodeIconKind(node.label),
                 center = topLeft + Offset(nodeSize.width / 2f, nodeSize.height / 2f),
+                radius = max(3f, min(nodeSize.width, nodeSize.height) * 0.26f),
+                color = border,
             )
             val labelLines = topologyLabelLines(node.label, totalScale)
             if (labelLines.isNotEmpty()) {
@@ -306,6 +307,113 @@ private const val MAX_TOPOLOGY_ZOOM = 8f
 private const val ZOOM_STEP = 1.4f
 private const val TOPOLOGY_LABEL_SCALE = 0.8f
 private const val TOPOLOGY_DETAIL_SCALE = 1.4f
+
+internal enum class TopologyNodeIconKind {
+    Generic,
+    Compute,
+    Network,
+    Power,
+    Wireless,
+}
+
+internal fun topologyNodeIconKind(label: String): TopologyNodeIconKind {
+    val normalized = label.lowercase()
+    return when {
+        listOf("power", "pdu", "ups", "breaker", "outlet", "feed").any(normalized::contains) ->
+            TopologyNodeIconKind.Power
+        listOf("switch", "router", "firewall", "gateway", "access point", " wi-fi", "wifi")
+            .any(normalized::contains) -> TopologyNodeIconKind.Network
+        listOf("server", "nuc", "nas", "kvm", "proxmox", "compute").any(normalized::contains) ->
+            TopologyNodeIconKind.Compute
+        listOf(
+                "sensor",
+                "thermostat",
+                "motion",
+                "button",
+                "plug",
+                "light",
+                "cube",
+                "door",
+                "wireless",
+            )
+            .any(normalized::contains) -> TopologyNodeIconKind.Wireless
+        else -> TopologyNodeIconKind.Generic
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTopologyNodeIcon(
+    kind: TopologyNodeIconKind,
+    center: Offset,
+    radius: Float,
+    color: Color,
+) {
+    val strokeWidth = max(1f, radius * 0.22f)
+    when (kind) {
+        TopologyNodeIconKind.Generic -> drawCircle(color = color, radius = radius, center = center)
+        TopologyNodeIconKind.Compute -> {
+            drawRoundRect(
+                color = color,
+                topLeft = center - Offset(radius * 0.85f, radius * 0.7f),
+                size = Size(radius * 1.7f, radius * 1.4f),
+                cornerRadius = CornerRadius(radius * 0.18f),
+                style = Stroke(width = strokeWidth),
+            )
+            repeat(2) { index ->
+                val y = center.y - radius * 0.25f + index * radius * 0.5f
+                drawLine(
+                    color = color,
+                    start = Offset(center.x - radius * 0.55f, y),
+                    end = Offset(center.x + radius * 0.55f, y),
+                    strokeWidth = strokeWidth,
+                )
+            }
+        }
+        TopologyNodeIconKind.Network -> {
+            drawCircle(color = color, radius = radius * 0.35f, center = center)
+            listOf(
+                    center + Offset(0f, -radius),
+                    center + Offset(radius, 0f),
+                    center + Offset(0f, radius),
+                    center + Offset(-radius, 0f),
+                )
+                .forEach { spoke ->
+                    drawLine(color = color, start = center, end = spoke, strokeWidth = strokeWidth)
+                    drawCircle(color = color, radius = radius * 0.24f, center = spoke)
+                }
+        }
+        TopologyNodeIconKind.Power -> {
+            drawLine(
+                color = color,
+                start = center + Offset(0f, -radius),
+                end = center + Offset(0f, radius * 0.25f),
+                strokeWidth = strokeWidth,
+            )
+            drawArc(
+                color = color,
+                startAngle = 35f,
+                sweepAngle = 290f,
+                useCenter = false,
+                topLeft = center - Offset(radius * 0.8f, radius * 0.8f),
+                size = Size(radius * 1.6f, radius * 1.6f),
+                style = Stroke(width = strokeWidth),
+            )
+        }
+        TopologyNodeIconKind.Wireless -> {
+            listOf(0.35f, 0.65f, 0.95f).forEach { scale ->
+                drawArc(
+                    color = color,
+                    startAngle = 225f,
+                    sweepAngle = 90f,
+                    useCenter = false,
+                    topLeft = center - Offset(radius * scale, radius * scale),
+                    size = Size(radius * scale * 2f, radius * scale * 2f),
+                    style = Stroke(width = strokeWidth),
+                )
+            }
+            drawCircle(color = color, radius = strokeWidth * 0.8f, center = center + Offset(0f, radius * 0.55f))
+        }
+    }
+}
 
 internal fun initialTopologyZoom(nodeCount: Int, viewportWidth: Float): Float =
     when {

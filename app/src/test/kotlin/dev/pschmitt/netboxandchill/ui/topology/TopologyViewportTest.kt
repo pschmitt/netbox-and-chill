@@ -34,4 +34,13 @@ class TopologyViewportTest {
             topologyLabelLines("device\ntype\nsite", totalScale = 1.4f),
         )
     }
+
+    @Test
+    fun topologyNodesUseDistinctIconsForCommonObjectFamilies() {
+        assertEquals(TopologyNodeIconKind.Network, topologyNodeIconKind("Core switch"))
+        assertEquals(TopologyNodeIconKind.Power, topologyNodeIconKind("Apartment breaker box"))
+        assertEquals(TopologyNodeIconKind.Compute, topologyNodeIconKind("NUC10 server"))
+        assertEquals(TopologyNodeIconKind.Wireless, topologyNodeIconKind("Hallway motion sensor"))
+        assertEquals(TopologyNodeIconKind.Generic, topologyNodeIconKind("Desk object"))
+    }
 }

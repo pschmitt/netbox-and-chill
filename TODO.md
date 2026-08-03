@@ -5176,3 +5176,56 @@ the release.
 
 Status: **done**, 2026-08-03 - the release workflow now asks GitHub to prepend categorized notes
 for tagged releases; workflow YAML validation and remote Android checks pass.
+
+
+## NBC-304: use gravity-based topology layout
+
+The fallback topology layout currently places every node on a static grid. It avoids overlap but
+does not communicate the topology's connectivity the way the NetBox plugin's physics layout does.
+
+- [ ] Replace the grid fallback with a deterministic force-directed layout.
+- [ ] Use connections as attractive forces, node separation as repulsion, and gravity to keep the
+      result bounded and usable offline.
+- [ ] Add parser tests covering deterministic connected/disconnected layouts.
+
+Status: in progress, 2026-08-03 - implementation started after reproducing the dense static-grid
+layout with the cached production export.
+
+
+## NBC-305: distinguish topology node icons
+
+The custom topology renderer currently paints every node with the same square-and-dot glyph. It
+should use distinct, consistent icons for common network, compute, power, wireless, and generic
+object families.
+
+- [ ] Classify node labels into stable topology icon families.
+- [ ] Render distinct glyphs in the graph and keep the mapping covered by tests.
+
+Status: in progress, 2026-08-03 - implementation started alongside the gravity layout work.
+
+
+## NBC-307: optionally show device-type images in topology
+
+Topology device nodes should be able to reuse cached device-type front images for a more familiar
+view. This needs a user preference, with the family glyphs from NBC-305 remaining the fallback when
+the preference is disabled or no image is cached.
+
+- [ ] Add a topology presentation preference for device-type front images.
+- [ ] Resolve images from the local cache without introducing a live lookup in the graph renderer.
+- [ ] Fall back cleanly to the topology node-family icons when images are disabled or unavailable.
+
+Status: not started, 2026-08-03 - captured from the topology presentation follow-up.
+
+
+## NBC-306: gate optional plugin features by server capabilities
+
+Topology and netbox-documents are optional NetBox plugins. Their navigation entries, sync work,
+and item actions should only be exposed when the configured server reports the corresponding
+plugin as installed.
+
+- [ ] Derive capability flags from the cached/server plugin directory.
+- [ ] Hide topology navigation/sync when `netbox_topology_views` is unavailable.
+- [ ] Hide document navigation/actions/sync when `documents` is unavailable.
+- [ ] Keep capability decisions cache-first and covered by tests, including offline startup.
+
+Status: not started, 2026-08-03 - captured from the follow-up topology review.
