@@ -5582,3 +5582,14 @@ settings row should show live progress instead of stale totals from the last com
 - [ ] Restore the normal cache totals after completion or failure without blocking settings.
 
 Status: not started
+
+
+## NBC-332: animate the active sync control
+
+The `Syncing…` control on Settings → Sync should provide a subtle animated progress indication
+while a sync is running, so it is visibly active rather than looking static.
+
+- [ ] Add a restrained rotation or progress animation to the syncing icon.
+- [ ] Keep the animation accessible and stop it immediately when sync completes or fails.
+
+Status: not started
