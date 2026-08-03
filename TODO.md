@@ -5257,3 +5257,29 @@ currently too easy to mistake for ordinary results.
 - [ ] Cover the distinction with search-result UI tests.
 
 Status: not started, 2026-08-03 - captured from the global-search usability review.
+
+
+## NBC-310: allow manual topology node positioning
+
+The topology graph should let users reposition nodes when the automatic layout is not ideal.
+A long press followed by dragging should move the selected node without interfering with graph
+pan/zoom gestures.
+
+- [ ] Add long-press drag hit testing for rendered topology nodes.
+- [ ] Keep manual positions separate from the cached export and preserve them across refreshes.
+- [ ] Add interaction tests covering node drag versus viewport pan.
+
+Status: not started, 2026-08-03 - captured from the topology interaction review.
+
+
+## NBC-311: center topology on a device from its detail page
+
+Device pages should offer a topology action that opens the cached topology with the current device
+centered and selected, so users can quickly understand its connected devices.
+
+- [ ] Add a device-page topology action and route state for the focused device.
+- [ ] Center and highlight the selected device when opening the topology view.
+- [ ] Keep the action cache-first and provide a friendly fallback when no topology is cached.
+- [ ] Add navigation and focused-node tests.
+
+Status: not started, 2026-08-03 - captured from the device-detail usability review.

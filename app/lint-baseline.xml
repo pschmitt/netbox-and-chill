@@ -18,7 +18,7 @@
         errorLine1="android-plugin = &quot;9.2.1&quot;"
         errorLine2="                 ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="2"
             column="18"/>
     </issue>
@@ -40,7 +40,7 @@
         errorLine1="androidx-camera = &quot;1.5.1&quot;"
         errorLine2="                  ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="4"
             column="19"/>
     </issue>
@@ -51,7 +51,7 @@
         errorLine1="androidx-camera = &quot;1.5.1&quot;"
         errorLine2="                  ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="4"
             column="19"/>
     </issue>
@@ -62,7 +62,7 @@
         errorLine1="androidx-camera = &quot;1.5.1&quot;"
         errorLine2="                  ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="4"
             column="19"/>
     </issue>
@@ -73,7 +73,7 @@
         errorLine1="androidx-camera = &quot;1.5.1&quot;"
         errorLine2="                  ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="4"
             column="19"/>
     </issue>
@@ -84,7 +84,7 @@
         errorLine1="androidx-compose = &quot;1.11.3&quot;"
         errorLine2="                   ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="5"
             column="20"/>
     </issue>
@@ -95,7 +95,7 @@
         errorLine1="androidx-compose = &quot;1.11.3&quot;"
         errorLine2="                   ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="5"
             column="20"/>
     </issue>
@@ -106,7 +106,7 @@
         errorLine1="androidx-compose = &quot;1.11.3&quot;"
         errorLine2="                   ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="5"
             column="20"/>
     </issue>
@@ -117,7 +117,7 @@
         errorLine1="androidx-compose = &quot;1.11.3&quot;"
         errorLine2="                   ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="5"
             column="20"/>
     </issue>
@@ -128,7 +128,7 @@
         errorLine1="androidx-compose = &quot;1.11.3&quot;"
         errorLine2="                   ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="5"
             column="20"/>
     </issue>
@@ -139,7 +139,7 @@
         errorLine1="androidx-compose = &quot;1.11.3&quot;"
         errorLine2="                   ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="5"
             column="20"/>
     </issue>
@@ -150,7 +150,7 @@
         errorLine1="androidx-compose = &quot;1.11.3&quot;"
         errorLine2="                   ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="5"
             column="20"/>
     </issue>
@@ -161,7 +161,7 @@
         errorLine1="androidx-core = &quot;1.18.0&quot;"
         errorLine2="                ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="11"
             column="17"/>
     </issue>
@@ -172,7 +172,7 @@
         errorLine1="androidx-core-splashscreen = &quot;1.0.1&quot;"
         errorLine2="                             ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="12"
             column="30"/>
     </issue>
@@ -183,7 +183,7 @@
         errorLine1="androidx-hilt = &quot;1.3.0&quot;"
         errorLine2="                ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="13"
             column="17"/>
     </issue>
@@ -194,7 +194,7 @@
         errorLine1="androidx-hilt = &quot;1.3.0&quot;"
         errorLine2="                ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="13"
             column="17"/>
     </issue>
@@ -205,7 +205,7 @@
         errorLine1="androidx-hilt = &quot;1.3.0&quot;"
         errorLine2="                ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="13"
             column="17"/>
     </issue>
@@ -216,7 +216,7 @@
         errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
         errorLine2="                     ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="14"
             column="22"/>
     </issue>
@@ -227,7 +227,7 @@
         errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
         errorLine2="                     ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="14"
             column="22"/>
     </issue>
@@ -238,7 +238,7 @@
         errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
         errorLine2="                     ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="14"
             column="22"/>
     </issue>
@@ -249,7 +249,7 @@
         errorLine1="androidx-lifecycle = &quot;2.10.0&quot;"
         errorLine2="                     ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="14"
             column="22"/>
     </issue>
@@ -260,7 +260,7 @@
         errorLine1="kotlin = &quot;2.4.0&quot;"
         errorLine2="         ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="26"
             column="10"/>
     </issue>
@@ -271,7 +271,7 @@
         errorLine1="kotlin = &quot;2.4.0&quot;"
         errorLine2="         ~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="26"
             column="10"/>
     </issue>
@@ -282,7 +282,7 @@
         errorLine1="kotlinx-coroutines = &quot;1.10.2&quot;"
         errorLine2="                     ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="27"
             column="22"/>
     </issue>
@@ -293,7 +293,7 @@
         errorLine1="markdown-renderer = &quot;0.41.0&quot;"
         errorLine2="                    ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="34"
             column="21"/>
     </issue>
@@ -304,7 +304,7 @@
         errorLine1="markdown-renderer = &quot;0.41.0&quot;"
         errorLine2="                    ~~~~~~~~">
         <location
-            file="$HOME/build/netbox-and-chill/gradle/libs.versions.toml"
+            file="gradle/libs.versions.toml"
             line="34"
             column="21"/>
     </issue>

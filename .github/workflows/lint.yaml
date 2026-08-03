@@ -31,6 +31,9 @@ jobs:
       - name: Reject unreviewed lint-baseline changes
         run: |
           ./gradlew updateLintBaselineDebug
+          # AGP records absolute paths for the version catalog. Keep the reviewed baseline
+          # portable between the remote build hosts and the GitHub Actions checkout.
+          sed -E -i 's#file="[^"]*/gradle/libs\.versions\.toml"#file="gradle/libs.versions.toml"#g' app/lint-baseline.xml
           git diff --exit-code -- app/lint-baseline.xml
       - name: Upload Android Lint report
         if: ${{ failure() }}
