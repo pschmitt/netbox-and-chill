@@ -5657,3 +5657,17 @@ offer a lightweight connection test without starting a full synchronization.
 
 Status: **done**, 2026-08-03 - remote formatting/lint and unit tests passed; no NetBox data was
 modified.
+
+
+## NBC-338: publish and link the privacy policy
+
+The app needs a clear privacy policy and a discoverable link from Settings → About, suitable for
+users and future store distribution.
+
+- [x] Maintain a repository-hosted privacy policy describing network access, local storage, and
+  explicit sharing behavior.
+- [x] Disclose the optional public NetBox news-feed request and the absence of telemetry.
+- [x] Add an icon-bearing Privacy policy link to Settings → About.
+
+Status: **done**, 2026-08-03 - policy updated and linked to the repository document; remote lint
+and unit tests used for verification.

@@ -664,6 +664,13 @@ private fun AboutSettingsContent() {
         title = "Sponsor the project",
         subtitle = "Support development on GitHub Sponsors",
     )
+    ExternalLinkRow(
+        context = context,
+        url = "https://github.com/pschmitt/nyetbox/blob/main/PRIVACY.md",
+        icon = Icons.Default.PrivacyTip,
+        title = "Privacy policy",
+        subtitle = "How Nyetbox handles data and network access",
+    )
 }
 
 @Composable
