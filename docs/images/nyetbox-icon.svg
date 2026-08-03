@@ -2,6 +2,7 @@
   <title id="title">Nyetbox app icon</title>
   <desc id="desc">The Nyetbox network box face on a transparent background.</desc>
   <g transform="translate(19.44 19.44) scale(.64)" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="26" y="35" width="51" height="42" rx="3" fill="#07304b" />
     <path d="M28 37h47v38H28z" fill="none" stroke="#00e5d6" stroke-width="5" />
     <path d="M28 37v38h47" fill="none" stroke="#011226" stroke-width="5" />
     <path d="M45 37V24M75 37l12-12M28 75L18 85" fill="none" stroke="#011226" stroke-width="4" />

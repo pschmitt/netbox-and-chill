@@ -5590,10 +5590,10 @@ The README icon should show only the Nyetbox face artwork. Remove the blue backg
 decorative framing so it reads cleanly on the page.
 
 - [x] Remove the opaque background and outer border from the README SVG.
-- [x] Keep the face artwork visible on a light README background.
+- [x] Keep the face artwork visible on a light README background with a restrained blue face fill.
 
-Status: **done**, 2026-08-03 - README SVG now contains only the transparent face artwork with
-dark contrast strokes; no build or device changes were required.
+Status: **done**, 2026-08-03 - README SVG now contains transparent surrounding space and a
+restrained blue face panel with dark contrast strokes; no build or device changes were required.
 
 
 ## NBC-333: install Nyetbox through the homelab Android config
