@@ -11,9 +11,6 @@ logo, including the logo used by this app, are the intellectual property and tra
 Labs, Inc.; their use here identifies compatibility only and does not imply an official
 relationship.
 
-**This project is in its early stages** - it covers device browsing/lookup only, not the rest of
-NetBox's data model (IPAM, circuits, cabling, etc).
-
 ## Installation
 
 Not published on Google Play, Amazon Appstore, F-Droid, or IzzyOnDroid. Install and auto-update
