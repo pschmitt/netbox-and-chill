@@ -5570,3 +5570,15 @@ repository slug. Keep references to NetBox where they describe the compatible up
 Status: **done**, 2026-08-03 - remote ktfmt, unit tests, and debug build passed; the 1.1.0 debug
 package was installed on Mi Pad 4, PX5, and Zenfone 10 before the Zenfone disconnected during
 post-install verification; GitHub was renamed to `pschmitt/nyetbox` and the local origin updated.
+
+
+## NBC-331: show live attachment progress in Cached data settings
+
+When a sync is actively downloading durable image attachments and documents, the Cached data
+settings row should show live progress instead of stale totals from the last completed sync.
+
+- [ ] Expose attachment completion/total and downloaded byte progress from the sync state.
+- [ ] Update the Cached data row while the attachment phase is running.
+- [ ] Restore the normal cache totals after completion or failure without blocking settings.
+
+Status: not started
