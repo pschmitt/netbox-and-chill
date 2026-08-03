@@ -1,4 +1,8 @@
-# Nyetbox
+<p align="center">
+  <img src="docs/images/nyetbox-icon.svg" alt="Nyetbox app icon" width="128">
+</p>
+
+<h1 align="center">Nyetbox</h1>
 
 Nyetbox is a native Android companion app for a self-hosted
 [NetBox](https://github.com/netbox-community/netbox) instance: an offline-first device browser
