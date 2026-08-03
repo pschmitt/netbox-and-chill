@@ -304,8 +304,8 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
 private const val MIN_TOPOLOGY_ZOOM = 0.35f
 private const val MAX_TOPOLOGY_ZOOM = 8f
 private const val ZOOM_STEP = 1.4f
-private const val TOPOLOGY_LABEL_SCALE = 0.35f
-private const val TOPOLOGY_DETAIL_SCALE = 1f
+private const val TOPOLOGY_LABEL_SCALE = 0.8f
+private const val TOPOLOGY_DETAIL_SCALE = 1.4f
 
 internal fun initialTopologyZoom(nodeCount: Int, viewportWidth: Float): Float =
     when {

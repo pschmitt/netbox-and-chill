@@ -5161,5 +5161,18 @@ pan and pinch/button zoom controls.
 
 Status: **done**, 2026-08-03 - removed the old `node_*` id restriction, added a deterministic
 fallback layout for missing/degenerate coordinates, capped pathological fit scaling, hid dense
-labels at overview scale, and passed remote unit/lint/compile checks plus a Mi Pad launch sanity
-check.
+labels until a readable zoom level, and passed remote unit/lint/compile checks plus a Mi Pad
+overview/zoom sanity check.
+
+
+## NBC-303: generate proper GitHub release changelogs
+
+Tagged GitHub releases currently contain only the static installation and artifact notes. They
+should also include GitHub's categorized changelog for the commits and pull requests included in
+the release.
+
+- [x] Enable generated release notes for permanent semantic-version releases.
+- [x] Keep the existing signed-build, APK, and checksum instructions alongside the generated notes.
+
+Status: **done**, 2026-08-03 - the release workflow now asks GitHub to prepend categorized notes
+for tagged releases; workflow YAML validation and remote Android checks pass.

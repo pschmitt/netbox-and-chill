@@ -27,11 +27,11 @@ class TopologyViewportTest {
 
     @Test
     fun overviewHidesDenseLabelsUntilTheGraphIsReadable() {
-        assertTrue(topologyLabelLines("device\ntype\nsite", totalScale = 0.2f).isEmpty())
-        assertEquals(listOf("device"), topologyLabelLines("device\ntype\nsite", totalScale = 0.7f))
+        assertTrue(topologyLabelLines("device\ntype\nsite", totalScale = 0.7f).isEmpty())
+        assertEquals(listOf("device"), topologyLabelLines("device\ntype\nsite", totalScale = 1f))
         assertEquals(
             listOf("device", "type", "site"),
-            topologyLabelLines("device\ntype\nsite", totalScale = 1f),
+            topologyLabelLines("device\ntype\nsite", totalScale = 1.4f),
         )
     }
 }

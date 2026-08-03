@@ -174,6 +174,10 @@ jobs:
         with:
           tag_name: ${{ steps.params.outputs.tag_name }}
           name: ${{ steps.params.outputs.release_name }}
+          # Let GitHub prepend its categorized commit/PR changelog to the install and artifact
+          # notes below. The rolling `latest` prerelease intentionally keeps its concise build
+          # description instead of pretending to be a versioned changelog.
+          generate_release_notes: true
           body: |
             Signed with the same CI key as every other build here - upgrades cleanly over an
             existing `dev.pschmitt.netboxandchill` install (the `latest` prerelease, an older
