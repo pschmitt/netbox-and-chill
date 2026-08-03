@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -13,6 +14,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -94,7 +97,9 @@ fun AddItemScreen(
     val defaultPinnedEndpoints =
         listOf(NetBoxRef.DEVICES_ENDPOINT_PATH, NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH)
     val pinnedEndpoints = buildList {
-        addAll(defaultPinnedEndpoints)
+        addAll(
+            defaultPinnedEndpoints.filter { it in pinnedPaths }
+        )
         addAll(
             filteredModels
                 .filter {
@@ -181,6 +186,7 @@ fun AddItemScreen(
                                 model = model,
                                 onModelClick = onModelClick,
                                 onTogglePin = { viewModel.togglePinned(model.endpointPath) },
+                                isPinned = true,
                             )
                         }
                     }
@@ -208,6 +214,7 @@ fun AddItemScreen(
                                 model = model,
                                 onModelClick = onModelClick,
                                 onTogglePin = { viewModel.togglePinned(model.endpointPath) },
+                                isPinned = model.endpointPath in pinnedPaths,
                             )
                         }
                     }
@@ -223,6 +230,7 @@ private fun AddModelRow(
     model: NetBoxModelEntity,
     onModelClick: (NetBoxModelEntity) -> Unit,
     onTogglePin: () -> Unit,
+    isPinned: Boolean,
 ) {
     ListItem(
         leadingContent = {
@@ -231,7 +239,16 @@ private fun AddModelRow(
         headlineContent = { Text(model.modelLabel) },
         supportingContent = { Text(model.appLabel) },
         trailingContent = {
-            Icon(Icons.Default.AddCircle, contentDescription = "Add ${model.modelLabel}")
+            Row {
+                Icon(
+                    if (isPinned) Icons.Default.Star else Icons.Outlined.StarBorder,
+                    contentDescription = if (isPinned) "Pinned" else "Not pinned",
+                    tint =
+                        if (isPinned) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Icon(Icons.Default.AddCircle, contentDescription = "Add ${model.modelLabel}")
+            }
         },
         modifier =
             Modifier.combinedClickable(

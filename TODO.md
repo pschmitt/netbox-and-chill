@@ -5684,3 +5684,17 @@ Lint baseline on every run.
 
 Status: **done**, 2026-08-03 - remote ktfmt, Android Lint, and unit tests passed locally; GitHub
 Actions rerun pending after push.
+
+
+## NBC-340: make Add item pins editable
+
+Pinned item types on Add should use the same persisted pin state as the rest of the app, including
+the built-in Devices and Device types entries.
+
+- [x] Make the built-in pinned entries removable with a long press.
+- [x] Show the current pin state on Add item rows.
+- [x] Preserve existing pin choices with a one-time preference migration.
+- [x] Verify the pin/unpin state handling and five-item limit in the shared preference logic.
+
+Status: **done**, 2026-08-03 - remote ktfmt, Android Lint, and unit tests passed; the built-in
+Devices and Device types entries now use the persisted pin set and can be toggled by long press.

@@ -527,9 +527,30 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     }
 
     private fun loadPinnedModelPaths(): Set<String> =
-        (prefs.getStringSet(KEY_PINNED_MODELS, null) ?: setOf(DEFAULT_PINNED_MODEL_PATH))
-            .take(MAX_PINNED_MODEL_PATHS)
-            .toSet()
+        run {
+            val stored = prefs.getStringSet(KEY_PINNED_MODELS, null)
+            val migrated =
+                if (prefs.getInt(KEY_PINNED_MODELS_VERSION, 0) < PINNED_MODEL_PATHS_VERSION) {
+                    val customPaths =
+                        stored.orEmpty().filterNot { it in DEFAULT_PINNED_MODEL_PATHS }.sorted()
+                    (DEFAULT_PINNED_MODEL_PATHS + customPaths)
+                        .distinct()
+                        .take(MAX_PINNED_MODEL_PATHS)
+                        .toSet()
+                } else {
+                    (stored ?: DEFAULT_PINNED_MODEL_PATHS)
+                        .take(MAX_PINNED_MODEL_PATHS)
+                        .toSet()
+                }
+            if (prefs.getInt(KEY_PINNED_MODELS_VERSION, 0) < PINNED_MODEL_PATHS_VERSION) {
+                prefs
+                    .edit()
+                    .putStringSet(KEY_PINNED_MODELS, migrated)
+                    .putInt(KEY_PINNED_MODELS_VERSION, PINNED_MODEL_PATHS_VERSION)
+                    .apply()
+            }
+            migrated
+        }
 
     fun save(baseUrl: String, token: String) {
         val normalizedBaseUrl = baseUrl.trim().trimEnd('/')
@@ -789,7 +810,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_CURRENT_USER_FULL_NAME = "current_user_full_name"
         const val KEY_CURRENT_USER_EMAIL = "current_user_email"
         const val KEY_PINNED_MODELS = "pinned_model_paths"
-        const val DEFAULT_PINNED_MODEL_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH
+        const val KEY_PINNED_MODELS_VERSION = "pinned_model_paths_version"
+        val DEFAULT_PINNED_MODEL_PATHS =
+            listOf(NetBoxRef.DEVICES_ENDPOINT_PATH, NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH)
+        const val PINNED_MODEL_PATHS_VERSION = 1
         const val MAX_PINNED_MODEL_PATHS = 5
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"
