@@ -5725,3 +5725,17 @@ presentation used in the companion `aughhhh` app while preserving all existing s
 
 Status: **done**, 2026-08-03 - remote ktfmt, Kotlin/unit-test compilation, Android test compilation,
 and Android Lint passed; the updated debug build is ready for device verification.
+
+
+## NBC-343: make Settings rows feel native inside grouped cards
+
+The new Settings cards should read as a single surface. Nested opaque row backgrounds and repeated
+edit-pencil buttons make the page look cluttered and unlike a native Android settings screen.
+
+- [x] Make settings rows transparent inside their containing cards.
+- [x] Replace edit-pencil affordances with full-row interactions and native selector chevrons.
+- [x] Keep explicit actions, switches, and accessibility labels intact.
+- [x] Verify the updated presentation through remote compilation, lint, and device installation.
+
+Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instrumentation compilation,
+and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.

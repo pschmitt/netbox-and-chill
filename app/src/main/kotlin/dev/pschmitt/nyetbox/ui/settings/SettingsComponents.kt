@@ -11,20 +11,72 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+@Composable
+internal fun SettingsListItem(
+    modifier: Modifier = Modifier,
+    leadingContent: (@Composable (() -> Unit))? = null,
+    overlineContent: (@Composable (() -> Unit))? = null,
+    headlineContent: @Composable () -> Unit,
+    supportingContent: (@Composable (() -> Unit))? = null,
+    trailingContent: (@Composable (() -> Unit))? = null,
+) {
+    ListItem(
+        modifier = modifier,
+        leadingContent = leadingContent,
+        overlineContent = overlineContent,
+        headlineContent = headlineContent,
+        supportingContent = supportingContent,
+        trailingContent = trailingContent,
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+    )
+}
+
+@Composable
+internal fun SettingsToggleItem(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingContent: (@Composable (() -> Unit))? = null,
+    headlineContent: @Composable () -> Unit,
+    supportingContent: (@Composable (() -> Unit))? = null,
+) {
+    SettingsListItem(
+        modifier =
+            modifier.toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Switch,
+                onValueChange = onCheckedChange,
+            ),
+        leadingContent = leadingContent,
+        headlineContent = headlineContent,
+        supportingContent = supportingContent,
+        trailingContent = {
+            Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        },
+    )
+}
 
 @Composable
 internal fun SettingsGroupCard(

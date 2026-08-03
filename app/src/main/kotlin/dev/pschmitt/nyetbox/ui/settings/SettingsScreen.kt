@@ -7,7 +7,6 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -33,7 +31,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -85,20 +82,16 @@ fun SettingsScreen(
                 subtitle = "Use cached data only and pause network sync",
                 icon = Icons.Default.CloudOff,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        if (offlineMode) "Network access is paused" else "Allow background network sync",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Switch(
-                        checked = offlineMode,
-                        onCheckedChange = viewModel::setOfflineMode,
-                    )
-                }
+                SettingsToggleItem(
+                    checked = offlineMode,
+                    onCheckedChange = viewModel::setOfflineMode,
+                    headlineContent = {
+                        Text(
+                            if (offlineMode) "Network access is paused"
+                            else "Allow background network sync"
+                        )
+                    },
+                )
             }
             Text(
                 "Settings",

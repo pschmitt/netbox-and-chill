@@ -33,15 +33,14 @@ internal fun GestureShortcutRow(
     var detailModel by remember { mutableStateOf<dev.pschmitt.nyetbox.data.db.NetBoxModelEntity?>(null) }
     val actionLabel =
         target?.let { configured -> "${action.label}: ${configured.label}" } ?: action.label
-    ListItem(
+    SettingsListItem(
+        modifier = Modifier.clickable { expanded = true },
         leadingContent = { Icon(Icons.Default.TouchApp, contentDescription = null) },
         headlineContent = { Text(shortcut.label) },
         supportingContent = { Text(actionLabel) },
         trailingContent = {
             Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Configure ${shortcut.label}")
-                }
+                Icon(Icons.Default.ExpandMore, contentDescription = null)
                 DropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
@@ -148,7 +147,7 @@ internal fun GestureShortcutRow(
                             )
                         }
                         filteredObjects.forEach { obj ->
-                            ListItem(
+                            SettingsListItem(
                                 modifier =
                                     Modifier.clickable {
                                         onDetailTargetSelected(obj)
@@ -164,7 +163,7 @@ internal fun GestureShortcutRow(
                         }
                     } else {
                         filteredModels.forEach { model ->
-                            ListItem(
+                            SettingsListItem(
                                 modifier =
                                     Modifier.clickable {
                                         if (action == GestureAction.DetailSpecific) {

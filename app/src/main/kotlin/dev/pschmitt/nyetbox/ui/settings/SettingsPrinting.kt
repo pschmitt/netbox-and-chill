@@ -110,27 +110,21 @@ internal fun PrintingSettingsSection(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
     } else {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Image(
-                bitmap = previewBitmap.asImageBitmap(),
-                contentDescription = "Label preview",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxWidth().height(144.dp).padding(12.dp),
-            )
-        }
+        Image(
+            bitmap = previewBitmap.asImageBitmap(),
+            contentDescription = "Label preview",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxWidth().height(144.dp).padding(12.dp),
+        )
     }
-    ListItem(
+    SettingsListItem(
         modifier = Modifier.clickable { printerMenuExpanded = true },
         leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
         headlineContent = { Text("Default printer") },
         supportingContent = { Text(defaultPrinterLabel) },
         trailingContent = {
             Box {
-                IconButton(onClick = { printerMenuExpanded = true }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Choose default printer")
-                }
+                Icon(Icons.Default.ExpandMore, contentDescription = null)
                 DropdownMenu(
                     expanded = printerMenuExpanded,
                     onDismissRequest = { printerMenuExpanded = false },
@@ -180,38 +174,26 @@ internal fun PrintingSettingsSection(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
     }
-    ListItem(
+    SettingsToggleItem(
+        checked = settings.invertColors,
+        onCheckedChange = { value -> onUpdate { it.copy(invertColors = value) } },
         leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
         headlineContent = { Text("Invert print colors") },
         supportingContent = { Text("Disable if printing on black tape") },
-        trailingContent = {
-            Switch(
-                checked = settings.invertColors,
-                onCheckedChange = { value -> onUpdate { it.copy(invertColors = value) } },
-            )
-        },
     )
-    ListItem(
+    SettingsToggleItem(
+        checked = settings.verticalText,
+        onCheckedChange = { value -> onUpdate { it.copy(verticalText = value) } },
         leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
         headlineContent = { Text("Vertical label text") },
         supportingContent = { Text("Rotate text for narrow labels") },
-        trailingContent = {
-            Switch(
-                checked = settings.verticalText,
-                onCheckedChange = { value -> onUpdate { it.copy(verticalText = value) } },
-            )
-        },
     )
-    ListItem(
+    SettingsToggleItem(
+        checked = settings.longLabel,
+        onCheckedChange = { value -> onUpdate { it.copy(longLabel = value) } },
         leadingContent = { Icon(Icons.Default.Print, contentDescription = null) },
         headlineContent = { Text("Long label") },
         supportingContent = { Text("Use the extended name, asset tag, and serial layout") },
-        trailingContent = {
-            Switch(
-                checked = settings.longLabel,
-                onCheckedChange = { value -> onUpdate { it.copy(longLabel = value) } },
-            )
-        },
     )
         Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),

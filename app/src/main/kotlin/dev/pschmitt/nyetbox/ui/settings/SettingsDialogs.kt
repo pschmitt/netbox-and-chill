@@ -236,7 +236,9 @@ internal fun ObjectTypeColorsDialog(
                         var menuExpanded by remember(key) { mutableStateOf(false) }
                         val selected = accents[key]
                         Row(
-                            Modifier.fillMaxWidth().padding(top = 12.dp),
+                            Modifier.fillMaxWidth()
+                                .clickable { menuExpanded = true }
+                                .padding(top = 12.dp),
                             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                         ) {
                             Surface(
@@ -270,9 +272,7 @@ internal fun ObjectTypeColorsDialog(
                                 )
                             }
                             Box {
-                                IconButton(onClick = { menuExpanded = true }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Choose ${model.modelLabel} color")
-                                }
+                                Icon(Icons.Default.ExpandMore, contentDescription = null)
                                 DropdownMenu(
                                     expanded = menuExpanded,
                                     onDismissRequest = { menuExpanded = false },

@@ -6,11 +6,13 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -137,24 +139,22 @@ private fun ConnectionSettingsContent(
     state: SettingsCategoryState,
     actions: SettingsCategoryActions,
 ) {
-    val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SettingsGroupCard(
             title = "Connection",
             subtitle = "Server, identity, and secure access",
             icon = Icons.Default.Dns,
         ) {
-            ListItem(
-        leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
-        headlineContent = { Text("NetBox instance") },
-        supportingContent = { Text(state.credentials.baseUrl) },
-        trailingContent = {
-            IconButton(onClick = actions.onEditServer) {
-                Icon(Icons.Default.Edit, contentDescription = "Change NetBox server")
-            }
-        },
+            SettingsListItem(
+                modifier = Modifier.clickable(onClick = actions.onEditServer),
+                leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
+                headlineContent = { Text("NetBox instance") },
+                supportingContent = { Text(state.credentials.baseUrl) },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
             )
-            ListItem(
+            SettingsListItem(
         leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
         headlineContent = { Text("Signed in as") },
         supportingContent = {
@@ -171,7 +171,7 @@ private fun ConnectionSettingsContent(
             )
         },
             )
-            ListItem(
+            SettingsListItem(
         leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
         headlineContent = { Text("API token") },
         supportingContent = {
@@ -207,18 +207,18 @@ private fun ConnectionSettingsContent(
             }
         },
             )
-            ListItem(
-        leadingContent = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
-        headlineContent = { Text("Share connection setup") },
-        supportingContent = { Text("Show a QR code with this server URL and API token") },
-        trailingContent = {
-            IconButton(
-                onClick = actions.onShareSetup,
-                enabled = state.credentials.isValid,
-            ) {
-                Icon(Icons.Default.QrCodeScanner, contentDescription = "Show setup QR code")
-            }
-        },
+            SettingsListItem(
+                modifier =
+                    Modifier.clickable(
+                        enabled = state.credentials.isValid,
+                        onClick = actions.onShareSetup,
+                    ),
+                leadingContent = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
+                headlineContent = { Text("Share connection setup") },
+                supportingContent = { Text("Show a QR code with this server URL and API token") },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
             )
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         OutlinedButton(
@@ -296,55 +296,50 @@ private fun SyncSettingsContent(
             subtitle = "Choose when background data refreshes are allowed",
             icon = Icons.Default.Sync,
         ) {
-            ListItem(
-        leadingContent = { Icon(Icons.Default.Download, contentDescription = null) },
-        headlineContent = { Text("Sync attachments to disk") },
-        supportingContent = { Text("Download documents and images on sync for full offline access") },
-        trailingContent = {
-            Switch(
+            SettingsToggleItem(
                 checked = state.syncAttachmentsToDisk,
                 onCheckedChange = actions.onSetSyncAttachmentsToDisk,
+                leadingContent = { Icon(Icons.Default.Download, contentDescription = null) },
+                headlineContent = { Text("Sync attachments to disk") },
+                supportingContent = {
+                    Text("Download documents and images on sync for full offline access")
+                },
             )
-        },
+            SettingsToggleItem(
+                checked = state.syncOnlyOnWifi,
+                onCheckedChange = actions.onSetSyncOnlyOnWifi,
+                leadingContent = { Icon(Icons.Default.Wifi, contentDescription = null) },
+                headlineContent = { Text("Sync only on Wi-Fi") },
+                supportingContent = {
+                    Text("Use an unmetered connection for background and manual sync")
+                },
             )
-            ListItem(
-        leadingContent = { Icon(Icons.Default.Wifi, contentDescription = null) },
-        headlineContent = { Text("Sync only on Wi-Fi") },
-        supportingContent = { Text("Use an unmetered connection for background and manual sync") },
-        trailingContent = {
-            Switch(checked = state.syncOnlyOnWifi, onCheckedChange = actions.onSetSyncOnlyOnWifi)
-        },
-            )
-            ListItem(
-        leadingContent = { Icon(Icons.Default.SignalCellularAlt, contentDescription = null) },
-        headlineContent = { Text("Sync while roaming") },
-        supportingContent = {
-            Text(
-                if (state.syncOnlyOnWifi) {
-                    "No effect while Wi-Fi-only sync is enabled"
-                } else {
-                    "Allow sync over a roaming mobile connection"
-                }
-            )
-        },
-        trailingContent = {
-            Switch(
+            SettingsToggleItem(
                 checked = state.syncWhileRoaming,
                 onCheckedChange = actions.onSetSyncWhileRoaming,
                 enabled = !state.syncOnlyOnWifi,
+                leadingContent = {
+                    Icon(Icons.Default.SignalCellularAlt, contentDescription = null)
+                },
+                headlineContent = { Text("Sync while roaming") },
+                supportingContent = {
+                    Text(
+                        if (state.syncOnlyOnWifi) {
+                            "No effect while Wi-Fi-only sync is enabled"
+                        } else {
+                            "Allow sync over a roaming mobile connection"
+                        }
+                    )
+                },
             )
-        },
-            )
-            ListItem(
-        leadingContent = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-        headlineContent = { Text("Sync on app launch") },
-        supportingContent = { Text("Refresh NetBox in the background when the app starts") },
-        trailingContent = {
-            Switch(
+            SettingsToggleItem(
                 checked = state.syncOnAppLaunch,
                 onCheckedChange = actions.onSetSyncOnAppLaunch,
-            )
-        },
+                leadingContent = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                headlineContent = { Text("Sync on app launch") },
+                supportingContent = {
+                    Text("Refresh NetBox in the background when the app starts")
+                },
             )
         }
         SettingsGroupCard(
@@ -352,7 +347,7 @@ private fun SyncSettingsContent(
             subtitle = "Everything currently available for offline use",
             icon = Icons.Default.Storage,
         ) {
-            ListItem(
+            SettingsListItem(
         leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
         headlineContent = { Text("Cached data") },
         supportingContent = {
@@ -390,24 +385,23 @@ private fun DisplaySettingsContent(
             subtitle = "Theme and object identity",
             icon = Icons.Default.Palette,
         ) {
-            ListItem(
-        leadingContent = {
-            Icon(
-                when (state.themeMode) {
-                    ThemeMode.FollowSystem -> Icons.Default.BrightnessAuto
-                    ThemeMode.Light -> Icons.Default.LightMode
-                    ThemeMode.Dark -> Icons.Default.DarkMode
+            SettingsListItem(
+                modifier = Modifier.clickable { themeModeMenuExpanded = true },
+                leadingContent = {
+                    Icon(
+                        when (state.themeMode) {
+                            ThemeMode.FollowSystem -> Icons.Default.BrightnessAuto
+                            ThemeMode.Light -> Icons.Default.LightMode
+                            ThemeMode.Dark -> Icons.Default.DarkMode
+                        },
+                        contentDescription = null,
+                    )
                 },
-                contentDescription = null,
-            )
-        },
-        headlineContent = { Text("Color scheme") },
-        supportingContent = { Text(state.themeMode.label) },
-        trailingContent = {
-            Box {
-                IconButton(onClick = { themeModeMenuExpanded = true }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Choose color scheme")
-                }
+                headlineContent = { Text("Color scheme") },
+                supportingContent = { Text(state.themeMode.label) },
+                trailingContent = {
+                    Box {
+                        Icon(Icons.Default.ExpandMore, contentDescription = null)
                 DropdownMenu(
                     expanded = themeModeMenuExpanded,
                     onDismissRequest = { themeModeMenuExpanded = false },
@@ -423,18 +417,17 @@ private fun DisplaySettingsContent(
                         )
                     }
                 }
-            }
-        },
+                    }
+                },
             )
-            ListItem(
-        leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
-        headlineContent = { Text("Accent color") },
-        supportingContent = { Text(state.themeAccent.label) },
-        trailingContent = {
-            Box {
-                IconButton(onClick = { themeAccentMenuExpanded = true }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Choose accent color")
-                }
+            SettingsListItem(
+                modifier = Modifier.clickable { themeAccentMenuExpanded = true },
+                leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
+                headlineContent = { Text("Accent color") },
+                supportingContent = { Text(state.themeAccent.label) },
+                trailingContent = {
+                    Box {
+                        Icon(Icons.Default.ExpandMore, contentDescription = null)
                 DropdownMenu(
                     expanded = themeAccentMenuExpanded,
                     onDismissRequest = { themeAccentMenuExpanded = false },
@@ -450,23 +443,22 @@ private fun DisplaySettingsContent(
                         )
                     }
                 }
-            }
-        },
+                    }
+                },
             )
-            ListItem(
-        leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
-        headlineContent = { Text("Object type colors") },
-        supportingContent = {
-            Text(
-                if (state.objectTypeAccents.isEmpty()) "Automatic colors"
-                else "${state.objectTypeAccents.size} customized object types"
-            )
-        },
-        trailingContent = {
-            IconButton(onClick = actions.onShowObjectTypeColors) {
-                Icon(Icons.Default.Edit, contentDescription = "Customize object type colors")
-            }
-        },
+            SettingsListItem(
+                modifier = Modifier.clickable(onClick = actions.onShowObjectTypeColors),
+                leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
+                headlineContent = { Text("Object type colors") },
+                supportingContent = {
+                    Text(
+                        if (state.objectTypeAccents.isEmpty()) "Automatic colors"
+                        else "${state.objectTypeAccents.size} customized object types"
+                    )
+                },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
             )
         }
         SettingsGroupCard(
@@ -474,31 +466,34 @@ private fun DisplaySettingsContent(
             subtitle = "Choose what is shown by default across the app",
             icon = Icons.Default.Visibility,
         ) {
-            ListItem(
-        leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
-        headlineContent = { Text("Hidden fields") },
-        supportingContent = {
-            Text(
-                if (state.hiddenFieldKeys.isEmpty()) {
-                    "No fields hidden by default"
-                } else {
-                    val countLabel = if (state.hiddenFieldKeys.size == 1) "field" else "fields"
-                    "$countLabel hidden by default · ${state.hiddenFieldKeys.sorted().joinToString(", ")}"
-                }
+            SettingsListItem(
+                modifier = Modifier.clickable(onClick = actions.onShowHiddenFields),
+                leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
+                headlineContent = { Text("Hidden fields") },
+                supportingContent = {
+                    Text(
+                        if (state.hiddenFieldKeys.isEmpty()) {
+                            "No fields hidden by default"
+                        } else {
+                            val countLabel = if (state.hiddenFieldKeys.size == 1) "field" else "fields"
+                            "$countLabel hidden by default · ${state.hiddenFieldKeys.sorted().joinToString(", ")}"
+                        }
+                    )
+                },
+                trailingContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (state.hiddenFieldKeys.isNotEmpty()) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Hidden fields configured",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                    }
+                },
             )
-        },
-        trailingContent = {
-            Row {
-                if (state.hiddenFieldKeys.isNotEmpty()) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = "Hidden fields configured", tint = MaterialTheme.colorScheme.primary)
-                }
-                IconButton(onClick = actions.onShowHiddenFields) {
-                    Icon(Icons.Default.Edit, contentDescription = "Configure hidden fields")
-                }
-            }
-        },
-            )
-            ListItem(
+            SettingsListItem(
         leadingContent = { Icon(Icons.Default.PushPin, contentDescription = null) },
         headlineContent = { Text("Pinned item types") },
         supportingContent = {
@@ -508,18 +503,14 @@ private fun DisplaySettingsContent(
             )
         },
             )
-            ListItem(
-        leadingContent = { Icon(Icons.Default.Hub, contentDescription = null) },
-        headlineContent = { Text("Topology device images") },
-        supportingContent = {
-            Text("Use cached device-type front images for matching topology nodes")
-        },
-        trailingContent = {
-            Switch(
+            SettingsToggleItem(
                 checked = state.showTopologyDeviceTypeImages,
                 onCheckedChange = actions.onSetShowTopologyDeviceTypeImages,
-            )
-        },
+                leadingContent = { Icon(Icons.Default.Hub, contentDescription = null) },
+                headlineContent = { Text("Topology device images") },
+                supportingContent = {
+                    Text("Use cached device-type front images for matching topology nodes")
+                },
             )
         }
     }
@@ -537,15 +528,14 @@ private fun CameraSettingsContent(
         subtitle = "Choose the camera and rear lens used by default",
         icon = Icons.Default.Cameraswitch,
     ) {
-        ListItem(
-        leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
-        headlineContent = { Text("Scanner default camera") },
-        supportingContent = { Text("${state.scannerLens.label}; falls back when unavailable") },
-        trailingContent = {
-            Box {
-                IconButton(onClick = { scannerLensMenuExpanded = true }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Configure scanner camera")
-                }
+        SettingsListItem(
+            modifier = Modifier.clickable { scannerLensMenuExpanded = true },
+            leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+            headlineContent = { Text("Scanner default camera") },
+            supportingContent = { Text("${state.scannerLens.label}; falls back when unavailable") },
+            trailingContent = {
+                Box {
+                    Icon(Icons.Default.ExpandMore, contentDescription = null)
                 DropdownMenu(
                     expanded = scannerLensMenuExpanded,
                     onDismissRequest = { scannerLensMenuExpanded = false },
@@ -561,20 +551,19 @@ private fun CameraSettingsContent(
                         )
                     }
                 }
-            }
-        },
-        )
-        ListItem(
-        leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
-        headlineContent = { Text("Default rear lens") },
-        supportingContent = {
-            Text("${state.scannerRearLens.label}; uses the closest available lens when unavailable")
-        },
-        trailingContent = {
-            Box {
-                IconButton(onClick = { scannerRearLensMenuExpanded = true }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Configure default rear lens")
                 }
+            },
+        )
+        SettingsListItem(
+            modifier = Modifier.clickable { scannerRearLensMenuExpanded = true },
+            leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+            headlineContent = { Text("Default rear lens") },
+            supportingContent = {
+                Text("${state.scannerRearLens.label}; uses the closest available lens when unavailable")
+            },
+            trailingContent = {
+                Box {
+                    Icon(Icons.Default.ExpandMore, contentDescription = null)
                 DropdownMenu(
                     expanded = scannerRearLensMenuExpanded,
                     onDismissRequest = { scannerRearLensMenuExpanded = false },
@@ -590,8 +579,8 @@ private fun CameraSettingsContent(
                         )
                     }
                 }
-            }
-        },
+                }
+            },
         )
     }
 }
@@ -651,24 +640,20 @@ private fun NotificationSettingsContent(
         subtitle = "Choose which NetBox changes deserve an alert",
         icon = Icons.Default.Notifications,
     ) {
-        ListItem(
-        leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
-        headlineContent = { Text("NetBox change notifications") },
-        supportingContent = {
-            Text(
-                if (state.changeNotificationsEnabled) {
-                    selectedChangeNotificationSummary(state.changeNotificationFilters)
-                } else {
-                    "Disabled by default; notify only about changes you choose"
-                }
-            )
-        },
-        trailingContent = {
-            Switch(
-                checked = state.changeNotificationsEnabled,
-                onCheckedChange = actions.onSetChangeNotificationsEnabled,
-            )
-        },
+        SettingsToggleItem(
+            checked = state.changeNotificationsEnabled,
+            onCheckedChange = actions.onSetChangeNotificationsEnabled,
+            leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
+            headlineContent = { Text("NetBox change notifications") },
+            supportingContent = {
+                Text(
+                    if (state.changeNotificationsEnabled) {
+                        selectedChangeNotificationSummary(state.changeNotificationFilters)
+                    } else {
+                        "Disabled by default; notify only about changes you choose"
+                    }
+                )
+            },
         )
         if (state.changeNotificationsEnabled) {
             OutlinedButton(
@@ -693,12 +678,12 @@ private fun AboutSettingsContent() {
             subtitle = "Application and build information",
             icon = Icons.Default.Info,
         ) {
-            ListItem(
+            SettingsListItem(
         leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
         headlineContent = { Text("Nyetbox") },
         supportingContent = { Text("Version " + BuildConfig.VERSION_NAME + " · GPLv3") },
             )
-            ListItem(
+            SettingsListItem(
         modifier =
             Modifier.clickable {
                 val tapCount = buildTapCount + 1
@@ -715,7 +700,7 @@ private fun AboutSettingsContent() {
         headlineContent = { Text("Build") },
         supportingContent = { Text(BuildConfig.GIT_REVISION) },
             )
-            ListItem(
+            SettingsListItem(
         leadingContent = { Icon(Icons.Default.DateRange, contentDescription = null) },
         headlineContent = { Text("Build date") },
         supportingContent = { Text(BuildConfig.BUILD_DATE) },
@@ -759,7 +744,7 @@ private fun ExternalLinkRow(
     title: String,
     subtitle: String,
 ) {
-    ListItem(
+    SettingsListItem(
         modifier = Modifier.clickable { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
         leadingContent = { Icon(icon, contentDescription = null) },
         headlineContent = { Text(title) },
