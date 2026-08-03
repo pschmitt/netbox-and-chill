@@ -5584,6 +5584,43 @@ settings row should show live progress instead of stale totals from the last com
 Status: not started
 
 
+## NBC-335: keep the README icon on transparent artwork
+
+The README icon should show only the Nyetbox face artwork. Remove the blue background, border, and
+decorative framing so it reads cleanly on the page.
+
+- [x] Remove the opaque background and outer border from the README SVG.
+- [x] Keep the face artwork visible on a light README background.
+
+Status: **done**, 2026-08-03 - README SVG now contains only the transparent face artwork with
+dark contrast strokes; no build or device changes were required.
+
+
+## NBC-333: install Nyetbox through the homelab Android config
+
+The shared declaroid configuration for rooted homelab devices should install the signed Nyetbox
+release on the Mi Pad 4 and Pixel 5, without adding it to the Zenfone configuration.
+
+- [x] Add a shared `android/imports/homelab.yaml` entry for the Nyetbox release package.
+- [x] Import the shared homelab app set from the Mi Pad 4 and Pixel 5 configs.
+- [x] Narrow GitHub asset selection to the release APK and validate both resolved configs.
+
+Status: **done**, 2026-08-03 - declaroid read-only diff resolved Nyetbox as missing on the Mi Pad
+4 and Pixel 5 and excluded it from the Zenfone config; no device state was changed.
+
+
+## NBC-334: consolidate sync indicators on the Sync settings page
+
+The Settings → Sync screen currently exposes two separate sync indicators, one near the top that
+is not always visible and another at the bottom. It should present one clear, consistently placed
+status/control instead.
+
+- [ ] Remove the duplicate sync indicator.
+- [ ] Keep the remaining status and action visible and unambiguous while sync is active.
+
+Status: not started
+
+
 ## NBC-332: animate the active sync control
 
 The `Syncing…` control on Settings → Sync should provide a subtle animated progress indication
