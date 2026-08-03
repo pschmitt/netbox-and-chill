@@ -26,6 +26,8 @@ import dev.pschmitt.netboxandchill.data.repository.JournalEntryRepository
 import dev.pschmitt.netboxandchill.data.repository.PendingEditRepository
 import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
+import dev.pschmitt.netboxandchill.data.repository.TopologyRepository
+import dev.pschmitt.netboxandchill.data.repository.isTopologyPluginModel
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.netboxandchill.ui.generic.FieldRow
 import dev.pschmitt.netboxandchill.ui.generic.JournalEntryUi
@@ -59,6 +61,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.data.topology.TopologyGraph
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
@@ -67,12 +70,45 @@ private const val DEVICE_OBJECT_TYPE = "dcim.device"
 const val JOURNAL_TAB_ENDPOINT_PATH = "__journal__"
 const val INTERFACES_TAB_ENDPOINT_PATH = NetBoxRef.INTERFACES_ENDPOINT_PATH
 const val DEVICE_TYPES_ENDPOINT_PATH = NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH
+const val CONNECTED_DEVICES_TAB_ENDPOINT_PATH = "__connected_devices__"
 private const val IP_ADDRESSES_ENDPOINT_PATH = NetBoxRef.IP_ADDRESSES_ENDPOINT_PATH
 private val ipAddressJson = Json { ignoreUnknownKeys = true }
 
 data class DeviceRelatedTab(val label: String, val endpointPath: String)
 
 data class InterfaceIpAddress(val id: Int, val address: String)
+
+internal fun connectedDevicesFor(
+    current: DeviceEntity?,
+    devices: List<DeviceEntity>,
+    graph: TopologyGraph?,
+): List<DeviceEntity> {
+    if (current == null || graph == null) return emptyList()
+    val nodeNames =
+        graph.nodes.associate { node ->
+            node.id to node.label.lineSequence().firstOrNull()?.trim().orEmpty()
+        }
+    val currentNodeIds =
+        nodeNames
+            .filterValues { it.equals(current.name, ignoreCase = true) }
+            .keys
+    if (currentNodeIds.isEmpty()) return emptyList()
+    val neighborNodeIds =
+        graph.edges.flatMap { edge ->
+            when {
+                edge.source in currentNodeIds -> listOf(edge.target)
+                edge.target in currentNodeIds -> listOf(edge.source)
+                else -> emptyList()
+            }
+        }.toSet()
+    val neighborNames = neighborNodeIds.mapNotNull(nodeNames::get).map(String::lowercase).toSet()
+    return devices
+        .asSequence()
+        .filter { it.id != current.id && it.name.lowercase() in neighborNames }
+        .distinctBy { it.id }
+        .sortedBy { it.name.lowercase() }
+        .toList()
+}
 
 internal data class ParsedInterfaceIpAddress(
     val interfaceId: Int,
@@ -111,6 +147,7 @@ internal fun parseManufacturerId(rawJson: String): Int? {
 val DEVICE_RELATED_TABS =
     listOf(
         DeviceRelatedTab("Journal", JOURNAL_TAB_ENDPOINT_PATH),
+        DeviceRelatedTab("Connected devices", CONNECTED_DEVICES_TAB_ENDPOINT_PATH),
         DeviceRelatedTab("Interfaces", INTERFACES_TAB_ENDPOINT_PATH),
         DeviceRelatedTab("Front ports", "api/dcim/front-ports/"),
         DeviceRelatedTab("Rear ports", "api/dcim/rear-ports/"),
@@ -139,6 +176,7 @@ constructor(
     private val recentVisitRepository: RecentVisitRepository,
     private val settingsRepository: SettingsRepository,
     private val directoryRepository: DirectoryRepository,
+    private val topologyRepository: TopologyRepository,
 ) : ViewModel() {
 
     private val deviceId: Int = savedStateHandle.toRoute<Route.DeviceDetail>().deviceId
@@ -157,6 +195,11 @@ constructor(
     val documentPluginAvailable: StateFlow<Boolean> =
         directoryRepository
             .observeCapability(::isDocumentsPluginModel)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val topologyPluginAvailable: StateFlow<Boolean> =
+        directoryRepository
+            .observeCapability(::isTopologyPluginModel)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val objectTypeAccent: StateFlow<dev.pschmitt.netboxandchill.data.repository.ThemeAccent?> =
@@ -262,6 +305,19 @@ constructor(
             .observeChangelog(NetBoxRef.DEVICES_ENDPOINT_PATH, deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val cachedTopologyGraph = MutableStateFlow<TopologyGraph?>(null)
+
+    /** Resolve graph neighbors against the typed cache so this tab never needs a live lookup. */
+    val connectedDevices: StateFlow<List<DeviceEntity>> =
+        combine(device, deviceRepository.observeDevices(""), cachedTopologyGraph) {
+                current,
+                devices,
+                graph,
+            ->
+            connectedDevicesFor(current, devices, graph)
+        }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _journalMutationState = MutableStateFlow(JournalMutationUiState())
     val journalMutationState: StateFlow<JournalMutationUiState> =
         _journalMutationState.asStateFlow()
@@ -269,7 +325,10 @@ constructor(
     val relatedObjects: Map<String, StateFlow<List<NetBoxObjectEntity>>> =
         DEVICE_RELATED_TABS.associate { tab ->
             tab.endpointPath to
-                if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+                if (
+                    tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH ||
+                        tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH
+                ) {
                         flowOf(emptyList())
                     } else {
                         genericObjectRepository.observeObjects(
@@ -304,6 +363,11 @@ constructor(
             device.filterNotNull().take(1).collect { recentVisitRepository.record(it) }
         }
         viewModelScope.launch { refreshJournal() }
+        viewModelScope.launch {
+            topologyRepository.cached().onSuccess { snapshot ->
+                cachedTopologyGraph.value = snapshot?.graph
+            }
+        }
     }
 
     fun refresh(showConfirmation: Boolean = false) {

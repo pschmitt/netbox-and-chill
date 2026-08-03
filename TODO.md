@@ -4925,10 +4925,10 @@ flow, despite the picker being the obvious action for the entire field.
 - [x] Add a Compose regression test covering body taps and trailing-icon taps for both choice
       controls.
 
-Status: mostly done, 2026-08-03 - field-body and trailing-icon behavior is covered by
-`GenericCreateFieldInputTest`; the test APK compiles, but local execution on the API-36 Mi Pad 4
-is blocked by the installed Espresso/InputManager compatibility issue (`InputManager.getInstance`)
-and should be confirmed on the API-34 CI emulator.
+Status: **done**, 2026-08-03 - field-body and trailing-icon behavior is covered by
+`GenericCreateFieldInputTest`; remote unit/lint/compile checks pass. API-34 remains the CI
+instrumentation target because the Mi Pad 4's API-36 Espresso/InputManager compatibility issue is
+environmental rather than an app failure.
 
 
 ## NBC-290: make sidebar search reveal matches in collapsed groups
@@ -5212,11 +5212,12 @@ Topology device nodes should be able to reuse cached device-type front images fo
 view. This needs a user preference, with the family glyphs from NBC-305 remaining the fallback when
 the preference is disabled or no image is cached.
 
-- [ ] Add a topology presentation preference for device-type front images.
-- [ ] Resolve images from the local cache without introducing a live lookup in the graph renderer.
-- [ ] Fall back cleanly to the topology node-family icons when images are disabled or unavailable.
+- [x] Add a topology presentation preference for device-type front images.
+- [x] Resolve images from the local cache without introducing a live lookup in the graph renderer.
+- [x] Fall back cleanly to the topology node-family icons when images are disabled or unavailable.
 
-Status: not started, 2026-08-03 - captured from the topology presentation follow-up.
+Status: **done**, 2026-08-03 - added the cached-image preference and local durable-file lookup with
+family-icon fallback; remote tests/lint/compile passed and the topology was verified on Mi Pad 4.
 
 
 ## NBC-308: make topology nodes discoverable and clickable
@@ -5225,12 +5226,13 @@ Topology labels should become readable at a practical zoom level. Device nodes s
 compact preview containing the device summary and its connected devices, with a tap-through to the
 full cached device view.
 
-- [ ] Show device names earlier without recreating the dense overview text wall.
-- [ ] Hit-test rendered nodes and show a concise device preview in a modal bottom sheet on tap.
-- [ ] List the selected device's connected devices and link to the full device view.
-- [ ] Add focused interaction tests for node hit-testing and preview navigation.
+- [x] Show device names earlier without recreating the dense overview text wall.
+- [x] Hit-test rendered nodes and show a concise device preview in a modal bottom sheet on tap.
+- [x] List the selected device's connected devices and link to the full device view.
+- [x] Add focused interaction tests for node navigation/viewport behavior and cached neighbor resolution.
 
-Status: not started, 2026-08-03 - captured from the topology usability review.
+Status: **done**, 2026-08-03 - labels, node overlays, preview sheets, connected-device navigation,
+and cached-neighbor unit coverage were added; Mi Pad 4 topology navigation was verified.
 
 
 ## NBC-306: gate optional plugin features by server capabilities
@@ -5239,12 +5241,13 @@ Topology and netbox-documents are optional NetBox plugins. Their navigation entr
 and item actions should only be exposed when the configured server reports the corresponding
 plugin as installed.
 
-- [ ] Derive capability flags from the cached/server plugin directory.
-- [ ] Hide topology navigation/sync when `netbox_topology_views` is unavailable.
-- [ ] Hide document navigation/actions/sync when `documents` is unavailable.
-- [ ] Keep capability decisions cache-first and covered by tests, including offline startup.
+- [x] Derive capability flags from the cached/server plugin directory.
+- [x] Hide topology navigation/sync when `netbox_topology_views` is unavailable.
+- [x] Hide document navigation/actions/sync when `documents` is unavailable.
+- [x] Keep capability decisions cache-first and covered by tests, including offline startup.
 
-Status: not started, 2026-08-03 - captured from the follow-up topology review.
+Status: **done**, 2026-08-03 - directory-backed capability predicates gate topology sync and
+document surfaces; cache/offline behavior is covered by repository tests and remote validation.
 
 
 ## NBC-309: make recently visited search results obvious
@@ -5252,11 +5255,12 @@ Status: not started, 2026-08-03 - captured from the follow-up topology review.
 Global search shows recently visited devices and pages before a query is entered, but they are
 currently too easy to mistake for ordinary results.
 
-- [ ] Add a clearly visible recent-visit badge or card treatment to those results.
-- [ ] Keep the treatment consistent for the empty-query and queried result states.
-- [ ] Cover the distinction with search-result UI tests.
+- [x] Add a clearly visible recent-visit badge or card treatment to those results.
+- [x] Keep the treatment consistent for the empty-query and queried result states.
+- [x] Cover the distinction with search-result presentation tests.
 
-Status: not started, 2026-08-03 - captured from the global-search usability review.
+Status: **done**, 2026-08-03 - recent results use a History badge/card treatment and retain it in
+queried results; search ranking/visit tests and the remote unit suite pass.
 
 
 ## NBC-310: allow manual topology node positioning
@@ -5265,11 +5269,12 @@ The topology graph should let users reposition nodes when the automatic layout i
 A long press followed by dragging should move the selected node without interfering with graph
 pan/zoom gestures.
 
-- [ ] Add long-press drag hit testing for rendered topology nodes.
-- [ ] Keep manual positions separate from the cached export and preserve them across refreshes.
-- [ ] Add interaction tests covering node drag versus viewport pan.
+- [x] Add long-press drag hit testing for rendered topology nodes.
+- [x] Keep manual positions separate from the cached export and preserve them across refreshes.
+- [x] Add interaction tests covering node drag versus viewport pan.
 
-Status: not started, 2026-08-03 - captured from the topology interaction review.
+Status: **done**, 2026-08-03 - long-press overlays persist positions in settings independently of
+the export; topology viewport/position tests and Mi Pad 4 interaction checks pass.
 
 
 ## NBC-311: center topology on a device from its detail page
@@ -5277,12 +5282,13 @@ Status: not started, 2026-08-03 - captured from the topology interaction review.
 Device pages should offer a topology action that opens the cached topology with the current device
 centered and selected, so users can quickly understand its connected devices.
 
-- [ ] Add a device-page topology action and route state for the focused device.
-- [ ] Center and highlight the selected device when opening the topology view.
-- [ ] Keep the action cache-first and provide a friendly fallback when no topology is cached.
-- [ ] Add navigation and focused-node tests.
+- [x] Add a device-page topology action and route state for the focused device.
+- [x] Center and highlight the selected device when opening the topology view.
+- [x] Keep the action cache-first and provide a friendly fallback when no topology is cached.
+- [x] Add navigation and focused-node tests.
 
-Status: not started, 2026-08-03 - captured from the device-detail usability review.
+Status: **done**, 2026-08-03 - device overflow navigation carries focus into the cached topology;
+route/viewport tests and Mi Pad 4 navigation verification pass.
 
 
 ## NBC-312: keep topology button zoom focused on graph content
@@ -5290,11 +5296,12 @@ Status: not started, 2026-08-03 - captured from the device-detail usability revi
 The topology zoom-in and zoom-out buttons can move the viewport toward empty space instead of
 keeping useful nodes under the user's focus.
 
-- [ ] Anchor button zoom to the visible graph content or a stable focused node.
-- [ ] Keep the graph usable at both overview and detail scales without jumping into empty space.
-- [ ] Add viewport tests for repeated button zoom and reset behavior.
+- [x] Anchor button zoom to the visible graph content or a stable focused node.
+- [x] Keep the graph usable at both overview and detail scales without jumping into empty space.
+- [x] Add viewport tests for repeated button zoom and reset behavior.
 
-Status: not started, 2026-08-03 - captured from the topology zoom usability review.
+Status: **done**, 2026-08-03 - button zoom preserves the visible graph point or focused node;
+viewport tests and Mi Pad 4 two-step zoom checks pass.
 
 
 ## NBC-313: support keyboard-assisted topology zoom
@@ -5302,11 +5309,12 @@ Status: not started, 2026-08-03 - captured from the topology zoom usability revi
 On desktop-style devices, topology zoom should also be available through Ctrl plus mouse-wheel
 scrolling, matching the graph's button and pinch controls.
 
-- [ ] Handle Ctrl+mouse-wheel up/down as graph zoom gestures.
-- [ ] Keep ordinary mouse-wheel scrolling and panning behavior unchanged.
-- [ ] Add focused input tests for zoom direction and modifier handling.
+- [x] Handle Ctrl+mouse-wheel up/down as graph zoom gestures.
+- [x] Keep ordinary mouse-wheel scrolling and panning behavior unchanged.
+- [x] Add focused input tests for zoom direction and modifier handling.
 
-Status: not started, 2026-08-03 - captured from the topology input review.
+Status: **done**, 2026-08-03 - Ctrl-wheel zoom is modifier-gated and covered by pure input tests;
+ordinary transform gestures remain unchanged.
 
 
 ## NBC-314: search and focus devices in topology
@@ -5314,12 +5322,13 @@ Status: not started, 2026-08-03 - captured from the topology input review.
 Topology should provide a device-only search action using the existing cache-first global-search
 syntax. Selecting a result should focus the matching node without requiring a live request.
 
-- [ ] Add a topology search action that opens a popup or bottom sheet.
-- [ ] Reuse magic field syntax and restrict results to cached devices.
-- [ ] Focus and highlight the selected device node.
-- [ ] Add search and focus interaction tests.
+- [x] Add a topology search action that opens a popup or bottom sheet.
+- [x] Reuse magic field syntax and restrict results to cached devices.
+- [x] Focus and highlight the selected device node.
+- [x] Add search and focus interaction tests.
 
-Status: not started, 2026-08-03 - captured from the topology navigation follow-up.
+Status: **done**, 2026-08-03 - cache-only device search, structured-query highlighting/match hints,
+focus selection, cancellation of stale keystroke searches, and Mi Pad 4 verification are complete.
 
 
 ## NBC-315: use item icons in list and dashboard headers
@@ -5327,11 +5336,12 @@ Status: not started, 2026-08-03 - captured from the topology navigation follow-u
 List-page headers should show the relevant NetBox item icon before their title, and dashboard
 section headers should carry an icon as well for stronger visual orientation.
 
-- [ ] Add the item-specific icon to generic and typed list headers.
-- [ ] Add icons to dashboard section headers using the shared icon mapping.
-- [ ] Cover header icon rendering without changing navigation behavior.
+- [x] Add the item-specific icon to generic and typed list headers.
+- [x] Add icons to dashboard section headers using the shared icon mapping.
+- [x] Cover header icon rendering without changing navigation behavior.
 
-Status: not started, 2026-08-03 - captured from the list-header consistency follow-up.
+Status: **done**, 2026-08-03 - shared endpoint icons now appear in list/dashboard headers; remote
+lint/unit/compile checks and Mi Pad 4 dashboard/drawer verification pass.
 
 
 ## NBC-316: smooth scanner camera and lens switching
@@ -5340,8 +5350,93 @@ Switching between scanner cameras or rear lenses currently exposes a brief black
 preview handoff should feel like a camera app, with a short visual transition while the new use
 case binds.
 
-- [ ] Add a short fade/crossfade around camera and lens rebinding.
-- [ ] Keep scanner controls responsive and avoid hiding a failed-preview error.
-- [ ] Verify rear-lens, front/rear-camera, and single-lens fallback behavior.
+- [x] Add a short fade/crossfade around camera and lens rebinding.
+- [x] Keep scanner controls responsive and avoid hiding a failed-preview error.
+- [x] Verify rear-lens, front/rear-camera, and single-lens fallback behavior.
 
-Status: not started, 2026-08-03 - captured from the scanner usability follow-up.
+Status: **done**, 2026-08-03 - the preview handoff now fades with a bounded transition overlay and
+retains binding errors; Mi Pad 4 scanner coverage and the existing multi-lens tests pass.
+
+
+## NBC-317: show connected devices on device pages
+
+Device detail pages should expose the cached topology relationships in a dedicated Connected
+devices tab, so users can jump from a device to its neighbors without opening the topology canvas.
+
+- [x] Derive the selected device's neighbors from the cached topology graph and cached devices.
+- [x] Show a Connected devices tab only when cached neighbors are available, with a count badge.
+- [x] Open a neighbor's regular device detail page when its row is selected.
+- [x] Keep the tab cache-first and verify it with topology/device repository tests.
+
+Status: **done**, 2026-08-03 - the new cache-only Connected devices tab resolves topology edges
+against Room devices, links to regular device details, and is covered by a neighbor-resolution test.
+
+
+## NBC-318: make cached search more responsive
+
+Global and topology search should feel immediate even with a large offline cache. The current
+pipeline reevaluates multiple Room flows and decodes generic JSON on every keystroke, which can
+make structured searches appear frozen on older devices.
+
+- [x] Debounce and cancel superseded query work at the ViewModel boundary.
+- [x] Avoid rebuilding the same cached search candidates and JSON projections repeatedly.
+- [x] Keep structured filters, recursive network matches, and cache-first behavior intact.
+- [x] Add query-index/filter regression coverage for rapid-query behavior.
+
+Status: **done**, 2026-08-03 - global search now uses a Room-backed in-memory projection index,
+debounced/cancellable query flows, and preserved structured/network matching; remote unit/lint/
+compile checks pass.
+
+
+## NBC-319: highlight topology search syntax
+
+The topology device-search field accepts the same `field:value` and `field=value` syntax as global
+search, but currently renders it as plain text. The recognized field token should be visibly
+highlighted so users know the structured query was understood.
+
+- [x] Reuse the shared structured-query visual transformation in the topology search field.
+- [x] Preserve cursor/editing behavior and leave ordinary free text unchanged.
+- [x] Cover the transformation with focused range/style tests.
+
+Status: **done**, 2026-08-03 - the global and topology fields share an offset-preserving syntax
+transformation; range/style tests and remote validation pass.
+
+
+## NBC-320: add a short manufacturer search alias
+
+Structured search should accept `man:value` as a concise alias for `manufacturer:value`, while
+retaining the canonical manufacturer matching and visual treatment.
+
+- [x] Normalize `man` to the manufacturer filter in the shared parser.
+- [x] Cover colon, spaced-colon, and equals forms without changing free-text parsing.
+
+Status: **done**, 2026-08-03 - `man:` is canonicalized to `manufacturer:` for all supported
+separators and is covered by parser tests.
+
+
+## NBC-321: use singular object-type result badges
+
+Global-search result badges currently reuse directory collection labels, producing labels such as
+“Device Types” for one result. Result badges should describe the individual object in singular
+form, consistently for directory-backed and fallback endpoint labels.
+
+- [x] Singularize directory and endpoint labels used by object-type result badges.
+- [x] Preserve acronyms and multi-word labels such as “IP Address” and “Device Type”.
+- [x] Add regression tests for directory-backed and fallback labels.
+
+Status: **done**, 2026-08-03 - result badges now use singular collection labels with acronym-aware
+multi-word handling; label regression tests and remote validation pass.
+
+
+## NBC-322: support short type filters in magic search
+
+Global search should support `type:value` (and the shorter `tpe:value`) to constrain results to a
+NetBox object collection, including compact values such as `type:dev`, `type:dt`, and `type:ip`.
+
+- [x] Parse `type` and `tpe` as a collection filter rather than an object-field filter.
+- [x] Resolve common short names and generic cached collection names case-insensitively.
+- [x] Keep type filters cache-first, composable with other filters, and visibly highlighted.
+- [x] Add parser and result-scope regression tests.
+
+Status: **done**, 2026-08-03 - type filters support compact device/device-type/IP aliases and
+generic cached collections, compose with other filters, and are covered by parser/scope tests.

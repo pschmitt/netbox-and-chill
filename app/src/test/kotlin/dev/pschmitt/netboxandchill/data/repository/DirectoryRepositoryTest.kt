@@ -52,6 +52,46 @@ class DirectoryRepositoryTest {
         assertFalse(result.isSuccess)
         assertEquals(listOf("api/dcim/racks/"), dao.models.map(NetBoxModelEntity::endpointPath))
     }
+
+    @Test
+    fun `optional plugin capability predicates are specific and cache friendly`() {
+        assertEquals(
+            true,
+            isTopologyPluginModel(
+                NetBoxModelEntity(
+                    "plugins/netbox_topology_views",
+                    "NetBox Topology Views",
+                    "topology",
+                    "Topology",
+                    "api/plugins/netbox_topology_views/topology/",
+                )
+            ),
+        )
+        assertEquals(
+            true,
+            isDocumentsPluginModel(
+                NetBoxModelEntity(
+                    "plugins/netbox_documents",
+                    "NetBox Documents",
+                    "documents",
+                    "Documents",
+                    "api/plugins/netbox_documents/documents/",
+                )
+            ),
+        )
+        assertEquals(
+            false,
+            isDocumentsPluginModel(
+                NetBoxModelEntity(
+                    "extras",
+                    "Extras",
+                    "documents",
+                    "Documents",
+                    "api/extras/documents/",
+                )
+            ),
+        )
+    }
 }
 
 private open class FakeDirectoryApi : GenericNetBoxApi {

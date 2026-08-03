@@ -87,6 +87,7 @@ import dev.pschmitt.netboxandchill.data.topology.TopologyGraph
 import dev.pschmitt.netboxandchill.data.topology.TopologyNode
 import dev.pschmitt.netboxandchill.data.topology.TopologyPosition
 import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
+import dev.pschmitt.netboxandchill.ui.common.SearchQueryVisualTransformation
 import kotlin.math.roundToInt
 import kotlin.math.max
 import kotlin.math.min
@@ -591,6 +592,8 @@ private fun TopologyDeviceSearchSheet(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                visualTransformation =
+                    SearchQueryVisualTransformation(MaterialTheme.colorScheme.primary),
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 placeholder = { Text("Search devices") },
             )
@@ -620,7 +623,19 @@ private fun TopologyDeviceSearchSheet(
                                 }
                             },
                             headlineContent = { Text(info.displayName) },
-                            supportingContent = { info.deviceTypeModel?.let { Text(it) } },
+                            supportingContent = {
+                                Column {
+                                    info.deviceTypeModel?.let { Text(it) }
+                                    info.matchHint?.let {
+                                        Text(
+                                            "Matched $it",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            maxLines = 1,
+                                        )
+                                    }
+                                }
+                            },
                             modifier = Modifier.clickable { onSelect(info) },
                         )
                     }

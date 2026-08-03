@@ -7,7 +7,7 @@ class GlobalSearchLabelsTest {
     @Test
     fun usesDirectoryLabelWhenAvailable() {
         assertEquals(
-            "Device Types",
+            "Device Type",
             searchObjectTypeLabel("Device Types", "api/dcim/device-types/"),
         )
     }
@@ -15,8 +15,13 @@ class GlobalSearchLabelsTest {
     @Test
     fun humanizesEndpointModelWhenDirectoryHasNotLoaded() {
         assertEquals(
-            "IP Addresses",
+            "IP Address",
             searchObjectTypeLabel(null, "api/ipam/ip-addresses/"),
         )
+    }
+
+    @Test
+    fun preservesAcronymsWhenSingularizingLabels() {
+        assertEquals("MAC Address", searchObjectTypeLabel("MAC Addresses", "api/ipam/ip-addresses/"))
     }
 }

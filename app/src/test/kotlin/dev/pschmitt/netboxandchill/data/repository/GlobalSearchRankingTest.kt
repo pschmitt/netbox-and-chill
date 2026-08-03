@@ -95,6 +95,30 @@ class GlobalSearchRankingTest {
     }
 
     @Test
+    fun manufacturerAliasUsesCanonicalFilterMatching() {
+        listOf("man:Shelly", "man: Shelly", "man=Shelly").forEach { query ->
+            val parsed = parseGlobalSearchQuery(query)
+            assertEquals("manufacturer", parsed.filters.single().key)
+            assertEquals("Shelly", parsed.filters.single().value)
+        }
+    }
+
+    @Test
+    fun typeFiltersResolveShortCollectionNames() {
+        assertTrue(searchTypeMatches("api/dcim/devices/", "dev"))
+        assertTrue(searchTypeMatches("api/dcim/device-types/", "dt"))
+        assertTrue(searchTypeMatches("api/ipam/ip-addresses/", "ip"))
+        assertTrue(searchTypeMatches("api/dcim/racks/", "rack"))
+        assertTrue(!searchTypeMatches("api/dcim/devices/", "ip"))
+    }
+
+    @Test
+    fun typeAliasParsesAsCanonicalCollectionFilter() {
+        assertEquals("type", parseGlobalSearchQuery("tpe:dt").filters.single().key)
+        assertEquals("dt", parseGlobalSearchQuery("type:dt").filters.single().value)
+    }
+
+    @Test
     fun interfaceAndAssignedIpReferencesResolveToTheirDevice() {
         val interfaceObject =
             JsonObject(

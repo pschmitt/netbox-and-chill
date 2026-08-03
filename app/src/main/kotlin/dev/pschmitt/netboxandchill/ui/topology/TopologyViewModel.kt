@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 data class TopologyUiState(
@@ -48,6 +49,7 @@ data class TopologyNodeInfo(
     val statusLabel: String?,
     val frontImageUrl: String?,
     val localImageFile: java.io.File?,
+    val matchHint: String? = null,
     val searchValues: Map<String, String> = emptyMap(),
 )
 
@@ -69,6 +71,7 @@ constructor(
     private var deviceTypes: List<DeviceTypeEntity> = emptyList()
     private var requestedFocusDeviceId: Int? = null
     private var deviceSearchQuery = ""
+    private var deviceSearchJob: Job? = null
     val state: StateFlow<TopologyUiState> =
         combine(_contentState, _refreshState) { content, refresh ->
                 content.copy(
@@ -140,7 +143,8 @@ constructor(
 
     fun searchDevices(query: String) {
         deviceSearchQuery = query
-        viewModelScope.launch {
+        deviceSearchJob?.cancel()
+        deviceSearchJob = viewModelScope.launch {
             val hits =
                 if (query.isBlank()) {
                     emptyList()
@@ -154,7 +158,14 @@ constructor(
                 it.copy(
                     deviceSearchResults =
                         if (query.isBlank()) info.values.filter { node -> node.deviceId != null }
-                        else hits.mapNotNull { hit -> info.values.firstOrNull { it.deviceId == hit.id } },
+                        else
+                            hits
+                                .mapNotNull { hit ->
+                                    info.values
+                                        .firstOrNull { it.deviceId == hit.id }
+                                        ?.copy(matchHint = hit.matchHint)
+                                }
+                                .distinctBy { it.nodeId },
                 )
             }
         }

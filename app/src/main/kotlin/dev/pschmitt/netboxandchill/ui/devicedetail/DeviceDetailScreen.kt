@@ -79,6 +79,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.netboxandchill.data.db.DeviceTypeEntity
+import dev.pschmitt.netboxandchill.data.db.DeviceEntity
 import dev.pschmitt.netboxandchill.data.db.ImageAttachmentEntity
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
@@ -151,22 +152,30 @@ fun DeviceDetailScreen(
     val interfaceIpAddresses by viewModel.interfaceIpAddresses.collectAsStateWithLifecycle()
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
+    val connectedDevices by viewModel.connectedDevices.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
     val documentPluginAvailable by
         viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
+    val topologyPluginAvailable by
+        viewModel.topologyPluginAvailable.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val customFieldRows by viewModel.customFieldRows.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val fileToOpen by viewModel.fileToOpen.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
-    val relatedCounts = DEVICE_RELATED_TABS.map { tab ->
-        if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
-            journalEntries.size
-        } else {
-            viewModel.relatedObjects[tab.endpointPath]?.collectAsStateWithLifecycle()?.value?.size
-                ?: 0
+    val relatedCounts =
+        DEVICE_RELATED_TABS.map { tab ->
+            when (tab.endpointPath) {
+                JOURNAL_TAB_ENDPOINT_PATH -> journalEntries.size
+                CONNECTED_DEVICES_TAB_ENDPOINT_PATH ->
+                    if (topologyPluginAvailable) connectedDevices.size else 0
+                else ->
+                    viewModel.relatedObjects[tab.endpointPath]
+                        ?.collectAsStateWithLifecycle()
+                        ?.value
+                        ?.size ?: 0
+            }
         }
-    }
     val visibleRelatedTabs =
         DEVICE_RELATED_TABS.filterIndexed { index, _ -> relatedCounts[index] > 0 }
     val changelogTabIndex = visibleRelatedTabs.size + 1
@@ -337,17 +346,19 @@ fun DeviceDetailScreen(
                                     actionMenuExpanded = false
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text("Open topology") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Hub, contentDescription = null)
-                                },
-                                enabled = device != null,
-                                onClick = {
-                                    onOpenTopology()
-                                    actionMenuExpanded = false
-                                },
-                            )
+                            if (topologyPluginAvailable) {
+                                DropdownMenuItem(
+                                    text = { Text("Open topology") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Hub, contentDescription = null)
+                                    },
+                                    enabled = device != null,
+                                    onClick = {
+                                        onOpenTopology()
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Edit") },
                                 leadingIcon = {
@@ -769,6 +780,17 @@ fun DeviceDetailScreen(
                                         showJournalEditor = true
                                     },
                                 )
+                            } else if (tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH) {
+                                DeviceConnectedDevices(
+                                    devices = connectedDevices,
+                                    onDeviceClick = { deviceId ->
+                                        onReferenceClick(
+                                            NetBoxRef.DEVICES_ENDPOINT_PATH,
+                                            deviceId,
+                                            current.name,
+                                        )
+                                    },
+                                )
                             } else {
                                 DeviceRelatedObjects(
                                     tab = tab,
@@ -988,7 +1010,43 @@ private fun deviceEditFieldKey(label: String): String =
 @Composable
 private fun tabIcon(tab: DeviceRelatedTab) =
     if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) Icons.Default.History
+    else if (tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH) Icons.Default.Hub
     else AppIcons.forEndpointPath(tab.endpointPath)
+
+@Composable
+private fun DeviceConnectedDevices(
+    devices: List<DeviceEntity>,
+    onDeviceClick: (Int) -> Unit,
+) {
+    if (devices.isEmpty()) {
+        Text(
+            "No connected devices in the cached topology.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
+        return
+    }
+    devices.forEach { connected ->
+        ListItem(
+            leadingContent = {
+                Icon(
+                    AppIcons.forEndpointPath(NetBoxRef.DEVICES_ENDPOINT_PATH),
+                    contentDescription = null,
+                )
+            },
+            headlineContent = { Text(connected.name) },
+            supportingContent = {
+                connected.deviceTypeModel?.let { model ->
+                    Text(
+                        listOfNotNull(model, connected.statusLabel).joinToString(" · "),
+                        maxLines = 1,
+                    )
+                }
+            },
+            modifier = Modifier.clickable { onDeviceClick(connected.id) },
+        )
+    }
+}
 
 @Composable
 private fun DeviceRelatedObjects(
