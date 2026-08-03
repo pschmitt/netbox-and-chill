@@ -298,9 +298,10 @@ class PendingEditRepositoryTest {
     private fun patch(name: String): JsonObject = JsonObject(mapOf("name" to JsonPrimitive(name)))
 }
 
-private class FakeApi(
+internal class FakeApi(
     var server: JsonObject,
     private val failGets: Boolean = false,
+    private val failures: Map<FakeApiOperation, Throwable> = emptyMap(),
 ) : GenericNetBoxApi {
     var lastPatch: JsonObject? = null
     var lastCreate: JsonObject? = null
@@ -317,6 +318,7 @@ private class FakeApi(
     ): PagedResponseDto<JsonObject> = error("unused")
 
     override suspend fun getObject(url: String): JsonObject {
+        failures[FakeApiOperation.Get]?.let { throw it }
         if (failGets) throw IOException("offline")
         return server
     }
@@ -324,6 +326,7 @@ private class FakeApi(
     override suspend fun getObjectOptions(url: String): JsonObject = error("unused")
 
     override suspend fun patchObject(url: String, body: JsonObject): JsonObject {
+        failures[FakeApiOperation.Patch]?.let { throw it }
         lastPatch = body
         server =
             JsonObject(
@@ -336,6 +339,7 @@ private class FakeApi(
     }
 
     override suspend fun createObject(url: String, body: JsonObject): JsonObject {
+        failures[FakeApiOperation.Create]?.let { throw it }
         lastCreate = body
         return JsonObject(
             buildMap {
@@ -348,13 +352,14 @@ private class FakeApi(
     }
 
     override suspend fun deleteObject(url: String) {
+        failures[FakeApiOperation.Delete]?.let { throw it }
         lastDelete = url
     }
 
     override suspend fun getJournalEntryOptions(): JsonObject = error("unused")
 }
 
-private class FakePendingEditDao : PendingEditDao {
+internal class FakePendingEditDao : PendingEditDao {
     private val edits = mutableMapOf<Pair<String, Int>, PendingEditEntity>()
 
     override fun observeConflicts(): Flow<List<PendingEditEntity>> =
@@ -418,7 +423,7 @@ private class FakePendingEditDao : PendingEditDao {
     }
 }
 
-private class FakeNetBoxObjectDao : NetBoxObjectDao {
+internal class FakeNetBoxObjectDao : NetBoxObjectDao {
     var last: NetBoxObjectEntity? = null
 
     override fun observeAll(endpointPath: String): Flow<List<NetBoxObjectEntity>> =

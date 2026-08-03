@@ -4922,10 +4922,13 @@ flow, despite the picker being the obvious action for the entire field.
 
 - [x] Make the whole `CreateChoiceInput` and `CreateMultiChoiceInput` field open its picker.
 - [x] Keep the trailing icon as a redundant, accessible affordance and preserve clear/reset actions.
-- [ ] Add a Compose regression test covering a body tap and the icon tap.
+- [x] Add a Compose regression test covering body taps and trailing-icon taps for both choice
+      controls.
 
-Status: mostly done, 2026-08-03 - field-body and trailing-icon behavior is implemented and unit
-tests remain green; an instrumented Compose regression test is still open.
+Status: mostly done, 2026-08-03 - field-body and trailing-icon behavior is covered by
+`GenericCreateFieldInputTest`; the test APK compiles, but local execution on the API-36 Mi Pad 4
+is blocked by the installed Espresso/InputManager compatibility issue (`InputManager.getInstance`)
+and should be confirmed on the API-34 CI emulator.
 
 
 ## NBC-290: make sidebar search reveal matches in collapsed groups
@@ -5030,11 +5033,12 @@ path.
 
 - [x] Introduce a shared operation/error classification and a single retryable-result policy.
 - [x] Model create/edit/delete reconciliation as explicit state transitions with one summary path.
-- [ ] Add parameterized tests for connectivity loss, 4xx, 5xx, cancellation, conflict, and 404
+- [x] Add parameterized tests for connectivity loss, 4xx, 5xx, cancellation, conflict, and 404
       behavior for every mutation type.
 
-Status: mostly done, 2026-08-03 - `syncPending()` now uses one accumulator/result path for create,
-edit, and delete reconciliation; the broader parameterized failure matrix remains open.
+Status: **done**, 2026-08-03 - `syncPending()` now uses one accumulator/result path for create,
+edit, and delete reconciliation; `PendingEditReconciliationMatrixTest` covers the failure matrix
+and the remote unit suite passes.
 
 
 ## NBC-297: establish typed boundaries around generic NetBox JSON
@@ -5069,8 +5073,10 @@ regressions.
 - [ ] Decide which short smoke journey should run on pull requests while keeping the full suite
       opt-in if runtime is too high.
 
-Status: not started, 2026-08-03 - static review of `android-e2e.yaml` and test inventory; only
-`NetBoxE2eTest.kt` uses `createAndroidComposeRule`.
+Status: not started, 2026-08-03 - static review of `android-e2e.yaml` and test inventory; the
+existing disposable-NetBox journey and the new linked-field Compose test are the only
+instrumented UI coverage. Local API-36 execution also exposed an Espresso/InputManager
+compatibility gap that should be resolved or documented before adding more device tests.
 
 
 ## NBC-299: pay down the Android lint baseline
@@ -5098,8 +5104,10 @@ deprecated mirrored icon and transform APIs.
 
 - [x] Fix the six current lint warnings and keep the baseline from absorbing them.
 - [x] Migrate the deprecated Hilt Compose import to `androidx.hilt.lifecycle.viewmodel.compose`.
-- [ ] Run the build with full deprecation warnings and remove or document project-owned Gradle
+- [x] Run the build with full deprecation warnings and remove or document project-owned Gradle
       deprecations.
 
-Status: mostly done, 2026-08-03 - `just test`, `just lint`, and remote `:app:lintDebug` pass with
-no new lint issues; the remaining Gradle deprecation report is not caused by a source warning.
+Status: **done**, 2026-08-03 - `just test`, `just lint`, remote `:app:lintDebug`, and a remote
+`assembleDebug --warning-mode=all` pass. The only remaining warning is Gradle's project-dependency
+notation warning emitted by the Android/tooling build environment; no project-owned occurrence is
+present in the repository.

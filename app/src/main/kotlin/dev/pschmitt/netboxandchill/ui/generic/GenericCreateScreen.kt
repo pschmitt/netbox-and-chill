@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
@@ -249,7 +250,7 @@ private fun CreateFieldInput(
 }
 
 @Composable
-private fun CreateMultiChoiceInput(
+internal fun CreateMultiChoiceInput(
     field: CreateFieldDefinition,
     value: String,
     options: List<CreateChoice>,
@@ -273,7 +274,10 @@ private fun CreateMultiChoiceInput(
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose ${field.label}")
                 }
             },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+            modifier =
+                Modifier.fillMaxWidth()
+                    .testTag("create-multi-choice-field-${field.key}")
+                    .clickable { expanded = true },
         )
         DropdownMenu(
             expanded = expanded,
@@ -308,7 +312,7 @@ private fun CreateMultiChoiceInput(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun CreateChoiceInput(
+internal fun CreateChoiceInput(
     field: CreateFieldDefinition,
     value: String,
     options: List<CreateChoice>,
@@ -337,10 +341,12 @@ private fun CreateChoiceInput(
                 }
             },
             modifier =
-                Modifier.fillMaxWidth().clickable {
-                    queryValue = TextFieldValue()
-                    expanded = true
-                },
+                Modifier.fillMaxWidth()
+                    .testTag("create-choice-field-${field.key}")
+                    .clickable {
+                        queryValue = TextFieldValue()
+                        expanded = true
+                    },
         )
         if (expanded) {
             ModalBottomSheet(
