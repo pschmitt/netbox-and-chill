@@ -40,6 +40,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -222,6 +224,15 @@ fun OnboardingScreen(
                 Spacer(Modifier.width(8.dp))
                 Text("Scan connection setup QR code")
             }
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Nyetbox is an independent project and is not affiliated with NetBox Labs in any way, shape, or form.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = FontStyle.Italic,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

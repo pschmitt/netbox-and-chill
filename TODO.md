@@ -5630,3 +5630,14 @@ while a sync is running, so it is visibly active rather than looking static.
 - [ ] Keep the animation accessible and stop it immediately when sync completes or fails.
 
 Status: not started
+
+
+## NBC-336: show the independence disclaimer on login
+
+The login page should make it clear that Nyetbox is an independent project and is not affiliated
+with NetBox Labs.
+
+- [x] Add an italic disclaimer at the bottom of the login page.
+- [x] Keep the wording clear without implying endorsement or affiliation.
+
+Status: **done**, 2026-08-03 - disclaimer added to the onboarding screen; verified by remote lint.
