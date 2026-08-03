@@ -77,15 +77,15 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
-            SettingsGroupCard(
-                title = "Offline mode",
-                subtitle = "Use cached data only and pause network sync",
-                icon = Icons.Default.CloudOff,
-            ) {
+            SettingsSingleItemCard {
                 SettingsToggleItem(
                     checked = offlineMode,
                     onCheckedChange = viewModel::setOfflineMode,
+                    leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
                     headlineContent = {
+                        Text("Offline mode")
+                    },
+                    supportingContent = {
                         Text(
                             if (offlineMode) "Network access is paused"
                             else "Allow background network sync"

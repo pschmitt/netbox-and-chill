@@ -5739,3 +5739,16 @@ edit-pencil buttons make the page look cluttered and unlike a native Android set
 
 Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instrumentation compilation,
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
+
+
+## NBC-344: avoid redundant headers on single-setting cards
+
+Cards containing one setting or action should let that row carry the title and icon instead of
+repeating the same label in a card header.
+
+- [x] Remove redundant headers from single-setting/action cards.
+- [x] Preserve the grouped-card headers where they provide real context.
+- [x] Verify the updated Settings presentation through remote compilation and device installation.
+
+Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instrumentation compilation,
+and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.

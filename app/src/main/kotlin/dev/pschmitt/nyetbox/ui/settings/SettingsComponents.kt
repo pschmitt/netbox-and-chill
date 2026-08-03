@@ -125,6 +125,21 @@ internal fun SettingsGroupCard(
 }
 
 @Composable
+internal fun SettingsSingleItemCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 4.dp), content = content)
+    }
+}
+
+@Composable
 internal fun SettingsNavigationCard(
     title: String,
     subtitle: String,

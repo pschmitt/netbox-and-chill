@@ -260,14 +260,13 @@ private fun ConnectionSettingsContent(
         }
             }
         }
-        SettingsGroupCard(
-            title = "Disconnect",
-            subtitle = "Remove this NetBox connection from the app",
-            icon = Icons.AutoMirrored.Filled.Logout,
-            accentColor = MaterialTheme.colorScheme.error,
-        ) {
+        SettingsSingleItemCard {
             OutlinedButton(
                 onClick = actions.onDisconnect,
+                colors =
+                    ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             ) {
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
@@ -342,11 +341,7 @@ private fun SyncSettingsContent(
                 },
             )
         }
-        SettingsGroupCard(
-            title = "Cached data",
-            subtitle = "Everything currently available for offline use",
-            icon = Icons.Default.Storage,
-        ) {
+        SettingsSingleItemCard {
             SettingsListItem(
         leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
         headlineContent = { Text("Cached data") },
@@ -635,11 +630,7 @@ private fun NotificationSettingsContent(
     state: SettingsCategoryState,
     actions: SettingsCategoryActions,
 ) {
-    SettingsGroupCard(
-        title = "Change notifications",
-        subtitle = "Choose which NetBox changes deserve an alert",
-        icon = Icons.Default.Notifications,
-    ) {
+    SettingsSingleItemCard {
         SettingsToggleItem(
             checked = state.changeNotificationsEnabled,
             onCheckedChange = actions.onSetChangeNotificationsEnabled,
