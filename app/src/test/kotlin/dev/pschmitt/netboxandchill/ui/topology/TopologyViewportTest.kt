@@ -24,4 +24,14 @@ class TopologyViewportTest {
 
         assertEquals(0.2f, topologyFitScale(bounds, 200f, 200f))
     }
+
+    @Test
+    fun overviewHidesDenseLabelsUntilTheGraphIsReadable() {
+        assertTrue(topologyLabelLines("device\ntype\nsite", totalScale = 0.2f).isEmpty())
+        assertEquals(listOf("device"), topologyLabelLines("device\ntype\nsite", totalScale = 0.7f))
+        assertEquals(
+            listOf("device", "type", "site"),
+            topologyLabelLines("device\ntype\nsite", totalScale = 1f),
+        )
+    }
 }

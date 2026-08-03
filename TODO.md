@@ -5156,7 +5156,10 @@ pan and pinch/button zoom controls.
 - [x] Parse the topology export robustly enough to retain the plugin's actual node and edge ids.
 - [x] Make the graph viewport fit real graph bounds and support intuitive pan/zoom on phones.
 - [x] Add focused parser and viewport tests for multi-node exports and empty/malformed geometry.
+- [x] Keep dense node labels hidden at overview scale and reveal concise labels only after zooming
+      in, so a large topology remains readable and navigable on mobile.
 
 Status: **done**, 2026-08-03 - removed the old `node_*` id restriction, added a deterministic
-fallback layout for missing/degenerate coordinates, capped pathological fit scaling, and passed
-remote unit/lint/compile checks plus a Mi Pad launch sanity check.
+fallback layout for missing/degenerate coordinates, capped pathological fit scaling, hid dense
+labels at overview scale, and passed remote unit/lint/compile checks plus a Mi Pad launch sanity
+check.

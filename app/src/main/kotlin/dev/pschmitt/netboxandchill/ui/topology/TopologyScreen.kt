@@ -121,7 +121,7 @@ fun TopologyScreen(
                     )
                 }
                 Text(
-                    "Pinch to zoom or use the controls; drag to pan. This graph is cached for offline use.",
+                    "Pinch to zoom or use the controls; drag to pan. Zoom in to show node labels. This graph is cached for offline use.",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
@@ -239,20 +239,23 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
                 radius = max(3f, min(nodeSize.width, nodeSize.height) * 0.16f),
                 center = topLeft + Offset(nodeSize.width / 2f, nodeSize.height / 2f),
             )
-            drawIntoCanvas { canvas ->
-                val paint =
-                    Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = colorScheme.onSurface.toArgb()
-                        textAlign = Paint.Align.CENTER
-                        textSize = (10f * density.density * totalScale).coerceIn(8f, 24f)
+            val labelLines = topologyLabelLines(node.label, totalScale)
+            if (labelLines.isNotEmpty()) {
+                drawIntoCanvas { canvas ->
+                    val paint =
+                        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                            color = colorScheme.onSurface.toArgb()
+                            textAlign = Paint.Align.CENTER
+                            textSize = (10f * density.density * totalScale).coerceIn(8f, 24f)
+                        }
+                    labelLines.forEachIndexed { index, line ->
+                        canvas.nativeCanvas.drawText(
+                            line,
+                            topLeft.x + nodeSize.width / 2f,
+                            topLeft.y + nodeSize.height + paint.textSize * (index + 1.2f),
+                            paint,
+                        )
                     }
-                node.label.lines().take(3).forEachIndexed { index, line ->
-                    canvas.nativeCanvas.drawText(
-                        line.take(32),
-                        topLeft.x + nodeSize.width / 2f,
-                        topLeft.y + nodeSize.height + paint.textSize * (index + 1.2f),
-                        paint,
-                    )
                 }
             }
         }
@@ -301,6 +304,8 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
 private const val MIN_TOPOLOGY_ZOOM = 0.35f
 private const val MAX_TOPOLOGY_ZOOM = 8f
 private const val ZOOM_STEP = 1.4f
+private const val TOPOLOGY_LABEL_SCALE = 0.35f
+private const val TOPOLOGY_DETAIL_SCALE = 1f
 
 internal fun initialTopologyZoom(nodeCount: Int, viewportWidth: Float): Float =
     when {
@@ -317,6 +322,13 @@ internal fun topologyFitScale(bounds: Rect, availableWidth: Float, availableHeig
         // A fit scale already makes the whole graph visible. Capping it prevents a one-node or
         // malformed export from becoming a giant square before the user has interacted with it.
         .coerceIn(0.15f, 2f)
+
+internal fun topologyLabelLines(label: String, totalScale: Float): List<String> {
+    if (totalScale < TOPOLOGY_LABEL_SCALE) return emptyList()
+
+    val lines = label.lines().map { it.take(32) }.filter(String::isNotBlank)
+    return lines.take(if (totalScale < TOPOLOGY_DETAIL_SCALE) 1 else 3)
+}
 
 private fun TopologyGraph.bounds(): Rect {
     if (nodes.isEmpty()) return Rect(0f, 0f, 1f, 1f)
