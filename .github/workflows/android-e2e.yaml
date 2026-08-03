@@ -81,19 +81,26 @@ jobs:
           timeout 60s adb logcat -d > e2e-logcat.txt || true
           timeout 20s adb exec-out screencap -p > e2e-screenshot.png || true
 
+      - name: Collect E2E screenshots
+        if: ${{ always() }}
+        run: |
+          mkdir -p e2e-screenshots
+          adb pull /sdcard/Android/data/dev.pschmitt.nyetbox.debug/files/e2e-screenshots/. e2e-screenshots/ || true
+
       - name: Capture NetBox diagnostics
         if: ${{ failure() }}
         run: docker compose -f "$NETBOX_COMPOSE_FILE" logs --no-color > e2e-netbox.log || true
 
-      - name: Upload E2E diagnostics
-        if: ${{ failure() }}
+      - name: Upload E2E diagnostics and screenshots
+        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: android-e2e-diagnostics-${{ github.run_id }}
+          name: android-e2e-artifacts-${{ github.run_id }}
           if-no-files-found: warn
           path: |
             e2e-logcat.txt
             e2e-screenshot.png
+            e2e-screenshots/
             e2e-netbox.log
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/

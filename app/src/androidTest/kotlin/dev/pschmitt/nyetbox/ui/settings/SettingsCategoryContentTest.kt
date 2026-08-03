@@ -56,6 +56,9 @@ class SettingsCategoryContentTest {
     private fun state() =
         SettingsCategoryState(
             credentials = NetBoxCredentials("https://netbox.test", "nbp_test.value"),
+            currentUser = null,
+            isLoadingCurrentUser = false,
+            connectionTest = ConnectionTestState.Idle,
             tokenVisible = false,
             isSyncing = false,
             syncIssue = null,
@@ -82,11 +85,13 @@ class SettingsCategoryContentTest {
             themeMode = ThemeMode.Light,
             themeAccent = ThemeAccent.Teal,
             objectTypeAccents = emptyMap(),
+            showTopologyDeviceTypeImages = false,
         )
 
     private fun actions() =
         SettingsCategoryActions(
             onEditServer = {},
+            onTestConnection = {},
             onDisconnect = {},
             onShowToken = {},
             onHideToken = {},
@@ -106,6 +111,7 @@ class SettingsCategoryContentTest {
             onUpdatePrintSettings = { transform -> transform(PrintSettings()) },
             onSetDefaultPrinter = { _, _ -> },
             onClearDefaultPrinter = {},
+            onSetShowTopologyDeviceTypeImages = {},
             onSetChangeNotificationsEnabled = {},
             onShowChangeNotifications = {},
             onSetGestureAction = { _, _ -> },

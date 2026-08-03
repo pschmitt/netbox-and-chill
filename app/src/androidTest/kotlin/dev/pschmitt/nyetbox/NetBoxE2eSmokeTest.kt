@@ -31,6 +31,7 @@ class NetBoxE2eSmokeTest {
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(token)
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", 45_000)
+        captureE2eScreenshot("smoke-01-dashboard")
 
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
         waitForTag("e2e-device-list-entry", 60_000)
@@ -38,6 +39,7 @@ class NetBoxE2eSmokeTest {
         waitForText("CI E2E Device", 120_000)
         composeRule.onNodeWithText("CI E2E Device", useUnmergedTree = true).performClick()
         waitForText("Device", 30_000)
+        captureE2eScreenshot("smoke-02-device-detail")
 
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
@@ -45,6 +47,7 @@ class NetBoxE2eSmokeTest {
         waitForText("Settings", 30_000)
         composeRule.onNodeWithText("About").performClick()
         waitForText("Build", 30_000)
+        captureE2eScreenshot("smoke-03-about")
     }
 
     private fun waitForText(text: String, timeoutMillis: Long) {

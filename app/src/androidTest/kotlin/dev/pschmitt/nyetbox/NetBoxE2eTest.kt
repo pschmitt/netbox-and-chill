@@ -49,11 +49,13 @@ class NetBoxE2eTest {
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput("invalid-e2e-token")
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("NetBox rejected this API token", timeoutMillis = 30_000)
+        captureE2eScreenshot("01-invalid-token")
 
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextClearance()
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(validToken)
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", timeoutMillis = 45_000)
+        captureE2eScreenshot("02-dashboard-after-connect")
 
         // A configured activity must survive recreation without falling back to onboarding or
         // blocking the cached dashboard while its best-effort refresh runs.
@@ -72,6 +74,7 @@ class NetBoxE2eTest {
             )
         }
         waitForText("CI E2E Device", timeoutMillis = 30_000)
+        captureE2eScreenshot("03-device-detail")
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Dashboard", timeoutMillis = 30_000)
         composeRule.activity.runOnUiThread {
@@ -105,6 +108,7 @@ class NetBoxE2eTest {
         composeRule.onNodeWithTag("e2e-search-card").performClick()
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("CI E2E Device")
         waitForText("CI E2E Device", timeoutMillis = 30_000)
+        captureE2eScreenshot("04-global-search")
 
         // Go back through the same UI and turn on Offline mode from the navigation drawer. The
         // device list must remain available without any network refresh once this is enabled.
@@ -119,6 +123,7 @@ class NetBoxE2eTest {
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Showing cached data; network sync is paused", timeoutMillis = 30_000)
         waitForText("Search NetBox", timeoutMillis = 30_000)
+        captureE2eScreenshot("05-offline-dashboard")
     }
 
     private fun waitForText(text: String, timeoutMillis: Long) {

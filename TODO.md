@@ -5698,3 +5698,16 @@ the built-in Devices and Device types entries.
 
 Status: **done**, 2026-08-03 - remote ktfmt, Android Lint, and unit tests passed; the built-in
 Devices and Device types entries now use the persisted pin set and can be toggled by long press.
+
+
+## NBC-341: retain named screenshots from Android E2E runs
+
+The disposable Android E2E workflow should make visual regressions easier to diagnose without
+requiring a rerun or a locally attached emulator.
+
+- [x] Capture named screenshots at important onboarding, navigation, search, and offline states.
+- [x] Pull screenshots from the emulator into the GitHub Actions workspace.
+- [x] Upload screenshots on successful and failed E2E runs alongside existing diagnostics.
+
+Status: **done**, 2026-08-03 - implementation added; remote Android test compilation and the
+GitHub E2E workflow remain to be verified after push.
