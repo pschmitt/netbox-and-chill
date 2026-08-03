@@ -173,7 +173,20 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
         }
     val density = LocalDensity.current
     val graphBounds = remember(graph) { graph.bounds() }
+    val graphContentCenter = remember(graph) { graph.contentCenter() }
     val colorScheme = MaterialTheme.colorScheme
+
+    fun updateZoom(requestedZoom: Float) {
+        val nextZoom = requestedZoom.coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
+        val fitScale =
+            topologyFitScale(
+                graphBounds,
+                (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
+                (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
+            )
+        pan += (graphContentCenter - graphBounds.center) * (zoom - nextZoom) * fitScale
+        zoom = nextZoom
+    }
 
     androidx.compose.runtime.LaunchedEffect(graph, viewportSize) {
         if (!initialized && viewportSize != IntSize.Zero) {
@@ -273,7 +286,7 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
-                onClick = { zoom = (zoom / ZOOM_STEP).coerceAtLeast(MIN_TOPOLOGY_ZOOM) },
+                onClick = { updateZoom(zoom / ZOOM_STEP) },
                 modifier = Modifier.size(44.dp),
             ) {
                 Icon(Icons.Default.ZoomOut, contentDescription = "Zoom out")
@@ -293,7 +306,7 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
                 Icon(Icons.Default.RestartAlt, contentDescription = "Reset topology view")
             }
             IconButton(
-                onClick = { zoom = (zoom * ZOOM_STEP).coerceAtMost(MAX_TOPOLOGY_ZOOM) },
+                onClick = { updateZoom(zoom * ZOOM_STEP) },
                 modifier = Modifier.size(44.dp),
             ) {
                 Icon(Icons.Default.ZoomIn, contentDescription = "Zoom in")
@@ -445,6 +458,14 @@ private fun TopologyGraph.bounds(): Rect {
     val maxX = nodes.maxOf { it.x + it.width }
     val maxY = nodes.maxOf { it.y + it.height }
     return Rect(minX - 40f, minY - 40f, maxX + 40f, maxY + 80f)
+}
+
+private fun TopologyGraph.contentCenter(): Offset {
+    if (nodes.isEmpty()) return Offset.Zero
+    return Offset(
+        nodes.map { it.x + it.width / 2f }.average().toFloat(),
+        nodes.map { it.y + it.height / 2f }.average().toFloat(),
+    )
 }
 
 private fun parseColor(value: String, fallback: Color): Color =
