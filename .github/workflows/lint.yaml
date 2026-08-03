@@ -5,10 +5,14 @@ on:
     paths:
       - '**.kt'
       - '**.kts'
+      - '.github/workflows/lint.yaml'
+      - 'app/lint-baseline.xml'
   pull_request:
     paths:
       - '**.kt'
       - '**.kts'
+      - '.github/workflows/lint.yaml'
+      - 'app/lint-baseline.xml'
 
 jobs:
   lint:
