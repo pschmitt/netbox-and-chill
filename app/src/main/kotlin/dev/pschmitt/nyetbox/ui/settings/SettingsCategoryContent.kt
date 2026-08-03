@@ -138,7 +138,13 @@ private fun ConnectionSettingsContent(
     actions: SettingsCategoryActions,
 ) {
     val context = LocalContext.current
-    ListItem(
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SettingsGroupCard(
+            title = "Connection",
+            subtitle = "Server, identity, and secure access",
+            icon = Icons.Default.Dns,
+        ) {
+            ListItem(
         leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
         headlineContent = { Text("NetBox instance") },
         supportingContent = { Text(state.credentials.baseUrl) },
@@ -147,8 +153,8 @@ private fun ConnectionSettingsContent(
                 Icon(Icons.Default.Edit, contentDescription = "Change NetBox server")
             }
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
         headlineContent = { Text("Signed in as") },
         supportingContent = {
@@ -164,8 +170,8 @@ private fun ConnectionSettingsContent(
                 }
             )
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
         headlineContent = { Text("API token") },
         supportingContent = {
@@ -200,8 +206,8 @@ private fun ConnectionSettingsContent(
                 }
             }
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
         headlineContent = { Text("Share connection setup") },
         supportingContent = { Text("Show a QR code with this server URL and API token") },
@@ -213,8 +219,8 @@ private fun ConnectionSettingsContent(
                 Icon(Icons.Default.QrCodeScanner, contentDescription = "Show setup QR code")
             }
         },
-    )
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            )
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         OutlinedButton(
             onClick = actions.onTestConnection,
             enabled =
@@ -252,12 +258,22 @@ private fun ConnectionSettingsContent(
                 )
             ConnectionTestState.Idle, ConnectionTestState.Testing -> Unit
         }
-    }
-    Column(Modifier.padding(16.dp)) {
-        OutlinedButton(onClick = actions.onDisconnect, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Disconnect")
+            }
+        }
+        SettingsGroupCard(
+            title = "Disconnect",
+            subtitle = "Remove this NetBox connection from the app",
+            icon = Icons.AutoMirrored.Filled.Logout,
+            accentColor = MaterialTheme.colorScheme.error,
+        ) {
+            OutlinedButton(
+                onClick = actions.onDisconnect,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Disconnect")
+            }
         }
     }
 }
@@ -267,15 +283,20 @@ private fun SyncSettingsContent(
     state: SettingsCategoryState,
     actions: SettingsCategoryActions,
 ) {
-    state.syncIssue?.let { issue ->
-        SyncIssueCard(
-            issue,
-            onRetry = actions.onSync,
-            isSyncing = state.isSyncing,
-            modifier = Modifier.padding(vertical = 8.dp),
-        )
-    }
-    ListItem(
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        state.syncIssue?.let { issue ->
+            SyncIssueCard(
+                issue,
+                onRetry = actions.onSync,
+                isSyncing = state.isSyncing,
+            )
+        }
+        SettingsGroupCard(
+            title = "Sync policy",
+            subtitle = "Choose when background data refreshes are allowed",
+            icon = Icons.Default.Sync,
+        ) {
+            ListItem(
         leadingContent = { Icon(Icons.Default.Download, contentDescription = null) },
         headlineContent = { Text("Sync attachments to disk") },
         supportingContent = { Text("Download documents and images on sync for full offline access") },
@@ -285,16 +306,16 @@ private fun SyncSettingsContent(
                 onCheckedChange = actions.onSetSyncAttachmentsToDisk,
             )
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.Wifi, contentDescription = null) },
         headlineContent = { Text("Sync only on Wi-Fi") },
         supportingContent = { Text("Use an unmetered connection for background and manual sync") },
         trailingContent = {
             Switch(checked = state.syncOnlyOnWifi, onCheckedChange = actions.onSetSyncOnlyOnWifi)
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.SignalCellularAlt, contentDescription = null) },
         headlineContent = { Text("Sync while roaming") },
         supportingContent = {
@@ -313,8 +334,8 @@ private fun SyncSettingsContent(
                 enabled = !state.syncOnlyOnWifi,
             )
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
         headlineContent = { Text("Sync on app launch") },
         supportingContent = { Text("Refresh NetBox in the background when the app starts") },
@@ -324,8 +345,14 @@ private fun SyncSettingsContent(
                 onCheckedChange = actions.onSetSyncOnAppLaunch,
             )
         },
-    )
-    ListItem(
+            )
+        }
+        SettingsGroupCard(
+            title = "Cached data",
+            subtitle = "Everything currently available for offline use",
+            icon = Icons.Default.Storage,
+        ) {
+            ListItem(
         leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
         headlineContent = { Text("Cached data") },
         supportingContent = {
@@ -336,16 +363,16 @@ private fun SyncSettingsContent(
                     "Downloaded images and documents are kept in app storage for offline use and are not temporary Android cache files."
             )
         },
-    )
-    Column(Modifier.padding(16.dp)) {
-        Button(
-            onClick = actions.onSync,
-            enabled = !state.isSyncing,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Default.Sync, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(if (state.isSyncing) "Syncing…" else "Sync now")
+            )
+            Button(
+                onClick = actions.onSync,
+                enabled = !state.isSyncing,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Icon(Icons.Default.Sync, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (state.isSyncing) "Syncing…" else "Sync now")
+            }
         }
     }
 }
@@ -357,8 +384,13 @@ private fun DisplaySettingsContent(
 ) {
     var themeModeMenuExpanded by remember { mutableStateOf(false) }
     var themeAccentMenuExpanded by remember { mutableStateOf(false) }
-    SettingsSubsectionHeader("Theme")
-    ListItem(
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SettingsGroupCard(
+            title = "Appearance",
+            subtitle = "Theme and object identity",
+            icon = Icons.Default.Palette,
+        ) {
+            ListItem(
         leadingContent = {
             Icon(
                 when (state.themeMode) {
@@ -393,8 +425,8 @@ private fun DisplaySettingsContent(
                 }
             }
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
         headlineContent = { Text("Accent color") },
         supportingContent = { Text(state.themeAccent.label) },
@@ -420,8 +452,8 @@ private fun DisplaySettingsContent(
                 }
             }
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
         headlineContent = { Text("Object type colors") },
         supportingContent = {
@@ -435,8 +467,14 @@ private fun DisplaySettingsContent(
                 Icon(Icons.Default.Edit, contentDescription = "Customize object type colors")
             }
         },
-    )
-    ListItem(
+            )
+        }
+        SettingsGroupCard(
+            title = "Content",
+            subtitle = "Choose what is shown by default across the app",
+            icon = Icons.Default.Visibility,
+        ) {
+            ListItem(
         leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
         headlineContent = { Text("Hidden fields") },
         supportingContent = {
@@ -459,8 +497,8 @@ private fun DisplaySettingsContent(
                 }
             }
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.PushPin, contentDescription = null) },
         headlineContent = { Text("Pinned item types") },
         supportingContent = {
@@ -469,8 +507,8 @@ private fun DisplaySettingsContent(
                 else "${state.pinnedModelPaths.size} pinned · Long-press an item type on Add to change this"
             )
         },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.Hub, contentDescription = null) },
         headlineContent = { Text("Topology device images") },
         supportingContent = {
@@ -482,7 +520,9 @@ private fun DisplaySettingsContent(
                 onCheckedChange = actions.onSetShowTopologyDeviceTypeImages,
             )
         },
-    )
+            )
+        }
+    }
 }
 
 @Composable
@@ -492,7 +532,12 @@ private fun CameraSettingsContent(
 ) {
     var scannerLensMenuExpanded by remember { mutableStateOf(false) }
     var scannerRearLensMenuExpanded by remember { mutableStateOf(false) }
-    ListItem(
+    SettingsGroupCard(
+        title = "Scanner",
+        subtitle = "Choose the camera and rear lens used by default",
+        icon = Icons.Default.Cameraswitch,
+    ) {
+        ListItem(
         leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
         headlineContent = { Text("Scanner default camera") },
         supportingContent = { Text("${state.scannerLens.label}; falls back when unavailable") },
@@ -518,8 +563,8 @@ private fun CameraSettingsContent(
                 }
             }
         },
-    )
-    ListItem(
+        )
+        ListItem(
         leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
         headlineContent = { Text("Default rear lens") },
         supportingContent = {
@@ -547,7 +592,8 @@ private fun CameraSettingsContent(
                 }
             }
         },
-    )
+        )
+    }
 }
 
 @Composable
@@ -555,31 +601,43 @@ private fun GestureSettingsContent(
     state: SettingsCategoryState,
     actions: SettingsCategoryActions,
 ) {
-    SettingsSubsectionHeader("Two-finger gestures")
-    GestureShortcut.entries.filter { it in TWO_FINGER_SHORTCUTS }.forEach { shortcut ->
-        GestureShortcutRow(
-            shortcut = shortcut,
-            action = state.gestureActions[shortcut] ?: GestureAction.Off,
-            target = state.gestureTargets[shortcut],
-            models = state.gestureModels,
-            objects = state.gestureObjects,
-            onActionSelected = { action -> actions.onSetGestureAction(shortcut, action) },
-            onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
-            onDetailTargetSelected = { obj -> actions.onSetGestureDetailTarget(shortcut, obj) },
-        )
-    }
-    SettingsSubsectionHeader("Three-finger gestures")
-    GestureShortcut.entries.filter { it in THREE_FINGER_SHORTCUTS }.forEach { shortcut ->
-        GestureShortcutRow(
-            shortcut = shortcut,
-            action = state.gestureActions[shortcut] ?: GestureAction.Off,
-            target = state.gestureTargets[shortcut],
-            models = state.gestureModels,
-            objects = state.gestureObjects,
-            onActionSelected = { action -> actions.onSetGestureAction(shortcut, action) },
-            onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
-            onDetailTargetSelected = { obj -> actions.onSetGestureDetailTarget(shortcut, obj) },
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SettingsGroupCard(
+            title = "Two-finger gestures",
+            subtitle = "Shortcuts using two fingers",
+            icon = Icons.Default.TouchApp,
+        ) {
+            GestureShortcut.entries.filter { it in TWO_FINGER_SHORTCUTS }.forEach { shortcut ->
+                GestureShortcutRow(
+                    shortcut = shortcut,
+                    action = state.gestureActions[shortcut] ?: GestureAction.Off,
+                    target = state.gestureTargets[shortcut],
+                    models = state.gestureModels,
+                    objects = state.gestureObjects,
+                    onActionSelected = { action -> actions.onSetGestureAction(shortcut, action) },
+                    onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
+                    onDetailTargetSelected = { obj -> actions.onSetGestureDetailTarget(shortcut, obj) },
+                )
+            }
+        }
+        SettingsGroupCard(
+            title = "Three-finger gestures",
+            subtitle = "Shortcuts using three fingers",
+            icon = Icons.Default.TouchApp,
+        ) {
+            GestureShortcut.entries.filter { it in THREE_FINGER_SHORTCUTS }.forEach { shortcut ->
+                GestureShortcutRow(
+                    shortcut = shortcut,
+                    action = state.gestureActions[shortcut] ?: GestureAction.Off,
+                    target = state.gestureTargets[shortcut],
+                    models = state.gestureModels,
+                    objects = state.gestureObjects,
+                    onActionSelected = { action -> actions.onSetGestureAction(shortcut, action) },
+                    onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
+                    onDetailTargetSelected = { obj -> actions.onSetGestureDetailTarget(shortcut, obj) },
+                )
+            }
+        }
     }
 }
 
@@ -588,7 +646,12 @@ private fun NotificationSettingsContent(
     state: SettingsCategoryState,
     actions: SettingsCategoryActions,
 ) {
-    ListItem(
+    SettingsGroupCard(
+        title = "Change notifications",
+        subtitle = "Choose which NetBox changes deserve an alert",
+        icon = Icons.Default.Notifications,
+    ) {
+        ListItem(
         leadingContent = { Icon(Icons.Default.Notifications, contentDescription = null) },
         headlineContent = { Text("NetBox change notifications") },
         supportingContent = {
@@ -606,15 +669,16 @@ private fun NotificationSettingsContent(
                 onCheckedChange = actions.onSetChangeNotificationsEnabled,
             )
         },
-    )
-    if (state.changeNotificationsEnabled) {
-        OutlinedButton(
-            onClick = actions.onShowChangeNotifications,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        ) {
-            Icon(Icons.Default.FilterList, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Choose change types")
+        )
+        if (state.changeNotificationsEnabled) {
+            OutlinedButton(
+                onClick = actions.onShowChangeNotifications,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Icon(Icons.Default.FilterList, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Choose change types")
+            }
         }
     }
 }
@@ -622,13 +686,19 @@ private fun NotificationSettingsContent(
 @Composable
 private fun AboutSettingsContent() {
     val context = LocalContext.current
-    ListItem(
+    var buildTapCount by remember { mutableIntStateOf(0) }
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SettingsGroupCard(
+            title = "Nyetbox",
+            subtitle = "Application and build information",
+            icon = Icons.Default.Info,
+        ) {
+            ListItem(
         leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
         headlineContent = { Text("Nyetbox") },
         supportingContent = { Text("Version " + BuildConfig.VERSION_NAME + " · GPLv3") },
-    )
-    var buildTapCount by remember { mutableIntStateOf(0) }
-    ListItem(
+            )
+            ListItem(
         modifier =
             Modifier.clickable {
                 val tapCount = buildTapCount + 1
@@ -644,33 +714,41 @@ private fun AboutSettingsContent() {
         leadingContent = { Icon(Icons.Default.Tag, contentDescription = null) },
         headlineContent = { Text("Build") },
         supportingContent = { Text(BuildConfig.GIT_REVISION) },
-    )
-    ListItem(
+            )
+            ListItem(
         leadingContent = { Icon(Icons.Default.DateRange, contentDescription = null) },
         headlineContent = { Text("Build date") },
         supportingContent = { Text(BuildConfig.BUILD_DATE) },
-    )
-    ExternalLinkRow(
+            )
+        }
+        SettingsGroupCard(
+            title = "Project",
+            subtitle = "Source code, support, and privacy information",
+            icon = Icons.Default.Code,
+        ) {
+            ExternalLinkRow(
         context = context,
         url = "https://github.com/pschmitt/nyetbox",
         icon = Icons.Default.Code,
         title = "GitHub repository",
         subtitle = "View the source code and report issues",
-    )
-    ExternalLinkRow(
+            )
+            ExternalLinkRow(
         context = context,
         url = "https://github.com/sponsors/pschmitt",
         icon = Icons.Default.Favorite,
         title = "Sponsor the project",
         subtitle = "Support development on GitHub Sponsors",
-    )
-    ExternalLinkRow(
+            )
+            ExternalLinkRow(
         context = context,
         url = "https://github.com/pschmitt/nyetbox/blob/main/PRIVACY.md",
         icon = Icons.Default.PrivacyTip,
         title = "Privacy policy",
         subtitle = "How Nyetbox handles data and network access",
-    )
+            )
+        }
+    }
 }
 
 @Composable

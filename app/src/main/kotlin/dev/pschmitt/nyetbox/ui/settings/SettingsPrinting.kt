@@ -91,13 +91,17 @@ internal fun PrintingSettingsSection(
     androidx.compose.runtime.DisposableEffect(previewBitmap) {
         onDispose { previewBitmap?.recycle() }
     }
-    SettingsSubsectionHeader("Label designer")
-    Text(
-        "Preview of the current label settings using example content. It works without a printer.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
+    SettingsGroupCard(
+        title = "Printing",
+        subtitle = "Printer, label preview, and print defaults",
+        icon = Icons.Default.Print,
+    ) {
+        Text(
+            "Preview of the current label settings using example content. It works without a printer.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
     if (previewBitmap == null) {
         Text(
             "The label preview is unavailable.",
@@ -209,7 +213,7 @@ internal fun PrintingSettingsSection(
             )
         },
     )
-    Row(
+        Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
@@ -251,6 +255,7 @@ internal fun PrintingSettingsSection(
                     )
                 }
             }
+        }
         }
     }
 }

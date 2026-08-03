@@ -5711,3 +5711,17 @@ requiring a rerun or a locally attached emulator.
 
 Status: **done**, 2026-08-03 - implementation added; remote Android test compilation and the
 GitHub E2E workflow remain to be verified after push.
+
+
+## NBC-342: modernize the Settings presentation
+
+The Settings landing screen and category pages should use the more spacious, card-based Material 3
+presentation used in the companion `aughhhh` app while preserving all existing setting behavior.
+
+- [x] Replace the flat landing-page rows with rounded setting/navigation cards.
+- [x] Group category controls into titled cards with clear section icons and subtitles.
+- [x] Keep existing actions, dialogs, switches, and navigation unchanged.
+- [x] Verify the updated layout through remote compilation, lint, and instrumentation compilation.
+
+Status: **done**, 2026-08-03 - remote ktfmt, Kotlin/unit-test compilation, Android test compilation,
+and Android Lint passed; the updated debug build is ready for device verification.
