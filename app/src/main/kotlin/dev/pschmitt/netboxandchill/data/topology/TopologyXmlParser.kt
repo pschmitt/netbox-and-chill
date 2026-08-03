@@ -18,6 +18,8 @@ data class TopologyNode(
     val height: Float,
 )
 
+data class TopologyPosition(val x: Float, val y: Float)
+
 data class TopologyEdge(
     val source: String,
     val target: String,
@@ -28,6 +30,15 @@ data class TopologyGraph(
     val nodes: List<TopologyNode>,
     val edges: List<TopologyEdge>,
 )
+
+fun TopologyGraph.withPositions(positions: Map<String, TopologyPosition>): TopologyGraph =
+    copy(
+        nodes =
+            nodes.map { node ->
+                positions[node.id]?.let { position -> node.copy(x = position.x, y = position.y) }
+                    ?: node
+            }
+    )
 
 /** Parses the draw.io mxGraph XML emitted by netbox-topology-views. */
 fun parseTopologyXml(xml: String): TopologyGraph {

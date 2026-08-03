@@ -138,6 +138,8 @@ fun SettingsCategoryScreen(
     val themeAccent by viewModel.settingsRepository.themeAccent.collectAsStateWithLifecycle()
     val objectTypeAccents by
         viewModel.settingsRepository.objectTypeAccents.collectAsStateWithLifecycle()
+    val showTopologyDeviceTypeImages by
+        viewModel.settingsRepository.showTopologyDeviceTypeImages.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.settingsRepository.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -322,6 +324,7 @@ fun SettingsCategoryScreen(
                         themeMode = themeMode,
                         themeAccent = themeAccent,
                         objectTypeAccents = objectTypeAccents,
+                        showTopologyDeviceTypeImages = showTopologyDeviceTypeImages,
                     ),
                 actions =
                     SettingsCategoryActions(
@@ -369,6 +372,8 @@ fun SettingsCategoryScreen(
                         onUpdatePrintSettings = printSettingsViewModel::update,
                         onSetDefaultPrinter = printSettingsViewModel::setDefaultPrinter,
                         onClearDefaultPrinter = printSettingsViewModel::clearDefaultPrinter,
+                        onSetShowTopologyDeviceTypeImages =
+                            viewModel.settingsRepository::setShowTopologyDeviceTypeImages,
                         onSetChangeNotificationsEnabled =
                             viewModel::setChangeNotificationsEnabled,
                         onShowChangeNotifications = { changeNotificationsDialogVisible = true },

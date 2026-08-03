@@ -150,8 +150,13 @@ fun NetBoxNavHost(
                 onAddClick = { navController.navigate(Route.Add) { launchSingleTop = true } },
             )
         }
-        composable<Route.Topology> {
-            TopologyScreen(onBack = { navController.navigateBackSafely() })
+        composable<Route.Topology> { backStackEntry ->
+            val route: Route.Topology = backStackEntry.toRoute()
+            TopologyScreen(
+                focusedDeviceId = route.focusedDeviceId,
+                onBack = { navController.navigateBackSafely() },
+                onOpenDevice = { id -> navController.navigate(Route.DeviceDetail(id)) },
+            )
         }
         composable<Route.AddComponent> { backStackEntry ->
             val route: Route.AddComponent = backStackEntry.toRoute()
@@ -210,6 +215,7 @@ fun NetBoxNavHost(
                     )
                 },
                 onAddComponent = { navController.navigate(Route.AddComponent(route.deviceId)) },
+                onOpenTopology = { navController.navigate(Route.Topology(route.deviceId)) },
                 onChangeDiffClick = { changeId ->
                     navController.navigate(Route.ObjectChangeDiff(changeId))
                 },

@@ -14,6 +14,7 @@ import dev.pschmitt.netboxandchill.data.repository.CachedDocument
 import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
+import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
 import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.DocumentRepository
 import dev.pschmitt.netboxandchill.data.repository.EditSubmission
@@ -29,6 +30,7 @@ import dev.pschmitt.netboxandchill.data.repository.RecentVisitRepository
 import dev.pschmitt.netboxandchill.data.repository.SettingsRepository
 import dev.pschmitt.netboxandchill.data.repository.createChoiceSearchFields
 import dev.pschmitt.netboxandchill.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.netboxandchill.data.repository.isDocumentsPluginModel
 import dev.pschmitt.netboxandchill.sync.SyncScheduler
 import dev.pschmitt.netboxandchill.sync.SyncStatusRepository
 import dev.pschmitt.netboxandchill.ui.navigation.Route
@@ -94,6 +96,7 @@ constructor(
     syncStatusRepository: SyncStatusRepository,
     private val json: Json,
     private val api: GenericNetBoxApi,
+    private val directoryRepository: DirectoryRepository,
 ) : ViewModel() {
 
     val route: Route.Generic = savedStateHandle.toRoute()
@@ -102,6 +105,11 @@ constructor(
     // device's QR/asset-tag sticker) - other object types don't have a label to (re)print.
     val isPrintableDevice: Boolean = route.endpointPath == DEVICES_ENDPOINT_PATH
     val isDeviceType: Boolean = route.endpointPath == NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH
+
+    val documentPluginAvailable: StateFlow<Boolean> =
+        directoryRepository
+            .observeCapability(::isDocumentsPluginModel)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(

@@ -15,6 +15,8 @@ import dev.pschmitt.netboxandchill.data.repository.DashboardRepository
 import dev.pschmitt.netboxandchill.data.repository.CachedDocument
 import dev.pschmitt.netboxandchill.data.repository.DeleteSubmission
 import dev.pschmitt.netboxandchill.data.repository.DeviceRepository
+import dev.pschmitt.netboxandchill.data.repository.DirectoryRepository
+import dev.pschmitt.netboxandchill.data.repository.isDocumentsPluginModel
 import dev.pschmitt.netboxandchill.data.repository.DeviceTypeRepository
 import dev.pschmitt.netboxandchill.data.repository.DocumentRepository
 import dev.pschmitt.netboxandchill.data.repository.FileDownloadRepository
@@ -136,6 +138,7 @@ constructor(
     private val pendingEditRepository: PendingEditRepository,
     private val recentVisitRepository: RecentVisitRepository,
     private val settingsRepository: SettingsRepository,
+    private val directoryRepository: DirectoryRepository,
 ) : ViewModel() {
 
     private val deviceId: Int = savedStateHandle.toRoute<Route.DeviceDetail>().deviceId
@@ -150,6 +153,11 @@ constructor(
     val deleteResult: StateFlow<DeleteSubmission?> = _deleteResult.asStateFlow()
 
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
+
+    val documentPluginAvailable: StateFlow<Boolean> =
+        directoryRepository
+            .observeCapability(::isDocumentsPluginModel)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val objectTypeAccent: StateFlow<dev.pschmitt.netboxandchill.data.repository.ThemeAccent?> =
         settingsRepository.objectTypeAccents

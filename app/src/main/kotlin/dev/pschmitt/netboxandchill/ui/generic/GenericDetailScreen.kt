@@ -168,6 +168,8 @@ fun GenericDetailScreen(
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
+    val documentPluginAvailable by
+        viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
@@ -744,7 +746,7 @@ fun GenericDetailScreen(
                                         onAttachmentLongPress = { imageAttachmentAction = it },
                                     )
                                 }
-                                item {
+                                if (documentPluginAvailable) item {
                                     DocumentsSection(
                                         documents = documents,
                                         onOpenDocument = { document ->

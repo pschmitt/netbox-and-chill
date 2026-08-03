@@ -153,7 +153,7 @@ class MainActivity : FragmentActivity() {
                         }
                     },
                     onTopologyClick = {
-                        navController.navigate(Route.Topology) { launchSingleTop = true }
+                        navController.navigate(Route.Topology()) { launchSingleTop = true }
                     },
                     onSettingsClick = { navController.navigate(Route.Settings) },
                     onAboutClick = {

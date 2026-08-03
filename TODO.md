@@ -5307,3 +5307,41 @@ scrolling, matching the graph's button and pinch controls.
 - [ ] Add focused input tests for zoom direction and modifier handling.
 
 Status: not started, 2026-08-03 - captured from the topology input review.
+
+
+## NBC-314: search and focus devices in topology
+
+Topology should provide a device-only search action using the existing cache-first global-search
+syntax. Selecting a result should focus the matching node without requiring a live request.
+
+- [ ] Add a topology search action that opens a popup or bottom sheet.
+- [ ] Reuse magic field syntax and restrict results to cached devices.
+- [ ] Focus and highlight the selected device node.
+- [ ] Add search and focus interaction tests.
+
+Status: not started, 2026-08-03 - captured from the topology navigation follow-up.
+
+
+## NBC-315: use item icons in list and dashboard headers
+
+List-page headers should show the relevant NetBox item icon before their title, and dashboard
+section headers should carry an icon as well for stronger visual orientation.
+
+- [ ] Add the item-specific icon to generic and typed list headers.
+- [ ] Add icons to dashboard section headers using the shared icon mapping.
+- [ ] Cover header icon rendering without changing navigation behavior.
+
+Status: not started, 2026-08-03 - captured from the list-header consistency follow-up.
+
+
+## NBC-316: smooth scanner camera and lens switching
+
+Switching between scanner cameras or rear lenses currently exposes a brief black frame. The
+preview handoff should feel like a camera app, with a short visual transition while the new use
+case binds.
+
+- [ ] Add a short fade/crossfade around camera and lens rebinding.
+- [ ] Keep scanner controls responsive and avoid hiding a failed-preview error.
+- [ ] Verify rear-lens, front/rear-camera, and single-lens fallback behavior.
+
+Status: not started, 2026-08-03 - captured from the scanner usability follow-up.

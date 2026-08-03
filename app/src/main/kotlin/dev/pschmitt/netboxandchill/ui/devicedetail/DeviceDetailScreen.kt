@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -136,6 +137,7 @@ fun DeviceDetailScreen(
     onReferenceClick: (endpointPath: String, id: Int, breadcrumb: String) -> Unit,
     onRackPositionClick: (rackId: Int, deviceId: Int, breadcrumb: String) -> Unit,
     onAddComponent: () -> Unit,
+    onOpenTopology: () -> Unit,
     onChangeDiffClick: (changeId: Int) -> Unit,
     onDeleted: () -> Unit,
     viewModel: DeviceDetailViewModel = hiltViewModel(),
@@ -150,6 +152,8 @@ fun DeviceDetailScreen(
     val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
+    val documentPluginAvailable by
+        viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val customFieldRows by viewModel.customFieldRows.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
@@ -330,6 +334,17 @@ fun DeviceDetailScreen(
                                 enabled = device != null && !isRefreshing,
                                 onClick = {
                                     onAddComponent()
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Open topology") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Hub, contentDescription = null)
+                                },
+                                enabled = device != null,
+                                onClick = {
+                                    onOpenTopology()
                                     actionMenuExpanded = false
                                 },
                             )
@@ -564,7 +579,7 @@ fun DeviceDetailScreen(
                                 onAttachmentLongPress = { imageAttachmentAction = it },
                             )
                         }
-                        item {
+                        if (documentPluginAvailable) item {
                             DocumentsSection(
                                 documents = documents,
                                 onOpenDocument = { document ->

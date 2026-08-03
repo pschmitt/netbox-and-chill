@@ -1,6 +1,8 @@
 package dev.pschmitt.netboxandchill.ui.topology
 
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,8 +29,8 @@ class TopologyViewportTest {
 
     @Test
     fun overviewHidesDenseLabelsUntilTheGraphIsReadable() {
-        assertTrue(topologyLabelLines("device\ntype\nsite", totalScale = 0.7f).isEmpty())
-        assertEquals(listOf("device"), topologyLabelLines("device\ntype\nsite", totalScale = 1f))
+        assertTrue(topologyLabelLines("device\ntype\nsite", totalScale = 0.5f).isEmpty())
+        assertEquals(listOf("device"), topologyLabelLines("device\ntype\nsite", totalScale = 0.7f))
         assertEquals(
             listOf("device", "type", "site"),
             topologyLabelLines("device\ntype\nsite", totalScale = 1.4f),
@@ -42,5 +44,33 @@ class TopologyViewportTest {
         assertEquals(TopologyNodeIconKind.Compute, topologyNodeIconKind("NUC10 server"))
         assertEquals(TopologyNodeIconKind.Wireless, topologyNodeIconKind("Hallway motion sensor"))
         assertEquals(TopologyNodeIconKind.Generic, topologyNodeIconKind("Desk object"))
+    }
+
+    @Test
+    fun buttonZoomKeepsTheVisibleGraphPointUnderTheViewportCenter() {
+        val bounds = Rect(0f, 0f, 1000f, 500f)
+        val viewport = IntSize(800, 600)
+        val currentPan = Offset(120f, -45f)
+        val fit = topologyFitScale(bounds, 768f, 568f)
+        val visibleBefore = bounds.center - currentPan / fit
+        val nextPan =
+            topologyButtonZoomPan(
+                bounds,
+                viewport,
+                currentZoom = 1f,
+                nextZoom = 1.4f,
+                currentPan = currentPan,
+                focusedPoint = null,
+            )
+        val visibleAfter = bounds.center - nextPan / (fit * 1.4f)
+        assertEquals(visibleBefore.x, visibleAfter.x, 0.01f)
+        assertEquals(visibleBefore.y, visibleAfter.y, 0.01f)
+    }
+
+    @Test
+    fun ctrlScrollZoomsOnlyWithTheModifier() {
+        assertTrue(topologyZoomForScroll(1f, -1f, ctrlPressed = true) > 1f)
+        assertTrue(topologyZoomForScroll(1f, 1f, ctrlPressed = true) < 1f)
+        assertEquals(1f, topologyZoomForScroll(1f, -1f, ctrlPressed = false))
     }
 }

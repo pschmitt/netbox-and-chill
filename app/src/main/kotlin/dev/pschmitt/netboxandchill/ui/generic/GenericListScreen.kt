@@ -73,7 +73,15 @@ fun GenericListScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(viewModel.route.label) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            AppIcons.forEndpointPath(viewModel.route.endpointPath),
+                            contentDescription = null,
+                        )
+                        Text(viewModel.route.label, modifier = Modifier.padding(start = 8.dp))
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Open navigation")

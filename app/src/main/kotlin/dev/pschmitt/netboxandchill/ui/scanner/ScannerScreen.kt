@@ -21,6 +21,8 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +60,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -411,6 +414,13 @@ private fun CameraPreview(
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     val boundCamera = remember { mutableStateOf<Camera?>(null) }
+    var cameraSwitching by remember { mutableStateOf(true) }
+    val switchOverlayAlpha by
+        animateFloatAsState(
+            targetValue = if (cameraSwitching) 1f else 0f,
+            animationSpec = tween(durationMillis = 180),
+            label = "camera-switch-overlay",
+        )
 
     DisposableEffect(Unit) { onDispose { cameraExecutor.shutdown() } }
 
@@ -432,6 +442,7 @@ private fun CameraPreview(
         if (provider == null || view == null) {
             onDispose {}
         } else {
+            cameraSwitching = true
             onCameraReady(null)
             boundCamera.value = null
             val available = availableCameraOptions(provider)
@@ -482,9 +493,11 @@ private fun CameraPreview(
                     .onSuccess {
                         boundCamera.value = it
                         onCameraReady(it)
+                        cameraSwitching = false
                     }
                     .onFailure {
                         Timber.e(it, "Unable to bind ${activeCamera.id}")
+                        cameraSwitching = false
                     }
             } else {
                 Timber.w("No camera available for lens %s", desiredLens)
@@ -497,9 +510,10 @@ private fun CameraPreview(
         }
     }
 
-    AndroidView(
-        modifier = Modifier.fillMaxSize().zIndex(-1f),
-        factory = { ctx ->
+    Box(Modifier.fillMaxSize()) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize().zIndex(-1f),
+            factory = { ctx ->
             val previewView = PreviewView(ctx)
             // SurfaceView (the default PERFORMANCE mode) can sit above Compose's controls and
             // consume their touch events on some devices, notably Pixel and Zenfone. TextureView
@@ -558,8 +572,18 @@ private fun CameraPreview(
         },
         update = { view ->
             previewView = view
-        },
-    )
+            },
+        )
+        if (switchOverlayAlpha > 0f) {
+            Box(
+                Modifier.fillMaxSize().graphicsLayer { alpha = switchOverlayAlpha },
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(color = Color.Black, modifier = Modifier.fillMaxSize()) {}
+                CircularProgressIndicator(color = Color.White.copy(alpha = 0.7f))
+            }
+        }
+    }
 }
 
 private data class ScannerCameraOption(

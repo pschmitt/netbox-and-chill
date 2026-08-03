@@ -13,7 +13,7 @@ sealed interface Route {
 
     @Serializable data object DeviceList : Route
 
-    @Serializable data object Topology : Route
+    @Serializable data class Topology(val focusedDeviceId: Int? = null) : Route
 
     /** Component type picker for adding a device component from a device detail page. */
     @Serializable data class AddComponent(val deviceId: Int) : Route

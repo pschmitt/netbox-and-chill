@@ -42,7 +42,7 @@ constructor(
     fun observeFor(endpointPath: String, objectId: Int): Flow<List<CachedDocument>> =
         directoryRepository
             .observeAll()
-            .map { models -> models.firstOrNull(::isDocumentModel)?.endpointPath }
+            .map { models -> models.firstOrNull(::isDocumentsPluginModel)?.endpointPath }
             .distinctUntilChanged()
             .flatMapLatest { documentEndpointPath ->
                 documentEndpointPath?.let {
@@ -59,10 +59,6 @@ constructor(
                     .sortedWith(compareByDescending<CachedDocumentWithTarget> { it.created }.thenBy { it.document.name })
                     .map { it.document }
             }
-
-    private fun isDocumentModel(model: NetBoxModelEntity): Boolean =
-        model.appKey.contains("document", ignoreCase = true) &&
-            model.modelKey.equals("documents", ignoreCase = true)
 
     private fun parseDocument(entity: NetBoxObjectEntity): CachedDocumentWithTarget? {
         val objectJson = runCatching {

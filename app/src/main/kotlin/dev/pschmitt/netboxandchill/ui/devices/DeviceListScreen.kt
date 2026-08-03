@@ -40,6 +40,7 @@ import dev.pschmitt.netboxandchill.ui.common.RemoteThumbnail
 import dev.pschmitt.netboxandchill.ui.common.SearchHighlightedText
 import dev.pschmitt.netboxandchill.ui.common.StatusChip
 import dev.pschmitt.netboxandchill.ui.common.detailAccentFor
+import dev.pschmitt.netboxandchill.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +74,15 @@ fun DeviceListScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Devices") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            AppIcons.forEndpointPath("api/dcim/devices/"),
+                            contentDescription = null,
+                        )
+                        Text("Devices", modifier = Modifier.padding(start = 8.dp))
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Open navigation")

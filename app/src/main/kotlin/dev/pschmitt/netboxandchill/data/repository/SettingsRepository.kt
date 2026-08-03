@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dev.pschmitt.netboxandchill.data.schema.NetBoxRef
+import dev.pschmitt.netboxandchill.data.topology.TopologyPosition
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -268,6 +269,15 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     val hiddenDashboardSections: StateFlow<Set<String>> =
         _hiddenDashboardSections.asStateFlow()
 
+    private val _showTopologyDeviceTypeImages =
+        MutableStateFlow(prefs.getBoolean(KEY_SHOW_TOPOLOGY_DEVICE_TYPE_IMAGES, true))
+    val showTopologyDeviceTypeImages: StateFlow<Boolean> =
+        _showTopologyDeviceTypeImages.asStateFlow()
+
+    private val _topologyNodePositions = MutableStateFlow(loadTopologyNodePositions())
+    val topologyNodePositions: StateFlow<Map<String, TopologyPosition>> =
+        _topologyNodePositions.asStateFlow()
+
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()
         _syncAttachmentsToDisk.value = enabled
@@ -474,6 +484,18 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _hiddenDashboardSections.value = updated
     }
 
+    fun setShowTopologyDeviceTypeImages(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SHOW_TOPOLOGY_DEVICE_TYPE_IMAGES, enabled).apply()
+        _showTopologyDeviceTypeImages.value = enabled
+    }
+
+    fun setTopologyNodePosition(nodeId: String, position: TopologyPosition) {
+        if (nodeId.isBlank() || !position.x.isFinite() || !position.y.isFinite()) return
+        val updated = _topologyNodePositions.value + (nodeId to position)
+        prefs.edit().putString(KEY_TOPOLOGY_NODE_POSITIONS, encodeTopologyNodePositions(updated)).apply()
+        _topologyNodePositions.value = updated
+    }
+
     fun togglePinned(endpointPath: String) {
         val current = _pinnedModelPaths.value
         val updated =
@@ -519,6 +541,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _sidebarModelOrders.value = emptyMap()
         _dashboardSectionOrder.value = emptyList()
         _hiddenDashboardSections.value = DEFAULT_HIDDEN_DASHBOARD_SECTIONS
+        _showTopologyDeviceTypeImages.value = true
+        _topologyNodePositions.value = emptyMap()
         _changeNotificationsEnabled.value = false
         _changeNotificationFilters.value = setOf(ChangeNotificationFilter.All.storageKey)
         clearSyncIssue()
@@ -676,12 +700,32 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             ?.toSet()
             ?: DEFAULT_HIDDEN_DASHBOARD_SECTIONS
 
+    private fun loadTopologyNodePositions(): Map<String, TopologyPosition> =
+        prefs
+            .getString(KEY_TOPOLOGY_NODE_POSITIONS, null)
+            .orEmpty()
+            .split(ITEM_SEPARATOR)
+            .mapNotNull { entry ->
+                val parts = entry.split(TARGET_SEPARATOR, limit = 3)
+                val x = parts.getOrNull(1)?.toFloatOrNull()
+                val y = parts.getOrNull(2)?.toFloatOrNull()
+                if (parts.size == 3 && parts[0].isNotBlank() && x?.isFinite() == true && y?.isFinite() == true) {
+                    parts[0] to TopologyPosition(x, y)
+                } else null
+            }
+            .toMap()
+
     private fun updateStringSet(current: Set<String>, key: String, enabled: Boolean): Set<String> =
         if (key.isBlank()) current else if (enabled) current + key else current - key
 
     private fun encodeModelOrders(orders: Map<String, List<String>>): String =
         orders.entries.joinToString(MODEL_ENTRY_SEPARATOR) { (appKey, modelKeys) ->
             appKey + ORDER_SEPARATOR + modelKeys.joinToString(ITEM_SEPARATOR)
+        }
+
+    private fun encodeTopologyNodePositions(positions: Map<String, TopologyPosition>): String =
+        positions.entries.joinToString(ITEM_SEPARATOR) { (id, position) ->
+            id + TARGET_SEPARATOR + position.x + TARGET_SEPARATOR + position.y
         }
 
     private companion object {
@@ -722,6 +766,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_HIDDEN_SIDEBAR_APPS = "hidden_sidebar_apps"
         const val KEY_DASHBOARD_SECTION_ORDER = "dashboard_section_order"
         const val KEY_HIDDEN_DASHBOARD_SECTIONS = "hidden_dashboard_sections"
+        const val KEY_SHOW_TOPOLOGY_DEVICE_TYPE_IMAGES = "show_topology_device_type_images"
+        const val KEY_TOPOLOGY_NODE_POSITIONS = "topology_node_positions"
         val DEFAULT_HIDDEN_DASHBOARD_SECTIONS = setOf("news")
         const val ORDER_SEPARATOR = "\u001F"
         const val ITEM_SEPARATOR = "\u001E"

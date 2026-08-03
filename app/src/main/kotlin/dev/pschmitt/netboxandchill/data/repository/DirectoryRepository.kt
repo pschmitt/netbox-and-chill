@@ -8,6 +8,8 @@ import dev.pschmitt.netboxandchill.sync.SyncIssueReporter
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -30,6 +32,9 @@ constructor(
 ) {
 
     fun observeAll(): Flow<List<NetBoxModelEntity>> = dao.observeAll()
+
+    fun observeCapability(predicate: (NetBoxModelEntity) -> Boolean): Flow<Boolean> =
+        observeAll().map { models -> models.any(predicate) }.distinctUntilChanged()
 
     fun observePinned(endpointPaths: Set<String>): Flow<List<NetBoxModelEntity>> =
         dao.observeByPaths(endpointPaths)
@@ -145,5 +150,12 @@ constructor(
         val SKIPPED_ROOT_KEYS = setOf("status", "schema", "graphql", "swagger", "redoc", "docs")
     }
 }
+
+internal fun isTopologyPluginModel(model: NetBoxModelEntity): Boolean =
+    model.appKey.equals("plugins/netbox_topology_views", ignoreCase = true)
+
+internal fun isDocumentsPluginModel(model: NetBoxModelEntity): Boolean =
+    model.appKey.contains("document", ignoreCase = true) &&
+        model.modelKey.equals("documents", ignoreCase = true)
 
 private fun JsonObject.hasNumericId(): Boolean = this["id"]?.jsonPrimitive?.intOrNull != null

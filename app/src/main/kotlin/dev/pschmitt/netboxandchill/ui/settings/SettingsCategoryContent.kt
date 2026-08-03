@@ -72,6 +72,7 @@ internal data class SettingsCategoryState(
     val themeMode: ThemeMode,
     val themeAccent: ThemeAccent,
     val objectTypeAccents: Map<String, ThemeAccent>,
+    val showTopologyDeviceTypeImages: Boolean,
 )
 
 internal data class SettingsCategoryActions(
@@ -95,6 +96,7 @@ internal data class SettingsCategoryActions(
     val onUpdatePrintSettings: ((PrintSettings) -> PrintSettings) -> Unit,
     val onSetDefaultPrinter: (String, String) -> Unit,
     val onClearDefaultPrinter: () -> Unit,
+    val onSetShowTopologyDeviceTypeImages: (Boolean) -> Unit,
     val onSetChangeNotificationsEnabled: (Boolean) -> Unit,
     val onShowChangeNotifications: () -> Unit,
     val onSetGestureAction: (GestureShortcut, GestureAction) -> Unit,
@@ -405,6 +407,19 @@ private fun DisplaySettingsContent(
             Text(
                 if (state.pinnedModelPaths.isEmpty()) "No item types pinned"
                 else "${state.pinnedModelPaths.size} pinned · Long-press an item type on Add to change this"
+            )
+        },
+    )
+    ListItem(
+        leadingContent = { Icon(Icons.Default.Hub, contentDescription = null) },
+        headlineContent = { Text("Topology device images") },
+        supportingContent = {
+            Text("Use cached device-type front images for matching topology nodes")
+        },
+        trailingContent = {
+            Switch(
+                checked = state.showTopologyDeviceTypeImages,
+                onCheckedChange = actions.onSetShowTopologyDeviceTypeImages,
             )
         },
     )

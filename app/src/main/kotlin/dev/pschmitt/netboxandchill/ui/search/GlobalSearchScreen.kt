@@ -97,6 +97,7 @@ fun GlobalSearchScreen(
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
     val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
     val objectTypeAccents by viewModel.objectTypeAccents.collectAsStateWithLifecycle()
+    val recentKeys = remember(recentResults) { recentResults.mapTo(HashSet()) { searchHitKey(it) } }
     val snackbarHostState = remember { SnackbarHostState() }
     val focusRequester = remember { FocusRequester() }
 
@@ -193,6 +194,7 @@ fun GlobalSearchScreen(
                                             GlobalSearchRepository.DEVICES_ENDPOINT_PATH &&
                                             devicesById[hit.id] != null),
                                 localImageFile = viewModel::localImageFile,
+                                isRecent = true,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
                         }
@@ -270,6 +272,7 @@ fun GlobalSearchScreen(
                                             GlobalSearchRepository.DEVICES_ENDPOINT_PATH &&
                                             devicesById[hit.id] != null),
                                 localImageFile = viewModel::localImageFile,
+                                isRecent = searchHitKey(hit) in recentKeys,
                                 onClick = { onResultClick(hit.endpointPath, hit.id) },
                             )
                         }
@@ -432,6 +435,7 @@ private fun SearchResultRow(
     assetTag: String?,
     hasAssetTagField: Boolean,
     localImageFile: (SearchThumbnail) -> java.io.File?,
+    isRecent: Boolean = false,
     onClick: () -> Unit,
 ) {
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
@@ -474,8 +478,23 @@ private fun SearchResultRow(
             val secondaryLine = hit.secondaryLine?.takeIf(String::isNotBlank)
             val visibleAssetTag = assetTag?.takeIf(String::isNotBlank)
             val matchHint = hit.matchHint?.takeIf { it != secondaryLine }
-            if (secondaryLine != null || visibleAssetTag != null || hasAssetTagField || matchHint != null) {
+            if (isRecent || secondaryLine != null || visibleAssetTag != null || hasAssetTagField || matchHint != null) {
                 Column {
+                    if (isRecent) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.padding(bottom = 2.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            ) {
+                                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Text("Recently visited", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
+                            }
+                        }
+                    }
                     secondaryLine?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     if (visibleAssetTag != null) AssetTagBadge(visibleAssetTag)
                     else if (hasAssetTagField) MissingAssetTagBadge()
@@ -494,6 +513,8 @@ private fun SearchResultRow(
         modifier = Modifier.clickable(onClick = onClick),
     )
 }
+
+private fun searchHitKey(hit: SearchHit): String = "${hit.endpointPath.trimEnd('/')}:${hit.id}"
 
 @Composable
 private fun ObjectTypeBadge(label: String, icon: ImageVector, color: Color) {
