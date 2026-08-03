@@ -184,7 +184,7 @@ private fun TopologyGraphCanvas(graph: TopologyGraph, modifier: Modifier = Modif
                 (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
                 (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
             )
-        pan += (graphContentCenter - graphBounds.center) * (zoom - nextZoom) * fitScale
+        pan = (graphBounds.center - graphContentCenter) * nextZoom * fitScale
         zoom = nextZoom
     }
 

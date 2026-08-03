@@ -5217,6 +5217,20 @@ the preference is disabled or no image is cached.
 Status: not started, 2026-08-03 - captured from the topology presentation follow-up.
 
 
+## NBC-308: make topology nodes discoverable and clickable
+
+Topology labels should become readable at a practical zoom level. Device nodes should open a
+compact preview containing the device summary and its connected devices, with a tap-through to the
+full cached device view.
+
+- [ ] Show device names earlier without recreating the dense overview text wall.
+- [ ] Hit-test rendered nodes and show a concise device preview in a modal bottom sheet on tap.
+- [ ] List the selected device's connected devices and link to the full device view.
+- [ ] Add focused interaction tests for node hit-testing and preview navigation.
+
+Status: not started, 2026-08-03 - captured from the topology usability review.
+
+
 ## NBC-306: gate optional plugin features by server capabilities
 
 Topology and netbox-documents are optional NetBox plugins. Their navigation entries, sync work,
