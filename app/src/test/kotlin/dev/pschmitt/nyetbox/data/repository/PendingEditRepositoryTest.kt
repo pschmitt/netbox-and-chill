@@ -308,6 +308,8 @@ internal class FakeApi(
     var lastDelete: String? = null
     private var nextCreatedId = 101
 
+    override suspend fun getAuthenticationCheck(): JsonObject = error("unused")
+
     override suspend fun getApiRoot(): Map<String, String> = error("unused")
 
     override suspend fun getUrlMap(url: String): Map<String, String> = error("unused")

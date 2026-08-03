@@ -152,14 +152,11 @@ constructor(
         }
         viewModelScope.launch {
             _connectionTest.value = ConnectionTestState.Testing
-            runCatching { api.getApiRoot() }
+            lookupCurrentUser(credentials)
                 .onSuccess {
-                    refreshCurrentUser()
-                    val user = settingsRepository.currentUser.value
+                    settingsRepository.setCurrentUser(it)
                     _connectionTest.value =
-                        ConnectionTestState.Success(
-                            user?.let { "Connected as ${it.summary}" } ?: "Connection successful",
-                        )
+                        ConnectionTestState.Success("Connected as ${it.summary}")
                 }
                 .onFailure {
                     _connectionTest.value =
@@ -182,6 +179,10 @@ constructor(
 
     private suspend fun lookupCurrentUser(credentials: NetBoxCredentials): Result<NetBoxUserIdentity> =
         runCatching {
+            parseCurrentUser(api.getAuthenticationCheck())
+        }.recoverCatching {
+            // NetBox 4.5 introduced authentication-check. Keep older instances usable by falling
+            // back to the v2 token-owner lookup when the endpoint is not available.
             val tokenKey = tokenKey(credentials.token) ?: error("Token owner lookup is unavailable")
             val tokenPage =
                 api.listObjects(
@@ -190,16 +191,20 @@ constructor(
                 )
             val user = tokenPage.results.firstOrNull()?.get("user") as? JsonObject
                 ?: error("The NetBox API did not return the token owner")
-            val username = user.stringValue("username") ?: error("The token owner has no username")
-            NetBoxUserIdentity(
-                username = username,
-                fullName =
-                    listOfNotNull(user.stringValue("first_name"), user.stringValue("last_name"))
-                        .joinToString(" ")
-                        .takeIf { it.isNotBlank() },
-                email = user.stringValue("email"),
-            )
+            parseCurrentUser(user)
         }
+
+    private fun parseCurrentUser(user: JsonObject): NetBoxUserIdentity {
+        val username = user.stringValue("username") ?: error("The authenticated user has no username")
+        return NetBoxUserIdentity(
+            username = username,
+            fullName =
+                listOfNotNull(user.stringValue("first_name"), user.stringValue("last_name"))
+                    .joinToString(" ")
+                    .takeIf { it.isNotBlank() },
+            email = user.stringValue("email"),
+        )
+    }
 
     private fun tokenKey(token: String): String? =
         Regex("^nb[a-z]+_([^.]*)\\..+$", RegexOption.IGNORE_CASE)

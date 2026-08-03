@@ -5649,6 +5649,8 @@ Settings → Connection should identify the NetBox user associated with the conf
 offer a lightweight connection test without starting a full synchronization.
 
 - [x] Resolve and cache the token owner for offline display.
+- [x] Prefer NetBox's `/api/authentication-check/` endpoint, with a legacy fallback for older
+  instances.
 - [x] Show the current user and optional email on the Connection screen.
 - [x] Add an icon-bearing Test connection button with success and failure feedback.
 - [x] Bump the app version to 1.1.1.

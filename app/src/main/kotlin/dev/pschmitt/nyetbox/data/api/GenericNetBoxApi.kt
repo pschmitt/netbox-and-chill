@@ -18,6 +18,9 @@ import retrofit2.http.Url
  * `@GET("...")` path, since the whole point is not knowing the object types up front.
  */
 interface GenericNetBoxApi {
+    /** Returns the authenticated user for the API token making the request (NetBox 4.5+). */
+    @GET("api/authentication-check/") suspend fun getAuthenticationCheck(): JsonObject
+
     /**
      * The API root (`GET /api/`) and every app root (`GET /api/<app>/`) are both a flat
      * `{modelOrAppName: "url"}` map - DRF's default router root view shape.

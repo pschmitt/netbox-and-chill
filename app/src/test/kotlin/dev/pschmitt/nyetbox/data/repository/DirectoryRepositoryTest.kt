@@ -97,6 +97,8 @@ class DirectoryRepositoryTest {
 private open class FakeDirectoryApi : GenericNetBoxApi {
     val probedPaths = mutableListOf<String>()
 
+    override suspend fun getAuthenticationCheck(): JsonObject = error("unused")
+
     override suspend fun getApiRoot(): Map<String, String> =
         mapOf(
             "dcim" to "https://netbox.example/api/dcim/",
