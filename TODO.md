@@ -5162,7 +5162,7 @@ pan and pinch/button zoom controls.
 Status: **done**, 2026-08-03 - removed the old `node_*` id restriction, added a deterministic
 fallback layout for missing/degenerate coordinates, capped pathological fit scaling, hid dense
 labels until a readable zoom level, and passed remote unit/lint/compile checks plus a Mi Pad
-overview/zoom sanity check.
+overview/two-step-zoom sanity check with the final APK.
 
 
 ## NBC-303: generate proper GitHub release changelogs
@@ -5183,13 +5183,14 @@ for tagged releases; workflow YAML validation and remote Android checks pass.
 The fallback topology layout currently places every node on a static grid. It avoids overlap but
 does not communicate the topology's connectivity the way the NetBox plugin's physics layout does.
 
-- [ ] Replace the grid fallback with a deterministic force-directed layout.
-- [ ] Use connections as attractive forces, node separation as repulsion, and gravity to keep the
+- [x] Replace the grid fallback with a deterministic force-directed layout.
+- [x] Use connections as attractive forces, node separation as repulsion, and gravity to keep the
       result bounded and usable offline.
-- [ ] Add parser tests covering deterministic connected/disconnected layouts.
+- [x] Add parser tests covering deterministic connected/disconnected layouts.
 
-Status: in progress, 2026-08-03 - implementation started after reproducing the dense static-grid
-layout with the cached production export.
+Status: **done**, 2026-08-03 - added a deterministic force-directed fallback with spring attraction,
+repulsion, gravity, cooling, and parser determinism tests; verified the connected clusters and
+two-step zoom on the Mi Pad 4 with the final APK.
 
 
 ## NBC-305: distinguish topology node icons
@@ -5198,10 +5199,11 @@ The custom topology renderer currently paints every node with the same square-an
 should use distinct, consistent icons for common network, compute, power, wireless, and generic
 object families.
 
-- [ ] Classify node labels into stable topology icon families.
-- [ ] Render distinct glyphs in the graph and keep the mapping covered by tests.
+- [x] Classify node labels into stable topology icon families.
+- [x] Render distinct glyphs in the graph and keep the mapping covered by tests.
 
-Status: in progress, 2026-08-03 - implementation started alongside the gravity layout work.
+Status: **done**, 2026-08-03 - added stable generic/compute/network/power/wireless glyph families,
+covered the classifier with tests, and verified the rendered graph on the Mi Pad 4.
 
 
 ## NBC-307: optionally show device-type images in topology
@@ -5243,3 +5245,15 @@ plugin as installed.
 - [ ] Keep capability decisions cache-first and covered by tests, including offline startup.
 
 Status: not started, 2026-08-03 - captured from the follow-up topology review.
+
+
+## NBC-309: make recently visited search results obvious
+
+Global search shows recently visited devices and pages before a query is entered, but they are
+currently too easy to mistake for ordinary results.
+
+- [ ] Add a clearly visible recent-visit badge or card treatment to those results.
+- [ ] Keep the treatment consistent for the empty-query and queried result states.
+- [ ] Cover the distinction with search-result UI tests.
+
+Status: not started, 2026-08-03 - captured from the global-search usability review.
