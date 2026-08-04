@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +78,7 @@ data class ImageViewerItem(
     val metadata: List<Pair<String, String>> = emptyList(),
     val localFile: File? = null,
     val relatedLink: ImageViewerRelatedLink? = null,
+    val canEdit: Boolean = false,
 )
 
 data class ImageViewerRelatedLink(val label: String, val id: Int)
@@ -101,6 +104,7 @@ fun ImageViewerDialog(
     initialIndex: Int,
     onDismiss: () -> Unit,
     onRelatedLinkClick: (ImageViewerRelatedLink) -> Unit = {},
+    onEdit: ((ImageViewerItem) -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
     val pagerState =
@@ -193,6 +197,7 @@ fun ImageViewerDialog(
                 ImageMetadataPanel(
                     item = items[pagerState.currentPage.coerceIn(0, items.lastIndex)],
                     onRelatedLinkClick = onRelatedLinkClick,
+                    onEdit = onEdit,
                 )
             }
             if (items.size > 1) {
@@ -356,6 +361,7 @@ private suspend fun PointerInputScope.detectZoomPan(
 private fun ImageMetadataPanel(
     item: ImageViewerItem,
     onRelatedLinkClick: (ImageViewerRelatedLink) -> Unit,
+    onEdit: ((ImageViewerItem) -> Unit)?,
 ) {
     Column(
         modifier =
@@ -363,7 +369,19 @@ private fun ImageMetadataPanel(
                 .background(Color.Black.copy(alpha = 0.6f))
                 .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Text(item.title, color = Color.White, style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                item.title,
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            if (item.canEdit && onEdit != null) {
+                IconButton(onClick = { onEdit(item) }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit image", tint = Color.White)
+                }
+            }
+        }
         if (item.metadata.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
             item.metadata.forEach { (label, value) ->

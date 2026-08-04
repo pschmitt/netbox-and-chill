@@ -196,9 +196,20 @@ fun GenericDetailScreen(
             ?: deviceTypePhotoViewerItems.indices.firstOrNull()
             ?: -1
     val deviceTypePreview = deviceTypePhotoViewerItems.getOrNull(deviceTypePreviewIndex)
+    val deviceTypePreviewLabel = deviceTypePhotoRows.getOrNull(deviceTypePreviewIndex)?.label
     val openDeviceTypePreview = {
         if (deviceTypePreviewIndex >= 0) {
             imageViewer = deviceTypePhotoViewerItems to deviceTypePreviewIndex
+        }
+    }
+    val onDeviceTypePreviewLongPress = {
+        if (deviceTypePreviewLabel != null) {
+            fieldActionLabel = deviceTypePreviewLabel
+        } else if (viewModel.isDeviceType) {
+            // The identity card's placeholder is also the entry point for the first photo. The
+            // upload dialog defaults to the front face and still lets the user switch to rear.
+            mediaUploadInitialKind = MediaUploadKind.DeviceTypeFront
+            showMediaUpload = true
         }
     }
     val modelLabel = endpointModelLabel(viewModel.route.endpointPath)
@@ -703,6 +714,7 @@ fun GenericDetailScreen(
                                             title = title,
                                             preview = deviceTypePreview,
                                             onPreviewClick = openDeviceTypePreview,
+                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
                                             statusField = statusField,
                                             detailAccent = detailAccent,
                                             onStatusLongPress = {
@@ -711,15 +723,6 @@ fun GenericDetailScreen(
                                         )
                                     }
                                     item { Spacer(Modifier.height(8.dp)) }
-                                    deviceTypePhotos(
-                                        rows = deviceTypePhotoRows,
-                                        title = title,
-                                        localImageFile = viewModel::localAttachmentFile,
-                                        onImageClick = { items, index ->
-                                            imageViewer = items to index
-                                        },
-                                        onLongPress = { fieldActionLabel = it },
-                                    )
                                     item {
                                         ImageAttachmentGallery(
                                             attachments = imageAttachments,
@@ -834,6 +837,7 @@ fun GenericDetailScreen(
                                             title = title,
                                             preview = deviceTypePreview,
                                             onPreviewClick = openDeviceTypePreview,
+                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
                                             statusField = statusField,
                                             detailAccent = detailAccent,
                                             onStatusLongPress = {
@@ -877,6 +881,7 @@ fun GenericDetailScreen(
                                             title = title,
                                             preview = deviceTypePreview,
                                             onPreviewClick = openDeviceTypePreview,
+                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
                                             statusField = statusField,
                                             detailAccent = detailAccent,
                                             onStatusLongPress = {
@@ -923,6 +928,7 @@ fun GenericDetailScreen(
                                             title = title,
                                             preview = deviceTypePreview,
                                             onPreviewClick = openDeviceTypePreview,
+                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
                                             statusField = statusField,
                                             detailAccent = detailAccent,
                                             onStatusLongPress = {
@@ -1040,6 +1046,15 @@ fun GenericDetailScreen(
             items = items,
             initialIndex = index,
             onDismiss = { imageViewer = null },
+            onEdit = { item ->
+                val label = item.metadata.firstOrNull { it.first == "View" }?.second
+                val kind = label?.let(::deviceTypePhotoUploadKind)
+                if (kind != null) {
+                    imageViewer = null
+                    mediaUploadInitialKind = kind
+                    showMediaUpload = true
+                }
+            },
         )
     }
     matterPairingCode?.let { code ->

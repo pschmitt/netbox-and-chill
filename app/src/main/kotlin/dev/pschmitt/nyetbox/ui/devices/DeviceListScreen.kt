@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -227,6 +228,7 @@ private fun DeviceRow(
                 localFile = localFile,
                 modifier = Modifier.size(64.dp),
                 fallbackTint = fallbackTint,
+                contentScale = ContentScale.Fit,
             )
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Row(

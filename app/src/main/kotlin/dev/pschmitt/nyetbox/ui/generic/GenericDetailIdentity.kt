@@ -1,7 +1,6 @@
 package dev.pschmitt.nyetbox.ui.generic
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +35,7 @@ internal fun GenericDetailIdentityCard(
     title: String? = null,
     preview: ImageViewerItem? = null,
     onPreviewClick: (() -> Unit)? = null,
+    onPreviewLongPress: (() -> Unit)? = null,
     statusField: FieldRow.PlainText?,
     detailAccent: Color,
     onStatusLongPress: () -> Unit,
@@ -45,18 +45,21 @@ internal fun GenericDetailIdentityCard(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val previewModifier =
+                Modifier.size(64.dp).then(
+                    if (onPreviewClick != null || onPreviewLongPress != null) {
+                        Modifier.combinedClickable(
+                            onClick = { onPreviewClick?.invoke() },
+                            onLongClick = { onPreviewLongPress?.invoke() },
+                        )
+                    } else Modifier
+                )
             if (preview != null) {
                 RemoteThumbnail(
                     imageUrl = preview.url,
                     contentDescription = preview.title,
                     localFile = preview.localFile,
-                    modifier =
-                        Modifier.size(64.dp)
-                            .then(
-                                if (onPreviewClick != null)
-                                    Modifier.clickable(onClick = onPreviewClick)
-                                else Modifier
-                            ),
+                    modifier = previewModifier,
                     contentScale = ContentScale.Fit,
                     fallbackTint = detailAccent,
                 )
@@ -64,7 +67,7 @@ internal fun GenericDetailIdentityCard(
                 Surface(
                     color = detailAccent.copy(alpha = 0.18f),
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.size(64.dp),
+                    modifier = previewModifier,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(

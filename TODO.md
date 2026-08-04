@@ -5814,6 +5814,21 @@ Status: **done**, 2026-08-04 - remote Kotlin compilation, unit tests, lint,
 and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
 
 
+## NBC-363: simplify device-type photos and preserve list thumbnails
+
+The device-type detail page already shows the front photo in its identity card, so the duplicate
+front/rear photo widget is unnecessary. Editing must remain discoverable from the image viewer and
+from long-press actions, including when no photo exists yet.
+
+- [x] Remove the duplicate front/rear photo widget from the device-type overview.
+- [x] Add image-viewer editing and long-press upload/edit actions for device-type photos,
+      including the placeholder state.
+- [x] Keep device-type list thumbnails fully visible instead of cropping them.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, Android-test compilation, lint,
+ktfmt check, and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
+
+
 ## NBC-360: support multiple NetBox server profiles with isolated caches
 
 Allow users to add and switch between multiple NetBox instances after onboarding while keeping
