@@ -27,8 +27,7 @@ fun visualColorForEndpointPath(
             endpointPath.startsWith("api/tenancy/") -> 0xFFAD1457
             else ->
                 listOf(0xFF455A64, 0xFF00695C, 0xFF8D6E63, 0xFF3949AB)[
-                    Math.floorMod(endpointPath.hashCode(), 4)
-                ]
+                    Math.floorMod(endpointPath.hashCode(), 4)]
         }
     if (override == null || override == ThemeAccent.System) return Color(fallback)
     return when (override) {

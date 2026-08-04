@@ -40,7 +40,7 @@ internal fun GenericDetailChangelogRow(
             supportingContent = {
                 Text(
                     "${change.actionLabel.ifBlank { "Changed" }} by ${change.userDisplay}\n" +
-                        formatNetBoxDateTime(change.time),
+                        formatNetBoxDateTime(change.time)
                 )
             },
             trailingContent = {

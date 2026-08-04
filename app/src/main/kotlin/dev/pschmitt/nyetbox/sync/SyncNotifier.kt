@@ -204,7 +204,9 @@ class SyncNotifier @Inject constructor(@ApplicationContext private val context: 
         NotificationManagerCompat.from(context).notify(RECONCILIATION_NOTIFICATION_ID, notification)
     }
 
-    /** Posts optional change alerts only while the app is backgrounded, using the silent channel. */
+    /**
+     * Posts optional change alerts only while the app is backgrounded, using the silent channel.
+     */
     fun notifyNetBoxChanges(events: List<ChangeNotificationEvent>) {
         if (events.isEmpty() || appInForeground || !notificationsAllowed()) return
         val details =

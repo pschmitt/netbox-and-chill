@@ -46,14 +46,15 @@ internal fun GenericDetailIdentityCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val previewModifier =
-                Modifier.size(64.dp).then(
-                    if (onPreviewClick != null || onPreviewLongPress != null) {
-                        Modifier.combinedClickable(
-                            onClick = { onPreviewClick?.invoke() },
-                            onLongClick = { onPreviewLongPress?.invoke() },
-                        )
-                    } else Modifier
-                )
+                Modifier.size(64.dp)
+                    .then(
+                        if (onPreviewClick != null || onPreviewLongPress != null) {
+                            Modifier.combinedClickable(
+                                onClick = { onPreviewClick?.invoke() },
+                                onLongClick = { onPreviewLongPress?.invoke() },
+                            )
+                        } else Modifier
+                    )
             if (preview != null) {
                 RemoteThumbnail(
                     imageUrl = preview.url,

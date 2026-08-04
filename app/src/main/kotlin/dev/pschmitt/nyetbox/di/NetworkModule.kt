@@ -15,8 +15,8 @@ import dev.pschmitt.nyetbox.BuildConfig
 import dev.pschmitt.nyetbox.data.api.AuthInterceptor
 import dev.pschmitt.nyetbox.data.api.DynamicBaseUrlInterceptor
 import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
-import dev.pschmitt.nyetbox.data.api.NetBoxApi
 import dev.pschmitt.nyetbox.data.api.MediaNetBoxApi
+import dev.pschmitt.nyetbox.data.api.NetBoxApi
 import dev.pschmitt.nyetbox.data.api.OfflineModeInterceptor
 import dev.pschmitt.nyetbox.data.api.TopologyApi
 import dev.pschmitt.nyetbox.image.LibavifImageDecoder
@@ -55,7 +55,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideMediaNetBoxApi(retrofit: Retrofit): MediaNetBoxApi = retrofit.create(MediaNetBoxApi::class.java)
+    fun provideMediaNetBoxApi(retrofit: Retrofit): MediaNetBoxApi =
+        retrofit.create(MediaNetBoxApi::class.java)
 
     @Provides
     @Singleton
@@ -102,9 +103,7 @@ object NetworkModule {
     @Singleton
     @NewsClient
     fun provideNewsClient(): OkHttpClient =
-        OkHttpClient.Builder()
-            .callTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-            .build()
+        OkHttpClient.Builder().callTimeout(15, java.util.concurrent.TimeUnit.SECONDS).build()
 
     @Provides
     @Singleton

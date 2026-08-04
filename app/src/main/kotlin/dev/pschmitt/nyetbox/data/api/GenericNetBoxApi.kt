@@ -12,10 +12,10 @@ import retrofit2.http.Url
 
 /**
  * Schema-free access used to discover NetBox's own object model (see
- * [dev.pschmitt.nyetbox.data.repository.DirectoryRepository]) and to list/fetch objects of
- * any type generically (see [dev.pschmitt.nyetbox.data.repository.GenericObjectRepository]).
- * All calls take the endpoint path/URL as returned by NetBox itself rather than a fixed
- * `@GET("...")` path, since the whole point is not knowing the object types up front.
+ * [dev.pschmitt.nyetbox.data.repository.DirectoryRepository]) and to list/fetch objects of any type
+ * generically (see [dev.pschmitt.nyetbox.data.repository.GenericObjectRepository]). All calls take
+ * the endpoint path/URL as returned by NetBox itself rather than a fixed `@GET("...")` path, since
+ * the whole point is not knowing the object types up front.
  */
 interface GenericNetBoxApi {
     /** Returns the authenticated user for the API token making the request (NetBox 4.5+). */
@@ -44,8 +44,7 @@ interface GenericNetBoxApi {
 
     @POST suspend fun createObject(@Url url: String, @Body body: JsonObject): JsonObject
 
-    @HTTP(method = "DELETE", hasBody = false)
-    suspend fun deleteObject(@Url url: String)
+    @HTTP(method = "DELETE", hasBody = false) suspend fun deleteObject(@Url url: String)
 
     /**
      * DRF's `OPTIONS` response for a ChoiceField enumerates its valid values - used to resolve the

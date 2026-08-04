@@ -20,9 +20,9 @@ internal data class InlineDiff(
 private const val MAX_DIFF_TOKENS = 400
 
 /**
- * Builds a compact word/punctuation-level diff while retaining whitespace in the rendered text.
- * The bounded input keeps large JSON or Markdown fields from turning the quadratic LCS pass into
- * an expensive UI operation; those fields still render correctly, just as a single changed span.
+ * Builds a compact word/punctuation-level diff while retaining whitespace in the rendered text. The
+ * bounded input keeps large JSON or Markdown fields from turning the quadratic LCS pass into an
+ * expensive UI operation; those fields still render correctly, just as a single changed span.
  */
 internal fun buildInlineDiff(before: String?, after: String?): InlineDiff {
     val beforeTokens = tokenizeForDiff(before.orEmpty())

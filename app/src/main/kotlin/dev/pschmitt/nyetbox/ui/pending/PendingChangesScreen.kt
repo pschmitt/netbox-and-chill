@@ -73,7 +73,10 @@ fun PendingChangesScreen(
                 actions = {
                     if (changes.isNotEmpty()) {
                         IconButton(onClick = { confirmAll = true }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Revert all changes")
+                            Icon(
+                                Icons.Default.DeleteSweep,
+                                contentDescription = "Revert all changes",
+                            )
                         }
                     }
                 },
@@ -85,7 +88,10 @@ fun PendingChangesScreen(
                 Modifier.padding(padding).fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("No pending offline changes", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "No pending offline changes",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         } else {
             LazyColumn(
@@ -164,7 +170,9 @@ fun PendingChangesScreen(
             icon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) },
             title = { Text("Revert all changes?") },
             text = {
-                Text("This removes all pending offline creates, edits, and deletions from this device.")
+                Text(
+                    "This removes all pending offline creates, edits, and deletions from this device."
+                )
             },
             confirmButton = {
                 TextButton(

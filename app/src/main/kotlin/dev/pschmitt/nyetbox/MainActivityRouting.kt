@@ -83,8 +83,7 @@ internal fun routeForGesture(action: GestureAction, target: GestureTarget?): Rou
         GestureAction.AddSpecific ->
             target?.let { Route.GenericCreate(it.endpointPath, it.label) } ?: Route.Add
         GestureAction.DeviceList -> Route.DeviceList
-        GestureAction.ListSpecific ->
-            target?.let { Route.GenericList(it.endpointPath, it.label) }
+        GestureAction.ListSpecific -> target?.let { Route.GenericList(it.endpointPath, it.label) }
         GestureAction.DetailSpecific ->
             target?.id?.let { id ->
                 if (target.endpointPath == NetBoxRef.DEVICES_ENDPOINT_PATH && id > 0) {

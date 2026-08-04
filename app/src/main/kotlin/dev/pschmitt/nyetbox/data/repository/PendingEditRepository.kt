@@ -78,7 +78,9 @@ constructor(
 
     fun observeQueuedMutationCount(): Flow<Int> = pendingEditDao.observeQueuedMutationCount()
 
-    /** Drops one local mutation and restores the last server-backed snapshot when it was an edit. */
+    /**
+     * Drops one local mutation and restores the last server-backed snapshot when it was an edit.
+     */
     suspend fun revertPending(edit: PendingEditEntity) {
         if (edit.state == PendingEditEntity.CREATE_QUEUED) {
             genericObjectRepository.removeCachedObject(edit.endpointPath, edit.id)
@@ -472,28 +474,31 @@ constructor(
     }
 
     private fun withDisplay(value: JsonObject): JsonObject =
-        JsonObject(buildMap {
-            putAll(value)
-            put("display", JsonPrimitive(displayFor(value)))
-        })
+        JsonObject(
+            buildMap {
+                putAll(value)
+                put("display", JsonPrimitive(displayFor(value)))
+            }
+        )
 
     private fun displayFor(value: JsonObject): String =
         sequenceOf("name", "model", "label", "serial", "asset_tag", "display")
             .mapNotNull { key -> (value[key] as? JsonPrimitive)?.contentOrNull }
-            .firstOrNull { it.isNotBlank() }
-            ?: "Pending NetBox item"
+            .firstOrNull { it.isNotBlank() } ?: "Pending NetBox item"
 
     private fun reconciledItem(
         endpointPath: String,
         server: JsonObject,
         fallbackLocalJson: String,
     ): ReconciledItem {
-        val fallback = runCatching { decode(fallbackLocalJson) }.getOrDefault(JsonObject(emptyMap()))
+        val fallback =
+            runCatching { decode(fallbackLocalJson) }.getOrDefault(JsonObject(emptyMap()))
         return ReconciledItem(
             endpointPath = endpointPath,
             id = (server["id"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0,
-            display = displayFor(server).takeUnless { it == "Pending NetBox item" }
-                ?: displayFor(fallback),
+            display =
+                displayFor(server).takeUnless { it == "Pending NetBox item" }
+                    ?: displayFor(fallback),
         )
     }
 }

@@ -13,9 +13,9 @@ import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.RecentVisitRepository
 import dev.pschmitt.nyetbox.data.repository.SearchHit
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
+import dev.pschmitt.nyetbox.data.repository.queryRemainderAfterTypeSelection
 import dev.pschmitt.nyetbox.data.repository.rankSearchHits
 import dev.pschmitt.nyetbox.data.repository.recentVisitsToSearchHits
-import dev.pschmitt.nyetbox.data.repository.queryRemainderAfterTypeSelection
 import dev.pschmitt.nyetbox.data.repository.typeFilterSuggestions
 import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.ui.common.CacheFirstRefreshState
@@ -34,12 +34,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
 data class SearchThumbnail(val url: String, val filename: String)
 
 internal fun shouldRefreshGlobalSearch(queryText: String, offlineMode: Boolean): Boolean =
@@ -120,7 +121,11 @@ constructor(
     val deviceTypeFrontImagesById: StateFlow<Map<Int, String>> =
         genericObjectRepository
             .observeObjects(GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH, "")
-            .map { types -> types.mapNotNull { t -> frontImageUrlFromRawJson(t.json)?.let { t.id to it } }.toMap() }
+            .map { types ->
+                types
+                    .mapNotNull { t -> frontImageUrlFromRawJson(t.json)?.let { t.id to it } }
+                    .toMap()
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     private val knownModels: StateFlow<List<NetBoxModelEntity>> =
@@ -136,10 +141,12 @@ constructor(
 
     private val _refreshState = MutableStateFlow(CacheFirstRefreshState())
     val isRefreshing: StateFlow<Boolean> =
-        _refreshState.map { it.isRefreshing }
+        _refreshState
+            .map { it.isRefreshing }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val errorMessage: StateFlow<String?> =
-        _refreshState.map { it.errorMessage }
+        _refreshState
+            .map { it.errorMessage }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Every discovered cached model is available here so result rows and type completions can use
@@ -159,19 +166,19 @@ constructor(
                     text to offline
                 }
                 .collectLatest { (text, offline) ->
-                if (!shouldRefreshGlobalSearch(text, offline)) return@collectLatest
-                val endpointPaths =
-                    typeFilter.value?.endpointPath?.let(::listOf)
-                        ?: (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS +
-                                settingsRepository.pinnedModelPaths.value)
-                            .distinct()
-                _refreshState.runCacheFirstRefresh(
-                    operation = {
-                        searchRepository.refresh(text, endpointPaths)
-                        Result.success(Unit)
-                    },
-                    errorMessage = { "Live search refresh failed - showing cached results" },
-                )
+                    if (!shouldRefreshGlobalSearch(text, offline)) return@collectLatest
+                    val endpointPaths =
+                        typeFilter.value?.endpointPath?.let(::listOf)
+                            ?: (GlobalSearchRepository.BASELINE_ENDPOINT_PATHS +
+                                    settingsRepository.pinnedModelPaths.value)
+                                .distinct()
+                    _refreshState.runCacheFirstRefresh(
+                        operation = {
+                            searchRepository.refresh(text, endpointPaths)
+                            Result.success(Unit)
+                        },
+                        errorMessage = { "Live search refresh failed - showing cached results" },
+                    )
                 }
         }
     }

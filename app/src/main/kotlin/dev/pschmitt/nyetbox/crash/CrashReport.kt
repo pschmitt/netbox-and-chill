@@ -36,8 +36,7 @@ object CrashReportFormatter {
     private val netBoxToken = Regex("(?i)\\bnb[tp]_[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b")
     private val authorizationHeader =
         Regex("(?i)(authorization\\s*[:=]\\s*(?:bearer|token)\\s+)[^\\s]+")
-    private val tokenParameter =
-        Regex("(?i)((?:api[-_ ]?token|token)\\s*[:=]\\s*)[^\\s,;}\\]]+")
+    private val tokenParameter = Regex("(?i)((?:api[-_ ]?token|token)\\s*[:=]\\s*)[^\\s,;}\\]]+")
 
     fun format(
         threadName: String,
@@ -48,7 +47,8 @@ object CrashReportFormatter {
         timestamp: String = Instant.now().toString(),
         device: String = "${Build.MANUFACTURER} ${Build.MODEL} (SDK ${Build.VERSION.SDK_INT})",
     ): String {
-        val stackTrace = StringWriter().also { writer -> throwable.printStackTrace(PrintWriter(writer)) }
+        val stackTrace =
+            StringWriter().also { writer -> throwable.printStackTrace(PrintWriter(writer)) }
         return buildString {
             appendLine("Nyetbox crash report")
             appendLine("Time: $timestamp")

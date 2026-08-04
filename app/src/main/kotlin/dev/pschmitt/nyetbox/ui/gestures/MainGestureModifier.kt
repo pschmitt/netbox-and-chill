@@ -14,13 +14,11 @@ internal fun Modifier.withConfiguredGestures(
 ): Modifier {
     if (!enabled) return this
 
-    fun actionFor(shortcut: GestureShortcut): GestureAction =
-        actions[shortcut] ?: GestureAction.Off
+    fun actionFor(shortcut: GestureShortcut): GestureAction = actions[shortcut] ?: GestureAction.Off
 
     fun targetFor(shortcut: GestureShortcut): GestureTarget? = targets[shortcut]
 
-    return this
-        .multiFingerSwipe(2, SwipeDirection.Down) {
+    return this.multiFingerSwipe(2, SwipeDirection.Down) {
             val shortcut = GestureShortcut.TwoFingerDown
             onGesture(shortcut, actionFor(shortcut), targetFor(shortcut))
         }

@@ -23,8 +23,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -79,8 +79,7 @@ constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
     private val fileDownloadRepository: FileDownloadRepository,
-) :
-    ViewModel() {
+) : ViewModel() {
 
     private val route: Route.ObjectChangeDiff = savedStateHandle.toRoute()
 
@@ -101,12 +100,10 @@ constructor(
         viewModelScope.launch {
             _isLoading.value = true
             val result = repository.fetchObjectChange(route.changeId)
-            result
-                .getOrNull()
-                ?.let {
-                    val definitions = customFieldRepository.observeDefinitions().first()
-                    _diff.value = it.toDiffUi(definitions)
-                }
+            result.getOrNull()?.let {
+                val definitions = customFieldRepository.observeDefinitions().first()
+                _diff.value = it.toDiffUi(definitions)
+            }
             result.exceptionOrNull()?.let {
                 _errorMessage.value = it.message ?: "Couldn't load this change"
             }
@@ -186,7 +183,8 @@ private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"
 private fun objectTypeEndpoint(objectType: String?): String? =
     when (objectType) {
         "dcim.device" -> DEVICES_ENDPOINT_PATH
-        "dcim.devicetype", "dcim.device_type" -> "api/dcim/device-types/"
+        "dcim.devicetype",
+        "dcim.device_type" -> "api/dcim/device-types/"
         "dcim.site" -> "api/dcim/sites/"
         "dcim.rack" -> "api/dcim/racks/"
         "ipam.ipaddress" -> "api/ipam/ip-addresses/"
@@ -209,13 +207,11 @@ internal fun buildDiffRows(
             .toSet()
             .filterNot { it == "custom_fields" }
             .sorted()
-    val ordinaryRows =
-        ordinaryKeys.mapNotNull { key ->
-            val before = pre?.get(key)?.diffString()
-            val after = post?.get(key)?.diffString()
-            if (before == after) null
-            else DiffRow(Humanize.label(key), before, after, fieldKey = key)
-        }
+    val ordinaryRows = ordinaryKeys.mapNotNull { key ->
+        val before = pre?.get(key)?.diffString()
+        val after = post?.get(key)?.diffString()
+        if (before == after) null else DiffRow(Humanize.label(key), before, after, fieldKey = key)
+    }
 
     val definitions = customFieldDefinitions.associateBy { it.name }
     val beforeCustomFields = pre?.get("custom_fields") as? JsonObject
@@ -234,8 +230,9 @@ internal fun buildDiffRows(
                         leftGroup.isNotBlank() && rightGroup.isBlank() -> -1
                         leftGroup.isBlank() && rightGroup.isNotBlank() -> 1
                         else ->
-                            String.CASE_INSENSITIVE_ORDER.compare(leftGroup, rightGroup)
-                                .takeIf { it != 0 }
+                            String.CASE_INSENSITIVE_ORDER.compare(leftGroup, rightGroup).takeIf {
+                                it != 0
+                            }
                                 ?: (leftDefinition?.weight ?: Int.MAX_VALUE)
                                     .compareTo(rightDefinition?.weight ?: Int.MAX_VALUE)
                                     .takeIf { it != 0 }
@@ -254,7 +251,8 @@ internal fun buildDiffRows(
                     null
                 } else {
                     DiffRow(
-                        label = definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key),
+                        label =
+                            definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key),
                         before = before,
                         after = after,
                         section =
@@ -270,8 +268,8 @@ internal fun buildDiffRows(
 
 /**
  * Replaces cached foreign-key IDs in changelog rows with related-object display values. NetBox
- * object-change snapshots store relations as integers, unlike normal detail responses which
- * include id/url/display summaries. The resolver is a suspend lambda so this transformation is
+ * object-change snapshots store relations as integers, unlike normal detail responses which include
+ * id/url/display summaries. The resolver is a suspend lambda so this transformation is
  * straightforward to test without Room or Hilt.
  */
 internal suspend fun resolveLinkedDiffRows(
@@ -340,9 +338,11 @@ private suspend fun resolveDiffReferenceValue(
         is JsonArray -> {
             val resolvedElements = buildList {
                 for (element in parsed) {
-                    val id =
-                        (element as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
-                    add(if (id == null) element.toString() else resolveDisplay(endpointPath, id) ?: id.toString())
+                    val id = (element as? JsonObject)?.get("id")?.jsonPrimitive?.intOrNull
+                    add(
+                        if (id == null) element.toString()
+                        else resolveDisplay(endpointPath, id) ?: id.toString()
+                    )
                 }
             }
             resolvedElements.joinToString(", ")
@@ -351,7 +351,11 @@ private suspend fun resolveDiffReferenceValue(
     }
 }
 
-private fun snapshotValue(snapshot: JsonObject?, fieldKey: String, snapshotKey: String): JsonElement? =
+private fun snapshotValue(
+    snapshot: JsonObject?,
+    fieldKey: String,
+    snapshotKey: String,
+): JsonElement? =
     if (fieldKey.startsWith("custom_fields.")) {
         (snapshot?.get("custom_fields") as? JsonObject)?.get(snapshotKey)
     } else {
@@ -451,26 +455,23 @@ private fun JsonElement.diffString(definition: CustomFieldDefinition? = null): S
                 else -> contentOrNull ?: content
             }
         is JsonObject ->
-            listOf("display", "label", "name", "value")
-                .firstNotNullOfOrNull { key ->
-                    (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
-                }
-                ?: prettyJson.encodeToString(JsonElement.serializer(), this)
+            listOf("display", "label", "name", "value").firstNotNullOfOrNull { key ->
+                (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+            } ?: prettyJson.encodeToString(JsonElement.serializer(), this)
         is JsonArray ->
             mapNotNull { element ->
                     when (element) {
                         is JsonPrimitive -> element.contentOrNull
                         is JsonObject ->
-                            listOf("display", "label", "name", "value")
-                                .firstNotNullOfOrNull { key ->
-                                    (element[key] as? JsonPrimitive)?.contentOrNull
-                                }
+                            listOf("display", "label", "name", "value").firstNotNullOfOrNull { key
+                                ->
+                                (element[key] as? JsonPrimitive)?.contentOrNull
+                            }
                         else -> null
                     }
                 }
                 .takeIf { it.isNotEmpty() }
-                ?.joinToString(", ")
-                ?: prettyJson.encodeToString(JsonElement.serializer(), this)
+                ?.joinToString(", ") ?: prettyJson.encodeToString(JsonElement.serializer(), this)
     }
 
 private fun CustomFieldDefinition.isMarkdown(): Boolean =

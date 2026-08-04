@@ -3,7 +3,9 @@ package dev.pschmitt.nyetbox.ui.common
 /** Mutually exclusive states for the label-print operation. */
 internal sealed interface PrintOperationState {
     data object Idle : PrintOperationState
+
     data object Printing : PrintOperationState
+
     data class Failed(val message: String) : PrintOperationState
 }
 

@@ -29,8 +29,8 @@ object NetBoxRef {
     /**
      * Mirrors [dev.pschmitt.nyetbox.data.repository.DirectoryRepository]'s `appKey` shape
      * (`"plugins/<plugin>"` for plugin models, else the plain app segment) so
-     * [dev.pschmitt.nyetbox.ui.directory.AppIcons] picks the same icon for a given object
-     * type everywhere it's rendered (sidebar, generic list rows, dashboard rows, ...).
+     * [dev.pschmitt.nyetbox.ui.directory.AppIcons] picks the same icon for a given object type
+     * everywhere it's rendered (sidebar, generic list rows, dashboard rows, ...).
      */
     fun appKeyFromEndpointPath(endpointPath: String): String {
         val segments = endpointPath.trim('/').split('/')

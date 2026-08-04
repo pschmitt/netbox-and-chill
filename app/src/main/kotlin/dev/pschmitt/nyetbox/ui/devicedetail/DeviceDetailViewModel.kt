@@ -10,14 +10,13 @@ import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
+import dev.pschmitt.nyetbox.data.repository.CachedDocument
 import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
-import dev.pschmitt.nyetbox.data.repository.CachedDocument
 import dev.pschmitt.nyetbox.data.repository.DeleteSubmission
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
-import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
-import dev.pschmitt.nyetbox.data.repository.isDocumentsPluginModel
 import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
+import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
 import dev.pschmitt.nyetbox.data.repository.DocumentRepository
 import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
@@ -27,16 +26,19 @@ import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
 import dev.pschmitt.nyetbox.data.repository.RecentVisitRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.repository.TopologyRepository
-import dev.pschmitt.nyetbox.data.repository.isTopologyPluginModel
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldPreferenceKey
+import dev.pschmitt.nyetbox.data.repository.isDocumentsPluginModel
+import dev.pschmitt.nyetbox.data.repository.isTopologyPluginModel
+import dev.pschmitt.nyetbox.data.schema.NetBoxRef
+import dev.pschmitt.nyetbox.data.topology.TopologyGraph
+import dev.pschmitt.nyetbox.ui.common.REFRESH_QUEUED_TOAST
+import dev.pschmitt.nyetbox.ui.common.refreshCompletionToast
+import dev.pschmitt.nyetbox.ui.common.shouldShowRefreshQueuedToast
 import dev.pschmitt.nyetbox.ui.generic.FieldRow
 import dev.pschmitt.nyetbox.ui.generic.JournalEntryUi
 import dev.pschmitt.nyetbox.ui.generic.JournalMutationUiState
 import dev.pschmitt.nyetbox.ui.generic.buildFieldRows
 import dev.pschmitt.nyetbox.ui.generic.toJournalEntryUi
-import dev.pschmitt.nyetbox.ui.common.REFRESH_QUEUED_TOAST
-import dev.pschmitt.nyetbox.ui.common.refreshCompletionToast
-import dev.pschmitt.nyetbox.ui.common.shouldShowRefreshQueuedToast
 import dev.pschmitt.nyetbox.ui.navigation.Route
 import java.io.File
 import javax.inject.Inject
@@ -60,8 +62,6 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import dev.pschmitt.nyetbox.data.schema.NetBoxRef
-import dev.pschmitt.nyetbox.data.topology.TopologyGraph
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import timber.log.Timber
@@ -88,19 +88,18 @@ internal fun connectedDevicesFor(
         graph.nodes.associate { node ->
             node.id to node.label.lineSequence().firstOrNull()?.trim().orEmpty()
         }
-    val currentNodeIds =
-        nodeNames
-            .filterValues { it.equals(current.name, ignoreCase = true) }
-            .keys
+    val currentNodeIds = nodeNames.filterValues { it.equals(current.name, ignoreCase = true) }.keys
     if (currentNodeIds.isEmpty()) return emptyList()
     val neighborNodeIds =
-        graph.edges.flatMap { edge ->
-            when {
-                edge.source in currentNodeIds -> listOf(edge.target)
-                edge.target in currentNodeIds -> listOf(edge.source)
-                else -> emptyList()
+        graph.edges
+            .flatMap { edge ->
+                when {
+                    edge.source in currentNodeIds -> listOf(edge.target)
+                    edge.target in currentNodeIds -> listOf(edge.source)
+                    else -> emptyList()
+                }
             }
-        }.toSet()
+            .toSet()
     val neighborNames = neighborNodeIds.mapNotNull(nodeNames::get).map(String::lowercase).toSet()
     return devices
         .asSequence()
@@ -321,10 +320,9 @@ constructor(
         combine(device, deviceRepository.observeDevices(""), cachedTopologyGraph) {
                 current,
                 devices,
-                graph,
-            ->
-            connectedDevicesFor(current, devices, graph)
-        }
+                graph ->
+                connectedDevicesFor(current, devices, graph)
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _journalMutationState = MutableStateFlow(JournalMutationUiState())
@@ -335,9 +333,9 @@ constructor(
         DEVICE_RELATED_TABS.associate { tab ->
             tab.endpointPath to
                 if (
-                    tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH ||
-                        tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH
-                ) {
+                        tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH ||
+                            tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH
+                    ) {
                         flowOf(emptyList())
                     } else {
                         genericObjectRepository.observeObjects(

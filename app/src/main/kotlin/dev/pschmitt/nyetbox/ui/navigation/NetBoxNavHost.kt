@@ -5,22 +5,22 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import dev.pschmitt.nyetbox.scanner.NetBoxTarget
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
+import dev.pschmitt.nyetbox.scanner.NetBoxTarget
+import dev.pschmitt.nyetbox.ui.common.SharedMediaUploadScreen
 import dev.pschmitt.nyetbox.ui.conflicts.EditConflictsScreen
 import dev.pschmitt.nyetbox.ui.dashboard.DashboardScreen
 import dev.pschmitt.nyetbox.ui.dashboard.ObjectChangeDiffScreen
 import dev.pschmitt.nyetbox.ui.devicedetail.DeviceDetailScreen
 import dev.pschmitt.nyetbox.ui.devices.DeviceListScreen
-import dev.pschmitt.nyetbox.ui.generic.AddItemScreen
 import dev.pschmitt.nyetbox.ui.generic.AddComponentScreen
+import dev.pschmitt.nyetbox.ui.generic.AddItemScreen
 import dev.pschmitt.nyetbox.ui.generic.GenericCreateScreen
 import dev.pschmitt.nyetbox.ui.generic.GenericDetailScreen
 import dev.pschmitt.nyetbox.ui.generic.GenericListScreen
 import dev.pschmitt.nyetbox.ui.generic.LINKED_CREATE_RESULT_KEY
 import dev.pschmitt.nyetbox.ui.generic.LinkedCreateResult
 import dev.pschmitt.nyetbox.ui.generic.encodeForSavedState
-import dev.pschmitt.nyetbox.ui.common.SharedMediaUploadScreen
 import dev.pschmitt.nyetbox.ui.onboarding.OnboardingScreen
 import dev.pschmitt.nyetbox.ui.pending.PendingChangesScreen
 import dev.pschmitt.nyetbox.ui.scanner.ScannerScreen
@@ -51,9 +51,9 @@ private fun NavHostController.navigateToObject(endpointPath: String, id: Int) {
 /**
  * Pops a detail/subscreen while keeping the app's root destination alive.
  *
- * Header back actions can receive a second tap before the first pop has finished recomposing. A
- * raw [popBackStack] then removes the dashboard too, leaving the NavHost with no destination and
- * only a black Compose surface.
+ * Header back actions can receive a second tap before the first pop has finished recomposing. A raw
+ * [popBackStack] then removes the dashboard too, leaving the NavHost with no destination and only a
+ * black Compose surface.
  */
 private fun NavHostController.navigateBackSafely() {
     val currentRoute = currentDestination?.route
@@ -133,7 +133,10 @@ fun NetBoxNavHost(
         }
         composable<Route.SyncSummary> { backStackEntry ->
             val route: Route.SyncSummary = backStackEntry.toRoute()
-            SyncSummaryScreen(summary = route.summary, onBack = { navController.navigateBackSafely() })
+            SyncSummaryScreen(
+                summary = route.summary,
+                onBack = { navController.navigateBackSafely() },
+            )
         }
         composable<Route.DeviceList> {
             DeviceListScreen(
@@ -359,10 +362,12 @@ fun NetBoxNavHost(
                                 display = display ?: "#$id",
                                 reopenFocusedEditor = route.reopenFocusedEditor,
                             )
-                        navController.previousBackStackEntry?.savedStateHandle?.set(
-                            LINKED_CREATE_RESULT_KEY,
-                            result.encodeForSavedState(),
-                        )
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(
+                                LINKED_CREATE_RESULT_KEY,
+                                result.encodeForSavedState(),
+                            )
                         navController.popBackStack()
                     } else {
                         navController.popBackStack()

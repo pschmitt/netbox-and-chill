@@ -1,5 +1,6 @@
 package dev.pschmitt.nyetbox.sync
 
+import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
@@ -10,12 +11,11 @@ import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.ImageAttachmentRepository
 import dev.pschmitt.nyetbox.data.repository.OfflineAttachment
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
-import dev.pschmitt.nyetbox.data.repository.ReconciliationSummary
 import dev.pschmitt.nyetbox.data.repository.RackElevationRepository
 import dev.pschmitt.nyetbox.data.repository.RackFace
+import dev.pschmitt.nyetbox.data.repository.ReconciliationSummary
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.repository.TopologyRepository
-import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,12 +39,7 @@ data class SyncProgress(
 )
 
 internal fun SyncProgress.itemProgressText(): String? =
-    if (
-        itemLabel != null &&
-            itemCompleted != null &&
-            itemTotal != null &&
-            itemTotal >= 0
-    ) {
+    if (itemLabel != null && itemCompleted != null && itemTotal != null && itemTotal >= 0) {
         "$itemCompleted of $itemTotal $itemLabel"
     } else {
         null
@@ -52,19 +47,20 @@ internal fun SyncProgress.itemProgressText(): String? =
 
 internal fun SyncProgress.notificationSubText(): String =
     buildList {
-            add("Step ${step.coerceIn(0, totalSteps.coerceAtLeast(1))} of ${totalSteps.coerceAtLeast(1)}")
+            add(
+                "Step ${step.coerceIn(0, totalSteps.coerceAtLeast(1))} of ${totalSteps.coerceAtLeast(1)}"
+            )
             itemProgressText()?.let(::add)
         }
         .joinToString(" · ")
 
-internal fun SyncProgress.notificationText(): String =
-    buildString {
-        append(message)
-        itemProgressText()?.let {
-            append('\n')
-            append(it)
-        }
+internal fun SyncProgress.notificationText(): String = buildString {
+    append(message)
+    itemProgressText()?.let {
+        append('\n')
+        append(it)
     }
+}
 
 /** Coordinates the complete cache-first sync used by manual and background refreshes. */
 @Singleton
@@ -88,7 +84,9 @@ constructor(
 ) {
 
     suspend fun syncAll(onProgress: (SyncProgress) -> Unit = {}): Result<OfflineSyncSummary> =
-        cacheDatabaseManager.withActiveServer { syncAllLocked(onProgress) }
+        cacheDatabaseManager.withActiveServer {
+            syncAllLocked(onProgress)
+        }
 
     private suspend fun syncAllLocked(
         onProgress: (SyncProgress) -> Unit = {}
@@ -145,8 +143,7 @@ constructor(
 
             var genericObjects = 0
             val models = directoryRepository.cachedModels()
-            val topologyAvailable =
-                models.any { it.appKey == TopologyRepository.PLUGIN_APP_KEY }
+            val topologyAvailable = models.any { it.appKey == TopologyRepository.PLUGIN_APP_KEY }
             totalSteps =
                 7 +
                     models.size +
@@ -184,16 +181,16 @@ constructor(
                     val attachmentProgress =
                         reportProgress("Downloading cached images and documents…")
                     runCatching {
-                        syncAttachments { completed, total ->
-                            onProgress(
-                                attachmentProgress.copy(
-                                    itemLabel = "images/documents",
-                                    itemCompleted = completed,
-                                    itemTotal = total,
+                            syncAttachments { completed, total ->
+                                onProgress(
+                                    attachmentProgress.copy(
+                                        itemLabel = "images/documents",
+                                        itemCompleted = completed,
+                                        itemTotal = total,
+                                    )
                                 )
-                            )
+                            }
                         }
-                    }
                         .getOrElse {
                             recordFailure("Attachment sync", it)
                             0

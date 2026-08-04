@@ -20,9 +20,9 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,15 +60,15 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.repository.ScannerLens
 import dev.pschmitt.nyetbox.data.repository.ScannerRearLens
@@ -77,11 +77,11 @@ import dev.pschmitt.nyetbox.scanner.NetBoxTarget
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
-import timber.log.Timber
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlinx.coroutines.delay
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -458,12 +458,14 @@ private fun CameraPreview(
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     activeCamera.physicalCameraId?.let { physicalCameraId ->
-                    // CameraSelector carries the physical ID through CameraX's lifecycle
-                    // binding. Set it on each use-case as well: this is the Camera2 interop
-                    // path that writes OutputConfiguration.setPhysicalCameraId(), which is
-                    // required by logical multi-camera implementations such as Pixel's.
-                    Camera2Interop.Extender(previewBuilder).setPhysicalCameraId(physicalCameraId)
-                    Camera2Interop.Extender(analysisBuilder).setPhysicalCameraId(physicalCameraId)
+                        // CameraSelector carries the physical ID through CameraX's lifecycle
+                        // binding. Set it on each use-case as well: this is the Camera2 interop
+                        // path that writes OutputConfiguration.setPhysicalCameraId(), which is
+                        // required by logical multi-camera implementations such as Pixel's.
+                        Camera2Interop.Extender(previewBuilder)
+                            .setPhysicalCameraId(physicalCameraId)
+                        Camera2Interop.Extender(analysisBuilder)
+                            .setPhysicalCameraId(physicalCameraId)
                     }
                 }
                 val preview =
@@ -514,64 +516,70 @@ private fun CameraPreview(
         AndroidView(
             modifier = Modifier.fillMaxSize().zIndex(-1f),
             factory = { ctx ->
-            val previewView = PreviewView(ctx)
-            // SurfaceView (the default PERFORMANCE mode) can sit above Compose's controls and
-            // consume their touch events on some devices, notably Pixel and Zenfone. TextureView
-            // keeps the preview below the lens/facing controls while retaining tap-to-focus.
-            previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                val previewView = PreviewView(ctx)
+                // SurfaceView (the default PERFORMANCE mode) can sit above Compose's controls and
+                // consume their touch events on some devices, notably Pixel and Zenfone.
+                // TextureView
+                // keeps the preview below the lens/facing controls while retaining tap-to-focus.
+                previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
 
-            // Tap-to-focus: set directly on the PreviewView rather than a Compose pointerInput
-            // modifier, since AndroidView touch dispatch to an embedded native View can otherwise
-            // swallow gestures before Compose sees them - this is the standard CameraX recipe.
-            var scalingGesture = false
-            val scaleDetector =
-                ScaleGestureDetector(
-                    ctx,
-                    object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-                            scalingGesture = true
-                            return true
-                        }
+                // Tap-to-focus: set directly on the PreviewView rather than a Compose pointerInput
+                // modifier, since AndroidView touch dispatch to an embedded native View can
+                // otherwise
+                // swallow gestures before Compose sees them - this is the standard CameraX recipe.
+                var scalingGesture = false
+                val scaleDetector =
+                    ScaleGestureDetector(
+                        ctx,
+                        object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                            override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                                scalingGesture = true
+                                return true
+                            }
 
-                        override fun onScale(detector: ScaleGestureDetector): Boolean {
-                            val camera = boundCamera.value ?: return true
-                            val zoomState = camera.cameraInfo.zoomState.value ?: return true
-                            val nextZoom =
-                                (zoomState.zoomRatio * detector.scaleFactor).coerceIn(
-                                    zoomState.minZoomRatio,
-                                    zoomState.maxZoomRatio,
-                                )
-                            camera.cameraControl.setZoomRatio(nextZoom)
-                            onZoomRatioChanged(nextZoom)
-                            return true
-                        }
-                    },
-                )
-            previewView.setOnTouchListener { view, event ->
-                val wasScaling = scalingGesture
-                scaleDetector.onTouchEvent(event)
-                if (event.actionMasked == MotionEvent.ACTION_UP && !wasScaling && !scalingGesture) {
-                    val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
-                    val action =
-                        FocusMeteringAction.Builder(point)
-                            .setAutoCancelDuration(3, TimeUnit.SECONDS)
-                            .build()
-                    boundCamera.value?.cameraControl?.startFocusAndMetering(action)
-                    view.performClick()
+                            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                                val camera = boundCamera.value ?: return true
+                                val zoomState = camera.cameraInfo.zoomState.value ?: return true
+                                val nextZoom =
+                                    (zoomState.zoomRatio * detector.scaleFactor).coerceIn(
+                                        zoomState.minZoomRatio,
+                                        zoomState.maxZoomRatio,
+                                    )
+                                camera.cameraControl.setZoomRatio(nextZoom)
+                                onZoomRatioChanged(nextZoom)
+                                return true
+                            }
+                        },
+                    )
+                previewView.setOnTouchListener { view, event ->
+                    val wasScaling = scalingGesture
+                    scaleDetector.onTouchEvent(event)
+                    if (
+                        event.actionMasked == MotionEvent.ACTION_UP &&
+                            !wasScaling &&
+                            !scalingGesture
+                    ) {
+                        val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
+                        val action =
+                            FocusMeteringAction.Builder(point)
+                                .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                                .build()
+                        boundCamera.value?.cameraControl?.startFocusAndMetering(action)
+                        view.performClick()
+                    }
+                    if (
+                        event.actionMasked == MotionEvent.ACTION_UP ||
+                            event.actionMasked == MotionEvent.ACTION_CANCEL
+                    ) {
+                        scalingGesture = false
+                    }
+                    true
                 }
-                if (
-                    event.actionMasked == MotionEvent.ACTION_UP ||
-                        event.actionMasked == MotionEvent.ACTION_CANCEL
-                ) {
-                    scalingGesture = false
-                }
-                true
-            }
 
-            previewView
-        },
-        update = { view ->
-            previewView = view
+                previewView
+            },
+            update = { view ->
+                previewView = view
             },
         )
         if (switchOverlayAlpha > 0f) {

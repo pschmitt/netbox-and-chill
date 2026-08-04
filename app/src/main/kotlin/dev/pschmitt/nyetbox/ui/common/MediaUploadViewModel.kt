@@ -5,11 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
-import dev.pschmitt.nyetbox.data.schema.documentTypePresentation
+import dev.pschmitt.nyetbox.data.repository.DeviceTypePhotoFace
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.MediaUploadRepository
-import dev.pschmitt.nyetbox.data.repository.DeviceTypePhotoFace
+import dev.pschmitt.nyetbox.data.schema.documentTypePresentation
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,13 +72,12 @@ constructor(
                 val documentModel = models.firstOrNull { !it.modelKey.contains("type") }
                 when {
                     typeModel != null ->
-                        genericObjectRepository
-                            .observeObjects(typeModel.endpointPath, "")
-                            .map { objects ->
-                                objects.map {
-                                    MediaDocumentTypeOption(it.id.toString(), it.display)
-                                }
+                        genericObjectRepository.observeObjects(typeModel.endpointPath, "").map {
+                            objects ->
+                            objects.map {
+                                MediaDocumentTypeOption(it.id.toString(), it.display)
                             }
+                        }
                     documentModel != null ->
                         genericObjectRepository
                             .observeObjects(documentModel.endpointPath, "")
@@ -124,11 +123,14 @@ constructor(
                     MediaUploadKind.DeviceTypeFront,
                     MediaUploadKind.DeviceTypeRear -> {
                         if (endpointPath != "api/dcim/device-types/") {
-                            Result.failure(IllegalArgumentException("Device-type photos require a device type"))
+                            Result.failure(
+                                IllegalArgumentException("Device-type photos require a device type")
+                            )
                         } else {
                             repository.uploadDeviceTypePhoto(
                                 objectId,
-                                if (kind == MediaUploadKind.DeviceTypeFront) DeviceTypePhotoFace.Front
+                                if (kind == MediaUploadKind.DeviceTypeFront)
+                                    DeviceTypePhotoFace.Front
                                 else DeviceTypePhotoFace.Rear,
                                 uri,
                                 filename,
@@ -138,7 +140,11 @@ constructor(
                     MediaUploadKind.Document -> {
                         when {
                             documentEndpointPath == null ->
-                                Result.failure(IllegalStateException("NetBox Documents is not available in the cache"))
+                                Result.failure(
+                                    IllegalStateException(
+                                        "NetBox Documents is not available in the cache"
+                                    )
+                                )
                             documentTypeValue == null ->
                                 Result.failure(IllegalArgumentException("Choose a document type"))
                             else ->

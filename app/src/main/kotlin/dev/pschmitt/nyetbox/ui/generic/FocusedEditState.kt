@@ -10,7 +10,4 @@ internal fun shouldLaunchRouteFocusedEditor(
     focusedEditFieldKey: String?,
     hasPendingEdits: Boolean,
 ): Boolean =
-    focusFieldKey != null &&
-        !routeFocusHandled &&
-        focusedEditFieldKey == null &&
-        !hasPendingEdits
+    focusFieldKey != null && !routeFocusHandled && focusedEditFieldKey == null && !hasPendingEdits

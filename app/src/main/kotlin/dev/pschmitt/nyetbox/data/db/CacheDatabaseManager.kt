@@ -57,8 +57,7 @@ constructor(
                         key == profile.id ||
                             (profile.cacheDatabaseName == "nyetbox.db" && key == unconfiguredKey)
                     }
-                val databasesToClose =
-                    databaseKeys.mapNotNull { databases.remove(it) }.distinct()
+                val databasesToClose = databaseKeys.mapNotNull { databases.remove(it) }.distinct()
                 databasesToClose.forEach { it.close() }
                 context.deleteDatabase(profile.cacheDatabaseName)
                 // Room may leave these sidecars behind if a process was interrupted during a write.
@@ -68,8 +67,9 @@ constructor(
         }
     }
 
-    suspend fun <T> withActiveServer(block: suspend () -> T): T =
-        operationMutex.withLock { block() }
+    suspend fun <T> withActiveServer(block: suspend () -> T): T = operationMutex.withLock {
+        block()
+    }
 
     private fun openDatabase(profile: ServerProfile): AppDatabase {
         if (profile.cacheDatabaseName == "nyetbox.db") {

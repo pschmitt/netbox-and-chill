@@ -34,24 +34,23 @@ constructor(private val api: NetBoxApi, private val dao: ImageAttachmentDao) {
         }
 
     /** Refreshes every attachment for an object type with one paginated collection walk. */
-    suspend fun refreshAll(objectType: String): Result<List<ImageAttachmentEntity>> =
-        runCatching {
-            val entities = mutableListOf<ImageAttachmentEntity>()
-            var offset = 0
-            while (true) {
-                val page = api.listImageAttachments(objectType, limit = 200, offset = offset)
-                page.results.forEach { attachment ->
-                    attachment.objectId?.let { objectId ->
-                        entities += attachment.toEntity(objectType, objectId)
-                    }
+    suspend fun refreshAll(objectType: String): Result<List<ImageAttachmentEntity>> = runCatching {
+        val entities = mutableListOf<ImageAttachmentEntity>()
+        var offset = 0
+        while (true) {
+            val page = api.listImageAttachments(objectType, limit = 200, offset = offset)
+            page.results.forEach { attachment ->
+                attachment.objectId?.let { objectId ->
+                    entities += attachment.toEntity(objectType, objectId)
                 }
-                if (page.next == null || page.results.isEmpty()) break
-                offset += page.results.size
             }
-            dao.clearForObjectType(objectType)
-            dao.upsertAll(entities)
-            entities
+            if (page.next == null || page.results.isEmpty()) break
+            offset += page.results.size
         }
+        dao.clearForObjectType(objectType)
+        dao.upsertAll(entities)
+        entities
+    }
 }
 
 private fun ImageAttachmentDto.toEntity(

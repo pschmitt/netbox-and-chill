@@ -2,9 +2,9 @@ package dev.pschmitt.nyetbox.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -15,8 +15,8 @@ import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
@@ -30,9 +30,9 @@ data class ItemDetailTab(
 /**
  * Shared detail-page tab control.
  *
- * All tabs, including Overview, use the regular Material 3 scrollable tab treatment. This keeps
- * the interaction and visual treatment identical on device and generic item pages while still
- * making long tab lists usable on narrow screens.
+ * All tabs, including Overview, use the regular Material 3 scrollable tab treatment. This keeps the
+ * interaction and visual treatment identical on device and generic item pages while still making
+ * long tab lists usable on narrow screens.
  */
 @Composable
 fun ItemDetailTabs(

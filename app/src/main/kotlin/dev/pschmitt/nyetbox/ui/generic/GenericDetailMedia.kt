@@ -12,13 +12,13 @@ internal fun deviceTypePhotoItems(
     return rows
         .filter { deviceTypePhotoUploadKind(it.label) != null }
         .map { row ->
-                ImageViewerItem(
-                    url = row.url,
-                    title = "${row.label} of $itemTitle",
-                    metadata = listOf("View" to row.label),
-                    localFile = localImageFile(row.url, row.url.attachmentFilename()),
-                    canEdit = true,
-                )
+            ImageViewerItem(
+                url = row.url,
+                title = "${row.label} of $itemTitle",
+                metadata = listOf("View" to row.label),
+                localFile = localImageFile(row.url, row.url.attachmentFilename()),
+                canEdit = true,
+            )
         }
 }
 

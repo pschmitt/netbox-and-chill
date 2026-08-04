@@ -139,9 +139,9 @@ constructor(
         dao.getAll(endpointPath)
 
     /**
-     * Returns content-type choices from the cache for metadata such as custom-field
-     `object_types`. This deliberately does not query the server: an empty cache falls back to
-     * the form's free-form JSON/list input, preserving offline-first behavior.
+     * Returns content-type choices from the cache for metadata such as custom-field `object_types`.
+     * This deliberately does not query the server: an empty cache falls back to the form's
+     * free-form JSON/list input, preserving offline-first behavior.
      */
     suspend fun cachedContentTypeChoices(): List<CreateChoice> =
         cachedObjects(CONTENT_TYPES_ENDPOINT_PATH)
@@ -150,10 +150,8 @@ constructor(
                     runCatching {
                             json.decodeFromString(JsonObject.serializer(), entity.json)
                         }
-                        .getOrNull()
-                        ?: return@mapNotNull null
-                val appLabel =
-                    (objectJson["app_label"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+                        .getOrNull() ?: return@mapNotNull null
+                val appLabel = (objectJson["app_label"] as? JsonPrimitive)?.contentOrNull.orEmpty()
                 val model = (objectJson["model"] as? JsonPrimitive)?.contentOrNull.orEmpty()
                 if (appLabel.isBlank() || model.isBlank()) return@mapNotNull null
                 CreateChoice(
@@ -205,13 +203,8 @@ constructor(
         }
 
     private fun JsonObject.toEntity(endpointPath: String): NetBoxObjectEntity {
-        val id =
-            jsonInt("id")
-                ?: error("NetBox object at $endpointPath has no id")
-        val display =
-            jsonString("display")
-                ?: jsonString("name")
-                ?: "#$id"
+        val id = jsonInt("id") ?: error("NetBox object at $endpointPath has no id")
+        val display = jsonString("display") ?: jsonString("name") ?: "#$id"
         val secondaryLine =
             (this["status"] as? JsonObject)?.jsonString("label")
                 ?: jsonString("description")?.takeIf { it.isNotBlank() }
@@ -236,10 +229,8 @@ internal fun parseCreateFieldDefinitions(response: JsonObject): List<CreateField
     return postFields.mapNotNull { (key, element) ->
         val definition = element as? JsonObject ?: return@mapNotNull null
         val rawType =
-            (definition["type"] as? JsonPrimitive)?.contentOrNull
-                ?: return@mapNotNull null
-        val type =
-            if (rawType == "field" && key in JSON_FORM_KEYS) "json" else rawType
+            (definition["type"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+        val type = if (rawType == "field" && key in JSON_FORM_KEYS) "json" else rawType
         val readOnly = (definition["read_only"] as? JsonPrimitive)?.booleanOrNull ?: false
         if (
             readOnly ||

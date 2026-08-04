@@ -14,8 +14,8 @@ data class CacheFirstRefreshState(
  * Run a best-effort refresh without making the network the source of truth for the screen.
  *
  * The caller owns the cached data and only applies a successful result. Failures become a
- * user-facing message, while cancellation is propagated so collectLatest can replace an old
- * query cleanly. The helper also prevents overlapping refreshes for a single state holder.
+ * user-facing message, while cancellation is propagated so collectLatest can replace an old query
+ * cleanly. The helper also prevents overlapping refreshes for a single state holder.
  */
 suspend fun <T> MutableStateFlow<CacheFirstRefreshState>.runCacheFirstRefresh(
     operation: suspend () -> Result<T>,

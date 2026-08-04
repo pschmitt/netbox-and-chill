@@ -11,9 +11,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 
 /**
- * Renders a cached-list value with every case-insensitive query match emphasized, similar to
- * grep's `--color=auto` output. The full value remains the accessibility text; the spans are only
- * a visual aid.
+ * Renders a cached-list value with every case-insensitive query match emphasized, similar to grep's
+ * `--color=auto` output. The full value remains the accessibility text; the spans are only a visual
+ * aid.
  */
 @Composable
 fun SearchHighlightedText(
@@ -57,8 +57,7 @@ internal fun highlightedSearchText(
                 buildList {
                     var start = 0
                     while (start <= value.length - term.length) {
-                        val index =
-                            value.indexOf(term, startIndex = start, ignoreCase = true)
+                        val index = value.indexOf(term, startIndex = start, ignoreCase = true)
                         if (index < 0) break
                         add(index until index + term.length)
                         start = index + term.length.coerceAtLeast(1)
@@ -77,8 +76,10 @@ internal fun highlightedSearchText(
             }
 
     if (ranges.isEmpty()) return AnnotatedString(value)
-    return AnnotatedString.Builder().apply {
-        append(value)
-        ranges.forEach { range -> addStyle(matchStyle, range.first, range.last + 1) }
-    }.toAnnotatedString()
+    return AnnotatedString.Builder()
+        .apply {
+            append(value)
+            ranges.forEach { range -> addStyle(matchStyle, range.first, range.last + 1) }
+        }
+        .toAnnotatedString()
 }

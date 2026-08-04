@@ -83,9 +83,9 @@ constructor(private val api: GenericNetBoxApi, private val dao: CustomFieldDao) 
         }
 
     /**
-     * Updates the definition cache immediately after a generic create/edit operation. The next
-     * full sync remains authoritative, but dependent item forms must see an online or queued
-     * definition change without waiting for that sync.
+     * Updates the definition cache immediately after a generic create/edit operation. The next full
+     * sync remains authoritative, but dependent item forms must see an online or queued definition
+     * change without waiting for that sync.
      */
     suspend fun cacheDefinition(objectJson: JsonObject) {
         objectJson.toEntity()?.let { dao.upsertAll(listOf(it)) }
@@ -128,8 +128,7 @@ constructor(private val api: GenericNetBoxApi, private val dao: CustomFieldDao) 
                 else -> null
             } ?: return null
         val label = (this["label"] as? JsonPrimitive)?.contentOrNull
-        val group =
-            ((this["group"] ?: this["group_name"]) as? JsonPrimitive)?.contentOrNull
+        val group = ((this["group"] ?: this["group_name"]) as? JsonPrimitive)?.contentOrNull
         val weight = (this["weight"] as? JsonPrimitive)?.intOrNull ?: Int.MAX_VALUE
         val objectTypes =
             (this["object_types"] as? kotlinx.serialization.json.JsonArray)

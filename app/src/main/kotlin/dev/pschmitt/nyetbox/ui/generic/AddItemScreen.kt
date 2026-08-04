@@ -3,10 +3,10 @@ package dev.pschmitt.nyetbox.ui.generic
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -97,22 +97,24 @@ fun AddItemScreen(
     }
     val defaultPinnedEndpoints =
         listOf(NetBoxRef.DEVICES_ENDPOINT_PATH, NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH)
-    val pinnedEndpoints = buildList {
-        addAll(
-            defaultPinnedEndpoints.filter { it in pinnedPaths }
-        )
-        addAll(
-            filteredModels
-                .filter {
-                    it.endpointPath in pinnedPaths && it.endpointPath !in defaultPinnedEndpoints
-                }
-                .sortedWith(
-                    compareBy<NetBoxModelEntity> { it.appLabel.lowercase() }
-                        .thenBy { it.modelLabel.lowercase() }
+    val pinnedEndpoints =
+        buildList {
+                addAll(defaultPinnedEndpoints.filter { it in pinnedPaths })
+                addAll(
+                    filteredModels
+                        .filter {
+                            it.endpointPath in pinnedPaths &&
+                                it.endpointPath !in defaultPinnedEndpoints
+                        }
+                        .sortedWith(
+                            compareBy<NetBoxModelEntity> { it.appLabel.lowercase() }
+                                .thenBy { it.modelLabel.lowercase() }
+                        )
+                        .map { it.endpointPath }
                 )
-                .map { it.endpointPath }
-        )
-    }.distinct().take(MAX_PINNED_ITEM_TYPES)
+            }
+            .distinct()
+            .take(MAX_PINNED_ITEM_TYPES)
     val pinnedModels = pinnedEndpoints.mapNotNull { endpoint ->
         filteredModels.firstOrNull { it.endpointPath == endpoint }
     }

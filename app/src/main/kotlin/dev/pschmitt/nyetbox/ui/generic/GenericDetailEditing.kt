@@ -95,22 +95,22 @@ internal fun EditDiffDialog(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                        Text(
-                            field?.label ?: key,
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        DiffValueRow(
-                            prefix = "− Before",
-                            value = before,
-                            background = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                        DiffValueRow(
-                            prefix = "+ After",
-                            value = after,
-                            background = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        )
+                            Text(
+                                field?.label ?: key,
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            DiffValueRow(
+                                prefix = "− Before",
+                                value = before,
+                                background = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                            DiffValueRow(
+                                prefix = "+ After",
+                                value = after,
+                                background = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
                         }
                     }
                 }
@@ -316,10 +316,10 @@ internal fun EditFieldControl(
         EditFieldKind.MULTI_CHOICE ->
             if (
                 (if (field.kind == EditFieldKind.MULTI_REFERENCE) {
-                    referenceOptions[field.key].orEmpty()
-                } else {
-                    choiceOptions[field.key].orEmpty()
-                })
+                        referenceOptions[field.key].orEmpty()
+                    } else {
+                        choiceOptions[field.key].orEmpty()
+                    })
                     .isEmpty()
             ) {
                 OutlinedTextField(
@@ -485,7 +485,12 @@ internal fun EditMultiPickerField(
                                 headlineContent = { Text(option.label) },
                                 supportingContent =
                                     matchHint?.let { hint ->
-                                        { Text("Matched $hint", color = MaterialTheme.colorScheme.primary) }
+                                        {
+                                            Text(
+                                                "Matched $hint",
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
                                     },
                                 leadingContent = { EditOptionPreview(option) },
                                 trailingContent = {
@@ -614,7 +619,12 @@ internal fun EditPickerField(
                                 headlineContent = { Text(option.label) },
                                 supportingContent =
                                     matchHint?.let { hint ->
-                                        { Text("Matched $hint", color = MaterialTheme.colorScheme.primary) }
+                                        {
+                                            Text(
+                                                "Matched $hint",
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
                                     },
                                 leadingContent = { EditOptionPreview(option) },
                                 modifier =

@@ -9,19 +9,19 @@ import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
-import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
 import dev.pschmitt.nyetbox.data.repository.CachedDocument
+import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
+import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DeleteSubmission
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
-import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DocumentRepository
 import dev.pschmitt.nyetbox.data.repository.EditSubmission
 import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
-import dev.pschmitt.nyetbox.data.repository.JournalEntryRepository
 import dev.pschmitt.nyetbox.data.repository.ImageAttachmentRepository
+import dev.pschmitt.nyetbox.data.repository.JournalEntryRepository
 import dev.pschmitt.nyetbox.data.repository.MediaUploadRepository
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
 import dev.pschmitt.nyetbox.data.repository.RackElevationRepository
@@ -31,13 +31,13 @@ import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.repository.createChoiceSearchFields
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.nyetbox.data.repository.isDocumentsPluginModel
+import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
-import dev.pschmitt.nyetbox.ui.navigation.Route
-import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.ui.common.REFRESH_QUEUED_TOAST
 import dev.pschmitt.nyetbox.ui.common.refreshCompletionToast
 import dev.pschmitt.nyetbox.ui.common.shouldShowRefreshQueuedToast
+import dev.pschmitt.nyetbox.ui.navigation.Route
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -132,13 +132,16 @@ constructor(
     private val _editSession = MutableStateFlow(EditSessionState.Idle)
     private val editSession: StateFlow<EditSessionState> = _editSession.asStateFlow()
     val isEditing: StateFlow<Boolean> =
-        editSession.map { it.isEditing }
+        editSession
+            .map { it.isEditing }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val isSaving: StateFlow<Boolean> =
-        editSession.map { it.isSaving }
+        editSession
+            .map { it.isSaving }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
     val editDraftValues: StateFlow<Map<String, String>> =
-        editSession.map { it.draftValues }
+        editSession
+            .map { it.draftValues }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -165,7 +168,9 @@ constructor(
             .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** The dashboard sync already owns the cached changelog; do not fan out a network request here. */
+    /**
+     * The dashboard sync already owns the cached changelog; do not fan out a network request here.
+     */
     val changelog: StateFlow<List<ObjectChangeEntity>> =
         dashboardRepository
             .observeChangelog(route.endpointPath, route.id)
@@ -181,11 +186,12 @@ constructor(
             .getOrNull()
             ?.let { objectType -> imageAttachmentRepository.observeFor(objectType, route.id) }
             ?.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-            ?: flowOf<List<ImageAttachmentEntity>>(emptyList()).stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5000),
-                emptyList(),
-            )
+            ?: flowOf<List<ImageAttachmentEntity>>(emptyList())
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5000),
+                    emptyList(),
+                )
 
     private val _journalMutationState = MutableStateFlow(JournalMutationUiState())
     val journalMutationState: StateFlow<JournalMutationUiState> =
@@ -440,9 +446,9 @@ constructor(
         if (_isDeleting.value) return
         val customFieldName =
             if (route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
-                decode(objectEntity.value?.json.orEmpty())
-                    ?.get("name")
-                    ?.let { (it as? JsonPrimitive)?.contentOrNull }
+                decode(objectEntity.value?.json.orEmpty())?.get("name")?.let {
+                    (it as? JsonPrimitive)?.contentOrNull
+                }
             } else {
                 null
             }
@@ -569,7 +575,10 @@ constructor(
     fun initializeEditDraftIfNeeded() {
         if (_editSession.value.draftValues.isEmpty() && editableFields.value.isNotEmpty()) {
             _editSession.update {
-                it.copy(draftValues = editableFields.value.associate { field -> field.key to field.value })
+                it.copy(
+                    draftValues =
+                        editableFields.value.associate { field -> field.key to field.value }
+                )
             }
         }
     }
@@ -581,8 +590,7 @@ constructor(
     fun addReferenceOption(fieldKey: String, option: EditOption) {
         val options = _referenceOptions.value[fieldKey].orEmpty()
         _referenceOptions.value =
-            _referenceOptions.value +
-                (fieldKey to (options + option).distinctBy { it.value })
+            _referenceOptions.value + (fieldKey to (options + option).distinctBy { it.value })
     }
 
     fun consumeLinkedCreateResult() {
@@ -611,7 +619,8 @@ constructor(
                                         rearImageUrl =
                                             (objectJson?.get("rear_image") as? JsonPrimitive)
                                                 ?.contentOrNull,
-                                        searchFields = objectJson?.createChoiceSearchFields().orEmpty(),
+                                        searchFields =
+                                            objectJson?.createChoiceSearchFields().orEmpty(),
                                     )
                                 }
                             )
@@ -652,8 +661,8 @@ constructor(
                 }
         }
         if (route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
-            val contentTypeOptions = repository.cachedContentTypeChoices()
-                .map { EditOption(it.value, it.label) }
+            val contentTypeOptions =
+                repository.cachedContentTypeChoices().map { EditOption(it.value, it.label) }
             if (contentTypeOptions.isNotEmpty()) {
                 choices["object_types"] = contentTypeOptions
             }
@@ -712,38 +721,42 @@ constructor(
         mapOf(
             "type" to
                 listOf(
-                    "text" to "Text",
-                    "longtext" to "Text (long)",
-                    "integer" to "Integer",
-                    "decimal" to "Decimal",
-                    "boolean" to "Boolean (true/false)",
-                    "date" to "Date",
-                    "datetime" to "Date & time",
-                    "url" to "URL",
-                    "json" to "JSON",
-                    "select" to "Selection",
-                    "multiselect" to "Multiple selection",
-                    "object" to "Object",
-                    "multiobject" to "Multiple objects",
-                ).map { (value, label) -> EditOption(value, label) },
+                        "text" to "Text",
+                        "longtext" to "Text (long)",
+                        "integer" to "Integer",
+                        "decimal" to "Decimal",
+                        "boolean" to "Boolean (true/false)",
+                        "date" to "Date",
+                        "datetime" to "Date & time",
+                        "url" to "URL",
+                        "json" to "JSON",
+                        "select" to "Selection",
+                        "multiselect" to "Multiple selection",
+                        "object" to "Object",
+                        "multiobject" to "Multiple objects",
+                    )
+                    .map { (value, label) -> EditOption(value, label) },
             "filter_logic" to
                 listOf(
-                    "disabled" to "Disabled",
-                    "loose" to "Loose",
-                    "exact" to "Exact",
-                ).map { (value, label) -> EditOption(value, label) },
+                        "disabled" to "Disabled",
+                        "loose" to "Loose",
+                        "exact" to "Exact",
+                    )
+                    .map { (value, label) -> EditOption(value, label) },
             "ui_visible" to
                 listOf(
-                    "always" to "Always",
-                    "if-set" to "If set",
-                    "hidden" to "Hidden",
-                ).map { (value, label) -> EditOption(value, label) },
+                        "always" to "Always",
+                        "if-set" to "If set",
+                        "hidden" to "Hidden",
+                    )
+                    .map { (value, label) -> EditOption(value, label) },
             "ui_editable" to
                 listOf(
-                    "yes" to "Yes",
-                    "no" to "No",
-                    "hidden" to "Hidden",
-                ).map { (value, label) -> EditOption(value, label) },
+                        "yes" to "Yes",
+                        "no" to "No",
+                        "hidden" to "Hidden",
+                    )
+                    .map { (value, label) -> EditOption(value, label) },
         )
 
     private companion object {

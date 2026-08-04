@@ -49,9 +49,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.CommentCard
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
+import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,15 +144,18 @@ private fun DiffContent(
             item {
                 Card(
                     modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                            .clickable { onOpenChangedObject(targetEndpointPath, targetId) },
+                        Modifier.fillMaxWidth().padding(bottom = 16.dp).clickable {
+                            onOpenChangedObject(targetEndpointPath, targetId)
+                        }
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
                             Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                                Text("${diff.objectRepr}", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "${diff.objectRepr}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
                                 Text(
                                     "Open changed item",
                                     style = MaterialTheme.typography.bodySmall,
@@ -169,7 +172,8 @@ private fun DiffContent(
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         RemoteThumbnail(
                                             imageUrl = image.url,
-                                            contentDescription = "${diff.objectRepr} ${image.label.lowercase()} image",
+                                            contentDescription =
+                                                "${diff.objectRepr} ${image.label.lowercase()} image",
                                             localFile = localImageFile(image),
                                             modifier = Modifier.size(96.dp),
                                         )
@@ -205,8 +209,9 @@ private fun DiffContent(
                 diff.rows,
                 key = { index, row -> "${row.section.orEmpty()}:${row.label}:$index" },
             ) { index, row ->
-                if (row.section != null &&
-                    (index == 0 || diff.rows[index - 1].section != row.section)
+                if (
+                    row.section != null &&
+                        (index == 0 || diff.rows[index - 1].section != row.section)
                 ) {
                     Text(
                         row.section,
@@ -351,8 +356,7 @@ private fun InlineDiffSide(
 ) {
     val colors = MaterialTheme.colorScheme
     val clickableModifier =
-        if (reference == null) Modifier
-        else Modifier.clickable { onOpenReference(reference) }
+        if (reference == null) Modifier else Modifier.clickable { onOpenReference(reference) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 6.dp).then(clickableModifier),
         verticalAlignment = Alignment.Top,

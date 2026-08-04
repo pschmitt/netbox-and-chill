@@ -1,6 +1,8 @@
 package dev.pschmitt.nyetbox.image
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.asImage
@@ -14,8 +16,6 @@ import coil3.request.maxBitmapSize
 import coil3.size.Precision
 import coil3.util.component1
 import coil3.util.component2
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.scale
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 import kotlinx.coroutines.sync.Semaphore
@@ -59,7 +59,11 @@ class LibavifImageDecoder(
         DecodeResult(image = output.asImage(), isSampled = isSampled)
     }
 
-    private fun scaleToRequest(bitmap: Bitmap, sourceWidth: Int, sourceHeight: Int): Pair<Bitmap, Boolean> {
+    private fun scaleToRequest(
+        bitmap: Bitmap,
+        sourceWidth: Int,
+        sourceHeight: Int,
+    ): Pair<Bitmap, Boolean> {
         val (targetWidth, targetHeight) =
             DecodeUtils.computeDstSize(
                 srcWidth = sourceWidth,
@@ -90,9 +94,7 @@ class LibavifImageDecoder(
         return scaled to true
     }
 
-    class Factory(
-        private val sourceLock: Semaphore = decodeLock,
-    ) : Decoder.Factory {
+    class Factory(private val sourceLock: Semaphore = decodeLock) : Decoder.Factory {
         override fun create(
             result: SourceFetchResult,
             options: Options,

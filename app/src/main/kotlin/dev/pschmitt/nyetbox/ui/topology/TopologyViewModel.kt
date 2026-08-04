@@ -3,30 +3,30 @@ package dev.pschmitt.nyetbox.ui.topology
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.pschmitt.nyetbox.data.repository.TopologyRepository
+import dev.pschmitt.nyetbox.data.db.DeviceEntity
+import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
 import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
-import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
+import dev.pschmitt.nyetbox.data.repository.SettingsRepository
+import dev.pschmitt.nyetbox.data.repository.TopologyRepository
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
-import dev.pschmitt.nyetbox.data.db.DeviceEntity
-import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.topology.TopologyGraph
 import dev.pschmitt.nyetbox.data.topology.TopologyPosition
 import dev.pschmitt.nyetbox.data.topology.withPositions
 import dev.pschmitt.nyetbox.ui.common.CacheFirstRefreshState
 import dev.pschmitt.nyetbox.ui.common.runCacheFirstRefresh
 import javax.inject.Inject
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 data class TopologyUiState(
@@ -97,23 +97,27 @@ constructor(
                 .collectLatest {}
         }
         viewModelScope.launch {
-            repository.cached().fold(
-                onSuccess = { cached ->
-                    rawGraph = cached?.graph
-                    rebuildGraph(settingsRepository.topologyNodePositions.value)
-                    _contentState.update { it.copy(cachedAt = cached?.cachedAt, isLoading = false) }
-                    if (cached == null) refresh()
-                },
-                onFailure = { error ->
-                    _contentState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = error.message ?: "Couldn't read the cached topology",
-                        )
-                    }
-                    refresh()
-                },
-            )
+            repository
+                .cached()
+                .fold(
+                    onSuccess = { cached ->
+                        rawGraph = cached?.graph
+                        rebuildGraph(settingsRepository.topologyNodePositions.value)
+                        _contentState.update {
+                            it.copy(cachedAt = cached?.cachedAt, isLoading = false)
+                        }
+                        if (cached == null) refresh()
+                    },
+                    onFailure = { error ->
+                        _contentState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = error.message ?: "Couldn't read the cached topology",
+                            )
+                        }
+                        refresh()
+                    },
+                )
         }
     }
 
@@ -165,7 +169,7 @@ constructor(
                                         .firstOrNull { it.deviceId == hit.id }
                                         ?.copy(matchHint = hit.matchHint)
                                 }
-                                .distinctBy { it.nodeId },
+                                .distinctBy { it.nodeId }
                 )
             }
         }
@@ -237,8 +241,10 @@ constructor(
     private fun findDeviceNodeId(deviceId: Int?, graph: TopologyGraph?): String? {
         if (deviceId == null || graph == null) return null
         val name = devices.firstOrNull { it.id == deviceId }?.name ?: return null
-        return graph.nodes.firstOrNull {
-            it.label.lineSequence().firstOrNull()?.trim().equals(name, ignoreCase = true)
-        }?.id
+        return graph.nodes
+            .firstOrNull {
+                it.label.lineSequence().firstOrNull()?.trim().equals(name, ignoreCase = true)
+            }
+            ?.id
     }
 }

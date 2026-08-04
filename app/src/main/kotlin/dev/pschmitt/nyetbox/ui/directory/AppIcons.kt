@@ -69,7 +69,9 @@ object AppIcons {
     /** Return the most specific stable icon for an endpoint, falling back to its app namespace. */
     fun forEndpointPath(endpointPath: String): ImageVector {
         val normalized = endpointPath.trim('/')
-        BY_ENDPOINT_PATH[normalized]?.let { return it }
+        BY_ENDPOINT_PATH[normalized]?.let {
+            return it
+        }
         val segments = normalized.split('/')
         val appKey =
             if (segments.getOrNull(1) == "plugins") {

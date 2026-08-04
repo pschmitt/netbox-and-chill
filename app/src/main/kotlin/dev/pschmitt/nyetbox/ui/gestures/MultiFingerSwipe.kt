@@ -18,9 +18,9 @@ enum class SwipeDirection {
  * Observes, but does not consume, a swipe made with exactly [fingerCount] fingers.
  *
  * This runs in the Main pass so child gesture detectors get first refusal. A child such as
- * topology's [androidx.compose.foundation.gestures.transformable] consumes positional movement
- * for pinch/zoom; once that happens this observer abandons the gesture instead of triggering a
- * global shortcut from the same pointer stream.
+ * topology's [androidx.compose.foundation.gestures.transformable] consumes positional movement for
+ * pinch/zoom; once that happens this observer abandons the gesture instead of triggering a global
+ * shortcut from the same pointer stream.
  */
 fun Modifier.multiFingerSwipe(
     fingerCount: Int,

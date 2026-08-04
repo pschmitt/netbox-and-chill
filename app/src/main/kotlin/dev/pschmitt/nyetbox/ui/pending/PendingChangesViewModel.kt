@@ -28,11 +28,14 @@ constructor(
             .observeQueuedMutations()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  val count: StateFlow<Int> = changes.map { it.size }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        0,
-    )
+    val count: StateFlow<Int> =
+        changes
+            .map { it.size }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                0,
+            )
 
     private val _message = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
@@ -41,8 +44,7 @@ constructor(
         val objectJson = decode(edit.localJson)
         return sequenceOf("name", "model", "label", "serial", "asset_tag", "display")
             .mapNotNull { key -> (objectJson[key] as? JsonPrimitive)?.contentOrNull }
-            .firstOrNull { it.isNotBlank() }
-            ?: "NetBox item #${edit.id}"
+            .firstOrNull { it.isNotBlank() } ?: "NetBox item #${edit.id}"
     }
 
     fun kind(edit: PendingEditEntity): String =

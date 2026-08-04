@@ -6,9 +6,9 @@ import androidx.room.PrimaryKey
 /**
  * Cache for NetBox's auto-generated changelog (`GET /api/core/object-changes/` - moved here from
  * `/api/extras/` in NetBox 4.0, confirmed against a real 4.5 instance) - see
- * [dev.pschmitt.nyetbox.data.repository.DashboardRepository]. [targetEndpointPath]/
- * [targetId] are null when the changed object no longer exists (a delete-action row has no
- * `changed_object` to derive them from) - such rows render non-navigable.
+ * [dev.pschmitt.nyetbox.data.repository.DashboardRepository]. [targetEndpointPath]/ [targetId] are
+ * null when the changed object no longer exists (a delete-action row has no `changed_object` to
+ * derive them from) - such rows render non-navigable.
  */
 @Entity(tableName = "object_changes")
 data class ObjectChangeEntity(

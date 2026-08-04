@@ -25,9 +25,11 @@ constructor(
         if (!settingsRepository.changeNotificationsEnabled.value || freshEvents.isEmpty()) return
 
         val filters =
-            settingsRepository.changeNotificationFilters.value.mapNotNull {
-                ChangeNotificationFilter.fromStorage(it)
-            }.toSet()
+            settingsRepository.changeNotificationFilters.value
+                .mapNotNull {
+                    ChangeNotificationFilter.fromStorage(it)
+                }
+                .toSet()
         val matching = matchingChangeNotificationEvents(freshEvents, filters)
         runCatching { syncNotifier.notifyNetBoxChanges(matching) }
             .onFailure { Timber.w(it, "Couldn't post NetBox change notification") }

@@ -47,8 +47,9 @@ class SectionReorderState {
             layoutInfo.visibleItemsInfo
                 .asSequence()
                 .filter { it.key != key && it.key in order }
-                .firstOrNull { draggedCenter in it.offset.toFloat()..(it.offset + it.size).toFloat() }
-                ?: return
+                .firstOrNull {
+                    draggedCenter in it.offset.toFloat()..(it.offset + it.size).toFloat()
+                } ?: return
         val from = order.indexOf(key)
         val to = order.indexOf(target.key)
         if (from < 0 || to < 0 || from == to) return
@@ -97,13 +98,12 @@ fun Modifier.sectionReorderGesture(
         )
     }
 
-fun Modifier.sectionDragOffset(key: String, state: SectionReorderState): Modifier =
-    graphicsLayer {
-        if (state.draggedKey == key) {
-            translationY = state.draggedOffsetPx
-            shadowElevation = 8f
-        }
+fun Modifier.sectionDragOffset(key: String, state: SectionReorderState): Modifier = graphicsLayer {
+    if (state.draggedKey == key) {
+        translationY = state.draggedOffsetPx
+        shadowElevation = 8f
     }
+}
 
 @Composable
 fun rememberReorderWiggle(enabled: Boolean): Float {
@@ -112,8 +112,7 @@ fun rememberReorderWiggle(enabled: Boolean): Float {
         transition.animateFloat(
             initialValue = -1.2f,
             targetValue = 1.2f,
-            animationSpec =
-                infiniteRepeatable(tween(durationMillis = 140), RepeatMode.Reverse),
+            animationSpec = infiniteRepeatable(tween(durationMillis = 140), RepeatMode.Reverse),
             label = "section-reorder-angle",
         )
     return if (enabled) angle else 0f

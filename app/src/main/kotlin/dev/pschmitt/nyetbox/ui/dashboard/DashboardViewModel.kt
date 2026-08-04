@@ -6,8 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
-import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
+import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
@@ -101,7 +101,11 @@ constructor(
     val deviceTypeFrontImagesById: StateFlow<Map<Int, String>> =
         genericObjectRepository
             .observeObjects(GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH, "")
-            .map { types -> types.mapNotNull { t -> frontImageUrlFromRawJson(t.json)?.let { t.id to it } }.toMap() }
+            .map { types ->
+                types
+                    .mapNotNull { t -> frontImageUrlFromRawJson(t.json)?.let { t.id to it } }
+                    .toMap()
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val conflictCount: StateFlow<Int> =
@@ -142,7 +146,9 @@ constructor(
     ): DashboardThumbnail? =
         when (endpointPath) {
             GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
-                deviceTypeFrontImagesById[id]?.let { url -> DashboardThumbnail(url, "device-type-$id-front") }
+                deviceTypeFrontImagesById[id]?.let { url ->
+                    DashboardThumbnail(url, "device-type-$id-front")
+                }
             GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
                 devicesById[id]?.deviceTypeId?.let { deviceTypeId ->
                     deviceTypeFrontImagesById[deviceTypeId]?.let { url ->

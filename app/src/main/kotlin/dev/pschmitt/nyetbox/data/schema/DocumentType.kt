@@ -13,9 +13,11 @@ internal fun documentTypePresentation(raw: String?): DocumentTypePresentation? {
     val key = words.joinToString("").lowercase()
     val label =
         DOCUMENT_TYPE_LABELS[key]
-            ?: words.mapIndexed { index, word ->
-                if (index == 0) word.replaceFirstChar { it.uppercase() } else word
-            }.joinToString(" ")
+            ?: words
+                .mapIndexed { index, word ->
+                    if (index == 0) word.replaceFirstChar { it.uppercase() } else word
+                }
+                .joinToString(" ")
     return DocumentTypePresentation(key = key, label = label)
 }
 

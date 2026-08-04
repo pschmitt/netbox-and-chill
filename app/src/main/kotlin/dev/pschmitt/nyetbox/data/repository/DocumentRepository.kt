@@ -1,7 +1,6 @@
 package dev.pschmitt.nyetbox.data.repository
 
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
-import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.schema.documentTypePresentation
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,7 +12,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -57,25 +55,27 @@ constructor(
                             it.assignedObjectMatches(endpointPath, objectId)
                         }
                     }
-                    .sortedWith(compareByDescending<CachedDocumentWithTarget> { it.created }.thenBy { it.document.name })
+                    .sortedWith(
+                        compareByDescending<CachedDocumentWithTarget> { it.created }
+                            .thenBy { it.document.name }
+                    )
                     .map { it.document }
             }
 
     /** Deletes a cached document immediately when possible, or queues it for offline sync. */
     suspend fun delete(documentId: Int, offline: Boolean): Result<DeleteSubmission> {
         val endpointPath =
-            directoryRepository
-                .cachedModels()
-                .firstOrNull(::isDocumentsPluginModel)
-                ?.endpointPath
+            directoryRepository.cachedModels().firstOrNull(::isDocumentsPluginModel)?.endpointPath
                 ?: return Result.failure(IllegalStateException("Documents plugin is unavailable"))
         return pendingEditRepository.deleteObject(endpointPath, documentId, offline)
     }
 
     private fun parseDocument(entity: NetBoxObjectEntity): CachedDocumentWithTarget? {
-        val objectJson = runCatching {
-            json.decodeFromString(JsonObject.serializer(), entity.json)
-        }.getOrNull() ?: return null
+        val objectJson =
+            runCatching {
+                    json.decodeFromString(JsonObject.serializer(), entity.json)
+                }
+                .getOrNull() ?: return null
         val assignedObject = objectJson["assigned_object"] as? JsonObject
         val assignedUrl = assignedObject?.get("url")?.jsonPrimitive?.contentOrNull
         val assignedId =
@@ -85,13 +85,11 @@ constructor(
         val documentUrl = objectJson["document"]?.jsonPrimitive?.contentOrNull
         val externalUrl = objectJson["external_url"]?.jsonPrimitive?.contentOrNull
         val filename =
-            objectJson["filename"]?.jsonPrimitive?.contentOrNull
-                ?.takeIf(String::isNotBlank)
+            objectJson["filename"]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
                 ?: documentUrl?.substringAfterLast('/')?.substringBefore('?')
                 ?: entity.display
         val name =
-            objectJson["name"]?.jsonPrimitive?.contentOrNull
-                ?.takeIf(String::isNotBlank)
+            objectJson["name"]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
                 ?: entity.display
         val documentTypeCandidates =
             when (val rawType = objectJson["document_type"]) {
@@ -103,12 +101,13 @@ constructor(
                     )
                 else -> listOfNotNull(rawType?.jsonPrimitive?.contentOrNull)
             }
-        val documentType =
-            documentTypeCandidates.firstNotNullOfOrNull { candidate ->
-                candidate.takeIf { it.any(Char::isLetter) }?.let { type ->
+        val documentType = documentTypeCandidates.firstNotNullOfOrNull { candidate ->
+            candidate
+                .takeIf { it.any(Char::isLetter) }
+                ?.let { type ->
                     documentTypePresentation(type)?.label ?: type
                 }
-            }
+        }
         return CachedDocumentWithTarget(
             document =
                 CachedDocument(

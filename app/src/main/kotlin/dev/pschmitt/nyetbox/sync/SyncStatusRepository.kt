@@ -33,7 +33,7 @@ class SyncStatusRepository @Inject constructor(private val workManager: WorkMana
 
     /** The latest manual sync state, including terminal success/failure for refresh feedback. */
     val manualSyncState: Flow<WorkInfo.State?> =
-        workManager
-            .getWorkInfosForUniqueWorkFlow(SyncScheduler.ONE_TIME_WORK_NAME)
-            .map { infos -> infos.firstOrNull()?.state }
+        workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.ONE_TIME_WORK_NAME).map { infos ->
+            infos.firstOrNull()?.state
+        }
 }

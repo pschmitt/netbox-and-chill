@@ -56,7 +56,10 @@ constructor(
         val cached =
             netBoxObjectDao
                 .getById(OBJECT_CHANGE_CACHE_PATH, id)
-                ?.let { runCatching { json.decodeFromString(JsonObject.serializer(), it.json) }.getOrNull() }
+                ?.let {
+                    runCatching { json.decodeFromString(JsonObject.serializer(), it.json) }
+                        .getOrNull()
+                }
                 ?.takeIf(JsonObject::hasChangeSnapshots)
         cached ?: api.getObject("$OBJECT_CHANGE_ENDPOINT$id/").also { cacheObjectChange(it) }
     }
@@ -110,19 +113,18 @@ constructor(
     }
 
     private suspend fun cacheObjectChangeDetails(summaries: List<JsonObject>) {
-        val details =
-            summaries.mapNotNull { summary ->
-                val id = summary.jsonInt("id") ?: return@mapNotNull null
-                val detail =
-                    if (summary.hasChangeSnapshots()) {
-                        summary
-                    } else {
-                        runCatching { api.getObject("$OBJECT_CHANGE_ENDPOINT$id/") }
-                            .onFailure { Timber.w(it, "Couldn't cache object change %d", id) }
-                            .getOrNull()
-                    }
-                detail?.takeIf(JsonObject::hasChangeSnapshots)?.toObjectChangeCacheEntity()
-            }
+        val details = summaries.mapNotNull { summary ->
+            val id = summary.jsonInt("id") ?: return@mapNotNull null
+            val detail =
+                if (summary.hasChangeSnapshots()) {
+                    summary
+                } else {
+                    runCatching { api.getObject("$OBJECT_CHANGE_ENDPOINT$id/") }
+                        .onFailure { Timber.w(it, "Couldn't cache object change %d", id) }
+                        .getOrNull()
+                }
+            detail?.takeIf(JsonObject::hasChangeSnapshots)?.toObjectChangeCacheEntity()
+        }
         netBoxObjectDao.upsertAll(details)
     }
 

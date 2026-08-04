@@ -20,18 +20,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.produceState
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -58,8 +58,7 @@ fun SharedMediaUploadScreen(
     val context = LocalContext.current
     val sharedUri = remember(uri) { uri.toUri() }
     val isImage = isSharedImage(mimeType, filename, sharedUri)
-    val initialKind =
-        if (isImage) MediaUploadKind.ImageAttachment else MediaUploadKind.Document
+    val initialKind = if (isImage) MediaUploadKind.ImageAttachment else MediaUploadKind.Document
 
     NetBoxResponsiveScaffold(
         topBar = {
@@ -71,7 +70,7 @@ fun SharedMediaUploadScreen(
                 },
                 title = { Text("Share to NetBox") },
             )
-        },
+        }
     ) { padding: PaddingValues ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
@@ -117,7 +116,8 @@ internal fun SharedMediaPreview(uri: Uri, mimeType: String?, filename: String?) 
     val isPdf =
         mimeType.equals("application/pdf", ignoreCase = true) ||
             filename?.substringAfterLast('.', "")?.equals("pdf", ignoreCase = true) == true ||
-            uri.lastPathSegment?.substringAfterLast('.', "")?.equals("pdf", ignoreCase = true) == true
+            uri.lastPathSegment?.substringAfterLast('.', "")?.equals("pdf", ignoreCase = true) ==
+                true
     val pdfPreview by
         produceState<Bitmap?>(initialValue = null, uri, isPdf) {
             value =
@@ -196,8 +196,7 @@ internal fun isSharedImage(
     val extension =
         (filename?.substringAfterLast('.', "") ?: uriLastPathSegment?.substringAfterLast('.', ""))
             ?.lowercase()
-    return extension in
-        setOf("avif", "bmp", "gif", "heic", "heif", "jpeg", "jpg", "png", "webp")
+    return extension in setOf("avif", "bmp", "gif", "heic", "heif", "jpeg", "jpg", "png", "webp")
 }
 
 private fun renderSharedPdfPreview(context: Context, uri: Uri): Bitmap? =

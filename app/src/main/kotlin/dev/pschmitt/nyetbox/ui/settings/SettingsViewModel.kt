@@ -3,10 +3,10 @@ package dev.pschmitt.nyetbox.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
-import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.repository.ChangeNotificationFilter
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
@@ -15,12 +15,11 @@ import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GestureAction
 import dev.pschmitt.nyetbox.data.repository.GestureShortcut
 import dev.pschmitt.nyetbox.data.repository.GestureTarget
+import dev.pschmitt.nyetbox.data.repository.NetBoxCredentials
+import dev.pschmitt.nyetbox.data.repository.NetBoxUserIdentity
 import dev.pschmitt.nyetbox.data.repository.PrintSettings
 import dev.pschmitt.nyetbox.data.repository.ScannerLens
 import dev.pschmitt.nyetbox.data.repository.ScannerRearLens
-import dev.pschmitt.nyetbox.data.repository.NetBoxCredentials
-import dev.pschmitt.nyetbox.data.repository.NetBoxUserIdentity
-import dev.pschmitt.nyetbox.data.repository.ServerProfile
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
@@ -154,8 +153,9 @@ constructor(
     fun addServer(baseUrl: String, token: String, displayName: String?) {
         if (baseUrl.isBlank() || token.isBlank()) return
         val previousId = settingsRepository.activeServerId.value
-        val profile = runCatching { settingsRepository.addServer(baseUrl, token, displayName) }.getOrNull()
-            ?: return
+        val profile =
+            runCatching { settingsRepository.addServer(baseUrl, token, displayName) }.getOrNull()
+                ?: return
         viewModelScope.launch {
             cacheDatabaseManager.switchTo(profile)
             settingsRepository.switchServer(profile.id)
@@ -174,9 +174,11 @@ constructor(
                     settingsRepository.removeServer(profile.id)
                     previousId?.let { settingsRepository.switchServer(it) }
                     previousId?.let { id ->
-                        settingsRepository.serverProfiles.value.firstOrNull { it.id == id }?.let {
-                            cacheDatabaseManager.switchTo(it)
-                        }
+                        settingsRepository.serverProfiles.value
+                            .firstOrNull { it.id == id }
+                            ?.let {
+                                cacheDatabaseManager.switchTo(it)
+                            }
                     }
                     _errorMessage.value = it.connectionMessage()
                 }
@@ -230,12 +232,15 @@ constructor(
         if (_connectionTest.value == ConnectionTestState.Testing) return
         val credentials = settingsRepository.credentials.value
         if (!credentials.isValid) {
-            _connectionTest.value = ConnectionTestState.Failure("Configure a NetBox connection first")
+            _connectionTest.value =
+                ConnectionTestState.Failure("Configure a NetBox connection first")
             return
         }
         if (settingsRepository.offlineMode.value) {
             _connectionTest.value =
-                ConnectionTestState.Failure("Offline mode is enabled. Turn it off to test the connection.")
+                ConnectionTestState.Failure(
+                    "Offline mode is enabled. Turn it off to test the connection."
+                )
             return
         }
         viewModelScope.launch {
@@ -247,8 +252,7 @@ constructor(
                         ConnectionTestState.Success("Connected as ${it.summary}")
                 }
                 .onFailure {
-                    _connectionTest.value =
-                        ConnectionTestState.Failure(it.connectionMessage())
+                    _connectionTest.value = ConnectionTestState.Failure(it.connectionMessage())
                 }
         }
     }
@@ -259,31 +263,37 @@ constructor(
             val credentials = settingsRepository.credentials.value
             if (!credentials.isValid) return@launch
             _isLoadingCurrentUser.value = true
-            lookupCurrentUser(credentials)
-                .onSuccess { settingsRepository.setCurrentUser(it) }
+            lookupCurrentUser(credentials).onSuccess { settingsRepository.setCurrentUser(it) }
             _isLoadingCurrentUser.value = false
         }
     }
 
-    private suspend fun lookupCurrentUser(credentials: NetBoxCredentials): Result<NetBoxUserIdentity> =
+    private suspend fun lookupCurrentUser(
+        credentials: NetBoxCredentials
+    ): Result<NetBoxUserIdentity> =
         runCatching {
-            parseCurrentUser(api.getAuthenticationCheck())
-        }.recoverCatching {
-            // NetBox 4.5 introduced authentication-check. Keep older instances usable by falling
-            // back to the v2 token-owner lookup when the endpoint is not available.
-            val tokenKey = tokenKey(credentials.token) ?: error("Token owner lookup is unavailable")
-            val tokenPage =
-                api.listObjects(
-                    url = "api/users/tokens/",
-                    query = mapOf("key" to tokenKey, "limit" to "1"),
-                )
-            val user = tokenPage.results.firstOrNull()?.get("user") as? JsonObject
-                ?: error("The NetBox API did not return the token owner")
-            parseCurrentUser(user)
-        }
+                parseCurrentUser(api.getAuthenticationCheck())
+            }
+            .recoverCatching {
+                // NetBox 4.5 introduced authentication-check. Keep older instances usable by
+                // falling
+                // back to the v2 token-owner lookup when the endpoint is not available.
+                val tokenKey =
+                    tokenKey(credentials.token) ?: error("Token owner lookup is unavailable")
+                val tokenPage =
+                    api.listObjects(
+                        url = "api/users/tokens/",
+                        query = mapOf("key" to tokenKey, "limit" to "1"),
+                    )
+                val user =
+                    tokenPage.results.firstOrNull()?.get("user") as? JsonObject
+                        ?: error("The NetBox API did not return the token owner")
+                parseCurrentUser(user)
+            }
 
     private fun parseCurrentUser(user: JsonObject): NetBoxUserIdentity {
-        val username = user.stringValue("username") ?: error("The authenticated user has no username")
+        val username =
+            user.stringValue("username") ?: error("The authenticated user has no username")
         return NetBoxUserIdentity(
             username = username,
             fullName =

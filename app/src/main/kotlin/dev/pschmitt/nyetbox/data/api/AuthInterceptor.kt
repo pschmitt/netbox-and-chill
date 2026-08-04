@@ -17,8 +17,7 @@ class AuthInterceptor @Inject constructor(private val settingsRepository: Settin
                 // Named NetBox tokens carry a non-secret name and use Bearer auth. Keep the
                 // legacy 40-character Token form for older instances and existing connections.
                 val scheme =
-                    if (token.startsWith("nbp_") || token.startsWith("nbt_")) "Bearer"
-                    else "Token"
+                    if (token.startsWith("nbp_") || token.startsWith("nbt_")) "Bearer" else "Token"
                 request.newBuilder().header("Authorization", "$scheme $token").build()
             }
         return chain.proceed(authorized)

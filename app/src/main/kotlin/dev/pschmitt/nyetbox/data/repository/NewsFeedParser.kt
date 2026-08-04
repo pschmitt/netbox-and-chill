@@ -14,8 +14,7 @@ internal data class NewsFeedItem(
 
 /** Small RSS 2.0 parser for the stable title/link/summary/date fields used by the dashboard. */
 internal fun parseNewsFeed(xml: String): List<NewsFeedItem> =
-    ITEM_PATTERN
-        .findAll(xml)
+    ITEM_PATTERN.findAll(xml)
         .mapNotNull { match ->
             val item = match.value
             val title = item.xmlValue("title")?.cleanText() ?: return@mapNotNull null
@@ -58,9 +57,9 @@ private fun String.xmlValue(name: String): String? {
 }
 
 private fun String.cleanText(): String =
-    replace(
-            Regex("<!\\[CDATA\\[(.*?)]]>", setOf(RegexOption.DOT_MATCHES_ALL)),
-        ) { it.groupValues[1] }
+    replace(Regex("<!\\[CDATA\\[(.*?)]]>", setOf(RegexOption.DOT_MATCHES_ALL))) {
+            it.groupValues[1]
+        }
         .decodeXmlEntities()
         .replace(Regex("<[^>]+>"), " ")
         .replace(Regex("\\s+"), " ")
@@ -81,7 +80,9 @@ private fun String.decodeXmlEntities(): String =
 
 private fun String.parseFeedDate(): Long =
     runCatching {
-            ZonedDateTime.parse(this, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli()
+            ZonedDateTime.parse(this, DateTimeFormatter.RFC_1123_DATE_TIME)
+                .toInstant()
+                .toEpochMilli()
         }
         .recoverCatching { Instant.parse(this).toEpochMilli() }
         .getOrDefault(0L)

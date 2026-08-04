@@ -60,7 +60,9 @@ constructor(
                     ),
                 )
                 .results
-                .onEach { genericObjectRepository.cacheLocalObject(JOURNAL_ENTRY_ENDPOINT_PATH, it) }
+                .onEach {
+                    genericObjectRepository.cacheLocalObject(JOURNAL_ENTRY_ENDPOINT_PATH, it)
+                }
         }
 
     suspend fun createJournalEntry(
@@ -74,7 +76,9 @@ constructor(
             if (offline) inferredAssignedObjectType(endpointPath)
             else resolveAssignedObjectType(endpointPath) ?: inferredAssignedObjectType(endpointPath)
         if (assignedObjectType == null) {
-            return Result.failure(IllegalArgumentException("Couldn't resolve the item's content type"))
+            return Result.failure(
+                IllegalArgumentException("Couldn't resolve the item's content type")
+            )
         }
         val body =
             JsonObject(
@@ -85,9 +89,9 @@ constructor(
                     "comments" to JsonPrimitive(comments),
                 )
             )
-        return pendingEditRepository
-            .submitCreate(JOURNAL_ENTRY_ENDPOINT_PATH, body, offline)
-            .map { JournalMutationResult(it is CreateSubmission.Queued) }
+        return pendingEditRepository.submitCreate(JOURNAL_ENTRY_ENDPOINT_PATH, body, offline).map {
+            JournalMutationResult(it is CreateSubmission.Queued)
+        }
     }
 
     suspend fun updateJournalEntry(
@@ -131,7 +135,8 @@ constructor(
     private fun inferredAssignedObjectType(endpointPath: String): String? {
         val segments = endpointPath.trim('/').split('/')
         if (segments.size < 3) return null
-        val appKey = if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
+        val appKey =
+            if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
         val normalized = segments.last().replace("-", "").replace("_", "").lowercase()
         val model =
             when {
@@ -146,7 +151,8 @@ constructor(
     private suspend fun resolveAssignedObjectType(endpointPath: String): String? {
         val segments = endpointPath.trim('/').split('/')
         if (segments.size < 3) return null
-        val appKey = if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
+        val appKey =
+            if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
         val modelKey = segments.last()
         val normalized = modelKey.replace("-", "").replace("_", "").lowercase()
         val candidates = buildSet {

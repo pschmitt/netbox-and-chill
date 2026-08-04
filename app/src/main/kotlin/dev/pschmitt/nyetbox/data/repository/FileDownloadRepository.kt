@@ -40,17 +40,17 @@ constructor(
      *
      * Some callers use a generated logical name (for example, `device-type-72-front`) while the
      * sync worker uses that same name to derive the stored extension from the downloaded media.
-     * Resolve the URL hash independently of the requested display name so those callers still
-     * find `hash.png`/`hash.avif` in the offline cache.
+     * Resolve the URL hash independently of the requested display name so those callers still find
+     * `hash.png`/`hash.avif` in the offline cache.
      */
     fun persistentFile(url: String, filename: String): File? {
         val exact = persistentPath(url, filename)
         if (exact.isFile) return exact
 
         val hash = persistentHash(url)
-        return exact.parentFile
-            ?.listFiles()
-            ?.firstOrNull { it.isFile && it.name.substringBeforeLast('.', it.name) == hash }
+        return exact.parentFile?.listFiles()?.firstOrNull {
+            it.isFile && it.name.substringBeforeLast('.', it.name) == hash
+        }
     }
 
     /** Downloads an attachment into filesDir so Android's cache eviction cannot remove it. */
@@ -114,7 +114,9 @@ constructor(
         return File(persistentDirectory(), "$hash$extension")
     }
 
-    /** Deletes durable media for one profile, called only after the user confirms profile removal. */
+    /**
+     * Deletes durable media for one profile, called only after the user confirms profile removal.
+     */
     suspend fun deletePersistentCache(profile: ServerProfile) =
         withContext(Dispatchers.IO) {
             val root = File(context.filesDir, "offline-attachments")
@@ -132,7 +134,8 @@ constructor(
     }
 
     private fun transientDirectory(): File {
-        val namespace = settingsRepository.activeServer.value?.cacheNamespace ?: LEGACY_CACHE_NAMESPACE
+        val namespace =
+            settingsRepository.activeServer.value?.cacheNamespace ?: LEGACY_CACHE_NAMESPACE
         return File(context.cacheDir, "downloads/$namespace")
     }
 

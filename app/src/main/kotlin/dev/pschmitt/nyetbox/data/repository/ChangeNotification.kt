@@ -34,8 +34,9 @@ enum class ChangeNotificationFilter(
             (objectType == null || objectType == event.objectType)
 
     companion object {
-        fun fromStorage(value: String): ChangeNotificationFilter? =
-            entries.firstOrNull { it.storageKey == value }
+        fun fromStorage(value: String): ChangeNotificationFilter? = entries.firstOrNull {
+            it.storageKey == value
+        }
     }
 }
 

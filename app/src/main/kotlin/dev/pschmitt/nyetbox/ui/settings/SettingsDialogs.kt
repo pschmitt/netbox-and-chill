@@ -13,8 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.repository.ChangeNotificationFilter
 import dev.pschmitt.nyetbox.data.repository.ServerProfile
@@ -28,9 +28,7 @@ internal fun selectedChangeNotificationSummary(filters: Set<String>): String {
         if (ChangeNotificationFilter.All.storageKey in filters) {
             listOf(ChangeNotificationFilter.All.label)
         } else {
-            ChangeNotificationFilter.entries
-                .filter { it.storageKey in filters }
-                .map { it.label }
+            ChangeNotificationFilter.entries.filter { it.storageKey in filters }.map { it.label }
         }
     return if (selected.isEmpty()) {
         "No change types selected"
@@ -256,14 +254,20 @@ internal fun ServerProfilesDialog(
                     }
                     profiles.forEach { profile ->
                         SettingsListItem(
-                            modifier = Modifier.clickable { onSwitch(profile.id); onDismiss() },
+                            modifier =
+                                Modifier.clickable {
+                                    onSwitch(profile.id)
+                                    onDismiss()
+                                },
                             leadingContent = {
                                 Icon(
-                                    if (profile.id == activeServerId) Icons.Default.RadioButtonChecked
+                                    if (profile.id == activeServerId)
+                                        Icons.Default.RadioButtonChecked
                                     else Icons.Default.Dns,
                                     contentDescription = null,
                                     tint =
-                                        if (profile.id == activeServerId) MaterialTheme.colorScheme.primary
+                                        if (profile.id == activeServerId)
+                                            MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
@@ -280,7 +284,10 @@ internal fun ServerProfilesDialog(
                                             token = profile.token
                                         }
                                     ) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit ${profile.displayName}")
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = "Edit ${profile.displayName}",
+                                        )
                                     }
                                     IconButton(onClick = { pendingRemoval = profile }) {
                                         Icon(
@@ -294,13 +301,13 @@ internal fun ServerProfilesDialog(
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(
-                    onClick = {
-                        adding = true
-                        editingProfile = null
-                        name = ""
-                        url = ""
-                        token = ""
-                    },
+                        onClick = {
+                            adding = true
+                            editingProfile = null
+                            name = ""
+                            url = ""
+                            token = ""
+                        },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
@@ -324,7 +331,9 @@ internal fun ServerProfilesDialog(
                         token = ""
                     },
                     enabled = url.isNotBlank() && token.isNotBlank(),
-                ) { Text("Add") }
+                ) {
+                    Text("Add")
+                }
             } else {
                 TextButton(onClick = onDismiss) { Text("Done") }
             }
@@ -337,7 +346,9 @@ internal fun ServerProfilesDialog(
                             adding = false
                             editingProfile = null
                         }
-                    ) { Text("Cancel") }
+                    ) {
+                        Text("Cancel")
+                    }
                 }
             } else null,
     )
@@ -358,8 +369,13 @@ internal fun ServerProfilesDialog(
                         onRemove(profile.id)
                         pendingRemoval = null
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Remove and delete cache") }
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                ) {
+                    Text("Remove and delete cache")
+                }
             },
             dismissButton = {
                 TextButton(onClick = { pendingRemoval = null }) { Text("Cancel") }
@@ -399,7 +415,8 @@ internal fun ObjectTypeColorsDialog(
     onAccentChanged: (String, ThemeAccent?) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val distinctModels = models.distinctBy { it.endpointPath }.sortedBy { it.modelLabel.lowercase() }
+    val distinctModels =
+        models.distinctBy { it.endpointPath }.sortedBy { it.modelLabel.lowercase() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Object type colors") },
@@ -408,7 +425,9 @@ internal fun ObjectTypeColorsDialog(
                 Text("Object types will appear here after the directory has been synced.")
             } else {
                 Column(
-                    Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState())
+                    Modifier.fillMaxWidth()
+                        .heightIn(max = 520.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     Text(
                         "Choose a color for each cached object type. Automatic uses the built-in palette.",
@@ -462,7 +481,9 @@ internal fun ObjectTypeColorsDialog(
                                 ) {
                                     DropdownMenuItem(
                                         text = { Text(ThemeAccent.System.label) },
-                                        leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Palette, contentDescription = null)
+                                        },
                                         onClick = {
                                             onAccentChanged(model.endpointPath, null)
                                             menuExpanded = false
@@ -474,7 +495,10 @@ internal fun ObjectTypeColorsDialog(
                                             DropdownMenuItem(
                                                 text = { Text(accent.label) },
                                                 leadingIcon = {
-                                                    Icon(Icons.Default.Palette, contentDescription = null)
+                                                    Icon(
+                                                        Icons.Default.Palette,
+                                                        contentDescription = null,
+                                                    )
                                                 },
                                                 onClick = {
                                                     onAccentChanged(model.endpointPath, accent)

@@ -57,8 +57,11 @@ internal data class AlphaBounds(
     val right: Int,
     val bottom: Int,
 ) {
-    val width: Int get() = right - left
-    val height: Int get() = bottom - top
+    val width: Int
+        get() = right - left
+
+    val height: Int
+        get() = bottom - top
 }
 
 /** Returns the right/bottom-exclusive bounds of pixels whose alpha is above the noise threshold. */

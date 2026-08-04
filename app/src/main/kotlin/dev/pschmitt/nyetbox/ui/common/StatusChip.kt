@@ -19,9 +19,8 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +33,7 @@ fun StatusChip(label: String?, value: String?, highlightQuery: String = "") {
     val color =
         when (value?.lowercase()) {
             "active" -> MaterialTheme.colorScheme.primaryContainer
-            "inventory" ->
-                if (isSystemInDarkTheme()) Color(0xFF7A1E52) else Color(0xFFFFC7E2)
+            "inventory" -> if (isSystemInDarkTheme()) Color(0xFF7A1E52) else Color(0xFFFFC7E2)
             "offline",
             "decommissioning",
             "failed" -> MaterialTheme.colorScheme.errorContainer
@@ -72,6 +70,7 @@ private fun statusIcon(value: String?) =
         "decommissioning" -> Icons.Default.Archive
         "failed" -> Icons.Default.Error
         "planned" -> Icons.Default.Schedule
-        "staged", "maintenance" -> Icons.Default.Build
+        "staged",
+        "maintenance" -> Icons.Default.Build
         else -> Icons.Default.Info
     }

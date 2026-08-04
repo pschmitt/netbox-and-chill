@@ -44,8 +44,7 @@ fun CrashReportDialog(
                     Text(
                         report,
                         modifier =
-                            Modifier
-                                .padding(top = 12.dp)
+                            Modifier.padding(top = 12.dp)
                                 .heightIn(max = 300.dp)
                                 .verticalScroll(rememberScrollState()),
                         fontFamily = FontFamily.Monospace,

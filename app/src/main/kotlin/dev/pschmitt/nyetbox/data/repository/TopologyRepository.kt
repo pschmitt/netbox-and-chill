@@ -25,11 +25,9 @@ constructor(
     suspend fun cached(): Result<TopologySnapshot?> =
         withContext(Dispatchers.IO) {
             runCatching {
-                fileDownloadRepository
-                    .persistentFile(CACHE_KEY, CACHE_FILENAME)
-                    ?.let { file ->
-                        TopologySnapshot(parseTopologyXml(file.readText()), file.lastModified())
-                    }
+                fileDownloadRepository.persistentFile(CACHE_KEY, CACHE_FILENAME)?.let { file ->
+                    TopologySnapshot(parseTopologyXml(file.readText()), file.lastModified())
+                }
             }
         }
 

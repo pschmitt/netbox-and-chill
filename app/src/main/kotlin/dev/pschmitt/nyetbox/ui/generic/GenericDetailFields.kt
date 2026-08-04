@@ -1,7 +1,6 @@
 package dev.pschmitt.nyetbox.ui.generic
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -63,14 +62,15 @@ private fun LazyListScope.detailCard(
     item {
         NyetboxCard(
             modifier =
-                Modifier.padding(vertical = 4.dp).then(
-                    if (onClick != null || onLongPress != null) {
-                        Modifier.combinedClickable(
-                            onClick = { onClick?.invoke() },
-                            onLongClick = { onLongPress?.invoke() },
-                        )
-                    } else Modifier
-                ),
+                Modifier.padding(vertical = 4.dp)
+                    .then(
+                        if (onClick != null || onLongPress != null) {
+                            Modifier.combinedClickable(
+                                onClick = { onClick?.invoke() },
+                                onLongClick = { onLongPress?.invoke() },
+                            )
+                        } else Modifier
+                    )
         ) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
                 content()
@@ -270,7 +270,10 @@ internal fun LazyListScope.fieldRow(
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    CollapsibleCommentCard(content = row.content, modifier = Modifier.fillMaxWidth())
+                    CollapsibleCommentCard(
+                        content = row.content,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         is FieldRow.Reference ->

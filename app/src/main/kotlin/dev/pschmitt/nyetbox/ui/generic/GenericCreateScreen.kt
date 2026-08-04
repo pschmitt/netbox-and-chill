@@ -50,9 +50,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -140,13 +140,15 @@ fun GenericCreateScreen(
                                 localImageFile = viewModel::localImageFile,
                                 onValueChange = viewModel::setValue,
                             )
-                            field.helpText?.takeIf { it.isNotBlank() }?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            field.helpText
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let {
+                                    Text(
+                                        it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                         }
                     }
                     item {
@@ -222,17 +224,17 @@ private fun CreateFieldInput(
         CreateChoiceInput(field, value, options, localImageFile, onValueChange)
         return
     }
-        OutlinedTextField(
-            value = value,
-            onValueChange = { onValueChange(field.key, it) },
-            label = { Text(label) },
-            minLines = if (field.type == "json") 3 else 1,
-            supportingText =
-                when {
-                    field.type == "json" -> ({ Text("Enter a valid JSON value") })
-                    field.type == "nested object" -> ({ Text("Enter the related object ID") })
-                    else -> null
-                },
+    OutlinedTextField(
+        value = value,
+        onValueChange = { onValueChange(field.key, it) },
+        label = { Text(label) },
+        minLines = if (field.type == "json") 3 else 1,
+        supportingText =
+            when {
+                field.type == "json" -> ({ Text("Enter a valid JSON value") })
+                field.type == "nested object" -> ({ Text("Enter the related object ID") })
+                else -> null
+            },
         keyboardOptions =
             KeyboardOptions(
                 keyboardType =
@@ -341,12 +343,10 @@ internal fun CreateChoiceInput(
                 }
             },
             modifier =
-                Modifier.fillMaxWidth()
-                    .testTag("create-choice-field-${field.key}")
-                    .clickable {
-                        queryValue = TextFieldValue()
-                        expanded = true
-                    },
+                Modifier.fillMaxWidth().testTag("create-choice-field-${field.key}").clickable {
+                    queryValue = TextFieldValue()
+                    expanded = true
+                },
         )
         if (expanded) {
             ModalBottomSheet(
@@ -379,14 +379,15 @@ internal fun CreateChoiceInput(
                                     supportingContent = {
                                         Text("Type ${suggestion.key} followed by a value")
                                     },
-                                    modifier = Modifier.clickable {
-                                        val nextQuery = "${suggestion.key} "
-                                        queryValue =
-                                            TextFieldValue(
-                                                text = nextQuery,
-                                                selection = TextRange(nextQuery.length),
-                                            )
-                                    },
+                                    modifier =
+                                        Modifier.clickable {
+                                            val nextQuery = "${suggestion.key} "
+                                            queryValue =
+                                                TextFieldValue(
+                                                    text = nextQuery,
+                                                    selection = TextRange(nextQuery.length),
+                                                )
+                                        },
                                 )
                             }
                         }
@@ -417,16 +418,22 @@ internal fun CreateChoiceInput(
                                 headlineContent = { Text(option.label) },
                                 supportingContent =
                                     matchHint?.let { hint ->
-                                        { Text("Matched $hint", color = MaterialTheme.colorScheme.primary) }
+                                        {
+                                            Text(
+                                                "Matched $hint",
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
                                     },
                                 leadingContent = {
                                     CreateChoicePreview(option, localImageFile)
                                 },
-                                modifier = Modifier.clickable {
-                                    onValueChange(field.key, option.value)
-                                    expanded = false
-                                    queryValue = TextFieldValue()
-                                },
+                                modifier =
+                                    Modifier.clickable {
+                                        onValueChange(field.key, option.value)
+                                        expanded = false
+                                        queryValue = TextFieldValue()
+                                    },
                             )
                         }
                         if (filteredOptions.isEmpty()) {

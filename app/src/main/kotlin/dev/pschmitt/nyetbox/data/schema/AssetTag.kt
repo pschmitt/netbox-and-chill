@@ -14,7 +14,5 @@ fun JsonObject.assetTagState(): AssetTagState {
 }
 
 fun assetTagStateFromRawJson(raw: String): AssetTagState =
-    runCatching { Json.parseToJsonElement(raw) as? JsonObject }
-        .getOrNull()
-        ?.assetTagState()
+    runCatching { Json.parseToJsonElement(raw) as? JsonObject }.getOrNull()?.assetTagState()
         ?: AssetTagState(hasField = false, value = null)

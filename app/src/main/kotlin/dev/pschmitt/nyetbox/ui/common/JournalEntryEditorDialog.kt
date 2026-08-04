@@ -52,9 +52,7 @@ fun JournalEntryEditorDialog(
         icon = { Icon(Icons.Default.History, contentDescription = null) },
         title = { Text(if (entry == null) "Add journal entry" else "Edit journal entry") },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 OutlinedButton(
                     onClick = { kindMenuExpanded = true },
                     enabled = !state.isSaving,

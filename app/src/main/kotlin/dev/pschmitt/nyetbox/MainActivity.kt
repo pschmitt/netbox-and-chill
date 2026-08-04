@@ -29,17 +29,17 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import dev.pschmitt.nyetbox.crash.CrashReportStore
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.GestureAction
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
-import dev.pschmitt.nyetbox.crash.CrashReportStore
-import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.scanner.NetBoxTarget
 import dev.pschmitt.nyetbox.sync.SyncNotifier
+import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.ui.common.CrashReportDialog
 import dev.pschmitt.nyetbox.ui.gestures.withConfiguredGestures
-import dev.pschmitt.nyetbox.ui.navigation.NetBoxNavHost
 import dev.pschmitt.nyetbox.ui.navigation.MainNavigationDrawer
+import dev.pschmitt.nyetbox.ui.navigation.NetBoxNavHost
 import dev.pschmitt.nyetbox.ui.navigation.Route
 import dev.pschmitt.nyetbox.ui.settings.SettingsCategory
 import dev.pschmitt.nyetbox.ui.theme.NyetboxTheme
@@ -164,7 +164,9 @@ class MainActivity : FragmentActivity() {
                         navController.navigate(Route.DeviceList) { launchSingleTop = true }
                     },
                     onModelClick = { model ->
-                        navController.navigate(Route.GenericList(model.endpointPath, model.modelLabel)) {
+                        navController.navigate(
+                            Route.GenericList(model.endpointPath, model.modelLabel)
+                        ) {
                             launchSingleTop = true
                         }
                     },
@@ -186,7 +188,8 @@ class MainActivity : FragmentActivity() {
                                 GestureAction.Sync -> syncScheduler.syncNow()
                                 GestureAction.OfflineOn -> settingsRepository.setOfflineMode(true)
                                 GestureAction.OfflineOff -> settingsRepository.setOfflineMode(false)
-                                else -> routeForGesture(action, target)?.let(navController::navigate)
+                                else ->
+                                    routeForGesture(action, target)?.let(navController::navigate)
                             }
                         }
                     Box(Modifier.fillMaxSize().then(gestureModifier)) {
@@ -246,9 +249,8 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun copyCrashReport(report: String) {
-        getSystemService<ClipboardManager>()?.setPrimaryClip(
-            ClipData.newPlainText("Crash report", report)
-        )
+        getSystemService<ClipboardManager>()
+            ?.setPrimaryClip(ClipData.newPlainText("Crash report", report))
         Toast.makeText(this, "Crash report copied", Toast.LENGTH_SHORT).show()
     }
 

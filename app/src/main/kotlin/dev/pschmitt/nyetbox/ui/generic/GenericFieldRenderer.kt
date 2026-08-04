@@ -274,13 +274,14 @@ private fun inferredCountEndpoint(parentEndpoint: String, modelKey: String): Str
 }
 
 private fun countRelationKey(parentEndpoint: String, countKey: String, modelKey: String): String {
-    if (countKey == "prefix_count" && parentEndpoint in setOf("api/dcim/sites/", "api/dcim/locations/")) {
+    if (
+        countKey == "prefix_count" &&
+            parentEndpoint in setOf("api/dcim/sites/", "api/dcim/locations/")
+    ) {
         return "scope"
     }
     if (countKey == "child_prefix_count") return "parent"
-    return parentModelKey(parentEndpoint)
-        .takeIf { it.isNotBlank() }
-        ?: modelKey
+    return parentModelKey(parentEndpoint).takeIf { it.isNotBlank() } ?: modelKey
 }
 
 private fun parentModelKey(endpointPath: String): String {
@@ -300,8 +301,9 @@ private fun pluralCollectionSegment(modelKey: String): String {
     val kebab = modelKey.replace('_', '-')
     val lastWord = kebab.substringAfterLast('-')
     return when {
-        lastWord.endsWith("y") && lastWord.length > 1 && lastWord[lastWord.lastIndex - 1] !in "aeiou" ->
-            kebab.dropLast(1) + "ies"
+        lastWord.endsWith("y") &&
+            lastWord.length > 1 &&
+            lastWord[lastWord.lastIndex - 1] !in "aeiou" -> kebab.dropLast(1) + "ies"
         kebab.endsWith("s") -> kebab
         else -> "${kebab}s"
     }
@@ -391,7 +393,8 @@ private fun renderArray(key: String, label: String, value: JsonArray): FieldRow?
     if (value.isEmpty()) return null
     val refs = value.mapNotNull { (it as? JsonObject)?.let(::asRefTarget) }
     if (refs.size == value.size) {
-        return if (key == "tags") FieldRow.TagList(label, refs) else FieldRow.ReferenceList(label, refs)
+        return if (key == "tags") FieldRow.TagList(label, refs)
+        else FieldRow.ReferenceList(label, refs)
     }
     val chips = value.mapNotNull {
         when (it) {

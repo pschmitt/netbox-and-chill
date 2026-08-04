@@ -6,10 +6,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,26 +18,27 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Hub
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -49,8 +50,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -64,26 +65,25 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.topology.TopologyGraph
@@ -91,9 +91,9 @@ import dev.pschmitt.nyetbox.data.topology.TopologyNode
 import dev.pschmitt.nyetbox.data.topology.TopologyPosition
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SearchQueryVisualTransformation
-import kotlin.math.roundToInt
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,17 +111,22 @@ fun TopologyScreen(
         if (focusedDeviceId != null) selectedNodeId = state.focusedNodeId
     }
     val selectedInfo = selectedNodeId?.let(state.nodeInfo::get)
-    val selectedGraph = selectedNodeId?.let { id -> state.graph?.nodes?.firstOrNull { it.id == id } }
+    val selectedGraph = selectedNodeId?.let { id ->
+        state.graph?.nodes?.firstOrNull { it.id == id }
+    }
     val connectedInfos =
-        selectedNodeId?.let { selected ->
-            state.graph?.edges.orEmpty().mapNotNull { edge ->
-                when (selected) {
-                    edge.source -> state.nodeInfo[edge.target]
-                    edge.target -> state.nodeInfo[edge.source]
-                    else -> null
+        selectedNodeId
+            ?.let { selected ->
+                state.graph?.edges.orEmpty().mapNotNull { edge ->
+                    when (selected) {
+                        edge.source -> state.nodeInfo[edge.target]
+                        edge.target -> state.nodeInfo[edge.source]
+                        else -> null
+                    }
                 }
             }
-        }.orEmpty().distinctBy { it.nodeId }
+            .orEmpty()
+            .distinctBy { it.nodeId }
     LaunchedEffect(searchOpen) {
         if (searchOpen) viewModel.searchDevices("")
     }
@@ -143,7 +148,7 @@ fun TopologyScreen(
                     }
                 },
             )
-        },
+        }
     ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -154,7 +159,11 @@ fun TopologyScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Default.Hub, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.Hub,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                     Text(
                         "${graph.nodes.size} nodes · ${graph.edges.size} connections",
                         modifier = Modifier.padding(start = 8.dp),
@@ -188,36 +197,40 @@ fun TopologyScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
-            } ?: run {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(PaddingValues(24.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (state.isRefreshing || state.isLoading) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Text("Loading topology…", modifier = Modifier.padding(top = 12.dp))
-                        }
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Hub,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                state.errorMessage ?: "No topology export is cached yet",
-                                modifier = Modifier.padding(top = 12.dp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            IconButton(onClick = viewModel::refresh) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Retry topology refresh")
+            }
+                ?: run {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(PaddingValues(24.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (state.isRefreshing || state.isLoading) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator()
+                                Text("Loading topology…", modifier = Modifier.padding(top = 12.dp))
+                            }
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.Hub,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    state.errorMessage ?: "No topology export is cached yet",
+                                    modifier = Modifier.padding(top = 12.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                IconButton(onClick = viewModel::refresh) {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = "Retry topology refresh",
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
         }
     }
 
@@ -268,29 +281,31 @@ private fun TopologyGraphCanvas(
     val latestOnNodeClick by rememberUpdatedState(onNodeClick)
     var ctrlPressed by remember { mutableStateOf(false) }
     var initialized by remember(graph) { mutableStateOf(false) }
-    val transformState =
-        rememberTransformableState { _, zoomChange, panChange, _ ->
-            zoom = (zoom * zoomChange).coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
-            pan += panChange
+    val transformState = rememberTransformableState { _, zoomChange, panChange, _ ->
+        zoom = (zoom * zoomChange).coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
+        pan += panChange
     }
     val density = LocalDensity.current
     val colorScheme = MaterialTheme.colorScheme
-    val labelPaint = remember(colorScheme.onSurface, density.density) {
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = colorScheme.onSurface.toArgb()
-            textAlign = Paint.Align.CENTER
-        }
-    }
-    val renderData = remember(graph, colorScheme.outline) {
-        buildTopologyRenderData(graph, colorScheme.outline)
-    }
-    val graphBounds = renderData.bounds
-    val focusedPoint =
-        focusedNodeId?.let { id ->
-            graph.nodes.firstOrNull { it.id == id }?.let {
-                Offset(it.x + it.width / 2f, it.y + it.height / 2f)
+    val labelPaint =
+        remember(colorScheme.onSurface, density.density) {
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = colorScheme.onSurface.toArgb()
+                textAlign = Paint.Align.CENTER
             }
         }
+    val renderData =
+        remember(graph, colorScheme.outline) {
+            buildTopologyRenderData(graph, colorScheme.outline)
+        }
+    val graphBounds = renderData.bounds
+    val focusedPoint = focusedNodeId?.let { id ->
+        graph.nodes
+            .firstOrNull { it.id == id }
+            ?.let {
+                Offset(it.x + it.width / 2f, it.y + it.height / 2f)
+            }
+    }
 
     fun updateZoom(requestedZoom: Float) {
         val nextZoom = requestedZoom.coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
@@ -308,8 +323,7 @@ private fun TopologyGraphCanvas(
 
     fun zoomAt(position: Offset) {
         val nextZoom =
-            (zoom * TOPOLOGY_DOUBLE_TAP_ZOOM_FACTOR)
-                .coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
+            (zoom * TOPOLOGY_DOUBLE_TAP_ZOOM_FACTOR).coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
         if (nextZoom == zoom || viewportSize == IntSize.Zero) return
         pan =
             topologyDoubleTapZoomPan(
@@ -337,8 +351,9 @@ private fun TopologyGraphCanvas(
     val totalScale = topologyTotalScale(renderData.bounds, viewportSize, zoom)
     val imageLayouts =
         if (showDeviceTypeImages && totalScale >= TOPOLOGY_IMAGE_SCALE) {
-            topologyNodeLayouts(renderData, viewportSize, zoom, pan, dragOffsets)
-                .filter { nodeInfo[it.node.id]?.localImageFile != null }
+            topologyNodeLayouts(renderData, viewportSize, zoom, pan, dragOffsets).filter {
+                nodeInfo[it.node.id]?.localImageFile != null
+            }
         } else {
             emptyList()
         }
@@ -373,7 +388,7 @@ private fun TopologyGraphCanvas(
                 .semantics {
                     contentDescription =
                         "Topology graph with ${graph.nodes.size} nodes and ${graph.edges.size} connections"
-                },
+                }
     ) {
         Canvas(
             modifier =
@@ -436,7 +451,7 @@ private fun TopologyGraphCanvas(
                             },
                         )
                     }
-                    .transformable(transformState),
+                    .transformable(transformState)
         ) {
             val availableWidth = (size.width - 32f).coerceAtLeast(1f)
             val availableHeight = (size.height - 32f).coerceAtLeast(1f)
@@ -539,7 +554,7 @@ private fun TopologyGraphCanvas(
                         .semantics {
                             contentDescription =
                                 "Topology node ${info?.displayName ?: layout.node.label}"
-                        },
+                        }
             ) {
                 if (showDeviceTypeImages && info?.localImageFile != null) {
                     RemoteThumbnail(
@@ -575,7 +590,8 @@ private fun TopologyGraphCanvas(
             )
             IconButton(
                 onClick = {
-                    val resetZoom = initialTopologyZoom(graph.nodes.size, viewportSize.width.toFloat())
+                    val resetZoom =
+                        initialTopologyZoom(graph.nodes.size, viewportSize.width.toFloat())
                     zoom = resetZoom
                     pan =
                         focusedPoint?.let {
@@ -606,7 +622,10 @@ private fun TopologyNodeSheet(
     onSelectConnected: (TopologyNodeInfo) -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -627,7 +646,9 @@ private fun TopologyNodeSheet(
             }
             Column(Modifier.padding(start = 16.dp).weight(1f)) {
                 Text(info.displayName, style = MaterialTheme.typography.titleLarge)
-                info.deviceTypeModel?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                info.deviceTypeModel?.let {
+                    Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 info.statusLabel?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             }
         }
@@ -710,7 +731,8 @@ private fun TopologyDeviceSearchSheet(
                 if (devices.isEmpty()) {
                     item {
                         Text(
-                    if (query.isBlank()) "No device nodes are cached" else "No matching device nodes",
+                            if (query.isBlank()) "No device nodes are cached"
+                            else "No matching device nodes",
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 24.dp),
@@ -815,7 +837,12 @@ private fun topologyNodeLayouts(
 ): List<TopologyNodeLayout> {
     if (viewportSize == IntSize.Zero) return emptyList()
     val bounds = renderData.bounds
-    val fitScale = topologyFitScale(bounds, (viewportSize.width - 32).coerceAtLeast(1).toFloat(), (viewportSize.height - 32).coerceAtLeast(1).toFloat())
+    val fitScale =
+        topologyFitScale(
+            bounds,
+            (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
+            (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
+        )
     val totalScale = fitScale * zoom
     val screenCenter = Offset(viewportSize.width / 2f, viewportSize.height / 2f) + pan
     return renderData.nodes.map { renderNode ->
@@ -836,10 +863,10 @@ private fun topologyNodeLayouts(
 private fun topologyTotalScale(bounds: Rect, viewportSize: IntSize, zoom: Float): Float {
     if (viewportSize == IntSize.Zero) return 0f
     return topologyFitScale(
-            bounds,
-            (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
-            (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
-        ) * zoom
+        bounds,
+        (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
+        (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
+    ) * zoom
 }
 
 private fun topologyNodeAt(
@@ -873,7 +900,12 @@ internal fun topologyFocusPan(
     zoom: Float,
     focusedPoint: Offset,
 ): Offset {
-    val fitScale = topologyFitScale(bounds, (viewportSize.width - 32).coerceAtLeast(1).toFloat(), (viewportSize.height - 32).coerceAtLeast(1).toFloat())
+    val fitScale =
+        topologyFitScale(
+            bounds,
+            (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
+            (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
+        )
     return Offset(viewportSize.width / 2f, viewportSize.height / 2f) -
         (focusedPoint - bounds.center) * (fitScale * zoom) -
         Offset(viewportSize.width / 2f, viewportSize.height / 2f)
@@ -887,7 +919,12 @@ internal fun topologyButtonZoomPan(
     currentPan: Offset,
     focusedPoint: Offset?,
 ): Offset {
-    val fitScale = topologyFitScale(bounds, (viewportSize.width - 32).coerceAtLeast(1).toFloat(), (viewportSize.height - 32).coerceAtLeast(1).toFloat())
+    val fitScale =
+        topologyFitScale(
+            bounds,
+            (viewportSize.width - 32).coerceAtLeast(1).toFloat(),
+            (viewportSize.height - 32).coerceAtLeast(1).toFloat(),
+        )
     val currentScale = (fitScale * currentZoom).coerceAtLeast(0.001f)
     val viewportCenter = Offset(viewportSize.width / 2f, viewportSize.height / 2f)
     val visiblePoint = bounds.center - currentPan / currentScale
@@ -910,16 +947,21 @@ internal fun topologyDoubleTapZoomPan(
 ): Offset {
     val viewportCenter = Offset(viewportSize.width / 2f, viewportSize.height / 2f)
     val zoomRatio = nextZoom / currentZoom.coerceAtLeast(0.001f)
-    return (tapPosition - viewportCenter) -
-        (tapPosition - viewportCenter - currentPan) * zoomRatio
+    return (tapPosition - viewportCenter) - (tapPosition - viewportCenter - currentPan) * zoomRatio
 }
 
-internal fun topologyZoomForScroll(currentZoom: Float, scrollY: Float, ctrlPressed: Boolean): Float =
+internal fun topologyZoomForScroll(
+    currentZoom: Float,
+    scrollY: Float,
+    ctrlPressed: Boolean,
+): Float =
     if (!ctrlPressed || scrollY == 0f) {
         currentZoom
     } else {
-        (currentZoom * if (scrollY < 0f) ZOOM_STEP else 1f / ZOOM_STEP)
-            .coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
+        (currentZoom * if (scrollY < 0f) ZOOM_STEP else 1f / ZOOM_STEP).coerceIn(
+            MIN_TOPOLOGY_ZOOM,
+            MAX_TOPOLOGY_ZOOM,
+        )
     }
 
 private const val MIN_TOPOLOGY_ZOOM = 0.35f
@@ -1024,11 +1066,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTopologyNodeIco
         }
         TopologyNodeIconKind.Wireless -> {
             repeat(3) { index ->
-                val scale = when (index) {
-                    0 -> 0.35f
-                    1 -> 0.65f
-                    else -> 0.95f
-                }
+                val scale =
+                    when (index) {
+                        0 -> 0.35f
+                        1 -> 0.65f
+                        else -> 0.95f
+                    }
                 drawArc(
                     color = color,
                     startAngle = 225f,
@@ -1039,7 +1082,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTopologyNodeIco
                     style = Stroke(width = strokeWidth),
                 )
             }
-            drawCircle(color = color, radius = strokeWidth * 0.8f, center = center + Offset(0f, radius * 0.55f))
+            drawCircle(
+                color = color,
+                radius = strokeWidth * 0.8f,
+                center = center + Offset(0f, radius * 0.55f),
+            )
         }
     }
 }

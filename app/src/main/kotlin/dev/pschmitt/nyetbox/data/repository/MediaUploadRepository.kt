@@ -125,7 +125,9 @@ constructor(
     ): Result<MediaUploadReceipt> =
         withContext(Dispatchers.IO) {
             if (settingsRepository.offlineMode.value) {
-                return@withContext Result.failure(IllegalStateException("Uploads are unavailable in offline mode"))
+                return@withContext Result.failure(
+                    IllegalStateException("Uploads are unavailable in offline mode")
+                )
             }
             runCatching {
                 val response = operation()
@@ -135,7 +137,9 @@ constructor(
         }
 
     private fun fields(vararg values: Pair<String, String>): Map<String, RequestBody> =
-        values.associate { (key, value) -> key to value.toRequestBody("text/plain".toMediaTypeOrNull()) }
+        values.associate { (key, value) ->
+            key to value.toRequestBody("text/plain".toMediaTypeOrNull())
+        }
 
     private fun filePart(field: String, uri: Uri, filename: String): MultipartBody.Part {
         val resolver = context.contentResolver
@@ -169,7 +173,8 @@ constructor(
         fun contentTypeForEndpoint(endpointPath: String): String {
             val segments = endpointPath.trim('/').split('/')
             require(segments.size >= 3) { "Unsupported NetBox endpoint: $endpointPath" }
-            val app = if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
+            val app =
+                if (segments[1] == "plugins" && segments.size >= 4) segments[2] else segments[1]
             val model = segments.last().removeSuffix("s").replace("-", "").replace("_", "")
             return "$app.$model"
         }
@@ -179,8 +184,8 @@ constructor(
             val clean =
                 filename.substringAfterLast('/').substringAfterLast('\\').ifBlank { "upload" }
             if (clean.substringAfterLast('.', "").isNotBlank()) return clean
-            val extension = MIME_EXTENSIONS[mimeType?.substringBefore(';')?.lowercase()]
-                ?: return clean
+            val extension =
+                MIME_EXTENSIONS[mimeType?.substringBefore(';')?.lowercase()] ?: return clean
             return "$clean.$extension"
         }
 
@@ -195,7 +200,8 @@ constructor(
                 "application/vnd.ms-powerpoint" to "ppt",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" to "xlsx",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document" to "docx",
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation" to "pptx",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation" to
+                    "pptx",
                 "image/avif" to "avif",
                 "image/bmp" to "bmp",
                 "image/gif" to "gif",

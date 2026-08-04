@@ -132,23 +132,27 @@ private fun RackFaceOverview(
                                 else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(4.dp),
                             modifier =
-                                Modifier.weight(1f).fillMaxHeight().clickable(
-                                    enabled = deviceId != null
-                                ) {
-                                    deviceId?.let(onDeviceClick)
-                                }.then(
-                                    if (highlighted) {
-                                        Modifier.border(
-                                            width = 3.dp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            shape = RoundedCornerShape(4.dp),
-                                        )
-                                    } else Modifier
-                                ),
+                                Modifier.weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable(enabled = deviceId != null) {
+                                        deviceId?.let(onDeviceClick)
+                                    }
+                                    .then(
+                                        if (highlighted) {
+                                            Modifier.border(
+                                                width = 3.dp,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = RoundedCornerShape(4.dp),
+                                            )
+                                        } else Modifier
+                                    ),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = 6.dp),
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                                        .fillMaxHeight()
+                                        .padding(horizontal = 6.dp),
                             ) {
                                 if (deviceId != null) {
                                     RemoteThumbnail(

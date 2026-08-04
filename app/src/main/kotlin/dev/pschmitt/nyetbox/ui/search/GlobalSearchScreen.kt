@@ -1,8 +1,10 @@
 package dev.pschmitt.nyetbox.ui.search
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,25 +18,23 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,19 +61,19 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
-import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
-import dev.pschmitt.nyetbox.data.repository.SearchHit
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
+import dev.pschmitt.nyetbox.data.repository.SearchHit
 import dev.pschmitt.nyetbox.data.repository.ThemeAccent
+import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
@@ -112,7 +112,8 @@ fun GlobalSearchScreen(
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val modelsByEndpointPath by viewModel.modelsByEndpointPath.collectAsStateWithLifecycle()
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
-    val deviceTypeFrontImagesById by viewModel.deviceTypeFrontImagesById.collectAsStateWithLifecycle()
+    val deviceTypeFrontImagesById by
+        viewModel.deviceTypeFrontImagesById.collectAsStateWithLifecycle()
     val objectTypeAccents by viewModel.objectTypeAccents.collectAsStateWithLifecycle()
     val recentKeys = remember(recentResults) { recentResults.mapTo(HashSet()) { searchHitKey(it) } }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -166,8 +167,10 @@ fun GlobalSearchScreen(
                         shape = RoundedCornerShape(28.dp),
                         colors =
                             TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                focusedContainerColor =
+                                    MaterialTheme.colorScheme.surfaceContainerHighest,
+                                unfocusedContainerColor =
+                                    MaterialTheme.colorScheme.surfaceContainerHighest,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                             ),
@@ -343,7 +346,9 @@ private fun SearchResultsContent(
             item(key = "search-results-heading") {
                 SearchSectionHeader(
                     icon = Icons.Default.Search,
-                    title = if (typeFilter == null) "Matches" else "Matches in ${typeFilter.modelLabel}",
+                    title =
+                        if (typeFilter == null) "Matches"
+                        else "Matches in ${typeFilter.modelLabel}",
                     subtitle = "Cached results update as you type",
                     count = results.size,
                 )
@@ -373,7 +378,8 @@ private fun SearchResultsContent(
             item(key = "no-filtered-results") {
                 SearchEmptyState(
                     title = "No matches",
-                    message = "Try another query or remove the ${typeFilter.modelLabel.lowercase()} filter",
+                    message =
+                        "Try another query or remove the ${typeFilter.modelLabel.lowercase()} filter",
                     modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp),
                 )
             }
@@ -425,7 +431,11 @@ private fun TypeSuggestionChip(model: NetBoxModelEntity, onClick: () -> Unit) {
             Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
         },
         trailingIcon = {
-            Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
         },
     )
 }
@@ -456,26 +466,32 @@ private fun SearchSectionHeader(
             }
         }
         Column(Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        count?.takeIf { it > 0 }?.let {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(50),
-            ) {
-                Text(
-                    it.toString(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                )
+        count
+            ?.takeIf { it > 0 }
+            ?.let {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(50),
+                ) {
+                    Text(
+                        it.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
             }
-        }
     }
 }
 
@@ -508,7 +524,10 @@ private fun SearchEmptyState(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
@@ -565,7 +584,8 @@ private fun SearchResultRow(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().testTag("e2e-search-result"),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors =
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
@@ -579,7 +599,12 @@ private fun SearchResultRow(
                     modifier = Modifier.size(64.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = null, tint = typeColor, modifier = Modifier.size(28.dp))
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = typeColor,
+                            modifier = Modifier.size(28.dp),
+                        )
                     }
                 }
             } else {
@@ -616,7 +641,7 @@ private fun SearchResultRow(
                         query = highlightQuery,
                         style =
                             MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -676,7 +701,11 @@ private fun RecentBadge() {
 }
 
 @Composable
-private fun AssetTagSearchBadge(label: String, missing: Boolean = false, highlightQuery: String = "") {
+private fun AssetTagSearchBadge(
+    label: String,
+    missing: Boolean = false,
+    highlightQuery: String = "",
+) {
     CompactSearchBadge(
         label = label,
         icon = Icons.Default.LocalOffer,
@@ -695,8 +724,7 @@ private fun SearchStatusBadge(label: String, value: String) {
     val containerColor =
         when (value.lowercase()) {
             "active" -> MaterialTheme.colorScheme.primaryContainer
-            "inventory" ->
-                if (isSystemInDarkTheme()) Color(0xFF7A1E52) else Color(0xFFFFC7E2)
+            "inventory" -> if (isSystemInDarkTheme()) Color(0xFF7A1E52) else Color(0xFFFFC7E2)
             "offline",
             "decommissioning",
             "failed" -> MaterialTheme.colorScheme.errorContainer
@@ -758,7 +786,8 @@ private fun searchHasAssetTagField(
     devicesById: Map<Int, DeviceEntity>,
 ): Boolean =
     hit.hasAssetTagField ||
-        (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH && devicesById[hit.id] != null)
+        (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH &&
+            devicesById[hit.id] != null)
 
 private fun searchStatusFor(hit: SearchHit, devicesById: Map<Int, DeviceEntity>): String? =
     hit.status

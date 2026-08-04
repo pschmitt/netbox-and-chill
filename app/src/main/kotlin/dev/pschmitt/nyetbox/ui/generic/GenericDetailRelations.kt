@@ -72,7 +72,8 @@ internal fun RelatedItemsBottomSheet(
                                     headlineContent = { Text(objectEntity.display) },
                                     supportingContent =
                                         objectEntity.secondaryLine?.let { line -> { Text(line) } },
-                                    modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
+                                    modifier =
+                                        Modifier.clickable { onObjectClick(objectEntity.id) },
                                 )
                             }
                         }

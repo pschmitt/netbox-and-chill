@@ -19,10 +19,9 @@ private val linkedCreateJson = Json
 fun LinkedCreateResult.encodeForSavedState(): String =
     linkedCreateJson.encodeToString(LinkedCreateResult.serializer(), this)
 
-fun decodeLinkedCreateResult(raw: String?): LinkedCreateResult? =
-    raw?.let {
-        runCatching {
-                linkedCreateJson.decodeFromString(LinkedCreateResult.serializer(), it)
-            }
-            .getOrNull()
-    }
+fun decodeLinkedCreateResult(raw: String?): LinkedCreateResult? = raw?.let {
+    runCatching {
+            linkedCreateJson.decodeFromString(LinkedCreateResult.serializer(), it)
+        }
+        .getOrNull()
+}

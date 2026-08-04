@@ -1,9 +1,9 @@
 package dev.pschmitt.nyetbox.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -32,7 +32,9 @@ internal fun GestureShortcutRow(
     var expanded by remember { mutableStateOf(false) }
     var targetPickerVisible by remember { mutableStateOf(false) }
     var targetQuery by remember { mutableStateOf("") }
-    var detailModel by remember { mutableStateOf<dev.pschmitt.nyetbox.data.db.NetBoxModelEntity?>(null) }
+    var detailModel by remember {
+        mutableStateOf<dev.pschmitt.nyetbox.data.db.NetBoxModelEntity?>(null)
+    }
     val actionLabel =
         target?.let { configured -> "${action.label}: ${configured.label}" } ?: action.label
     SettingsListItem(
@@ -105,25 +107,28 @@ internal fun GestureShortcutRow(
         },
     )
     if (targetPickerVisible) {
-        val filteredModels =
-            models.filter { model ->
-                targetQuery.isBlank() ||
-                    model.modelLabel.contains(targetQuery, ignoreCase = true) ||
-                    model.appLabel.contains(targetQuery, ignoreCase = true)
-            }
+        val filteredModels = models.filter { model ->
+            targetQuery.isBlank() ||
+                model.modelLabel.contains(targetQuery, ignoreCase = true) ||
+                model.appLabel.contains(targetQuery, ignoreCase = true)
+        }
         val filteredObjects =
-            detailModel?.let { selectedModel ->
-                objects
-                    .asSequence()
-                    .filter { it.endpointPath == selectedModel.endpointPath }
-                    .filter { obj ->
-                        targetQuery.isBlank() ||
-                            obj.display.contains(targetQuery, ignoreCase = true) ||
-                            obj.secondaryLine.orEmpty().contains(targetQuery, ignoreCase = true) ||
-                            obj.json.contains(targetQuery, ignoreCase = true)
-                    }
-                    .toList()
-            }.orEmpty()
+            detailModel
+                ?.let { selectedModel ->
+                    objects
+                        .asSequence()
+                        .filter { it.endpointPath == selectedModel.endpointPath }
+                        .filter { obj ->
+                            targetQuery.isBlank() ||
+                                obj.display.contains(targetQuery, ignoreCase = true) ||
+                                obj.secondaryLine
+                                    .orEmpty()
+                                    .contains(targetQuery, ignoreCase = true) ||
+                                obj.json.contains(targetQuery, ignoreCase = true)
+                        }
+                        .toList()
+                }
+                .orEmpty()
         AlertDialog(
             onDismissRequest = {
                 targetPickerVisible = false
@@ -192,7 +197,9 @@ internal fun GestureShortcutRow(
                                             targetPickerVisible = false
                                         }
                                     },
-                                leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                                leadingContent = {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                },
                                 headlineContent = { Text(model.modelLabel) },
                                 supportingContent = { Text(model.appLabel) },
                             )
@@ -206,7 +213,9 @@ internal fun GestureShortcutRow(
                         targetPickerVisible = false
                         detailModel = null
                     }
-                ) { Text("Cancel") }
+                ) {
+                    Text("Cancel")
+                }
             },
         )
     }

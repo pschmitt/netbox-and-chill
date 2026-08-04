@@ -15,11 +15,9 @@ data class NetBoxJsonReference(
     val display: String? = null,
 )
 
-fun JsonObject.jsonString(key: String): String? =
-    (this[key] as? JsonPrimitive)?.contentOrNull
+fun JsonObject.jsonString(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
 
-fun JsonObject.jsonInt(key: String): Int? =
-    (this[key] as? JsonPrimitive)?.intOrNull
+fun JsonObject.jsonInt(key: String): Int? = (this[key] as? JsonPrimitive)?.intOrNull
 
 fun JsonObject.jsonReference(key: String): NetBoxJsonReference? =
     (this[key] as? JsonObject)?.let { value ->
@@ -32,8 +30,7 @@ fun JsonObject.jsonReference(key: String): NetBoxJsonReference? =
         }
     }
 
-fun JsonElement.jsonContentOrNull(): String? =
-    (this as? JsonPrimitive)?.contentOrNull
+fun JsonElement.jsonContentOrNull(): String? = (this as? JsonPrimitive)?.contentOrNull
 
 fun isHttpUrl(text: String): Boolean =
     (text.startsWith("http://") || text.startsWith("https://")) && text.toHttpUrlOrNull() != null
@@ -43,8 +40,8 @@ fun isMediaUrl(text: String): Boolean =
     isHttpUrl(text) && text.toHttpUrlOrNull()?.encodedPath?.contains("/media/") == true
 
 /**
- * Pulls `front_image` straight from an object's own synced JSON - the same source the detail
- * screen uses - rather than a separately-synced lookup table that may not cover every object (see
+ * Pulls `front_image` straight from an object's own synced JSON - the same source the detail screen
+ * uses - rather than a separately-synced lookup table that may not cover every object (see
  * DeviceTypeEntity, which is only populated for device types referenced by a synced Device).
  */
 fun frontImageUrlFromRawJson(raw: String): String? =

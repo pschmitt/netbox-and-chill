@@ -12,7 +12,6 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,8 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
@@ -67,6 +66,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.printing.BrotherLabelRenderer
 import dev.pschmitt.nyetbox.printing.BrotherPrinter
@@ -110,48 +110,52 @@ fun PrintLabelDialog(
     var isDiscovering by remember { mutableStateOf(false) }
     var pairingAddress by remember { mutableStateOf<String?>(null) }
     var printState by remember { mutableStateOf<PrintOperationState>(PrintOperationState.Idle) }
-    var invertColors by remember(savedPrintSettings.invertColors) {
-        mutableStateOf(savedPrintSettings.invertColors)
-    }
-    var verticalText by remember(savedPrintSettings.verticalText) {
-        mutableStateOf(savedPrintSettings.verticalText)
-    }
-    var longLabel by remember(savedPrintSettings.longLabel) {
-        mutableStateOf(savedPrintSettings.longLabel)
-    }
-    var copiesText by remember(savedPrintSettings.copies) {
-        mutableStateOf(savedPrintSettings.copies.toString())
-    }
-    var qrSize by remember(savedPrintSettings.qrSize) {
-        mutableIntStateOf(savedPrintSettings.qrSize)
-    }
+    var invertColors by
+        remember(savedPrintSettings.invertColors) {
+            mutableStateOf(savedPrintSettings.invertColors)
+        }
+    var verticalText by
+        remember(savedPrintSettings.verticalText) {
+            mutableStateOf(savedPrintSettings.verticalText)
+        }
+    var longLabel by
+        remember(savedPrintSettings.longLabel) {
+            mutableStateOf(savedPrintSettings.longLabel)
+        }
+    var copiesText by
+        remember(savedPrintSettings.copies) {
+            mutableStateOf(savedPrintSettings.copies.toString())
+        }
+    var qrSize by
+        remember(savedPrintSettings.qrSize) {
+            mutableIntStateOf(savedPrintSettings.qrSize)
+        }
     var qrSizeMenuExpanded by remember { mutableStateOf(false) }
     val pairedAddresses = printers.mapTo(mutableSetOf()) { it.address }
-    val printerOptions =
-        buildList {
-            printers.forEach { printer ->
+    val printerOptions = buildList {
+        printers.forEach { printer ->
+            add(
+                PrinterOption(
+                    name = printer.name,
+                    address = printer.address,
+                    device = printer.device,
+                    pairedPrinter = printer,
+                )
+            )
+        }
+        nearbyPrinters
+            .filterNot { it.address in pairedAddresses }
+            .forEach { printer ->
                 add(
                     PrinterOption(
                         name = printer.name,
                         address = printer.address,
                         device = printer.device,
-                        pairedPrinter = printer,
+                        pairedPrinter = null,
                     )
                 )
             }
-            nearbyPrinters
-                .filterNot { it.address in pairedAddresses }
-                .forEach { printer ->
-                    add(
-                        PrinterOption(
-                            name = printer.name,
-                            address = printer.address,
-                            device = printer.device,
-                            pairedPrinter = null,
-                        )
-                    )
-                }
-        }
+    }
     val copyCount = copiesText.toIntOrNull()?.takeIf { it in 1..9 }
     val previewText =
         if (longLabel) request.longLabelText ?: request.labelText else request.labelText
@@ -627,7 +631,10 @@ fun PrintLabelDialog(
                     }
                 },
                 enabled =
-                    selected != null && !printState.isPrinting && hasPermission && copyCount != null,
+                    selected != null &&
+                        !printState.isPrinting &&
+                        hasPermission &&
+                        copyCount != null,
             ) {
                 Icon(Icons.Default.Print, contentDescription = null)
                 Spacer(Modifier.width(8.dp))

@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
-import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -103,7 +103,7 @@ private fun MarkdownShortcut(
 ) {
     IconButton(
         enabled = enabled,
-        onClick = { onValueChange(value + if (value.isBlank()) insertion else "\n$insertion") }
+        onClick = { onValueChange(value + if (value.isBlank()) insertion else "\n$insertion") },
     ) {
         Icon(icon, contentDescription = "Insert $description")
     }

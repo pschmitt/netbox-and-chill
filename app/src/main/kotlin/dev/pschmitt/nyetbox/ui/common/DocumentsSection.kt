@@ -4,28 +4,28 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material3.Badge
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,14 +38,14 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
-import dev.pschmitt.nyetbox.data.schema.documentTypePresentation
 import coil3.compose.AsyncImage
 import dev.pschmitt.nyetbox.data.repository.CachedDocument
+import dev.pschmitt.nyetbox.data.schema.documentTypePresentation
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -59,12 +59,14 @@ fun DocumentsSection(
     localFileFor: ((CachedDocument) -> File?)? = null,
     onDeleteDocument: ((CachedDocument) -> Unit)? = null,
 ) {
-    var actionDocument by androidx.compose.runtime.remember {
-        androidx.compose.runtime.mutableStateOf<CachedDocument?>(null)
-    }
-    var deleteDocument by androidx.compose.runtime.remember {
-        androidx.compose.runtime.mutableStateOf<CachedDocument?>(null)
-    }
+    var actionDocument by
+        androidx.compose.runtime.remember {
+            androidx.compose.runtime.mutableStateOf<CachedDocument?>(null)
+        }
+    var deleteDocument by
+        androidx.compose.runtime.remember {
+            androidx.compose.runtime.mutableStateOf<CachedDocument?>(null)
+        }
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         NetBoxSectionHeader(
             Icons.Default.Description,
@@ -82,7 +84,8 @@ fun DocumentsSection(
         )
         if (documents.isNotEmpty()) {
             documents.forEach { document ->
-                val canOpen = !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
+                val canOpen =
+                    !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
                 val localFile = localFileFor?.invoke(document)
                 NyetboxCard(
                     modifier =
@@ -313,27 +316,28 @@ private fun CachedDocumentBadge() {
 private fun renderPdfPreview(file: File?, filename: String, url: String?): Bitmap? {
     if (file == null || !file.isFile || !looksLikePdf(file, filename, url)) return null
     return runCatching {
-        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
-            PdfRenderer(descriptor).use { renderer ->
-                if (renderer.pageCount == 0) return@runCatching null
-                val page = renderer.openPage(0)
-                try {
-                    val scale = minOf(1f, 240f / page.width, 320f / page.height)
-                    val bitmap =
-                        createBitmap(
-                            (page.width * scale).toInt().coerceAtLeast(1),
-                            (page.height * scale).toInt().coerceAtLeast(1),
-                            Bitmap.Config.ARGB_8888,
-                        )
-                    bitmap.eraseColor(android.graphics.Color.WHITE)
-                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    bitmap
-                } finally {
-                    page.close()
+            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+                PdfRenderer(descriptor).use { renderer ->
+                    if (renderer.pageCount == 0) return@runCatching null
+                    val page = renderer.openPage(0)
+                    try {
+                        val scale = minOf(1f, 240f / page.width, 320f / page.height)
+                        val bitmap =
+                            createBitmap(
+                                (page.width * scale).toInt().coerceAtLeast(1),
+                                (page.height * scale).toInt().coerceAtLeast(1),
+                                Bitmap.Config.ARGB_8888,
+                            )
+                        bitmap.eraseColor(android.graphics.Color.WHITE)
+                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        bitmap
+                    } finally {
+                        page.close()
+                    }
                 }
             }
         }
-    }.getOrNull()
+        .getOrNull()
 }
 
 private fun looksLikePdf(file: File, filename: String, url: String?): Boolean {

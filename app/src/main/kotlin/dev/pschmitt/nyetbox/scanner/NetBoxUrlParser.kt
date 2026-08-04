@@ -92,7 +92,9 @@ object NetBoxUrlParser {
     /** Extracts a NetBox device/object target from a scanned/opened URL, or a bare numeric id. */
     fun parse(text: String): NetBoxTarget? {
         val trimmed = text.trim()
-        parseNyetbox(trimmed)?.let { return it }
+        parseNyetbox(trimmed)?.let {
+            return it
+        }
         if (QrConfigCodec.looksLikeQrConfigUri(trimmed)) {
             return runCatching {
                     QrConfigCodec.decodePayload(trimmed).let {
@@ -142,7 +144,9 @@ object NetBoxUrlParser {
     }
 
     private fun parseDeviceLink(segments: List<String>, fragment: String?): NetBoxTarget? {
-        segments.firstOrNull()?.toIntOrNull()?.let { return NetBoxTarget.Device(it) }
+        segments.firstOrNull()?.toIntOrNull()?.let {
+            return NetBoxTarget.Device(it)
+        }
         if (segments.firstOrNull()?.lowercase() !in setOf("asset-tag", "asset_tag")) return null
         val tag = buildString {
             append(segments.drop(1).joinToString("/"))

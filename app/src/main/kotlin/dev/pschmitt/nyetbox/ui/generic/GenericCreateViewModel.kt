@@ -7,18 +7,18 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.repository.CreateChoice
 import dev.pschmitt.nyetbox.data.repository.CreateFieldDefinition
+import dev.pschmitt.nyetbox.data.repository.CreateSubmission
 import dev.pschmitt.nyetbox.data.repository.CustomFieldDefinition
 import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
 import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
-import dev.pschmitt.nyetbox.data.repository.CreateSubmission
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.repository.buildCreateBody
-import dev.pschmitt.nyetbox.data.repository.fallbackCreateFieldDefinitions
 import dev.pschmitt.nyetbox.data.repository.createChoiceSearchFields
+import dev.pschmitt.nyetbox.data.repository.fallbackCreateFieldDefinitions
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.ui.navigation.Route
 import javax.inject.Inject
@@ -27,9 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
 @HiltViewModel
@@ -137,8 +137,7 @@ constructor(
                                     ?.contentOrNull
                                     ?.toIntOrNull()
                             if (id == null) {
-                                _errorMessage.value =
-                                    "The created item has no numeric ID"
+                                _errorMessage.value = "The created item has no numeric ID"
                             } else {
                                 if (route.endpointPath == CUSTOM_FIELDS_ENDPOINT_PATH) {
                                     customFieldRepository.cacheDefinition(createdObject)
@@ -188,7 +187,8 @@ constructor(
                 .filter { it.referenceEndpointPath != null }
                 .forEach { field ->
                     val values =
-                        repository.cachedObjects(field.referenceEndpointPath!!).map { objectEntity ->
+                        repository.cachedObjects(field.referenceEndpointPath!!).map { objectEntity
+                            ->
                             val images =
                                 if (field.referenceEndpointPath == "api/dcim/device-types/") {
                                     deviceTypeImages[objectEntity.id]
@@ -253,8 +253,7 @@ constructor(
         _values.value = definitions.associate { field ->
             field.key to
                 when {
-                    route.parentDeviceId != null &&
-                        field.key in setOf("device", "device_id") ->
+                    route.parentDeviceId != null && field.key in setOf("device", "device_id") ->
                         route.parentDeviceId.toString()
                     else -> field.defaultValue.asFormValue()
                 }

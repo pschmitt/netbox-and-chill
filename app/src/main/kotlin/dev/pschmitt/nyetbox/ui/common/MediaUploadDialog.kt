@@ -67,20 +67,22 @@ fun MediaUploadDialog(
     val defaultKind =
         if (endpointPath == "api/dcim/device-types/") MediaUploadKind.DeviceTypeFront
         else MediaUploadKind.ImageAttachment
-    var kind by remember(endpointPath, initialKind) {
-        mutableStateOf(initialKind ?: defaultKind)
-    }
+    var kind by
+        remember(endpointPath, initialKind) {
+            mutableStateOf(initialKind ?: defaultKind)
+        }
     var selectedUri by remember(initialUri) { mutableStateOf(initialUri) }
-    var selectedFilename by remember(initialUri, initialFilename) {
-        mutableStateOf(
-            (initialFilename ?: initialUri?.let { displayName(context, it) })?.let {
-                filenameForUpload(
-                    it,
-                    initialMimeType ?: initialUri?.let(context.contentResolver::getType),
-                )
-            }
-        )
-    }
+    var selectedFilename by
+        remember(initialUri, initialFilename) {
+            mutableStateOf(
+                (initialFilename ?: initialUri?.let { displayName(context, it) })?.let {
+                    filenameForUpload(
+                        it,
+                        initialMimeType ?: initialUri?.let(context.contentResolver::getType),
+                    )
+                }
+            )
+        }
     val selectedMimeType =
         remember(selectedUri, initialUri, initialMimeType) {
             selectedUri?.let { uri ->
@@ -107,8 +109,7 @@ fun MediaUploadDialog(
     val cameraLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { captured ->
             val uri = captureUri
-            if (captured && uri != null) setSelected(uri)
-            else if (!captured) captureUri = null
+            if (captured && uri != null) setSelected(uri) else if (!captured) captureUri = null
         }
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -120,8 +121,9 @@ fun MediaUploadDialog(
         }
 
     fun takePhoto() {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-            PackageManager.PERMISSION_GRANTED
+        if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
         ) {
             val uri = createCaptureUri(context)
             captureUri = uri
@@ -141,9 +143,7 @@ fun MediaUploadDialog(
     val isReplacingImage = kind == MediaUploadKind.ImageAttachment && imageAttachmentId != null
     val canTakePhoto = !isDocument
     val canUpload =
-        selectedUri != null &&
-            !state.isUploading &&
-            (!isDocument || documentTypeValue != null)
+        selectedUri != null && !state.isUploading && (!isDocument || documentTypeValue != null)
     val dialogTitle =
         when {
             isReplacingImage -> "Replace image attachment"
@@ -173,7 +173,10 @@ fun MediaUploadDialog(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(dialogDescription, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    dialogDescription,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 if (!isDocument && endpointPath == "api/dcim/device-types/") {
                     // Anchor the popup to the face button rather than to the dialog's scrolling
                     // column. This keeps it directly below the trigger on phones and tablets.

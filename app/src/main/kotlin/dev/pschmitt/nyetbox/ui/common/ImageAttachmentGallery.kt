@@ -56,7 +56,8 @@ fun ImageAttachmentGallery(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { index, attachment ->
+            itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { index, attachment
+                ->
                 RemoteThumbnail(
                     imageUrl = attachment.imageUrl,
                     contentDescription = attachment.displayName(),

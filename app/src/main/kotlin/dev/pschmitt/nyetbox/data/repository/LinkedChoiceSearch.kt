@@ -12,10 +12,10 @@ data class ChoiceSearchMatch(val fieldKey: String, val fieldValue: String)
 /**
  * Builds a cache-backed search index from an arbitrary NetBox object.
  *
- * Both the top-level relation summary (for example `manufacturer`) and recursively discovered
- * child values (for example `manufacturer.name` or `custom_fields.purchase_info`) are retained.
- * This keeps the picker generic: it does not need to know which fields a particular NetBox model
- * or plugin exposes.
+ * Both the top-level relation summary (for example `manufacturer`) and recursively discovered child
+ * values (for example `manufacturer.name` or `custom_fields.purchase_info`) are retained. This
+ * keeps the picker generic: it does not need to know which fields a particular NetBox model or
+ * plugin exposes.
  */
 internal fun JsonObject.createChoiceSearchFields(): Map<String, String> {
     val fields = linkedMapOf<String, String>()
@@ -33,17 +33,15 @@ private fun collectChoiceSearchFields(
     element: JsonElement,
 ) {
     when (element) {
-        is JsonPrimitive -> element.contentOrNull?.takeIf(String::isNotBlank)?.let {
-            appendChoiceSearchValue(fields, path, it)
-        }
+        is JsonPrimitive ->
+            element.contentOrNull?.takeIf(String::isNotBlank)?.let {
+                appendChoiceSearchValue(fields, path, it)
+            }
         is JsonObject -> {
             val summary =
-                CHOICE_SEARCH_DISPLAY_KEYS
-                    .asSequence()
+                CHOICE_SEARCH_DISPLAY_KEYS.asSequence()
                     .mapNotNull { key ->
-                        (element[key] as? JsonPrimitive)
-                            ?.contentOrNull
-                            ?.takeIf(String::isNotBlank)
+                        (element[key] as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank)
                     }
                     .distinct()
                     .joinToString(" ")
@@ -57,11 +55,12 @@ private fun collectChoiceSearchFields(
         is JsonArray -> {
             element.forEach { child ->
                 when (child) {
-                    is JsonObject -> child.entries.forEach { (key, nested) ->
-                        if (key !in CHOICE_SEARCH_METADATA_KEYS) {
-                            collectChoiceSearchFields(fields, "$path.$key", nested)
+                    is JsonObject ->
+                        child.entries.forEach { (key, nested) ->
+                            if (key !in CHOICE_SEARCH_METADATA_KEYS) {
+                                collectChoiceSearchFields(fields, "$path.$key", nested)
+                            }
                         }
-                    }
                     else -> collectChoiceSearchFields(fields, path, child)
                 }
             }
@@ -75,9 +74,7 @@ private fun appendChoiceSearchValue(
     value: String,
 ) {
     val existing = fields[key]
-    fields[key] =
-        if (existing.isNullOrBlank() || existing == value) value
-        else "$existing $value"
+    fields[key] = if (existing.isNullOrBlank() || existing == value) value else "$existing $value"
 }
 
 /** Returns the fields which match a free-text or `field:value` linked-choice query. */
@@ -141,7 +138,11 @@ fun choiceSearchHint(
             "${choiceSearchFieldLabel(match.fieldKey)}: ${compactSearchMatchValue(match.fieldValue)}"
         }
         ?.takeIf(String::isNotBlank)
-        ?.let { if (it.length > MAX_CHOICE_SEARCH_HINT_LENGTH) it.take(MAX_CHOICE_SEARCH_HINT_LENGTH - 1) + "…" else it }
+        ?.let {
+            if (it.length > MAX_CHOICE_SEARCH_HINT_LENGTH)
+                it.take(MAX_CHOICE_SEARCH_HINT_LENGTH - 1) + "…"
+            else it
+        }
 
 internal fun compactSearchMatchValue(value: String): String {
     val seen = mutableSetOf<String>()
@@ -152,10 +153,9 @@ internal fun compactSearchMatchValue(value: String): String {
 }
 
 internal fun choiceSearchFieldLabel(key: String): String =
-    key.split('.')
-        .joinToString(" / ") { segment ->
-            segment.replace('_', ' ').replaceFirstChar { it.titlecase() }
-        }
+    key.split('.').joinToString(" / ") { segment ->
+        segment.replace('_', ' ').replaceFirstChar { it.titlecase() }
+    }
 
 private val CHOICE_SEARCH_METADATA_KEYS =
     setOf("id", "url", "display_url", "created", "last_updated")

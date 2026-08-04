@@ -1,9 +1,9 @@
 package dev.pschmitt.nyetbox.ui.directory
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,22 +13,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
@@ -45,9 +45,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,8 +58,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.BuildConfig
 import dev.pschmitt.nyetbox.R
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
-import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.data.repository.TopologyRepository
+import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.ui.common.rememberReorderWiggle
 import dev.pschmitt.nyetbox.ui.common.rememberSectionReorderState
 import dev.pschmitt.nyetbox.ui.common.sectionDragOffset
@@ -121,7 +121,8 @@ fun Sidebar(
     val hiddenSidebarApps by viewModel.hiddenSidebarApps.collectAsStateWithLifecycle()
     val offlineMode by viewModel.settingsRepository.offlineMode.collectAsStateWithLifecycle()
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
-    val objectTypeAccents by viewModel.settingsRepository.objectTypeAccents.collectAsStateWithLifecycle()
+    val objectTypeAccents by
+        viewModel.settingsRepository.objectTypeAccents.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
     // Collapsed by default, like the NetBox web UI's sidebar - matches app keys ("dcim",
     // "plugins/netbox-documents", ...), not the humanized labels.
@@ -145,12 +146,10 @@ fun Sidebar(
                     models.filter { it.modelLabel.contains(searchQuery, ignoreCase = true) }
                 }
                 .filterValues { it.isNotEmpty() }
-    val visibleFilteredModelsByApp =
-        filteredModelsByApp.filterKeys { it !in hiddenSidebarApps }
+    val visibleFilteredModelsByApp = filteredModelsByApp.filterKeys { it !in hiddenSidebarApps }
     val visibleSidebarAppKeysForSearch =
         sidebarVisibleAppKeysForSearch(modelsByApp, searchQuery, hiddenSidebarApps)
-    val visibleSidebarAppKeys =
-        orderSidebarAppKeys(visibleSidebarAppKeysForSearch, sidebarAppOrder)
+    val visibleSidebarAppKeys = orderSidebarAppKeys(visibleSidebarAppKeysForSearch, sidebarAppOrder)
     val allSidebarAppKeys = orderSidebarAppKeys(modelsByApp.keys, sidebarAppOrder)
 
     ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
@@ -165,8 +164,7 @@ fun Sidebar(
                             Image(
                                 bitmap = appIconBitmap,
                                 contentDescription = null,
-                                modifier =
-                                    Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)),
+                                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)),
                             )
                         } else {
                             Icon(
@@ -190,7 +188,10 @@ fun Sidebar(
                                 )
                             }
                             IconButton(onClick = { reorderMode = false }) {
-                                Icon(Icons.Default.Done, contentDescription = "Finish organizing sidebar")
+                                Icon(
+                                    Icons.Default.Done,
+                                    contentDescription = "Finish organizing sidebar",
+                                )
                             }
                         }
                     }
@@ -321,7 +322,9 @@ fun Sidebar(
                                 modifier = Modifier.weight(1f),
                             )
                             if (reorderMode) {
-                                IconButton(onClick = { viewModel.setSidebarAppHidden(appKey, true) }) {
+                                IconButton(
+                                    onClick = { viewModel.setSidebarAppHidden(appKey, true) }
+                                ) {
                                     Icon(
                                         Icons.Default.VisibilityOff,
                                         contentDescription = "Hide $appLabel",
