@@ -83,14 +83,10 @@ class StoreScreenshotTest {
         waitForText("Search NetBox", 30_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("core-sw-01")
-        // Best-effort: waiting for the asset tag (not the typed query text, which the search
-        // field's own EditableText also contains) fixed the obvious false-positive, but this
-        // still intermittently captures "No matches yet" for a reason not fully root-caused -
-        // likely a further residual-composition race similar to the one documented on the device
-        // detail wait above. Left as best-effort rather than blocking: a slow/empty result here
-        // must not prevent the settings screenshot below from being captured. See
-        // docs/screenshots.md.
-        runCatching { waitForText("ACME-1001", 30_000) }
+        // Wait for an actual result card, not text that may also be present in the search field or
+        // in a previous composition. A missing result must fail the capture instead of silently
+        // producing an empty store-listing asset.
+        waitForTag("e2e-search-result", 60_000)
         Screengrab.screenshot("03_search")
 
         composeRule.onNodeWithContentDescription("Back").performClick()

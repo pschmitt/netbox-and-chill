@@ -6051,7 +6051,7 @@ Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instr
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
-## NBC-361: automate Play Store screenshot capture (POC)
+## NBC-365: automate Play Store screenshot capture (POC)
 
 Add a fastlane screengrab proof of concept so dashboard/device-detail/search/settings listing
 screenshots don't require manually capturing them against a real NetBox instance, and never risk
@@ -6068,13 +6068,15 @@ leaking real inventory data into a public store listing.
       the disposable `ci/netbox/` fixture already built for `android-e2e.yaml`
 - [x] Run `just screenshots` end to end on this machine (KVM-accelerated emulator) and verify the
       captured images show real seeded content, not loading placeholders
-- [x] Rebase onto `main` after NBC-345/347/etc landed; fix the resulting `NBC-358` id collision
-      (renumbered this entry to `NBC-361`) and a pre-existing compile break in
+- [x] Integrate with the current `main` after NBC-345/347/etc landed; fix the resulting id
+      collision by assigning this entry `NBC-365`, and fix a pre-existing compile break in
       `SettingsCategoryContentTest.kt` (stale `onDisconnect` param from the NBC-360 multi-profile
       refactor) that was blocking the whole androidTest source set
 - [x] Replace the reused E2E seed data with `ci/netbox/seed_screenshots.py`, a small
       realistic-looking demo rack (Acme Networks / Berlin Data Center / Rack A1, 4 devices),
       giving the dashboard richer stats than a single bare device
+- [x] Wait for an actual search-result card and fail the capture if search renders no result,
+      rather than silently accepting an empty screenshot
 
 Status: **mostly done**, 2026-08-04. `just screenshots` runs the disposable NetBox fixture (now
 seeded with `seed_screenshots.py`'s nicer demo rack), a local hardware-accelerated emulator, a

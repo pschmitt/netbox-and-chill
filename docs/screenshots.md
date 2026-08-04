@@ -82,7 +82,7 @@ site (Berlin Data Center), one rack (Rack A1), and four devices (`core-sw-01`/`-
 `fw-01`) with distinct roles and device types, giving the dashboard richer stats (3 device types,
 4 devices, 1 rack) than a single bare device would.
 
-## Known issue: the search screenshot is best-effort
+## Search screenshot synchronization
 
 `StoreScreenshotTest` waits for a fact that's only true once each screen's real data has rendered,
 not a generic app-bar title, an asset tag also shown on the list row we just left, or (for search)
@@ -94,16 +94,13 @@ reliably show real content, and the device detail screen additionally needed an 
 in and that screen's own per-device fetch actually starting - the NetBox API itself responds in
 well under a second even right after `just netbox-up`, so this isn't a NetBox performance problem.
 
-The search screenshot still intermittently comes out as "No matches yet" for a reason not fully
-root-caused - most likely a further variant of the same residual-composition race. Rather than
-keep chasing it, the wait around it is wrapped in `runCatching` so a slow/empty search result
-can't block the settings screenshot after it; treat `03_search` as best-effort until someone
-digs further (a good next step: run the test with `adb shell dumpsys activity` or a UI Automator
-dump captured right at the wait boundary to see what's actually satisfying the wait check).
+The search screenshot waits for the `e2e-search-result` semantics tag attached to a real result card,
+so a slow or empty search cannot silently produce a bad listing asset. If that wait times out, the
+capture fails and the test diagnostics should be inspected rather than publishing the empty state.
 
 ## Extending beyond the POC
 
-- Fixing the search race properly (see above).
+- Running the updated result-card wait end to end again on the local emulator.
 - More screens: add further `Screengrab.screenshot("...")` calls to `StoreScreenshotTest`,
   applying the same "wait on a fact unique to the loaded screen, not one already visible on the
   screen you're leaving" rule documented in the code comments.
@@ -124,6 +121,6 @@ just screenshots
 ```
 
 `01_dashboard`, `02_device_detail`, and `04_settings` were repeatedly verified showing real
-seeded content, not loading placeholders. `03_search` is best-effort (see above) and sometimes
-still shows an empty state. The disposable NetBox fixture was confirmed torn down
+seeded content, not loading placeholders. `03_search` now fails instead of silently accepting
+an empty state when no result card renders. The disposable NetBox fixture was confirmed torn down
 (`docker compose ... down --volumes`) after every run, including failed ones.
