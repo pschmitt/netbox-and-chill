@@ -2,7 +2,9 @@ package dev.pschmitt.nyetbox.ui.onboarding
 
 import android.content.ClipboardManager
 import android.content.Intent
-import androidx.core.net.toUri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,11 +15,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -27,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,15 +44,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.R
@@ -70,7 +76,8 @@ fun OnboardingScreen(
 ) {
     var baseUrl by
         remember(initialSetup?.baseUrl) { mutableStateOf(initialSetup?.baseUrl.orEmpty()) }
-    val parsedInitialToken = remember(initialSetup?.token) { parseNamedApiToken(initialSetup?.token.orEmpty()) }
+    val parsedInitialToken =
+        remember(initialSetup?.token) { parseNamedApiToken(initialSetup?.token.orEmpty()) }
     var tokenMode by
         remember(initialSetup?.token) {
             mutableStateOf(
@@ -94,8 +101,13 @@ fun OnboardingScreen(
             )
         }
     var tokenVisible by remember { mutableStateOf(false) }
+    var restorePassword by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val restoreLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { viewModel.restoreBackup(it) }
+        }
     val tokenToSubmit =
         if (tokenMode == TokenEntryMode.Split) {
             // Keep the field forgiving while editing. The server still provides the final
@@ -120,6 +132,49 @@ fun OnboardingScreen(
         }
     }
 
+    val passwordRequiredState = uiState as? OnboardingUiState.PasswordRequired
+    if (passwordRequiredState != null) {
+        AlertDialog(
+            onDismissRequest = {
+                restorePassword = ""
+                viewModel.consumeRestoredBackup()
+            },
+            title = { Text("Password required") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("This settings backup is password-protected.")
+                    OutlinedTextField(
+                        value = restorePassword,
+                        onValueChange = { restorePassword = it },
+                        label = { Text("Backup password") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.restoreBackup(passwordRequiredState.uri, restorePassword)
+                        restorePassword = ""
+                    }
+                ) {
+                    Text("Restore")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        restorePassword = ""
+                        viewModel.consumeRestoredBackup()
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
     // ic_launcher is an <adaptive-icon> (background + foreground layers) - painterResource() only
     // supports VectorDrawables and raster assets, not that wrapper format, and throws at runtime.
     // Rendering it through a Drawable -> Bitmap first works for any drawable type.
@@ -128,7 +183,12 @@ fun OnboardingScreen(
     }
 
     LaunchedEffect(uiState) {
-        if (uiState is OnboardingUiState.Success) onDone()
+        (uiState as? OnboardingUiState.Success)?.let { success ->
+            if (success.restoredBackup) {
+                Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
+            }
+            onDone()
+        }
     }
 
     // A setup QR code is already a complete set of credentials. Start validation as soon as the
@@ -196,7 +256,10 @@ fun OnboardingScreen(
                         },
                         enabled = baseUrl.isNotBlank(),
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open API tokens page")
+                        Icon(
+                            Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = "Open API tokens page",
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-url"),
@@ -261,7 +324,8 @@ fun OnboardingScreen(
                     leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
                     singleLine = true,
                     visualTransformation =
-                        if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        if (tokenVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
                     trailingIcon = {
                         TokenTrailingActions(
                             tokenVisible = tokenVisible,
@@ -295,7 +359,8 @@ fun OnboardingScreen(
                     leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
                     singleLine = true,
                     visualTransformation =
-                        if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        if (tokenVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
                     trailingIcon = {
                         TokenTrailingActions(
                             tokenVisible = tokenVisible,
@@ -350,6 +415,19 @@ fun OnboardingScreen(
                 Icon(Icons.Default.QrCodeScanner, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Scan connection setup QR code")
+            }
+            Spacer(Modifier.height(10.dp))
+            androidx.compose.material3.OutlinedButton(
+                onClick = {
+                    restoreLauncher.launch(
+                        arrayOf("application/octet-stream", "application/json", "*/*")
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Restore settings backup")
             }
             Spacer(Modifier.height(24.dp))
             Text(

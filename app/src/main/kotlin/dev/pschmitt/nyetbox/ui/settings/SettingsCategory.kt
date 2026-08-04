@@ -4,6 +4,7 @@ import androidx.annotation.Keep
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.FolderSpecial
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Print
@@ -17,6 +18,7 @@ import kotlinx.serialization.Serializable
 @Keep
 enum class SettingsCategory(val title: String, val subtitle: String) {
     Connection("Connection", "NetBox server and credentials"),
+    Backup("Backup & restore", "Portable settings backups"),
     Sync("Sync", "Cached data and refresh policy"),
     Camera("Camera", "Scanner camera and lens preferences"),
     Printing("Printing", "Printer and label defaults"),
@@ -29,6 +31,7 @@ enum class SettingsCategory(val title: String, val subtitle: String) {
         get() =
             when (this) {
                 Connection -> Icons.Default.Dns
+                Backup -> Icons.Default.FolderSpecial
                 Sync -> Icons.Default.Storage
                 Camera -> Icons.Default.Cameraswitch
                 Printing -> Icons.Default.Print

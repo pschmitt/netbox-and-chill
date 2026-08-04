@@ -6146,3 +6146,20 @@ the setting is immediately understandable.
 - [ ] Add focused UI/unit coverage for the color preview.
 
 Status: not started, 2026-08-04.
+
+## NBC-368: versioned settings backup and restore
+
+Add a portable settings-only backup, inspired by Findroid+, without copying the Room cache,
+downloaded assets, image attachments, or documents.
+
+- [x] Define a forward-compatible, versioned archive containing the app version and settings.
+- [x] Support optional password protection for manual and scheduled backups.
+- [x] Add manual export/import in Settings and restore during onboarding.
+- [x] Add daily, weekly, and monthly scheduled backups to a user-selected directory.
+- [x] Include the Android device name and timestamp in backup filenames.
+- [x] Test round-tripping and verify cached data is excluded from the archive.
+- [x] Verify restored credentials auto-submit and show a welcome toast on the Zenfone 10.
+
+Status: **done**, 2026-08-04; unit tests and compile passed remotely, and manual export/restore
+were verified on the wired Zenfone 10. Scheduled worker behavior is covered by the same
+versioned/password-protected manager and WorkManager wiring; no cache/media data is serialized.

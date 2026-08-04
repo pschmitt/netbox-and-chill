@@ -3,9 +3,11 @@ package dev.pschmitt.nyetbox.data.repository
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.pschmitt.nyetbox.data.backup.SettingsBackupSettings
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.data.topology.TopologyPosition
-import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.util.UUID
 
 data class NetBoxCredentials(val baseUrl: String, val token: String) {
     val isValid: Boolean
@@ -48,6 +49,7 @@ data class NetBoxUserIdentity(
             else "$displayName ($username)"
 }
 
+@Serializable
 data class PrintSettings(
     val defaultPrinterName: String? = null,
     val defaultPrinterAddress: String? = null,
@@ -67,6 +69,17 @@ data class PrintSettings(
 }
 
 data class SyncIssue(val message: String, val occurredAt: Long)
+
+enum class BackupFrequency(val storageKey: String, val label: String, val intervalDays: Long) {
+    Daily("daily", "Daily", 1),
+    Weekly("weekly", "Weekly", 7),
+    Monthly("monthly", "Monthly", 30);
+
+    companion object {
+        fun fromStorage(value: String?): BackupFrequency =
+            entries.firstOrNull { it.storageKey == value } ?: Weekly
+    }
+}
 
 /** Stable object key used by field preferences, e.g. `device`. */
 fun hiddenFieldObjectKey(endpointPath: String): String =
@@ -100,6 +113,7 @@ fun normalizeHiddenFieldPreferenceKey(value: String): String? {
     return normalized.takeIf { parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank() }
 }
 
+@Serializable
 data class GestureTarget(val endpointPath: String, val label: String, val id: Int? = null)
 
 enum class GestureAction(val storageKey: String, val label: String) {
@@ -130,7 +144,7 @@ enum class GestureShortcut(val storageKey: String, val label: String) {
     ThreeFingerUp("three_finger_up", "Three-finger swipe up"),
     ThreeFingerDown("three_finger_down", "Three-finger swipe down"),
     ThreeFingerLeft("three_finger_left", "Three-finger swipe left"),
-    ThreeFingerRight("three_finger_right", "Three-finger swipe right");
+    ThreeFingerRight("three_finger_right", "Three-finger swipe right"),
 }
 
 enum class ScannerLens(val storageKey: String, val label: String) {
@@ -250,10 +264,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         MutableStateFlow(prefs.getBoolean(KEY_CHANGE_NOTIFICATIONS_ENABLED, false))
     val changeNotificationsEnabled: StateFlow<Boolean> = _changeNotificationsEnabled.asStateFlow()
 
-    private val _changeNotificationFilters =
-        MutableStateFlow(loadChangeNotificationFilters())
-    val changeNotificationFilters: StateFlow<Set<String>> =
-        _changeNotificationFilters.asStateFlow()
+    private val _changeNotificationFilters = MutableStateFlow(loadChangeNotificationFilters())
+    val changeNotificationFilters: StateFlow<Set<String>> = _changeNotificationFilters.asStateFlow()
 
     /** Highest object-change id seen during a changelog refresh, used to avoid historical spam. */
     var changeNotificationCursor: Int
@@ -269,10 +281,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         }
 
     private val _gestureActions = MutableStateFlow(loadGestureActions())
-    val gestureActions: StateFlow<Map<GestureShortcut, GestureAction>> = _gestureActions.asStateFlow()
+    val gestureActions: StateFlow<Map<GestureShortcut, GestureAction>> =
+        _gestureActions.asStateFlow()
 
     private val _gestureTargets = MutableStateFlow(loadGestureTargets())
-    val gestureTargets: StateFlow<Map<GestureShortcut, GestureTarget>> = _gestureTargets.asStateFlow()
+    val gestureTargets: StateFlow<Map<GestureShortcut, GestureTarget>> =
+        _gestureTargets.asStateFlow()
 
     private val _scannerLens = MutableStateFlow(loadScannerLens())
     val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
@@ -287,8 +301,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     val themeAccent: StateFlow<ThemeAccent> = _themeAccent.asStateFlow()
 
     private val _objectTypeAccents = MutableStateFlow(loadObjectTypeAccents())
-    val objectTypeAccents: StateFlow<Map<String, ThemeAccent>> =
-        _objectTypeAccents.asStateFlow()
+    val objectTypeAccents: StateFlow<Map<String, ThemeAccent>> = _objectTypeAccents.asStateFlow()
 
     private val _printSettings = MutableStateFlow(loadPrintSettings())
     val printSettings: StateFlow<PrintSettings> = _printSettings.asStateFlow()
@@ -318,8 +331,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     val dashboardSectionOrder: StateFlow<List<String>> = _dashboardSectionOrder.asStateFlow()
 
     private val _hiddenDashboardSections = MutableStateFlow(loadHiddenDashboardSections())
-    val hiddenDashboardSections: StateFlow<Set<String>> =
-        _hiddenDashboardSections.asStateFlow()
+    val hiddenDashboardSections: StateFlow<Set<String>> = _hiddenDashboardSections.asStateFlow()
 
     private val _showTopologyDeviceTypeImages =
         MutableStateFlow(prefs.getBoolean(KEY_SHOW_TOPOLOGY_DEVICE_TYPE_IMAGES, true))
@@ -329,6 +341,34 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _topologyNodePositions = MutableStateFlow(loadTopologyNodePositions())
     val topologyNodePositions: StateFlow<Map<String, TopologyPosition>> =
         _topologyNodePositions.asStateFlow()
+
+    private val _scheduledBackupEnabled =
+        MutableStateFlow(prefs.getBoolean(KEY_SCHEDULED_BACKUP_ENABLED, false))
+    val scheduledBackupEnabled: StateFlow<Boolean> = _scheduledBackupEnabled.asStateFlow()
+
+    private val _scheduledBackupFrequency =
+        MutableStateFlow(
+            BackupFrequency.fromStorage(
+                prefs.getString(KEY_SCHEDULED_BACKUP_FREQUENCY, BackupFrequency.Weekly.storageKey)
+            )
+        )
+    val scheduledBackupFrequency: StateFlow<BackupFrequency> =
+        _scheduledBackupFrequency.asStateFlow()
+
+    private val _scheduledBackupFolderUri =
+        MutableStateFlow(prefs.getString(KEY_SCHEDULED_BACKUP_FOLDER_URI, null))
+    val scheduledBackupFolderUri: StateFlow<String?> = _scheduledBackupFolderUri.asStateFlow()
+
+    private val _scheduledBackupPasswordSet =
+        MutableStateFlow(prefs.contains(KEY_SCHEDULED_BACKUP_PASSWORD))
+    val scheduledBackupPasswordSet: StateFlow<Boolean> = _scheduledBackupPasswordSet.asStateFlow()
+
+    private val _lastBackupAt =
+        MutableStateFlow(prefs.getLong(KEY_LAST_BACKUP_AT, 0L).takeIf { it > 0L })
+    val lastBackupAt: StateFlow<Long?> = _lastBackupAt.asStateFlow()
+
+    private val _backupError = MutableStateFlow(prefs.getString(KEY_BACKUP_ERROR, null))
+    val backupError: StateFlow<String?> = _backupError.asStateFlow()
 
     fun setSyncAttachmentsToDisk(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_ATTACHMENTS, enabled).apply()
@@ -387,10 +427,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     }
 
     fun setGestureTarget(shortcut: GestureShortcut, target: GestureTarget) {
-        prefs
-            .edit()
-            .putString(gestureTargetKey(shortcut), encodeGestureTarget(target))
-            .apply()
+        prefs.edit().putString(gestureTargetKey(shortcut), encodeGestureTarget(target)).apply()
         _gestureTargets.value = _gestureTargets.value + (shortcut to target)
     }
 
@@ -477,9 +514,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun clearSyncIssue() {
         val editor =
             prefs
-            .edit()
-            .remove(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE))
-            .remove(serverScopedKey(KEY_SYNC_ISSUE_TIME))
+                .edit()
+                .remove(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE))
+                .remove(serverScopedKey(KEY_SYNC_ISSUE_TIME))
         if (_activeServerId.value == LEGACY_SERVER_ID) {
             editor.remove(KEY_SYNC_ISSUE_MESSAGE).remove(KEY_SYNC_ISSUE_TIME)
         }
@@ -552,8 +589,58 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setTopologyNodePosition(nodeId: String, position: TopologyPosition) {
         if (nodeId.isBlank() || !position.x.isFinite() || !position.y.isFinite()) return
         val updated = _topologyNodePositions.value + (nodeId to position)
-        prefs.edit().putString(KEY_TOPOLOGY_NODE_POSITIONS, encodeTopologyNodePositions(updated)).apply()
+        prefs
+            .edit()
+            .putString(KEY_TOPOLOGY_NODE_POSITIONS, encodeTopologyNodePositions(updated))
+            .apply()
         _topologyNodePositions.value = updated
+    }
+
+    fun setScheduledBackupEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SCHEDULED_BACKUP_ENABLED, enabled).apply()
+        _scheduledBackupEnabled.value = enabled
+    }
+
+    fun setScheduledBackupFrequency(frequency: BackupFrequency) {
+        prefs.edit().putString(KEY_SCHEDULED_BACKUP_FREQUENCY, frequency.storageKey).apply()
+        _scheduledBackupFrequency.value = frequency
+    }
+
+    fun setScheduledBackupFolderUri(uri: String?) {
+        val editor = prefs.edit()
+        if (uri.isNullOrBlank()) editor.remove(KEY_SCHEDULED_BACKUP_FOLDER_URI)
+        else editor.putString(KEY_SCHEDULED_BACKUP_FOLDER_URI, uri)
+        editor.apply()
+        _scheduledBackupFolderUri.value = uri?.takeIf { it.isNotBlank() }
+    }
+
+    fun setScheduledBackupPassword(password: String?) {
+        val editor = prefs.edit()
+        if (password.isNullOrEmpty()) editor.remove(KEY_SCHEDULED_BACKUP_PASSWORD)
+        else editor.putString(KEY_SCHEDULED_BACKUP_PASSWORD, password)
+        editor.apply()
+        _scheduledBackupPasswordSet.value = !password.isNullOrEmpty()
+    }
+
+    fun scheduledBackupPassword(): String? =
+        prefs.getString(KEY_SCHEDULED_BACKUP_PASSWORD, null)?.takeIf { it.isNotEmpty() }
+
+    fun recordBackupSuccess() {
+        val timestamp = System.currentTimeMillis()
+        prefs.edit().putLong(KEY_LAST_BACKUP_AT, timestamp).remove(KEY_BACKUP_ERROR).apply()
+        _lastBackupAt.value = timestamp
+        _backupError.value = null
+    }
+
+    fun recordBackupError(message: String) {
+        val brief = message.trim().takeIf { it.isNotBlank() } ?: "Backup failed"
+        prefs.edit().putString(KEY_BACKUP_ERROR, brief).apply()
+        _backupError.value = brief
+    }
+
+    fun clearBackupError() {
+        prefs.edit().remove(KEY_BACKUP_ERROR).apply()
+        _backupError.value = null
     }
 
     fun togglePinned(endpointPath: String) {
@@ -569,31 +656,34 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _pinnedModelPaths.value = updated
     }
 
-    private fun loadPinnedModelPaths(): Set<String> =
-        run {
-            val stored = prefs.getStringSet(KEY_PINNED_MODELS, null)
-            val migrated =
-                if (prefs.getInt(KEY_PINNED_MODELS_VERSION, 0) < PINNED_MODEL_PATHS_VERSION) {
-                    val customPaths =
-                        stored.orEmpty().filterNot { it in DEFAULT_PINNED_MODEL_PATHS }.sorted()
-                    (DEFAULT_PINNED_MODEL_PATHS + customPaths)
-                        .distinct()
-                        .take(MAX_PINNED_MODEL_PATHS)
-                        .toSet()
-                } else {
-                    (stored ?: DEFAULT_PINNED_MODEL_PATHS)
-                        .take(MAX_PINNED_MODEL_PATHS)
-                        .toSet()
-                }
+    fun setPinnedModelPaths(paths: Set<String>) {
+        val normalized = paths.filter(String::isNotBlank).take(MAX_PINNED_MODEL_PATHS).toSet()
+        prefs.edit().putStringSet(KEY_PINNED_MODELS, normalized).apply()
+        _pinnedModelPaths.value = normalized
+    }
+
+    private fun loadPinnedModelPaths(): Set<String> = run {
+        val stored = prefs.getStringSet(KEY_PINNED_MODELS, null)
+        val migrated =
             if (prefs.getInt(KEY_PINNED_MODELS_VERSION, 0) < PINNED_MODEL_PATHS_VERSION) {
-                prefs
-                    .edit()
-                    .putStringSet(KEY_PINNED_MODELS, migrated)
-                    .putInt(KEY_PINNED_MODELS_VERSION, PINNED_MODEL_PATHS_VERSION)
-                    .apply()
+                val customPaths =
+                    stored.orEmpty().filterNot { it in DEFAULT_PINNED_MODEL_PATHS }.sorted()
+                (DEFAULT_PINNED_MODEL_PATHS + customPaths)
+                    .distinct()
+                    .take(MAX_PINNED_MODEL_PATHS)
+                    .toSet()
+            } else {
+                (stored ?: DEFAULT_PINNED_MODEL_PATHS).take(MAX_PINNED_MODEL_PATHS).toSet()
             }
-            migrated
+        if (prefs.getInt(KEY_PINNED_MODELS_VERSION, 0) < PINNED_MODEL_PATHS_VERSION) {
+            prefs
+                .edit()
+                .putStringSet(KEY_PINNED_MODELS, migrated)
+                .putInt(KEY_PINNED_MODELS_VERSION, PINNED_MODEL_PATHS_VERSION)
+                .apply()
         }
+        migrated
+    }
 
     fun save(baseUrl: String, token: String) {
         val normalizedBaseUrl = baseUrl.trim().trimEnd('/')
@@ -628,13 +718,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         return profile
     }
 
-    fun updateServer(id: String, baseUrl: String, token: String, displayName: String?): ServerProfile? {
+    fun updateServer(
+        id: String,
+        baseUrl: String,
+        token: String,
+        displayName: String?,
+    ): ServerProfile? {
         val existing = _serverProfiles.value.firstOrNull { it.id == id } ?: return null
         val updated =
             existing.copy(
                 baseUrl = baseUrl.trim().trimEnd('/'),
                 token = token.trim(),
-                displayName = displayName?.trim()?.takeIf { it.isNotBlank() } ?: existing.displayName,
+                displayName =
+                    displayName?.trim()?.takeIf { it.isNotBlank() } ?: existing.displayName,
             )
         persistServerProfiles(_serverProfiles.value.map { if (it.id == id) updated else it })
         if (_activeServerId.value == id) {
@@ -701,10 +797,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val editor =
             prefs
                 .edit()
-            .remove(serverScopedKey(KEY_CURRENT_USER_BASE_URL))
-            .remove(serverScopedKey(KEY_CURRENT_USER_NAME))
-            .remove(serverScopedKey(KEY_CURRENT_USER_FULL_NAME))
-            .remove(serverScopedKey(KEY_CURRENT_USER_EMAIL))
+                .remove(serverScopedKey(KEY_CURRENT_USER_BASE_URL))
+                .remove(serverScopedKey(KEY_CURRENT_USER_NAME))
+                .remove(serverScopedKey(KEY_CURRENT_USER_FULL_NAME))
+                .remove(serverScopedKey(KEY_CURRENT_USER_EMAIL))
         if (_activeServerId.value == LEGACY_SERVER_ID) {
             editor
                 .remove(KEY_CURRENT_USER_BASE_URL)
@@ -740,7 +836,80 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _topologyNodePositions.value = emptyMap()
         _changeNotificationsEnabled.value = false
         _changeNotificationFilters.value = setOf(ChangeNotificationFilter.All.storageKey)
+        _syncAttachmentsToDisk.value = false
+        _syncOnlyOnWifi.value = false
+        _syncWhileRoaming.value = true
+        _syncOnAppLaunch.value = true
+        _scheduledBackupEnabled.value = false
+        _scheduledBackupFrequency.value = BackupFrequency.Weekly
+        _scheduledBackupFolderUri.value = null
+        _scheduledBackupPasswordSet.value = false
+        _lastBackupAt.value = null
+        _backupError.value = null
         clearSyncIssue()
+    }
+
+    /** Restores only portable settings; Room databases and downloaded files are untouched. */
+    fun restoreBackupSettings(settings: SettingsBackupSettings) {
+        clear()
+        if (settings.serverProfiles.isNotEmpty()) {
+            val profiles = settings.serverProfiles.distinctBy { it.id }
+            persistServerProfiles(profiles)
+            val activeId =
+                settings.activeServerId?.takeIf { id -> profiles.any { it.id == id } }
+                    ?: profiles.first().id
+            prefs.edit().putString(KEY_ACTIVE_SERVER_ID, activeId).apply()
+            _serverProfiles.value = profiles
+            _activeServerId.value = activeId
+            _activeServer.value = profiles.first { it.id == activeId }
+            _credentials.value = _activeServer.value?.credentials ?: NetBoxCredentials("", "")
+        }
+        setSyncAttachmentsToDisk(settings.syncAttachmentsToDisk)
+        setSyncOnlyOnWifi(settings.syncOnlyOnWifi)
+        setSyncWhileRoaming(settings.syncWhileRoaming)
+        setSyncOnAppLaunch(settings.syncOnAppLaunch)
+        setChangeNotificationsEnabled(settings.changeNotificationsEnabled)
+        settings.changeNotificationFilters.forEach { key ->
+            ChangeNotificationFilter.fromStorage(key)?.let { setChangeNotificationFilter(it, true) }
+        }
+        settings.gestureActions.forEach { (shortcutKey, actionKey) ->
+            val shortcut = GestureShortcut.entries.firstOrNull { it.storageKey == shortcutKey }
+            val action = GestureAction.fromStorage(actionKey, GestureAction.Off)
+            shortcut?.let { setGestureAction(it, action) }
+        }
+        settings.gestureTargets.forEach { (shortcutKey, target) ->
+            GestureShortcut.entries
+                .firstOrNull { it.storageKey == shortcutKey }
+                ?.let {
+                    setGestureTarget(it, target)
+                }
+        }
+        setScannerLens(ScannerLens.fromStorage(settings.scannerLens))
+        setScannerRearLens(ScannerRearLens.fromStorage(settings.scannerRearLens))
+        setThemeMode(ThemeMode.fromStorage(settings.themeMode))
+        setThemeAccent(ThemeAccent.fromStorage(settings.themeAccent))
+        settings.objectTypeAccents.forEach { (path, accentKey) ->
+            setObjectTypeAccent(path, ThemeAccent.fromStorage(accentKey))
+        }
+        updatePrintSettings(settings.printSettings)
+        setOfflineMode(settings.offlineMode)
+        settings.hiddenFieldKeys.forEach(::addHiddenField)
+        setPinnedModelPaths(settings.pinnedModelPaths)
+        setSidebarAppOrder(settings.sidebarAppOrder)
+        settings.sidebarModelOrders.forEach { (appKey, order) ->
+            setSidebarModelOrder(appKey, order)
+        }
+        settings.hiddenSidebarApps.forEach { setSidebarAppHidden(it, true) }
+        setDashboardSectionOrder(settings.dashboardSectionOrder)
+        settings.hiddenDashboardSections.forEach { setDashboardSectionHidden(it, true) }
+        setShowTopologyDeviceTypeImages(settings.showTopologyDeviceTypeImages)
+        settings.topologyNodePositions.forEach { (nodeId, position) ->
+            setTopologyNodePosition(nodeId, position)
+        }
+        setScheduledBackupEnabled(settings.scheduledBackupEnabled)
+        setScheduledBackupFrequency(BackupFrequency.fromStorage(settings.scheduledBackupFrequency))
+        setScheduledBackupFolderUri(settings.scheduledBackupFolderUri)
+        clearCurrentUser()
     }
 
     private fun loadServerProfiles(): List<ServerProfile> {
@@ -754,7 +923,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
                 }
                 .getOrNull()
                 ?.takeIf { it.isNotEmpty() }
-                ?.let { return it }
+                ?.let {
+                    return it
+                }
         }
 
         // Migrate the pre-1.2 single-server settings without touching its existing Room file.
@@ -844,7 +1015,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             prefs.getString(serverScopedKey(KEY_CURRENT_USER_BASE_URL), null)
                 ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_BASE_URL, null) else null
         val username =
-            prefs.getString(serverScopedKey(KEY_CURRENT_USER_NAME), null)?.takeIf { it.isNotBlank() }
+            prefs.getString(serverScopedKey(KEY_CURRENT_USER_NAME), null)?.takeIf {
+                it.isNotBlank()
+            }
                 ?: if (useLegacyKeys) {
                     prefs.getString(KEY_CURRENT_USER_NAME, null)?.takeIf { it.isNotBlank() }
                 } else null
@@ -853,7 +1026,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             username = username,
             fullName =
                 prefs.getString(serverScopedKey(KEY_CURRENT_USER_FULL_NAME), null)
-                    ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_FULL_NAME, null) else null,
+                    ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_FULL_NAME, null)
+                    else null,
             email =
                 prefs.getString(serverScopedKey(KEY_CURRENT_USER_EMAIL), null)
                     ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_EMAIL, null) else null,
@@ -862,9 +1036,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     private fun loadSyncIssue(): SyncIssue? {
         val message =
-            prefs
-                .getString(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE), null)
-                ?.takeIf { it.isNotBlank() }
+            prefs.getString(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE), null)?.takeIf {
+                it.isNotBlank()
+            }
                 ?: if (_activeServerId.value == LEGACY_SERVER_ID) {
                     prefs.getString(KEY_SYNC_ISSUE_MESSAGE, null)?.takeIf { it.isNotBlank() }
                 } else null
@@ -930,11 +1104,13 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         }
 
     private fun loadGestureTargets(): Map<GestureShortcut, GestureTarget> =
-        GestureShortcut.entries.mapNotNull { shortcut ->
-            prefs.getString(gestureTargetKey(shortcut), null)?.let(::decodeGestureTarget)?.let {
-                shortcut to it
+        GestureShortcut.entries
+            .mapNotNull { shortcut ->
+                prefs.getString(gestureTargetKey(shortcut), null)?.let(::decodeGestureTarget)?.let {
+                    shortcut to it
+                }
             }
-        }.toMap()
+            .toMap()
 
     private fun gesturePreferenceKey(shortcut: GestureShortcut): String =
         if (shortcut == GestureShortcut.TwoFingerDown) {
@@ -946,16 +1122,15 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private fun gestureTargetKey(shortcut: GestureShortcut): String =
         "gesture_target_${shortcut.storageKey}"
 
-    private fun encodeGestureTarget(target: GestureTarget): String =
-        buildString {
-            append(target.endpointPath)
+    private fun encodeGestureTarget(target: GestureTarget): String = buildString {
+        append(target.endpointPath)
+        append(TARGET_SEPARATOR)
+        append(target.label)
+        target.id?.let {
             append(TARGET_SEPARATOR)
-            append(target.label)
-            target.id?.let {
-                append(TARGET_SEPARATOR)
-                append(it)
-            }
+            append(it)
         }
+    }
 
     private fun decodeGestureTarget(value: String): GestureTarget? {
         val parts = value.split(TARGET_SEPARATOR, limit = 3)
@@ -1020,9 +1195,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         prefs.getStringSet(KEY_HIDDEN_SIDEBAR_APPS, null).orEmpty().toSet()
 
     private fun loadHiddenDashboardSections(): Set<String> =
-        prefs
-            .getStringSet(KEY_HIDDEN_DASHBOARD_SECTIONS, null)
-            ?.toSet()
+        prefs.getStringSet(KEY_HIDDEN_DASHBOARD_SECTIONS, null)?.toSet()
             ?: DEFAULT_HIDDEN_DASHBOARD_SECTIONS
 
     private fun loadTopologyNodePositions(): Map<String, TopologyPosition> =
@@ -1034,7 +1207,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
                 val parts = entry.split(TARGET_SEPARATOR, limit = 3)
                 val x = parts.getOrNull(1)?.toFloatOrNull()
                 val y = parts.getOrNull(2)?.toFloatOrNull()
-                if (parts.size == 3 && parts[0].isNotBlank() && x?.isFinite() == true && y?.isFinite() == true) {
+                if (
+                    parts.size == 3 &&
+                        parts[0].isNotBlank() &&
+                        x?.isFinite() == true &&
+                        y?.isFinite() == true
+                ) {
                     parts[0] to TopologyPosition(x, y)
                 } else null
             }
@@ -1105,6 +1283,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_HIDDEN_DASHBOARD_SECTIONS = "hidden_dashboard_sections"
         const val KEY_SHOW_TOPOLOGY_DEVICE_TYPE_IMAGES = "show_topology_device_type_images"
         const val KEY_TOPOLOGY_NODE_POSITIONS = "topology_node_positions"
+        const val KEY_SCHEDULED_BACKUP_ENABLED = "scheduled_backup_enabled"
+        const val KEY_SCHEDULED_BACKUP_FREQUENCY = "scheduled_backup_frequency"
+        const val KEY_SCHEDULED_BACKUP_FOLDER_URI = "scheduled_backup_folder_uri"
+        const val KEY_SCHEDULED_BACKUP_PASSWORD = "scheduled_backup_password"
+        const val KEY_LAST_BACKUP_AT = "last_backup_at"
+        const val KEY_BACKUP_ERROR = "backup_error"
         val DEFAULT_HIDDEN_DASHBOARD_SECTIONS = setOf("news")
         const val ORDER_SEPARATOR = "\u001F"
         const val ITEM_SEPARATOR = "\u001E"

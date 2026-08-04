@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -80,6 +79,13 @@ internal data class SettingsCategoryState(
     val themeAccent: ThemeAccent,
     val objectTypeAccents: Map<String, ThemeAccent>,
     val showTopologyDeviceTypeImages: Boolean,
+    val scheduledBackupEnabled: Boolean = false,
+    val scheduledBackupFrequency: BackupFrequency = BackupFrequency.Weekly,
+    val scheduledBackupFolderUri: String? = null,
+    val scheduledBackupPasswordSet: Boolean = false,
+    val lastBackupAt: Long? = null,
+    val backupError: String? = null,
+    val backupOperation: BackupOperationState = BackupOperationState.Idle,
 )
 
 internal data class SettingsCategoryActions(
@@ -108,6 +114,12 @@ internal data class SettingsCategoryActions(
     val onSetDefaultPrinter: (String, String) -> Unit,
     val onClearDefaultPrinter: () -> Unit,
     val onSetShowTopologyDeviceTypeImages: (Boolean) -> Unit,
+    val onExportBackup: () -> Unit = {},
+    val onImportBackup: () -> Unit = {},
+    val onChooseBackupFolder: () -> Unit = {},
+    val onEditScheduledBackupPassword: () -> Unit = {},
+    val onSetScheduledBackupEnabled: (Boolean) -> Unit = {},
+    val onSetScheduledBackupFrequency: (BackupFrequency) -> Unit = {},
     val onSetChangeNotificationsEnabled: (Boolean) -> Unit,
     val onShowChangeNotifications: () -> Unit,
     val onSetGestureAction: (GestureShortcut, GestureAction) -> Unit,
@@ -123,6 +135,7 @@ internal fun SettingsCategoryContent(
 ) {
     when (category) {
         SettingsCategory.Connection -> ConnectionSettingsContent(state, actions)
+        SettingsCategory.Backup -> BackupSettingsContent(state, actions)
         SettingsCategory.Sync -> SyncSettingsContent(state, actions)
         SettingsCategory.Display -> DisplaySettingsContent(state, actions)
         SettingsCategory.Camera -> CameraSettingsContent(state, actions)
@@ -138,6 +151,148 @@ internal fun SettingsCategoryContent(
         SettingsCategory.About -> AboutSettingsContent()
     }
 }
+
+@Composable
+private fun BackupSettingsContent(
+    state: SettingsCategoryState,
+    actions: SettingsCategoryActions,
+) {
+    var frequencyMenuExpanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SettingsGroupCard(
+            title = "Settings backup",
+            subtitle = "Only preferences and connection profiles are included",
+            icon = Icons.Default.FolderSpecial,
+        ) {
+            SettingsListItem(
+                modifier = Modifier.clickable(onClick = actions.onExportBackup),
+                leadingContent = { Icon(Icons.Default.Upload, contentDescription = null) },
+                headlineContent = { Text("Export settings") },
+                supportingContent = {
+                    Text("Create a portable backup without cached objects, images, or documents")
+                },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
+            )
+            SettingsListItem(
+                modifier = Modifier.clickable(onClick = actions.onImportBackup),
+                leadingContent = { Icon(Icons.Default.Download, contentDescription = null) },
+                headlineContent = { Text("Restore settings") },
+                supportingContent = { Text("Import a backup created by Nyetbox") },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
+            )
+        }
+        SettingsGroupCard(
+            title = "Scheduled backups",
+            subtitle = "Backups are saved to a directory you choose",
+            icon = Icons.Default.Schedule,
+        ) {
+            SettingsToggleItem(
+                checked = state.scheduledBackupEnabled,
+                onCheckedChange = actions.onSetScheduledBackupEnabled,
+                leadingContent = { Icon(Icons.Default.Autorenew, contentDescription = null) },
+                headlineContent = { Text("Create backups automatically") },
+                supportingContent = {
+                    Text(
+                        if (state.scheduledBackupFolderUri.isNullOrBlank()) {
+                            "Choose a directory below before enabling this"
+                        } else {
+                            "Runs ${state.scheduledBackupFrequency.label.lowercase()}"
+                        }
+                    )
+                },
+            )
+            SettingsListItem(
+                modifier =
+                    Modifier.clickable(
+                        enabled = state.scheduledBackupEnabled,
+                        onClick = { frequencyMenuExpanded = true },
+                    ),
+                leadingContent = { Icon(Icons.Default.Repeat, contentDescription = null) },
+                headlineContent = { Text("Frequency") },
+                supportingContent = { Text(state.scheduledBackupFrequency.label) },
+                trailingContent = {
+                    Box {
+                        Icon(Icons.Default.ExpandMore, contentDescription = "Choose frequency")
+                        DropdownMenu(
+                            expanded = frequencyMenuExpanded,
+                            onDismissRequest = { frequencyMenuExpanded = false },
+                        ) {
+                            BackupFrequency.entries.forEach { frequency ->
+                                DropdownMenuItem(
+                                    text = { Text(frequency.label) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Schedule, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        actions.onSetScheduledBackupFrequency(frequency)
+                                        frequencyMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+            SettingsListItem(
+                modifier = Modifier.clickable(onClick = actions.onChooseBackupFolder),
+                leadingContent = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
+                headlineContent = { Text("Backup directory") },
+                supportingContent = {
+                    Text(
+                        state.scheduledBackupFolderUri?.let { "Directory selected" }
+                            ?: "Not configured"
+                    )
+                },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
+            )
+            SettingsListItem(
+                modifier =
+                    Modifier.clickable(
+                        enabled = state.scheduledBackupEnabled,
+                        onClick = actions.onEditScheduledBackupPassword,
+                    ),
+                leadingContent = { Icon(Icons.Default.Password, contentDescription = null) },
+                headlineContent = { Text("Backup password") },
+                supportingContent = {
+                    Text(
+                        if (state.scheduledBackupPasswordSet) {
+                            "Automatic backups are encrypted"
+                        } else {
+                            "Optional; leave empty for an unencrypted backup"
+                        }
+                    )
+                },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
+            )
+            state.lastBackupAt?.let { timestamp ->
+                SettingsListItem(
+                    leadingContent = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                    headlineContent = { Text("Last backup") },
+                    supportingContent = { Text(formatBackupTimestamp(timestamp)) },
+                )
+            }
+            state.backupError?.let { error ->
+                Text(
+                    error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun formatBackupTimestamp(timestamp: Long): String =
+    java.text.DateFormat.getDateTimeInstance().format(java.util.Date(timestamp))
 
 @Composable
 private fun ConnectionSettingsContent(
@@ -159,8 +314,7 @@ private fun ConnectionSettingsContent(
                         state.serverProfiles
                             .firstOrNull { it.id == state.activeServerId }
                             ?.displayName
-                            ?.takeIf { it.isNotBlank() }
-                            ?: state.credentials.baseUrl
+                            ?.takeIf { it.isNotBlank() } ?: state.credentials.baseUrl
                     )
                 },
                 trailingContent = {
@@ -182,57 +336,57 @@ private fun ConnectionSettingsContent(
                 },
             )
             SettingsListItem(
-        leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
-        headlineContent = { Text("Signed in as") },
-        supportingContent = {
-            Text(
-                when {
-                    state.currentUser != null ->
-                        buildString {
-                            append(state.currentUser.summary)
-                            state.currentUser.email?.let { append(" · ").append(it) }
+                leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
+                headlineContent = { Text("Signed in as") },
+                supportingContent = {
+                    Text(
+                        when {
+                            state.currentUser != null ->
+                                buildString {
+                                    append(state.currentUser.summary)
+                                    state.currentUser.email?.let { append(" · ").append(it) }
+                                }
+                            state.isLoadingCurrentUser -> "Checking NetBox credentials…"
+                            else -> "Not available from this API token"
                         }
-                    state.isLoadingCurrentUser -> "Checking NetBox credentials…"
-                    else -> "Not available from this API token"
-                }
-            )
-        },
+                    )
+                },
             )
             SettingsListItem(
-        leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
-        headlineContent = { Text("API token") },
-        supportingContent = {
-            Text(
-                when {
-                    state.credentials.token.isBlank() -> "Not configured"
-                    state.tokenVisible -> state.credentials.token
-                    else -> "••••••••••••"
-                }
-            )
-        },
-        trailingContent = {
-            Row {
-                IconButton(
-                    onClick =
-                        if (state.credentials.token.isBlank()) actions.onShowToken
-                        else if (state.tokenVisible) actions.onHideToken
-                        else actions.onShowToken,
-                ) {
-                    Icon(
-                        if (state.tokenVisible) Icons.Default.VisibilityOff
-                        else Icons.Default.Visibility,
-                        contentDescription =
-                            if (state.tokenVisible) "Hide API token" else "Show API token",
+                leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
+                headlineContent = { Text("API token") },
+                supportingContent = {
+                    Text(
+                        when {
+                            state.credentials.token.isBlank() -> "Not configured"
+                            state.tokenVisible -> state.credentials.token
+                            else -> "••••••••••••"
+                        }
                     )
-                }
-                IconButton(
-                    onClick = actions.onCopyToken,
-                    enabled = state.credentials.token.isNotBlank(),
-                ) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy API token")
-                }
-            }
-        },
+                },
+                trailingContent = {
+                    Row {
+                        IconButton(
+                            onClick =
+                                if (state.credentials.token.isBlank()) actions.onShowToken
+                                else if (state.tokenVisible) actions.onHideToken
+                                else actions.onShowToken
+                        ) {
+                            Icon(
+                                if (state.tokenVisible) Icons.Default.VisibilityOff
+                                else Icons.Default.Visibility,
+                                contentDescription =
+                                    if (state.tokenVisible) "Hide API token" else "Show API token",
+                            )
+                        }
+                        IconButton(
+                            onClick = actions.onCopyToken,
+                            enabled = state.credentials.token.isNotBlank(),
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy API token")
+                        }
+                    }
+                },
             )
             SettingsListItem(
                 modifier =
@@ -248,43 +402,45 @@ private fun ConnectionSettingsContent(
                 },
             )
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        OutlinedButton(
-            onClick = actions.onTestConnection,
-            enabled =
-                state.credentials.isValid && state.connectionTest !is ConnectionTestState.Testing,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                if (state.connectionTest is ConnectionTestState.Testing) Icons.Default.Sync
-                else Icons.Default.NetworkCheck,
-                contentDescription = null,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                if (state.connectionTest is ConnectionTestState.Testing) {
-                    "Testing connection…"
-                } else {
-                    "Test connection"
+                OutlinedButton(
+                    onClick = actions.onTestConnection,
+                    enabled =
+                        state.credentials.isValid &&
+                            state.connectionTest !is ConnectionTestState.Testing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        if (state.connectionTest is ConnectionTestState.Testing) Icons.Default.Sync
+                        else Icons.Default.NetworkCheck,
+                        contentDescription = null,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (state.connectionTest is ConnectionTestState.Testing) {
+                            "Testing connection…"
+                        } else {
+                            "Test connection"
+                        }
+                    )
                 }
-            )
-        }
-        when (val result = state.connectionTest) {
-            is ConnectionTestState.Success ->
-                Text(
-                    result.message,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            is ConnectionTestState.Failure ->
-                Text(
-                    result.message,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            ConnectionTestState.Idle, ConnectionTestState.Testing -> Unit
-        }
+                when (val result = state.connectionTest) {
+                    is ConnectionTestState.Success ->
+                        Text(
+                            result.message,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    is ConnectionTestState.Failure ->
+                        Text(
+                            result.message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    ConnectionTestState.Idle,
+                    ConnectionTestState.Testing -> Unit
+                }
             }
         }
     }
@@ -356,16 +512,16 @@ private fun SyncSettingsContent(
         }
         SettingsSingleItemCard {
             SettingsListItem(
-        leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
-        headlineContent = { Text("Cached data") },
-        supportingContent = {
-            Text(
-                "${state.cachedDeviceCount} devices · ${state.cachedObjectCount} other objects · " +
-                    "${state.cachedImageCount} image records\n" +
-                    "${state.persistentCacheFiles} downloaded files · ${formatBytes(state.persistentCacheBytes)}\n" +
-                    "Downloaded images and documents are kept in app storage for offline use and are not temporary Android cache files."
-            )
-        },
+                leadingContent = { Icon(Icons.Default.Storage, contentDescription = null) },
+                headlineContent = { Text("Cached data") },
+                supportingContent = {
+                    Text(
+                        "${state.cachedDeviceCount} devices · ${state.cachedObjectCount} other objects · " +
+                            "${state.cachedImageCount} image records\n" +
+                            "${state.persistentCacheFiles} downloaded files · ${formatBytes(state.persistentCacheBytes)}\n" +
+                            "Downloaded images and documents are kept in app storage for offline use and are not temporary Android cache files."
+                    )
+                },
             )
             Button(
                 onClick = actions.onSync,
@@ -410,21 +566,23 @@ private fun DisplaySettingsContent(
                 trailingContent = {
                     Box {
                         Icon(Icons.Default.ExpandMore, contentDescription = null)
-                DropdownMenu(
-                    expanded = themeModeMenuExpanded,
-                    onDismissRequest = { themeModeMenuExpanded = false },
-                ) {
-                    ThemeMode.entries.forEach { mode ->
-                        DropdownMenuItem(
-                            text = { Text(mode.label) },
-                            leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
-                            onClick = {
-                                actions.onSetThemeMode(mode)
-                                themeModeMenuExpanded = false
-                            },
-                        )
-                    }
-                }
+                        DropdownMenu(
+                            expanded = themeModeMenuExpanded,
+                            onDismissRequest = { themeModeMenuExpanded = false },
+                        ) {
+                            ThemeMode.entries.forEach { mode ->
+                                DropdownMenuItem(
+                                    text = { Text(mode.label) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Palette, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        actions.onSetThemeMode(mode)
+                                        themeModeMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
             )
@@ -436,21 +594,23 @@ private fun DisplaySettingsContent(
                 trailingContent = {
                     Box {
                         Icon(Icons.Default.ExpandMore, contentDescription = null)
-                DropdownMenu(
-                    expanded = themeAccentMenuExpanded,
-                    onDismissRequest = { themeAccentMenuExpanded = false },
-                ) {
-                    ThemeAccent.entries.forEach { accent ->
-                        DropdownMenuItem(
-                            text = { Text(accent.label) },
-                            leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
-                            onClick = {
-                                actions.onSetThemeAccent(accent)
-                                themeAccentMenuExpanded = false
-                            },
-                        )
-                    }
-                }
+                        DropdownMenu(
+                            expanded = themeAccentMenuExpanded,
+                            onDismissRequest = { themeAccentMenuExpanded = false },
+                        ) {
+                            ThemeAccent.entries.forEach { accent ->
+                                DropdownMenuItem(
+                                    text = { Text(accent.label) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Palette, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        actions.onSetThemeAccent(accent)
+                                        themeAccentMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
             )
@@ -483,7 +643,8 @@ private fun DisplaySettingsContent(
                         if (state.hiddenFieldKeys.isEmpty()) {
                             "No fields hidden by default"
                         } else {
-                            val countLabel = if (state.hiddenFieldKeys.size == 1) "field" else "fields"
+                            val countLabel =
+                                if (state.hiddenFieldKeys.size == 1) "field" else "fields"
                             "$countLabel hidden by default · ${state.hiddenFieldKeys.sorted().joinToString(", ")}"
                         }
                     )
@@ -502,14 +663,15 @@ private fun DisplaySettingsContent(
                 },
             )
             SettingsListItem(
-        leadingContent = { Icon(Icons.Default.PushPin, contentDescription = null) },
-        headlineContent = { Text("Pinned item types") },
-        supportingContent = {
-            Text(
-                if (state.pinnedModelPaths.isEmpty()) "No item types pinned"
-                else "${state.pinnedModelPaths.size} pinned · Long-press an item type on Add to change this"
-            )
-        },
+                leadingContent = { Icon(Icons.Default.PushPin, contentDescription = null) },
+                headlineContent = { Text("Pinned item types") },
+                supportingContent = {
+                    Text(
+                        if (state.pinnedModelPaths.isEmpty()) "No item types pinned"
+                        else
+                            "${state.pinnedModelPaths.size} pinned · Long-press an item type on Add to change this"
+                    )
+                },
             )
             SettingsToggleItem(
                 checked = state.showTopologyDeviceTypeImages,
@@ -544,49 +706,55 @@ private fun CameraSettingsContent(
             trailingContent = {
                 Box {
                     Icon(Icons.Default.ExpandMore, contentDescription = null)
-                DropdownMenu(
-                    expanded = scannerLensMenuExpanded,
-                    onDismissRequest = { scannerLensMenuExpanded = false },
-                ) {
-                    ScannerLens.entries.forEach { lens ->
-                        DropdownMenuItem(
-                            text = { Text(lens.label) },
-                            leadingIcon = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
-                            onClick = {
-                                actions.onSetScannerLens(lens)
-                                scannerLensMenuExpanded = false
-                            },
-                        )
+                    DropdownMenu(
+                        expanded = scannerLensMenuExpanded,
+                        onDismissRequest = { scannerLensMenuExpanded = false },
+                    ) {
+                        ScannerLens.entries.forEach { lens ->
+                            DropdownMenuItem(
+                                text = { Text(lens.label) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Cameraswitch, contentDescription = null)
+                                },
+                                onClick = {
+                                    actions.onSetScannerLens(lens)
+                                    scannerLensMenuExpanded = false
+                                },
+                            )
+                        }
                     }
-                }
                 }
             },
         )
         SettingsListItem(
             modifier = Modifier.clickable { scannerRearLensMenuExpanded = true },
-                leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
+            leadingContent = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
             headlineContent = { Text("Default rear lens") },
             supportingContent = {
-                Text("${state.scannerRearLens.label}; uses the closest available lens when unavailable")
+                Text(
+                    "${state.scannerRearLens.label}; uses the closest available lens when unavailable"
+                )
             },
             trailingContent = {
                 Box {
                     Icon(Icons.Default.ExpandMore, contentDescription = null)
-                DropdownMenu(
-                    expanded = scannerRearLensMenuExpanded,
-                    onDismissRequest = { scannerRearLensMenuExpanded = false },
-                ) {
-                    ScannerRearLens.entries.forEach { lens ->
-                        DropdownMenuItem(
-                            text = { Text(lens.label) },
-                            leadingIcon = { Icon(Icons.Default.Cameraswitch, contentDescription = null) },
-                            onClick = {
-                                actions.onSetScannerRearLens(lens)
-                                scannerRearLensMenuExpanded = false
-                            },
-                        )
+                    DropdownMenu(
+                        expanded = scannerRearLensMenuExpanded,
+                        onDismissRequest = { scannerRearLensMenuExpanded = false },
+                    ) {
+                        ScannerRearLens.entries.forEach { lens ->
+                            DropdownMenuItem(
+                                text = { Text(lens.label) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Cameraswitch, contentDescription = null)
+                                },
+                                onClick = {
+                                    actions.onSetScannerRearLens(lens)
+                                    scannerRearLensMenuExpanded = false
+                                },
+                            )
+                        }
                     }
-                }
                 }
             },
         )
@@ -604,36 +772,48 @@ private fun GestureSettingsContent(
             subtitle = "Shortcuts using two fingers",
             icon = Icons.Default.TouchApp,
         ) {
-            GestureShortcut.entries.filter { it in TWO_FINGER_SHORTCUTS }.forEach { shortcut ->
-                GestureShortcutRow(
-                    shortcut = shortcut,
-                    action = state.gestureActions[shortcut] ?: GestureAction.Off,
-                    target = state.gestureTargets[shortcut],
-                    models = state.gestureModels,
-                    objects = state.gestureObjects,
-                    onActionSelected = { action -> actions.onSetGestureAction(shortcut, action) },
-                    onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
-                    onDetailTargetSelected = { obj -> actions.onSetGestureDetailTarget(shortcut, obj) },
-                )
-            }
+            GestureShortcut.entries
+                .filter { it in TWO_FINGER_SHORTCUTS }
+                .forEach { shortcut ->
+                    GestureShortcutRow(
+                        shortcut = shortcut,
+                        action = state.gestureActions[shortcut] ?: GestureAction.Off,
+                        target = state.gestureTargets[shortcut],
+                        models = state.gestureModels,
+                        objects = state.gestureObjects,
+                        onActionSelected = { action ->
+                            actions.onSetGestureAction(shortcut, action)
+                        },
+                        onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
+                        onDetailTargetSelected = { obj ->
+                            actions.onSetGestureDetailTarget(shortcut, obj)
+                        },
+                    )
+                }
         }
         SettingsGroupCard(
             title = "Three-finger gestures",
             subtitle = "Shortcuts using three fingers",
             icon = Icons.Default.TouchApp,
         ) {
-            GestureShortcut.entries.filter { it in THREE_FINGER_SHORTCUTS }.forEach { shortcut ->
-                GestureShortcutRow(
-                    shortcut = shortcut,
-                    action = state.gestureActions[shortcut] ?: GestureAction.Off,
-                    target = state.gestureTargets[shortcut],
-                    models = state.gestureModels,
-                    objects = state.gestureObjects,
-                    onActionSelected = { action -> actions.onSetGestureAction(shortcut, action) },
-                    onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
-                    onDetailTargetSelected = { obj -> actions.onSetGestureDetailTarget(shortcut, obj) },
-                )
-            }
+            GestureShortcut.entries
+                .filter { it in THREE_FINGER_SHORTCUTS }
+                .forEach { shortcut ->
+                    GestureShortcutRow(
+                        shortcut = shortcut,
+                        action = state.gestureActions[shortcut] ?: GestureAction.Off,
+                        target = state.gestureTargets[shortcut],
+                        models = state.gestureModels,
+                        objects = state.gestureObjects,
+                        onActionSelected = { action ->
+                            actions.onSetGestureAction(shortcut, action)
+                        },
+                        onTargetSelected = { model -> actions.onSetGestureTarget(shortcut, model) },
+                        onDetailTargetSelected = { obj ->
+                            actions.onSetGestureDetailTarget(shortcut, obj)
+                        },
+                    )
+                }
         }
     }
 }
@@ -688,53 +868,53 @@ private fun AboutSettingsContent() {
                 supportingContent = { Text(BuildConfig.VERSION_NAME + " · GPLv3") },
             )
             SettingsListItem(
-        modifier =
-            Modifier.clickable {
-                val tapCount = buildTapCount + 1
-                buildTapCount = if (tapCount >= 7) 0 else tapCount
-                Toast.makeText(
-                        context,
-                        if (tapCount >= 7) "Developer mode enabled"
-                        else "${7 - tapCount} more taps to enable developer mode",
-                        Toast.LENGTH_SHORT,
-                    )
-                    .show()
-            },
-        leadingContent = { Icon(Icons.Default.Tag, contentDescription = null) },
-        headlineContent = { Text("Build") },
-        supportingContent = { Text(BuildConfig.GIT_REVISION) },
+                modifier =
+                    Modifier.clickable {
+                        val tapCount = buildTapCount + 1
+                        buildTapCount = if (tapCount >= 7) 0 else tapCount
+                        Toast.makeText(
+                                context,
+                                if (tapCount >= 7) "Developer mode enabled"
+                                else "${7 - tapCount} more taps to enable developer mode",
+                                Toast.LENGTH_SHORT,
+                            )
+                            .show()
+                    },
+                leadingContent = { Icon(Icons.Default.Tag, contentDescription = null) },
+                headlineContent = { Text("Build") },
+                supportingContent = { Text(BuildConfig.GIT_REVISION) },
             )
             SettingsListItem(
-        leadingContent = { Icon(Icons.Default.DateRange, contentDescription = null) },
-        headlineContent = { Text("Build date") },
-        supportingContent = { Text(BuildConfig.BUILD_DATE) },
+                leadingContent = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                headlineContent = { Text("Build date") },
+                supportingContent = { Text(BuildConfig.BUILD_DATE) },
             )
         }
         SettingsGroupCard(
             title = "Project",
             subtitle = "Source code, support, and privacy information",
-        icon = Icons.Default.Code,
+            icon = Icons.Default.Code,
         ) {
             ExternalLinkRow(
-        context = context,
-        url = "https://github.com/pschmitt/nyetbox",
-        icon = Icons.Default.Public,
-        title = "GitHub repository",
-        subtitle = "View the source code and report issues",
+                context = context,
+                url = "https://github.com/pschmitt/nyetbox",
+                icon = Icons.Default.Public,
+                title = "GitHub repository",
+                subtitle = "View the source code and report issues",
             )
             ExternalLinkRow(
-        context = context,
-        url = "https://github.com/sponsors/pschmitt",
-        icon = Icons.Default.Favorite,
-        title = "Sponsor the project",
-        subtitle = "Support development on GitHub Sponsors",
+                context = context,
+                url = "https://github.com/sponsors/pschmitt",
+                icon = Icons.Default.Favorite,
+                title = "Sponsor the project",
+                subtitle = "Support development on GitHub Sponsors",
             )
             ExternalLinkRow(
-        context = context,
-        url = "https://github.com/pschmitt/nyetbox/blob/main/PRIVACY.md",
-        icon = Icons.Default.PrivacyTip,
-        title = "Privacy policy",
-        subtitle = "How Nyetbox handles data and network access",
+                context = context,
+                url = "https://github.com/pschmitt/nyetbox/blob/main/PRIVACY.md",
+                icon = Icons.Default.PrivacyTip,
+                title = "Privacy policy",
+                subtitle = "How Nyetbox handles data and network access",
             )
         }
     }
@@ -749,7 +929,8 @@ private fun ExternalLinkRow(
     subtitle: String,
 ) {
     SettingsListItem(
-        modifier = Modifier.clickable { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
+        modifier =
+            Modifier.clickable { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
         leadingContent = { Icon(icon, contentDescription = null) },
         headlineContent = { Text(title) },
         supportingContent = { Text(subtitle) },

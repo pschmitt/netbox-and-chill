@@ -2,27 +2,33 @@ package dev.pschmitt.nyetbox.ui.settings
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,12 +39,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.nyetbox.data.backup.settingsBackupFileName
 import dev.pschmitt.nyetbox.qrsetup.QrBitmap
 import dev.pschmitt.nyetbox.qrsetup.QrConfigCodec
 import dev.pschmitt.nyetbox.qrsetup.QrConfigEnvelope
@@ -62,7 +70,7 @@ fun SettingsScreen(
                     }
                 },
             )
-        },
+        }
     ) { padding ->
         Column(
             Modifier.fillMaxSize()
@@ -120,6 +128,7 @@ fun SettingsCategoryScreen(
     onLoggedOut: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
     printSettingsViewModel: PrintSettingsViewModel = hiltViewModel(),
+    backupViewModel: SettingsBackupViewModel = hiltViewModel(),
 ) {
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
     val serverProfiles by viewModel.settingsRepository.serverProfiles.collectAsStateWithLifecycle()
@@ -145,8 +154,7 @@ fun SettingsCategoryScreen(
         viewModel.settingsRepository.changeNotificationsEnabled.collectAsStateWithLifecycle()
     val changeNotificationFilters by
         viewModel.settingsRepository.changeNotificationFilters.collectAsStateWithLifecycle()
-    val gestureActions by
-        viewModel.settingsRepository.gestureActions.collectAsStateWithLifecycle()
+    val gestureActions by viewModel.settingsRepository.gestureActions.collectAsStateWithLifecycle()
     val gestureTargets by viewModel.gestureTargets.collectAsStateWithLifecycle()
     val gestureModels by viewModel.gestureModels.collectAsStateWithLifecycle()
     val gestureObjects by viewModel.gestureObjects.collectAsStateWithLifecycle()
@@ -164,6 +172,18 @@ fun SettingsCategoryScreen(
         viewModel.settingsRepository.objectTypeAccents.collectAsStateWithLifecycle()
     val showTopologyDeviceTypeImages by
         viewModel.settingsRepository.showTopologyDeviceTypeImages.collectAsStateWithLifecycle()
+    val scheduledBackupEnabled by
+        backupViewModel.settingsRepository.scheduledBackupEnabled.collectAsStateWithLifecycle()
+    val scheduledBackupFrequency by
+        backupViewModel.settingsRepository.scheduledBackupFrequency.collectAsStateWithLifecycle()
+    val scheduledBackupFolderUri by
+        backupViewModel.settingsRepository.scheduledBackupFolderUri.collectAsStateWithLifecycle()
+    val scheduledBackupPasswordSet by
+        backupViewModel.settingsRepository.scheduledBackupPasswordSet.collectAsStateWithLifecycle()
+    val lastBackupAt by
+        backupViewModel.settingsRepository.lastBackupAt.collectAsStateWithLifecycle()
+    val backupError by backupViewModel.settingsRepository.backupError.collectAsStateWithLifecycle()
+    val backupOperation by backupViewModel.operation.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.settingsRepository.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -178,7 +198,39 @@ fun SettingsCategoryScreen(
     var hiddenFieldsDialogVisible by remember { mutableStateOf(false) }
     var changeNotificationsDialogVisible by remember { mutableStateOf(false) }
     var objectTypeColorsDialogVisible by remember { mutableStateOf(false) }
+    var exportPasswordDialogVisible by remember { mutableStateOf(false) }
+    var scheduledPasswordDialogVisible by remember { mutableStateOf(false) }
+    var importPasswordDialogVisible by remember { mutableStateOf(false) }
+    var exportPassword by remember { mutableStateOf("") }
+    var scheduledPassword by remember { mutableStateOf("") }
+    var importPassword by remember { mutableStateOf("") }
+    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     val currentPendingTokenAction by rememberUpdatedState(pendingTokenAction)
+
+    val createBackupLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/octet-stream")
+        ) { uri ->
+            uri?.let { backupViewModel.export(it, exportPassword) }
+            exportPassword = ""
+        }
+    val openBackupLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { backupViewModel.restore(it) }
+        }
+    val backupFolderLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri?.let {
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                }
+                backupViewModel.setScheduledBackupFolderUri(it.toString())
+            }
+        }
 
     val biometricPrompt =
         remember(activity) {
@@ -259,6 +311,92 @@ fun SettingsCategoryScreen(
             snackbarHostState.showSnackbar("API token copied")
             tokenCopied = false
         }
+    }
+
+    LaunchedEffect(backupOperation) {
+        when (val operation = backupOperation) {
+            is BackupOperationState.PasswordRequired -> {
+                pendingImportUri = operation.uri
+                importPassword = ""
+                importPasswordDialogVisible = true
+                backupViewModel.dismissOperation()
+            }
+            is BackupOperationState.Success,
+            is BackupOperationState.Error -> {
+                val message =
+                    when (operation) {
+                        is BackupOperationState.Success -> operation.message
+                        is BackupOperationState.Error -> operation.message
+                    }
+                snackbarHostState.showSnackbar(message)
+                backupViewModel.dismissOperation()
+            }
+            BackupOperationState.Idle,
+            BackupOperationState.Working -> Unit
+        }
+    }
+
+    if (exportPasswordDialogVisible) {
+        BackupPasswordDialog(
+            title = "Export settings",
+            password = exportPassword,
+            confirmLabel = "Choose file",
+            supportingText = "Leave blank to create an unencrypted backup.",
+            onPasswordChanged = { exportPassword = it },
+            onDismiss = {
+                exportPassword = ""
+                exportPasswordDialogVisible = false
+            },
+            onConfirm = {
+                exportPasswordDialogVisible = false
+                createBackupLauncher.launch(settingsBackupFileName())
+            },
+        )
+    }
+
+    if (scheduledPasswordDialogVisible) {
+        BackupPasswordDialog(
+            title = "Scheduled backup password",
+            password = scheduledPassword,
+            confirmLabel = "Save",
+            supportingText =
+                if (scheduledBackupPasswordSet) {
+                    "Enter a new password, or leave blank to remove protection."
+                } else {
+                    "Leave blank for an unencrypted scheduled backup."
+                },
+            onPasswordChanged = { scheduledPassword = it },
+            onDismiss = {
+                scheduledPassword = ""
+                scheduledPasswordDialogVisible = false
+            },
+            onConfirm = {
+                backupViewModel.setScheduledBackupPassword(scheduledPassword)
+                scheduledPassword = ""
+                scheduledPasswordDialogVisible = false
+            },
+        )
+    }
+
+    if (importPasswordDialogVisible && pendingImportUri != null) {
+        BackupPasswordDialog(
+            title = "Password required",
+            password = importPassword,
+            confirmLabel = "Restore",
+            supportingText = "This settings backup is password-protected.",
+            onPasswordChanged = { importPassword = it },
+            onDismiss = {
+                importPassword = ""
+                pendingImportUri = null
+                importPasswordDialogVisible = false
+            },
+            onConfirm = {
+                pendingImportUri?.let { backupViewModel.restore(it, importPassword) }
+                importPassword = ""
+                pendingImportUri = null
+                importPasswordDialogVisible = false
+            },
+        )
     }
 
     if (showEditServerDialog) {
@@ -359,6 +497,13 @@ fun SettingsCategoryScreen(
                         themeAccent = themeAccent,
                         objectTypeAccents = objectTypeAccents,
                         showTopologyDeviceTypeImages = showTopologyDeviceTypeImages,
+                        scheduledBackupEnabled = scheduledBackupEnabled,
+                        scheduledBackupFrequency = scheduledBackupFrequency,
+                        scheduledBackupFolderUri = scheduledBackupFolderUri,
+                        scheduledBackupPasswordSet = scheduledBackupPasswordSet,
+                        lastBackupAt = lastBackupAt,
+                        backupError = backupError,
+                        backupOperation = backupOperation,
                     ),
                 actions =
                     SettingsCategoryActions(
@@ -409,8 +554,21 @@ fun SettingsCategoryScreen(
                         onClearDefaultPrinter = printSettingsViewModel::clearDefaultPrinter,
                         onSetShowTopologyDeviceTypeImages =
                             viewModel.settingsRepository::setShowTopologyDeviceTypeImages,
-                        onSetChangeNotificationsEnabled =
-                            viewModel::setChangeNotificationsEnabled,
+                        onExportBackup = { exportPasswordDialogVisible = true },
+                        onImportBackup = {
+                            openBackupLauncher.launch(
+                                arrayOf("application/octet-stream", "application/json", "*/*")
+                            )
+                        },
+                        onChooseBackupFolder = { backupFolderLauncher.launch(null) },
+                        onEditScheduledBackupPassword = {
+                            scheduledPassword = ""
+                            scheduledPasswordDialogVisible = true
+                        },
+                        onSetScheduledBackupEnabled = backupViewModel::setScheduledBackupEnabled,
+                        onSetScheduledBackupFrequency =
+                            backupViewModel::setScheduledBackupFrequency,
+                        onSetChangeNotificationsEnabled = viewModel::setChangeNotificationsEnabled,
                         onShowChangeNotifications = { changeNotificationsDialogVisible = true },
                         onSetGestureAction = viewModel::setGestureAction,
                         onSetGestureTarget = viewModel::setGestureTarget,
@@ -419,4 +577,34 @@ fun SettingsCategoryScreen(
             )
         }
     }
+}
+
+@Composable
+private fun BackupPasswordDialog(
+    title: String,
+    password: String,
+    confirmLabel: String,
+    supportingText: String,
+    onPasswordChanged: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(supportingText, style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = onPasswordChanged,
+                    label = { Text("Password (optional)") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
