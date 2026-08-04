@@ -115,7 +115,9 @@ class StoreScreenshotTest {
         // meant for the NavigationRail/NavigationBar tab underneath it. Wait for that same tag to
         // stop being *displayed* instead, which only holds once the drawer has actually closed.
         waitForTagNotDisplayed("e2e-device-list-entry", 30_000)
+        captureE2eScreenshot("DEBUG_before_home_click")
         composeRule.onNodeWithText("Home").performClick()
+        captureE2eScreenshot("DEBUG_after_home_click")
         waitForTag("e2e-search-card", 30_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("core-sw-01")
