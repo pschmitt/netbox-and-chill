@@ -6084,7 +6084,9 @@ leaking real inventory data into a public store listing.
 - [x] Add an explicit `gpc` upload recipe for reviewed screenshots, targeting the release package
       without making capture itself modify the Play Console listing
 - [x] Verify the upload target with `gpc apps list` rather than relying on `gpc doctor`
-- [ ] Add and capture the tablet screenshot bucket using a disposable Pixel Tablet emulator
+- [x] Add a manual GitHub Actions tablet capture job using the existing
+      `reactivecircus/android-emulator-runner` and the disposable plugin-enabled fixture
+- [ ] Run the manual workflow and review the generated tablet screenshots before uploading them
 - [x] Upload the flattened app icon and verify it in the Play Console listing
 
 Status: **mostly done**, 2026-08-04. `just screenshots` builds and runs an isolated NetBox 4.5
@@ -6095,7 +6097,9 @@ remote debug + androidTest build with `fastlane screengrab`; the fixture is alwa
 content; `02_device_detail` additionally needed an explicit "Refresh" click to reliably beat a
 race in the detail screen's own per-device fetch. `03_topology` waits for the seeded four-node,
 three-connection graph, and `04_search` fails rather than silently accepting an empty state.
-Tablet screenshot buckets are noted in `docs/screenshots.md` but not yet done.
+The tablet capture now lives in the manual `Play Store screenshots` GitHub Actions workflow,
+reusing the repository's maintained Android emulator runner instead of custom remote SSH/AVD
+plumbing. The tablet bucket still needs one manual run and review.
 
 
 ## NBC-366: color object-type icons in color settings

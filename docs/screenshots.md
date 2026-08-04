@@ -58,16 +58,11 @@ just screenshots
 
 Phone output lands in `fastlane/metadata/android/en-US/images/phoneScreenshots/`.
 
-For the tablet layout, use the dedicated Pixel Tablet AVD:
-
-```console
-just screenshots-tablet
-```
-
-Those captures use the same journey and disposable NetBox fixture, but are written to
-`fastlane/metadata/android/en-US/images/tenInchScreenshots/` so they cannot overwrite phone
-screenshots. The tablet emulator is intentionally separate from the physical Mi Pad 4 and other
-test devices.
+For the tablet layout, manually dispatch the `Play Store screenshots` GitHub Actions workflow.
+It reuses the maintained `reactivecircus/android-emulator-runner` action, the plugin-enabled
+disposable fixture, and the same `StoreScreenshotTest` journey. Download the resulting artifact;
+the images are written to `fastlane/metadata/android/en-US/images/tenInchScreenshots/` so they
+cannot overwrite phone screenshots.
 
 ## Uploading to Google Play
 
@@ -96,7 +91,7 @@ gate because its package/credential diagnostics can be misleading when the packa
 flags or another working authentication context.
 Generated images are ignored by Git: this checkout currently has four older POC outputs, but no
 topology or tablet capture yet. The four phone images and the flattened icon have been uploaded;
-the tablet bucket remains empty until `just screenshots-tablet` is run.
+the tablet bucket remains empty until the manual workflow is run and its artifact is reviewed.
 
 ## Running it more than once against the same emulator
 
@@ -149,8 +144,8 @@ capture fails and the test diagnostics should be inspected rather than publishin
   screen you're leaving" rule documented in the code comments.
 - More locales: add entries to `locales(...)` in `fastlane/Screengrabfile` - screengrab switches
   the device locale for each one via `LocaleTestRule`, which is already wired into the test.
-- Tablet screenshot buckets: `just screenshots-tablet` uses the Pixel Tablet AVD and the Play
-  Console `tenInchScreenshots` bucket.
+- Tablet screenshot buckets: the manual `Play Store screenshots` workflow uses a tablet AVD and
+  the Play Console `tenInchScreenshots` bucket.
 - Uploading is intentionally an explicit `just screenshots-upload` step after reviewing the
   generated images.
 
