@@ -101,7 +101,7 @@ import dev.pschmitt.nyetbox.ui.directory.AppIcons
 internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
 
 private const val RECENT_VISITS_PREVIEW_LIMIT = 3
-private const val RECENT_CHANGES_PREVIEW_LIMIT = 5
+private const val RECENT_CHANGES_PREVIEW_LIMIT = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

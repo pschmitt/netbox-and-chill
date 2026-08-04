@@ -5801,6 +5801,18 @@ Status: **done**, 2026-08-04 - remote Kotlin compilation, unit tests, Android-te
 and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
 
 
+## NBC-362: bound thumbnail memory use in long item lists
+
+Long device-type lists could run out of memory while scrolling because the shared thumbnail
+loader decoded full-resolution NetBox photos before applying its transparent-padding crop.
+
+- [ ] Bound thumbnail decoding to the rendered card size.
+- [ ] Keep full-resolution image viewing unaffected.
+- [ ] Verify the shared thumbnail path through remote compilation, lint, and device installation.
+
+Status: in progress, 2026-08-04.
+
+
 ## NBC-360: support multiple NetBox server profiles with isolated caches
 
 Allow users to add and switch between multiple NetBox instances after onboarding while keeping

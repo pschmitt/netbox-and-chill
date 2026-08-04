@@ -20,6 +20,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.transformations
+import coil3.size.Precision
 import dev.pschmitt.nyetbox.image.TransparentPaddingTransformation
 import java.io.File
 
@@ -56,6 +57,12 @@ fun RemoteThumbnail(
             remember(imageUrl, localFile) {
                 ImageRequest.Builder(context)
                     .data(localFile?.toUri() ?: imageUrl)
+                    // These are thumbnails everywhere this composable is used. Bounding the
+                    // decode is important for long device-type lists: NetBox photos can be much
+                    // larger than the 64-140dp surface they occupy, and the alpha-cropping
+                    // transformation otherwise has to allocate a full-size pixel buffer.
+                    .size(256, 256)
+                    .precision(Precision.INEXACT)
                     .transformations(TransparentPaddingTransformation())
                     .build()
             }
