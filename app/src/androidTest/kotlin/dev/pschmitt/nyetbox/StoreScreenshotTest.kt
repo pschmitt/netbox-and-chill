@@ -32,6 +32,8 @@ class StoreScreenshotTest {
         @get:ClassRule @JvmStatic val localeTestRule = LocaleTestRule()
     }
 
+    @get:Rule val anrDismissRule = AnrDismissRule()
+
     @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
 
     private val arguments
