@@ -592,7 +592,13 @@ fun DeviceDetailScreen(
                                             ->
                                             AssetTagBadge(
                                                 assetTag = assetTag,
-                                                modifier = Modifier.padding(start = 4.dp),
+                                                modifier =
+                                                    Modifier.padding(start = 4.dp).combinedClickable(
+                                                        onClick = {},
+                                                        onLongClick = {
+                                                            onCopyValue("Asset tag", assetTag)
+                                                        },
+                                                    ),
                                             )
                                         }
                                     }

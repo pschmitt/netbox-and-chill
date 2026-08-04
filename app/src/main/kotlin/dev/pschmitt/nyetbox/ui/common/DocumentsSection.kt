@@ -17,13 +17,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Badge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -101,20 +99,6 @@ fun DocumentsSection(
                                 document = document,
                                 localFile = localFileFor?.invoke(document),
                             )
-                        },
-                        trailingContent = {
-                            IconButton(
-                                onClick = { onOpenDocument(document) },
-                                enabled = canOpen,
-                            ) {
-                                Icon(
-                                    if (document.documentUrl != null) Icons.Default.Download
-                                    else Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription =
-                                        if (document.documentUrl != null) "Download document"
-                                        else "Open document",
-                                )
-                            }
                         },
                     )
                 }
@@ -229,8 +213,16 @@ private fun DocumentTypeBadge(rawType: String) {
 @Composable
 private fun DocumentPreview(document: CachedDocument, localFile: File?) {
     val pdfPreview by
-        produceState<Bitmap?>(initialValue = null, localFile, document.filename) {
-            value = withContext(Dispatchers.IO) { renderPdfPreview(localFile) }
+        produceState<Bitmap?>(
+            initialValue = null,
+            localFile,
+            document.filename,
+            document.documentUrl,
+        ) {
+            value =
+                withContext(Dispatchers.IO) {
+                    renderPdfPreview(localFile, document.filename, document.documentUrl)
+                }
         }
     val extension = document.filename.substringAfterLast('.', "").uppercase()
     val isImage = extension in setOf("AVIF", "BMP", "GIF", "JPEG", "JPG", "PNG", "WEBP")
@@ -284,10 +276,8 @@ private fun DocumentPreview(document: CachedDocument, localFile: File?) {
     }
 }
 
-private fun renderPdfPreview(file: File?): Bitmap? {
-    if (file == null || !file.isFile || !file.extension.equals("pdf", ignoreCase = true)) {
-        return null
-    }
+private fun renderPdfPreview(file: File?, filename: String, url: String?): Bitmap? {
+    if (file == null || !file.isFile || !looksLikePdf(file, filename, url)) return null
     return runCatching {
         ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
             PdfRenderer(descriptor).use { renderer ->
@@ -311,3 +301,20 @@ private fun renderPdfPreview(file: File?): Bitmap? {
         }
     }.getOrNull()
 }
+
+private fun looksLikePdf(file: File, filename: String, url: String?): Boolean {
+    if (filename.hasPdfExtension() || url.orEmpty().substringBefore('?').hasPdfExtension()) {
+        return true
+    }
+    if (file.extension.equals("pdf", ignoreCase = true)) return true
+    return runCatching {
+            file.inputStream().use { input ->
+                val header = ByteArray(5)
+                input.read(header) == header.size &&
+                    header.contentEquals("%PDF-".encodeToByteArray())
+            }
+        }
+        .getOrDefault(false)
+}
+
+private fun String.hasPdfExtension(): Boolean = substringAfterLast('.', "").equals("pdf", true)

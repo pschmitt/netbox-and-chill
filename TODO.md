@@ -5829,6 +5829,19 @@ Status: **done**, 2026-08-04 - remote compilation, unit tests, Android-test comp
 ktfmt check, and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
 
 
+## NBC-364: restore document previews and simplify document rows
+
+Cached PDF documents can fall back to the generic document icon when their filename no longer
+contains an extension. The document card already opens the file, so a second per-row download
+action is redundant.
+
+- [x] Detect cached PDFs from their filename, URL, or file signature and render the first page.
+- [x] Remove the redundant download/open trailing icon from document rows.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, Android-test compilation, lint,
+ktfmt check, and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
+
+
 ## NBC-360: support multiple NetBox server profiles with isolated caches
 
 Allow users to add and switch between multiple NetBox instances after onboarding while keeping
