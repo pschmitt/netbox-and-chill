@@ -1134,5 +1134,7 @@ private fun TopologyGraph.contentCenter(): Offset {
     )
 }
 
-private fun parseColor(value: String, fallback: Color): Color =
-    runCatching { Color(value.toColorInt()) }.getOrDefault(fallback)
+private fun parseColor(value: String, fallback: Color): Color = runCatching {
+    Color(value.toColorInt())
+}
+    .getOrDefault(fallback)

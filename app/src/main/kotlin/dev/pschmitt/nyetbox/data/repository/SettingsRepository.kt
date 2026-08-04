@@ -916,11 +916,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val stored = prefs.getString(KEY_SERVER_PROFILES, null)
         if (!stored.isNullOrBlank()) {
             runCatching {
-                    settingsJson.decodeFromString(
-                        kotlinx.serialization.builtins.ListSerializer(ServerProfile.serializer()),
-                        stored,
-                    )
-                }
+                settingsJson.decodeFromString(
+                    kotlinx.serialization.builtins.ListSerializer(ServerProfile.serializer()),
+                    stored,
+                )
+            }
                 .getOrNull()
                 ?.takeIf { it.isNotEmpty() }
                 ?.let {

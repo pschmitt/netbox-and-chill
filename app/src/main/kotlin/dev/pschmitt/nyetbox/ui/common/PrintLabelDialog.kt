@@ -162,14 +162,14 @@ fun PrintLabelDialog(
     val previewBitmap =
         remember(request.objectUrl, previewText, invertColors, verticalText, qrSize) {
             runCatching {
-                    BrotherLabelRenderer.preview(
-                        request.objectUrl,
-                        previewText,
-                        invert = invertColors,
-                        vertical = verticalText,
-                        qrSize = qrSize,
-                    )
-                }
+                BrotherLabelRenderer.preview(
+                    request.objectUrl,
+                    previewText,
+                    invert = invertColors,
+                    vertical = verticalText,
+                    qrSize = qrSize,
+                )
+            }
                 .getOrNull()
         }
     DisposableEffect(previewBitmap) {
@@ -402,9 +402,10 @@ fun PrintLabelDialog(
                                         OutlinedButton(
                                             onClick = {
                                                 pairingAddress = option.address
-                                                val started =
-                                                    runCatching { option.device.createBond() }
-                                                        .getOrDefault(false)
+                                                val started = runCatching {
+                                                    option.device.createBond()
+                                                }
+                                                    .getOrDefault(false)
                                                 if (!started) pairingAddress = null
                                             },
                                             enabled = pairingAddress == null,

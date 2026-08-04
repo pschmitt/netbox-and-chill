@@ -45,14 +45,11 @@ internal fun SyncProgress.itemProgressText(): String? =
         null
     }
 
-internal fun SyncProgress.notificationSubText(): String =
-    buildList {
-            add(
-                "Step ${step.coerceIn(0, totalSteps.coerceAtLeast(1))} of ${totalSteps.coerceAtLeast(1)}"
-            )
-            itemProgressText()?.let(::add)
-        }
-        .joinToString(" · ")
+internal fun SyncProgress.notificationSubText(): String = buildList {
+    add("Step ${step.coerceIn(0, totalSteps.coerceAtLeast(1))} of ${totalSteps.coerceAtLeast(1)}")
+    itemProgressText()?.let(::add)
+}
+    .joinToString(" · ")
 
 internal fun SyncProgress.notificationText(): String = buildString {
     append(message)
@@ -181,16 +178,16 @@ constructor(
                     val attachmentProgress =
                         reportProgress("Downloading cached images and documents…")
                     runCatching {
-                            syncAttachments { completed, total ->
-                                onProgress(
-                                    attachmentProgress.copy(
-                                        itemLabel = "images/documents",
-                                        itemCompleted = completed,
-                                        itemTotal = total,
-                                    )
+                        syncAttachments { completed, total ->
+                            onProgress(
+                                attachmentProgress.copy(
+                                    itemLabel = "images/documents",
+                                    itemCompleted = completed,
+                                    itemTotal = total,
                                 )
-                            }
+                            )
                         }
+                    }
                         .getOrElse {
                             recordFailure("Attachment sync", it)
                             0
@@ -238,31 +235,30 @@ constructor(
             )
         }
 
-        val attachments =
-            buildList {
-                    addAll(genericObjectRepository.cachedMediaAttachments())
-                    deviceTypeRepository.cachedAll().forEach { deviceType ->
-                        deviceType.frontImageUrl?.let {
-                            add(OfflineAttachment(it, "device-type-${deviceType.id}-front"))
-                        }
-                        deviceType.rearImageUrl?.let {
-                            add(OfflineAttachment(it, "device-type-${deviceType.id}-rear"))
-                        }
-                    }
-                    imageAttachmentRepository.cachedAll().forEach { attachment ->
-                        attachment.imageUrl?.let {
-                            add(
-                                OfflineAttachment(
-                                    it,
-                                    attachment.name?.takeIf(String::isNotBlank)
-                                        ?: attachment.display?.takeIf(String::isNotBlank)
-                                        ?: "image-attachment-${attachment.id}",
-                                )
-                            )
-                        }
-                    }
+        val attachments = buildList {
+            addAll(genericObjectRepository.cachedMediaAttachments())
+            deviceTypeRepository.cachedAll().forEach { deviceType ->
+                deviceType.frontImageUrl?.let {
+                    add(OfflineAttachment(it, "device-type-${deviceType.id}-front"))
                 }
-                .distinctBy(OfflineAttachment::url)
+                deviceType.rearImageUrl?.let {
+                    add(OfflineAttachment(it, "device-type-${deviceType.id}-rear"))
+                }
+            }
+            imageAttachmentRepository.cachedAll().forEach { attachment ->
+                attachment.imageUrl?.let {
+                    add(
+                        OfflineAttachment(
+                            it,
+                            attachment.name?.takeIf(String::isNotBlank)
+                                ?: attachment.display?.takeIf(String::isNotBlank)
+                                ?: "image-attachment-${attachment.id}",
+                        )
+                    )
+                }
+            }
+        }
+            .distinctBy(OfflineAttachment::url)
 
         var downloaded = 0
         onProgress(0, attachments.size)
