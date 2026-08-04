@@ -5741,6 +5741,34 @@ Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instr
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-350: support split NetBox API token entry on login
+
+The login form should default to the current NetBox token-name + token workflow while retaining
+an optional full-token field for legacy credentials, pasted setup payloads, and older instances.
+
+- [x] Add split token-name/token UI as the default login mode.
+- [x] Keep full-token mode available and auto-detect complete pasted `nbp_`/`nbt_` tokens.
+- [x] Serialize split values as `nbp_<TOKEN_NAME>.<TOKEN>` and use the correct auth scheme.
+- [x] Verify with unit tests, remote compilation/lint, and device installation.
+
+Status: **done**, 2026-08-04. Verified with remote `ktfmtCheck`, debug Kotlin/unit-test compilation,
+Android lint, instrumentation compilation, and `just deploy-all debug` (Zenfone 10, Mi Pad 4, and
+Pixel 5).
+
+
+## NBC-351: verify HTTPS deep-link chooser behavior on Android
+
+Verify the user-facing behavior of `https://<netbox>/dcim/devices/<id>/` links on a device with a
+browser already selected as the preferred HTTPS handler. The Nyetbox intent filter matches, but
+`am start` may launch that preferred browser without showing a chooser; verified App Links should
+open Nyetbox directly for the release package.
+
+- [ ] Exercise the link from a regular Android share/browser flow, not only `am start`.
+- [ ] Confirm release App Link verification and document how to force the chooser for debugging.
+
+Status: not started, 2026-08-04.
+
+
 ## NBC-345: differentiate Settings group and row icons
 
 Settings group headers and their first rows should not repeat the same icon when a more specific

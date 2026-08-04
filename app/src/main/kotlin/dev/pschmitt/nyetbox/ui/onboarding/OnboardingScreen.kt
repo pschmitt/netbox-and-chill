@@ -14,11 +14,13 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,7 +51,15 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.R
+import dev.pschmitt.nyetbox.data.api.NAMED_API_TOKEN_PREFIX
+import dev.pschmitt.nyetbox.data.api.composeNamedApiToken
+import dev.pschmitt.nyetbox.data.api.parseNamedApiToken
 import dev.pschmitt.nyetbox.scanner.NetBoxTarget
+
+private enum class TokenEntryMode {
+    Split,
+    Full,
+}
 
 @Composable
 fun OnboardingScreen(
@@ -60,10 +70,56 @@ fun OnboardingScreen(
 ) {
     var baseUrl by
         remember(initialSetup?.baseUrl) { mutableStateOf(initialSetup?.baseUrl.orEmpty()) }
-    var token by remember(initialSetup?.token) { mutableStateOf(initialSetup?.token.orEmpty()) }
+    val parsedInitialToken = remember(initialSetup?.token) { parseNamedApiToken(initialSetup?.token.orEmpty()) }
+    var tokenMode by
+        remember(initialSetup?.token) {
+            mutableStateOf(
+                if (parsedInitialToken?.prefix == NAMED_API_TOKEN_PREFIX) {
+                    TokenEntryMode.Split
+                } else {
+                    TokenEntryMode.Full
+                }
+            )
+        }
+    var tokenName by
+        remember(initialSetup?.token) { mutableStateOf(parsedInitialToken?.name.orEmpty()) }
+    var tokenValue by
+        remember(initialSetup?.token) {
+            mutableStateOf(
+                when (parsedInitialToken?.prefix) {
+                    NAMED_API_TOKEN_PREFIX -> parsedInitialToken.value
+                    "nbt_" -> initialSetup?.token.orEmpty()
+                    else -> initialSetup?.token.orEmpty()
+                }
+            )
+        }
     var tokenVisible by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val tokenToSubmit =
+        if (tokenMode == TokenEntryMode.Split) {
+            // Keep the field forgiving while editing. The server still provides the final
+            // validation, and this preserves the old test/setup flow for an intentionally invalid
+            // token entered without a name.
+            composeNamedApiToken(tokenName, tokenValue) ?: tokenValue.trim()
+        } else {
+            tokenValue.trim()
+        }
+
+    fun acceptTokenInput(input: String) {
+        val parsed = parseNamedApiToken(input)
+        if (parsed == null) {
+            tokenValue = input
+        } else if (parsed.prefix == NAMED_API_TOKEN_PREFIX) {
+            tokenName = parsed.name
+            tokenValue = parsed.value
+            tokenMode = TokenEntryMode.Split
+        } else {
+            tokenValue = input.trim()
+            tokenMode = TokenEntryMode.Full
+        }
+    }
+
     // ic_launcher is an <adaptive-icon> (background + foreground layers) - painterResource() only
     // supports VectorDrawables and raster assets, not that wrapper format, and throws at runtime.
     // Rendering it through a Drawable -> Bitmap first works for any drawable type.
@@ -146,48 +202,119 @@ fun OnboardingScreen(
                 modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-url"),
             )
             Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = token,
-                onValueChange = { token = it },
-                label = { Text("API token") },
-                // NetBox 4.x v2 tokens are "nbt_<key>.<secret>" - shown as a placeholder (not the
-                // label) since it's an example format, not something to type verbatim.
-                placeholder = { Text("nbt_xxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") },
-                singleLine = true,
-                visualTransformation =
-                    if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    Row {
-                        IconButton(onClick = { tokenVisible = !tokenVisible }) {
-                            Icon(
-                                if (tokenVisible) Icons.Default.VisibilityOff
-                                else Icons.Default.Visibility,
-                                contentDescription =
-                                    if (tokenVisible) "Hide token" else "Show token",
-                            )
+            Text("Token format", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = tokenMode == TokenEntryMode.Split,
+                    onClick = {
+                        tokenMode = TokenEntryMode.Split
+                        parseNamedApiToken(tokenValue)?.let { parsed ->
+                            tokenName = parsed.name
+                            tokenValue = parsed.value
                         }
-                        IconButton(
-                            onClick = {
-                                val clipboard = context.getSystemService<ClipboardManager>()
-                                token =
-                                    clipboard
-                                        ?.primaryClip
-                                        ?.takeIf { it.itemCount > 0 }
-                                        ?.getItemAt(0)
-                                        ?.text
-                                        ?.toString()
-                                        ?.trim() ?: token
-                            }
-                        ) {
-                            Icon(
-                                Icons.Default.ContentPaste,
-                                contentDescription = "Paste from clipboard",
-                            )
-                        }
-                    }
+                    },
+                    leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                    label = { Text("Split fields") },
+                )
+                FilterChip(
+                    selected = tokenMode == TokenEntryMode.Full,
+                    onClick = {
+                        tokenValue = composeNamedApiToken(tokenName, tokenValue) ?: tokenValue
+                        tokenMode = TokenEntryMode.Full
+                    },
+                    leadingIcon = { Icon(Icons.Default.ContentPaste, contentDescription = null) },
+                    label = { Text("Full token") },
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (tokenMode == TokenEntryMode.Split) {
+                    "Recommended: enter the token name and secret separately. We’ll send " +
+                        "nbp_<name>.<token>."
+                } else {
+                    "Paste a complete token for an existing connection or an older NetBox instance."
                 },
-                modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-token"),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
             )
+            Spacer(Modifier.height(8.dp))
+            if (tokenMode == TokenEntryMode.Split) {
+                OutlinedTextField(
+                    value = tokenName,
+                    onValueChange = { tokenName = it },
+                    label = { Text("Token name") },
+                    placeholder = { Text("home-phone") },
+                    leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = tokenValue,
+                    onValueChange = ::acceptTokenInput,
+                    label = { Text("Token") },
+                    placeholder = { Text("Paste the token secret") },
+                    leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                    singleLine = true,
+                    visualTransformation =
+                        if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        TokenTrailingActions(
+                            tokenVisible = tokenVisible,
+                            onToggleVisibility = { tokenVisible = !tokenVisible },
+                            onPaste = {
+                                val clipboard = context.getSystemService<ClipboardManager>()
+                                clipboard
+                                    ?.primaryClip
+                                    ?.takeIf { it.itemCount > 0 }
+                                    ?.getItemAt(0)
+                                    ?.text
+                                    ?.toString()
+                                    ?.let(::acceptTokenInput)
+                            },
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-token"),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Uses: nbp_${tokenName.ifBlank { "<name>" }}.${if (tokenValue.isBlank()) "<token>" else "••••••••"}",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else {
+                OutlinedTextField(
+                    value = tokenValue,
+                    onValueChange = { tokenValue = it },
+                    label = { Text("Full API token") },
+                    placeholder = { Text("nbp_token-name.secret") },
+                    leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                    singleLine = true,
+                    visualTransformation =
+                        if (tokenVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        TokenTrailingActions(
+                            tokenVisible = tokenVisible,
+                            onToggleVisibility = { tokenVisible = !tokenVisible },
+                            onPaste = {
+                                val clipboard = context.getSystemService<ClipboardManager>()
+                                clipboard
+                                    ?.primaryClip
+                                    ?.takeIf { it.itemCount > 0 }
+                                    ?.getItemAt(0)
+                                    ?.text
+                                    ?.toString()
+                                    ?.let { tokenValue = it }
+                            },
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("e2e-onboarding-token"),
+                )
+            }
             Spacer(Modifier.height(16.dp))
             val errorState = uiState as? OnboardingUiState.Error
             if (errorState != null) {
@@ -199,7 +326,7 @@ fun OnboardingScreen(
                 Spacer(Modifier.height(8.dp))
             }
             Button(
-                onClick = { viewModel.connect(baseUrl, token) },
+                onClick = { viewModel.connect(baseUrl, tokenToSubmit) },
                 enabled = uiState !is OnboardingUiState.Validating,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -233,6 +360,25 @@ fun OnboardingScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+    }
+}
+
+@Composable
+private fun TokenTrailingActions(
+    tokenVisible: Boolean,
+    onToggleVisibility: () -> Unit,
+    onPaste: () -> Unit,
+) {
+    Row {
+        IconButton(onClick = onToggleVisibility) {
+            Icon(
+                if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                contentDescription = if (tokenVisible) "Hide token" else "Show token",
+            )
+        }
+        IconButton(onClick = onPaste) {
+            Icon(Icons.Default.ContentPaste, contentDescription = "Paste from clipboard")
         }
     }
 }
