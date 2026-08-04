@@ -1,5 +1,11 @@
-name: Temp ktfmt diff
+name: ktfmt diff
 
+# Produces a downloadable patch of what `./gradlew ktfmtFormat` would change, without committing
+# anything. Dispatch this whenever ktfmtCheck starts failing and the fix isn't obvious locally -
+# the remote build host used for `just lint`/`just format` (see justfile) reports NO-SOURCE for
+# ktfmtCheck/ktfmtFormat on this project for reasons still unclear, so it can't be trusted to
+# reproduce what this workflow's real Gradle/Android Studio environment actually flags. Download
+# the `ktfmt-diff-patch` artifact and `git apply` it locally.
 on:
   workflow_dispatch:
 
