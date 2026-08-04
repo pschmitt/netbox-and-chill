@@ -89,7 +89,6 @@ internal data class SettingsCategoryActions(
     val onUpdateServer: (String, String, String, String?) -> Unit = { _, _, _, _ -> },
     val onRemoveServer: (String) -> Unit = {},
     val onTestConnection: () -> Unit,
-    val onDisconnect: () -> Unit,
     val onShowToken: () -> Unit,
     val onHideToken: () -> Unit,
     val onCopyToken: () -> Unit,
@@ -286,20 +285,6 @@ private fun ConnectionSettingsContent(
                 )
             ConnectionTestState.Idle, ConnectionTestState.Testing -> Unit
         }
-            }
-        }
-        SettingsSingleItemCard {
-            OutlinedButton(
-                onClick = actions.onDisconnect,
-                colors =
-                    ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            ) {
-                Icon(Icons.Default.Dns, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Manage server connections")
             }
         }
     }

@@ -368,9 +368,6 @@ fun SettingsCategoryScreen(
                         onUpdateServer = viewModel::updateServer,
                         onRemoveServer = { id -> viewModel.removeServer(id) { onLoggedOut() } },
                         onTestConnection = viewModel::testConnection,
-                        onDisconnect = {
-                            showEditServerDialog = true
-                        },
                         onShowToken = { authenticateForToken { tokenVisible = true } },
                         onHideToken = { tokenVisible = false },
                         onCopyToken = {

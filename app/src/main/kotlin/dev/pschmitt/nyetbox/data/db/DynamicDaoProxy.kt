@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.flatMapLatest
  */
 object DynamicDaoProxy {
     @OptIn(ExperimentalCoroutinesApi::class)
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any> create(
         daoClass: Class<T>,
         databaseManager: CacheDatabaseManager,
