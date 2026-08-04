@@ -7,7 +7,7 @@ class DashboardOrderingTest {
     @Test
     fun `news is hidden by default while the remaining sections retain their order`() {
         assertEquals(
-            listOf("stats", "search", "bookmarks", "recent_changes"),
+            listOf("stats", "search", "recently_viewed", "bookmarks", "recent_changes"),
             orderedDashboardSections(emptyList(), setOf("news")).map { it.key },
         )
     }
@@ -18,7 +18,7 @@ class DashboardOrderingTest {
             listOf(DashboardSection.RecentChanges, DashboardSection.Stats),
             orderedDashboardSections(
                 savedOrder = listOf("recent_changes", "stats", "news"),
-                hidden = setOf("search", "bookmarks", "news"),
+                hidden = setOf("search", "bookmarks", "news", "recently_viewed"),
             ),
         )
     }

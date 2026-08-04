@@ -56,6 +56,7 @@ internal fun visibleFieldRows(
 
 @OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.detailCard(
+    onClick: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
@@ -63,9 +64,12 @@ private fun LazyListScope.detailCard(
         NyetboxCard(
             modifier =
                 Modifier.padding(vertical = 4.dp).then(
-                    onLongPress?.let {
-                        Modifier.combinedClickable(onClick = {}, onLongClick = it)
-                    } ?: Modifier
+                    if (onClick != null || onLongPress != null) {
+                        Modifier.combinedClickable(
+                            onClick = { onClick?.invoke() },
+                            onLongClick = { onLongPress?.invoke() },
+                        )
+                    } else Modifier
                 ),
         ) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -240,13 +244,13 @@ internal fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.Count ->
-            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
+            detailCard(
+                onClick = { onRelatedItems(row.target) },
+                onLongPress = { onFieldLongPress(row.label) },
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .clickable { onRelatedItems(row.target) },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                 ) {
                     Text(
                         row.label,
@@ -270,7 +274,12 @@ internal fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.Reference ->
-            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
+            detailCard(
+                onClick = {
+                    onNavigateToReference(row.target.endpointPath, row.target.id)
+                },
+                onLongPress = { onFieldLongPress(row.label) },
+            ) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(
@@ -288,10 +297,7 @@ internal fun LazyListScope.fieldRow(
                             row.target.display,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier =
-                                Modifier.weight(1f).clickable {
-                                    onNavigateToReference(row.target.endpointPath, row.target.id)
-                                },
+                            modifier = Modifier.weight(1f),
                         )
                         DetailTrailingActions(
                             copyLabel = row.label.takeIf { row.copyable },
@@ -406,12 +412,15 @@ internal fun LazyListScope.fieldRow(
                 }
             }
         is FieldRow.ExternalLink ->
-            detailCard(onLongPress = { onFieldLongPress(row.label) }) {
+            detailCard(
+                onClick = { onOpenUrl(row.url) },
+                onLongPress = { onFieldLongPress(row.label) },
+            ) {
                 Column(Modifier.padding(vertical = 6.dp)) {
                     FieldLabel(row.label) { onFieldLongPress(row.label) }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { onOpenUrl(row.url) },
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
                             shortenDisplayedUrl(row.url, netboxBaseUrl),

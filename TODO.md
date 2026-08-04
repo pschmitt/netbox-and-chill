@@ -18,6 +18,35 @@ right-hand space for the device's asset tag.
 Status: **done**, 2026-08-04 - remote compilation, unit tests, instrumentation compilation, lint,
 and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed.
 
+## NBC-358: add expandable recent dashboard sections
+
+The dashboard should surface the most recently viewed cached items above Bookmarks, with a compact
+three-item preview and an explicit expansion action. Recent changes should likewise show five items
+by default and offer an expansion action when more are cached.
+
+- [x] Add the cache-backed Recently viewed dashboard section above Bookmarks.
+- [x] Limit Recently viewed to three rows by default and provide expand/collapse controls.
+- [x] Limit Recent changes to five rows by default and provide expand/collapse controls.
+- [x] Preserve offline rendering, section ordering, and section hide/reorder behavior.
+- [x] Verify with remote tests, lint, and installation on all three devices.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, instrumentation compilation, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed.
+
+## NBC-359: make linked item cards fully clickable
+
+On generic item detail pages, cards representing a single linked item should navigate when any
+part of the card is tapped, not only when the linked value text is tapped. Count cards should use
+the same full-card affordance for their related-item sheet.
+
+- [x] Allow detail cards to provide both a whole-card click and long-press actions.
+- [x] Apply whole-card navigation to linked-item and related-count cards.
+- [x] Preserve copy, overflow, and long-press actions on the card's child controls.
+- [x] Verify typed and generic item views through remote checks and device installation.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, instrumentation compilation, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed.
+
 ## NBC-1: Initial project scaffold + MVP
 
 Offline-first NetBox companion app: token login, device list with a Room cache, QR/barcode

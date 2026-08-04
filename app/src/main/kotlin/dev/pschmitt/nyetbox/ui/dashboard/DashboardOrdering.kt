@@ -4,6 +4,7 @@ enum class DashboardSection(val key: String, val title: String) {
     Stats("stats", "Stats"),
     Search("search", "Search NetBox"),
     News("news", "NetBox news"),
+    RecentlyViewed("recently_viewed", "Recently viewed"),
     Bookmarks("bookmarks", "Bookmarks"),
     RecentChanges("recent_changes", "Recent changes"),
 }

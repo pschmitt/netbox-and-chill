@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Newspaper
@@ -78,6 +80,7 @@ import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
+import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
@@ -97,6 +100,9 @@ import dev.pschmitt.nyetbox.ui.directory.AppIcons
 
 internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
 
+private const val RECENT_VISITS_PREVIEW_LIMIT = 3
+private const val RECENT_CHANGES_PREVIEW_LIMIT = 5
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -115,6 +121,7 @@ fun DashboardScreen(
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
+    val recentVisits by viewModel.recentVisits.collectAsStateWithLifecycle()
     val news by viewModel.news.collectAsStateWithLifecycle()
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
     val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
@@ -140,6 +147,8 @@ fun DashboardScreen(
     val dashboardReorderState = rememberSectionReorderState()
     var dashboardReorderMode by remember { mutableStateOf(false) }
     var showDashboardVisibilityDialog by remember { mutableStateOf(false) }
+    var recentVisitsExpanded by remember { mutableStateOf(false) }
+    var recentChangesExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -355,6 +364,54 @@ fun DashboardScreen(
                                     }
                                 }
                             }
+                            DashboardSection.RecentlyViewed -> {
+                                if (recentVisits.isEmpty()) {
+                                    EmptyHint(isRefreshing, "No recently viewed items yet")
+                                } else {
+                                    recentVisits
+                                        .let { visits ->
+                                            if (recentVisitsExpanded) visits
+                                            else visits.take(RECENT_VISITS_PREVIEW_LIMIT)
+                                        }
+                                        .forEach { visit ->
+                                            val thumbnail =
+                                                viewModel.thumbnailFor(
+                                                    visit.endpointPath,
+                                                    visit.id,
+                                                    devicesById,
+                                                    deviceTypesById,
+                                                )
+                                            RecentVisitRow(
+                                                visit = visit,
+                                                thumbnail = thumbnail,
+                                                typeColor =
+                                                    MaterialTheme.colorScheme.detailAccentFor(
+                                                        visit.endpointPath,
+                                                        objectTypeAccents[
+                                                            visit.endpointPath.trim('/')
+                                                        ],
+                                                    ),
+                                                localImageFile = viewModel::localImageFile,
+                                                onClick = {
+                                                    onNavigateToReference(
+                                                        visit.endpointPath,
+                                                        visit.id,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    if (recentVisits.size > RECENT_VISITS_PREVIEW_LIMIT) {
+                                        ExpandSectionButton(
+                                            expanded = recentVisitsExpanded,
+                                            collapsedLabel =
+                                                "Show all ${recentVisits.size} recently viewed",
+                                            onClick = {
+                                                recentVisitsExpanded = !recentVisitsExpanded
+                                            },
+                                        )
+                                    }
+                                }
+                            }
                             DashboardSection.Bookmarks -> {
                                 if (bookmarks.isEmpty()) {
                                     EmptyHint(isRefreshing, "No bookmarks yet")
@@ -393,7 +450,12 @@ fun DashboardScreen(
                                 if (changelog.isEmpty()) {
                                     EmptyHint(isRefreshing, "No changes cached yet - pull to sync")
                                 } else {
-                                    changelog.forEach { change ->
+                                    changelog
+                                        .let { changes ->
+                                            if (recentChangesExpanded) changes
+                                            else changes.take(RECENT_CHANGES_PREVIEW_LIMIT)
+                                        }
+                                        .forEach { change ->
                                         val thumbnail =
                                             change.targetEndpointPath?.let { path ->
                                                 change.targetId?.let { id ->
@@ -421,6 +483,15 @@ fun DashboardScreen(
                                                 }
                                             },
                                             onDiffClick = { onChangeDiffClick(change.id) },
+                                        )
+                                        }
+                                    if (changelog.size > RECENT_CHANGES_PREVIEW_LIMIT) {
+                                        ExpandSectionButton(
+                                            expanded = recentChangesExpanded,
+                                            collapsedLabel = "Show all ${changelog.size} changes",
+                                            onClick = {
+                                                recentChangesExpanded = !recentChangesExpanded
+                                            },
                                         )
                                     }
                                 }
@@ -503,8 +574,9 @@ private fun DashboardSectionHeader(
             when (section) {
                 DashboardSection.Stats -> Icons.Default.BarChart
                 DashboardSection.News -> Icons.Default.Newspaper
+                DashboardSection.RecentlyViewed -> Icons.Default.History
                 DashboardSection.Bookmarks -> Icons.Default.Bookmark
-                DashboardSection.RecentChanges -> Icons.Default.History
+                DashboardSection.RecentChanges -> Icons.Default.Difference
                 DashboardSection.Search -> Icons.Default.Search
             },
             contentDescription = null,
@@ -554,6 +626,22 @@ private fun DashboardVisibilityDialog(
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
     )
+}
+
+@Composable
+private fun ExpandSectionButton(
+    expanded: Boolean,
+    collapsedLabel: String,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Icon(
+            if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+            contentDescription = null,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(if (expanded) "Show less" else collapsedLabel)
+    }
 }
 
 @Composable
@@ -736,6 +824,52 @@ private fun BookmarkRow(
             headlineContent = { Text(bookmark.display) },
             supportingContent = { Text(formatTimestamp(bookmark.created)) },
             modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
+        )
+    }
+}
+
+@Composable
+private fun RecentVisitRow(
+    visit: RecentVisitEntity,
+    thumbnail: DashboardThumbnail?,
+    typeColor: androidx.compose.ui.graphics.Color,
+    localImageFile: (DashboardThumbnail) -> java.io.File?,
+    onClick: () -> Unit,
+) {
+    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
+    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+        NyetboxListItem(
+            leadingContent = {
+                if (thumbnail == null) {
+                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                        Icon(
+                            AppIcons.forEndpointPath(visit.endpointPath),
+                            contentDescription = null,
+                            tint = typeColor,
+                        )
+                    }
+                } else {
+                    RemoteThumbnail(
+                        imageUrl = thumbnail.url,
+                        contentDescription = visit.display,
+                        localFile = localFile,
+                        modifier = Modifier.size(56.dp),
+                        fallbackTint = typeColor,
+                    )
+                }
+            },
+            headlineContent = { Text(visit.display) },
+            supportingContent = {
+                Column {
+                    visit.secondaryLine?.takeIf(String::isNotBlank)?.let { Text(it) }
+                    Text(
+                        "Viewed ${formatTimestamp(java.time.Instant.ofEpochMilli(visit.visitedAt).toString())}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            modifier = Modifier.clickable(onClick = onClick),
         )
     }
 }
