@@ -5801,6 +5801,35 @@ Status: **done**, 2026-08-04 - remote ktfmt, unit tests, Kotlin compilation, And
 compilation, and lint passed; the debug APK was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-353: keep global search responsive on large caches
+
+Global search still feels laggy while typing on slower devices. The cache-first search must remain
+fully offline, but its projection and ranking work should not block the Compose main thread.
+
+- [x] Move cache projection, matching, and ranking off the main dispatcher.
+- [x] Avoid rebuilding generic searchable text for every keystroke.
+- [x] Verify the optimized path preserves recursive IP/MAC and type matching.
+
+Status: **done**, 2026-08-04 - cache projection, generic and typed-device indexing, matching, and
+ranking now run off the main dispatcher; unit tests, instrumentation compilation, and lint passed.
+
+
+## NBC-354: unify the device overview identity card and device-type preview
+
+The device overview currently places the identity card and device-type photos in separate surfaces.
+Use one coherent card with a single front-first preview while keeping the rear photo available in
+the existing full-screen viewer.
+
+- [x] Embed the device-type preview in the overview identity card.
+- [x] Show only the front photo in the overview when both front and rear photos exist.
+- [x] Keep front/rear photos as horizontally swipeable pages in the image viewer.
+- [x] Verify the front-only, rear-only fallback, and front-plus-rear code paths through compilation
+      and the installed debug build.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, instrumentation compilation, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed.
+
+
 ## NBC-346: extend the rounded card visual language beyond Settings
 
 The rest of the app should share the same calm, grouped Material 3 card treatment as Settings

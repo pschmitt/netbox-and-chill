@@ -558,7 +558,7 @@ private fun SearchResultRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (thumbnail == null) {
                 Surface(

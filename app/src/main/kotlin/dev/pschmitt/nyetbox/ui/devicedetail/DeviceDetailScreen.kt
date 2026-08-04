@@ -519,76 +519,97 @@ fun DeviceDetailScreen(
                         contentPadding = PaddingValues(16.dp),
                     ) {
                     item {
+                        val deviceTypeViewerItems =
+                            deviceTypePhotoItems(deviceType, viewModel::localImageFile)
+                        val deviceTypePreview = deviceTypeViewerItems.firstOrNull()
                         NyetboxCard(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         ) {
-                            Box(Modifier.fillMaxWidth()) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                ) {
-                                    Row(verticalAlignment = Alignment.Top) {
-                                        Surface(
-                                            color = detailAccent.copy(alpha = 0.18f),
-                                            shape =
-                                                androidx.compose.foundation.shape.RoundedCornerShape(
-                                                    14.dp,
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Surface(
+                                        color = detailAccent.copy(alpha = 0.18f),
+                                        shape =
+                                            androidx.compose.foundation.shape.RoundedCornerShape(
+                                                14.dp,
+                                            ),
+                                        modifier = Modifier.size(52.dp),
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                AppIcons.forEndpointPath(
+                                                    NetBoxRef.DEVICES_ENDPOINT_PATH
                                                 ),
-                                            modifier = Modifier.size(52.dp),
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    AppIcons.forEndpointPath(
-                                                        NetBoxRef.DEVICES_ENDPOINT_PATH
-                                                    ),
-                                                    contentDescription = null,
-                                                    tint = detailAccent,
-                                                    modifier = Modifier.size(30.dp),
-                                                )
-                                            }
+                                                contentDescription = null,
+                                                tint = detailAccent,
+                                                modifier = Modifier.size(30.dp),
+                                            )
                                         }
-                                        Column(
-                                            Modifier.padding(start = 10.dp)
-                                                .padding(end = 8.dp)
-                                                .weight(1f),
-                                        ) {
-                                            current.deviceTypeModel?.let {
-                                                Text(
-                                                    it,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                            }
-                                            if (isFieldVisible("Status")) {
-                                                Spacer(Modifier.height(2.dp))
-                                                Box(
-                                                    modifier =
-                                                        Modifier.combinedClickable(
-                                                            onClick = {},
-                                                            onLongClick = {
-                                                                fieldActionLabel = "Status"
-                                                            },
-                                                        )
-                                                ) {
-                                                    StatusChip(
-                                                        label = current.statusLabel,
-                                                        value = current.statusValue,
+                                    }
+                                    Column(
+                                        Modifier.padding(start = 10.dp)
+                                            .padding(end = 8.dp)
+                                            .weight(1f),
+                                    ) {
+                                        current.deviceTypeModel?.let {
+                                            Text(
+                                                it,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color =
+                                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        if (isFieldVisible("Status")) {
+                                            Spacer(Modifier.height(2.dp))
+                                            Box(
+                                                modifier =
+                                                    Modifier.combinedClickable(
+                                                        onClick = {},
+                                                        onLongClick = {
+                                                            fieldActionLabel = "Status"
+                                                        },
                                                     )
-                                                }
+                                            ) {
+                                                StatusChip(
+                                                    label = current.statusLabel,
+                                                    value = current.statusValue,
+                                                )
                                             }
                                         }
                                     }
+                                }
+                                deviceTypePreview?.let { preview ->
+                                    Spacer(Modifier.height(12.dp))
+                                    RemoteThumbnail(
+                                        imageUrl = preview.url,
+                                        contentDescription = preview.title,
+                                        localFile = preview.localFile,
+                                        modifier =
+                                            Modifier.fillMaxWidth()
+                                                .height(160.dp)
+                                                .clickable {
+                                                    imageViewer =
+                                                        deviceTypeViewerItems to
+                                                            deviceTypeViewerItems.indexOf(preview)
+                                                },
+                                        // Keep the complete stock image visible; the transparent
+                                        // padding transformation handles oversized empty margins.
+                                        contentScale = ContentScale.Fit,
+                                    )
+                                    Text(
+                                        preview.metadata.firstOrNull { it.first == "View" }?.second
+                                            ?: "Device type",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                    )
                                 }
                             }
                         }
                     }
                     if (visibleSelectedTab == 0) {
-                        item {
-                            Spacer(Modifier.height(16.dp))
-                        }
-                        deviceTypePhotos(deviceType, viewModel::localImageFile) { items, index ->
-                            imageViewer = items to index
-                        }
                         item {
                             ImageAttachmentGallery(
                                 attachments = imageAttachments,
@@ -1222,76 +1243,37 @@ private fun DeviceJournalEntries(
     }
 }
 
-/**
- * Device-type stock photos (front/rear) - side by side when both are present. Tapping either opens
- * the same full-screen zoomable viewer as the image attachments below (NBC-20); these carry no
- * `ImageAttachment` metadata of their own (just a URL + the device type's model name), so their
- * viewer instance only gets a title, no metadata rows - see NBC-20's TODO entry for why they get
- * the popup treatment at all despite that.
- */
-private fun LazyListScope.deviceTypePhotos(
+/** Device-type stock photos for the overview preview and its front/rear viewer pager. */
+private fun deviceTypePhotoItems(
     deviceType: DeviceTypeEntity?,
     localImageFile: (String, String) -> File?,
-    onImageClick: (List<ImageViewerItem>, Int) -> Unit,
-) {
+): List<ImageViewerItem> {
     val front = deviceType?.frontImageUrl
     val rear = deviceType?.rearImageUrl
-    val model = deviceType?.model
-    if (front.isNullOrBlank() && rear.isNullOrBlank()) return
-    val items =
-        listOfNotNull(
-            front
-                .takeUnless { it.isNullOrBlank() }
-                ?.let {
-                    ImageViewerItem(
-                        url = it,
-                        title = "Front of $model",
-                        metadata = deviceTypeImageMetadata(deviceType, "Front"),
-                        localFile = localImageFile(it, "device-type-${deviceType.id}-front"),
-                    )
-                },
-            rear
-                .takeUnless { it.isNullOrBlank() }
-                ?.let {
-                    ImageViewerItem(
-                        url = it,
-                        title = "Rear of $model",
-                        metadata = deviceTypeImageMetadata(deviceType, "Rear"),
-                        localFile = localImageFile(it, "device-type-${deviceType.id}-rear"),
-                    )
-                },
-        )
-    item {
-        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-            if (!front.isNullOrBlank()) {
-                RemoteThumbnail(
-                    imageUrl = front,
-                    contentDescription = "Front of $model",
-                    localFile = localImageFile(front, "device-type-${deviceType.id}-front"),
-                    modifier =
-                        Modifier.weight(1f).height(140.dp).clickable { onImageClick(items, 0) },
-                    // Fit, not the default Crop - these are stock product photos with varying
-                    // aspect ratios; cropping to fill a fixed square/rect chops off real content
-                    // (e.g. a wide rack-mount unit's edges), unlike the row/grid thumbnails below
-                    // where a uniform crop is the point.
-                    contentScale = ContentScale.Fit,
+    val id = deviceType?.id ?: return emptyList()
+    val model = deviceType.model?.takeIf { it.isNotBlank() } ?: "device type"
+    return listOfNotNull(
+        front
+            .takeUnless { it.isNullOrBlank() }
+            ?.let {
+                ImageViewerItem(
+                    url = it,
+                    title = "Front of $model",
+                    metadata = deviceTypeImageMetadata(deviceType, "Front"),
+                    localFile = localImageFile(it, "device-type-$id-front"),
                 )
-            }
-            if (!front.isNullOrBlank() && !rear.isNullOrBlank()) Spacer(Modifier.width(8.dp))
-            if (!rear.isNullOrBlank()) {
-                RemoteThumbnail(
-                    imageUrl = rear,
-                    contentDescription = "Rear of $model",
-                    localFile = localImageFile(rear, "device-type-${deviceType.id}-rear"),
-                    modifier =
-                        Modifier.weight(1f).height(140.dp).clickable {
-                            onImageClick(items, if (front.isNullOrBlank()) 0 else 1)
-                        },
-                    contentScale = ContentScale.Fit,
+            },
+        rear
+            .takeUnless { it.isNullOrBlank() }
+            ?.let {
+                ImageViewerItem(
+                    url = it,
+                    title = "Rear of $model",
+                    metadata = deviceTypeImageMetadata(deviceType, "Rear"),
+                    localFile = localImageFile(it, "device-type-$id-rear"),
                 )
-            }
-        }
-    }
+            },
+    )
 }
 
 private fun deviceTypeImageMetadata(

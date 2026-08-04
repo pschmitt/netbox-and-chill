@@ -22,6 +22,7 @@ import dev.pschmitt.nyetbox.ui.common.CacheFirstRefreshState
 import dev.pschmitt.nyetbox.ui.common.runCacheFirstRefresh
 import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -97,6 +99,7 @@ constructor(
             .combine(debouncedQuery, cachedResults) { text, hits ->
                 rankSearchHits(text, hits)
             }
+            .flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val recentResults: StateFlow<List<SearchHit>> =
