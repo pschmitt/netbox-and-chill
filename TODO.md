@@ -5785,6 +5785,63 @@ Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instr
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-361: polish item identity cards, dashboard sections, and list rows
+
+The shared generic item/device-type card was still mostly empty, while the dashboard and scoped
+item lists did not yet use the same grouped, image-forward presentation as global search.
+
+- [x] Make generic item cards show the item identity and cached device-type preview when available.
+- [x] Keep front/rear device-type images available through the full-screen viewer.
+- [x] Make the device asset-tag badge vertically centered in its identity card.
+- [x] Show a useful empty state for a fresh Recently viewed section while sync is running.
+- [x] Group dashboard sections into a large titled card with independently actionable rows.
+- [x] Bring device and generic item list rows in line with the global-search card treatment.
+
+Status: **done**, 2026-08-04 - remote Kotlin compilation, unit tests, Android-test compilation, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
+
+
+## NBC-362: bound thumbnail memory use in long item lists
+
+Long device-type lists could run out of memory while scrolling because the shared thumbnail
+loader decoded full-resolution NetBox photos before applying its transparent-padding crop.
+
+- [x] Bound thumbnail decoding to the rendered card size.
+- [x] Keep full-resolution image viewing unaffected.
+- [x] Verify the shared thumbnail path through remote compilation, lint, and device installation.
+
+Status: **done**, 2026-08-04 - remote Kotlin compilation, unit tests, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
+
+
+## NBC-363: simplify device-type photos and preserve list thumbnails
+
+The device-type detail page already shows the front photo in its identity card, so the duplicate
+front/rear photo widget is unnecessary. Editing must remain discoverable from the image viewer and
+from long-press actions, including when no photo exists yet.
+
+- [x] Remove the duplicate front/rear photo widget from the device-type overview.
+- [x] Add image-viewer editing and long-press upload/edit actions for device-type photos,
+      including the placeholder state.
+- [x] Keep device-type list thumbnails fully visible instead of cropping them.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, Android-test compilation, lint,
+ktfmt check, and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
+
+
+## NBC-364: restore document previews and simplify document rows
+
+Cached PDF documents can fall back to the generic document icon when their filename no longer
+contains an extension. The document card already opens the file, so a second per-row download
+action is redundant.
+
+- [x] Detect cached PDFs from their filename, URL, or file signature and render the first page.
+- [x] Remove the redundant download/open trailing icon from document rows.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, Android-test compilation, lint,
+ktfmt check, and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
+
+
 ## NBC-360: support multiple NetBox server profiles with isolated caches
 
 Allow users to add and switch between multiple NetBox instances after onboarding while keeping

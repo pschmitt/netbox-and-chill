@@ -36,7 +36,7 @@ val configuredVersionCode =
         }
         .get()
 val configuredVersionName =
-    providers.gradleProperty("versionName").orElse("1.2.0").get().also { name ->
+    providers.gradleProperty("versionName").orElse("1.2.1").get().also { name ->
         require(name.isNotBlank()) { "versionName must not be blank" }
     }
 

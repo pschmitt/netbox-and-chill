@@ -7,6 +7,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,16 +16,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Badge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -79,6 +83,7 @@ fun DocumentsSection(
         if (documents.isNotEmpty()) {
             documents.forEach { document ->
                 val canOpen = !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
+                val localFile = localFileFor?.invoke(document)
                 NyetboxCard(
                     modifier =
                         Modifier.fillMaxWidth()
@@ -94,27 +99,18 @@ fun DocumentsSection(
                     NyetboxListItem(
                         headlineContent = { Text(document.name) },
                         supportingContent = {
-                            document.documentType?.let { type -> DocumentTypeBadge(type) }
+                            Column {
+                                document.documentType?.let { type -> DocumentTypeBadge(type) }
+                                if (localFile?.isFile == true) {
+                                    CachedDocumentBadge()
+                                }
+                            }
                         },
                         leadingContent = {
                             DocumentPreview(
                                 document = document,
-                                localFile = localFileFor?.invoke(document),
+                                localFile = localFile,
                             )
-                        },
-                        trailingContent = {
-                            IconButton(
-                                onClick = { onOpenDocument(document) },
-                                enabled = canOpen,
-                            ) {
-                                Icon(
-                                    if (document.documentUrl != null) Icons.Default.Download
-                                    else Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription =
-                                        if (document.documentUrl != null) "Download document"
-                                        else "Open document",
-                                )
-                            }
                         },
                     )
                 }
@@ -218,19 +214,40 @@ private fun DocumentTypeBadge(rawType: String) {
         contentColor = colors.content,
         shape = RoundedCornerShape(50),
     ) {
-        Text(
-            presentation.label,
-            style = MaterialTheme.typography.labelSmall,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-        )
+        ) {
+            Icon(
+                imageVector =
+                    when (presentation.key) {
+                        "manual" -> Icons.AutoMirrored.Filled.MenuBook
+                        "purchaseorder" -> Icons.Default.ShoppingCart
+                        "floorplan" -> Icons.Default.Map
+                        else -> Icons.Default.Description
+                    },
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(presentation.label, style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 
 @Composable
 private fun DocumentPreview(document: CachedDocument, localFile: File?) {
     val pdfPreview by
-        produceState<Bitmap?>(initialValue = null, localFile, document.filename) {
-            value = withContext(Dispatchers.IO) { renderPdfPreview(localFile) }
+        produceState<Bitmap?>(
+            initialValue = null,
+            localFile,
+            document.filename,
+            document.documentUrl,
+        ) {
+            value =
+                withContext(Dispatchers.IO) {
+                    renderPdfPreview(localFile, document.filename, document.documentUrl)
+                }
         }
     val extension = document.filename.substringAfterLast('.', "").uppercase()
     val isImage = extension in setOf("AVIF", "BMP", "GIF", "JPEG", "JPG", "PNG", "WEBP")
@@ -274,20 +291,27 @@ private fun DocumentPreview(document: CachedDocument, localFile: File?) {
                 }
             }
         }
-        if (localFile?.isFile == true) {
-            Badge(
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-            ) {
-                Text("Cached", style = MaterialTheme.typography.labelSmall)
-            }
+    }
+}
+
+@Composable
+private fun CachedDocumentBadge() {
+    Badge(
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(12.dp))
+            Text("Cached", style = MaterialTheme.typography.labelSmall)
         }
     }
 }
 
-private fun renderPdfPreview(file: File?): Bitmap? {
-    if (file == null || !file.isFile || !file.extension.equals("pdf", ignoreCase = true)) {
-        return null
-    }
+private fun renderPdfPreview(file: File?, filename: String, url: String?): Bitmap? {
+    if (file == null || !file.isFile || !looksLikePdf(file, filename, url)) return null
     return runCatching {
         ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
             PdfRenderer(descriptor).use { renderer ->
@@ -311,3 +335,20 @@ private fun renderPdfPreview(file: File?): Bitmap? {
         }
     }.getOrNull()
 }
+
+private fun looksLikePdf(file: File, filename: String, url: String?): Boolean {
+    if (filename.hasPdfExtension() || url.orEmpty().substringBefore('?').hasPdfExtension()) {
+        return true
+    }
+    if (file.extension.equals("pdf", ignoreCase = true)) return true
+    return runCatching {
+            file.inputStream().use { input ->
+                val header = ByteArray(5)
+                input.read(header) == header.size &&
+                    header.contentEquals("%PDF-".encodeToByteArray())
+            }
+        }
+        .getOrDefault(false)
+}
+
+private fun String.hasPdfExtension(): Boolean = substringAfterLast('.', "").equals("pdf", true)

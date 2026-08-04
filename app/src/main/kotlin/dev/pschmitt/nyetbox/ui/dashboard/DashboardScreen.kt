@@ -1,10 +1,9 @@
 package dev.pschmitt.nyetbox.ui.dashboard
 
 import android.content.Intent
-import androidx.core.net.toUri
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,13 +23,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Difference
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -38,16 +39,14 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,12 +73,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
-import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
+import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
@@ -88,9 +88,9 @@ import dev.pschmitt.nyetbox.ui.common.NyetboxActionCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
-import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.SectionReorderState
 import dev.pschmitt.nyetbox.ui.common.SyncIssueCard
+import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.rememberReorderWiggle
 import dev.pschmitt.nyetbox.ui.common.rememberSectionReorderState
@@ -101,7 +101,7 @@ import dev.pschmitt.nyetbox.ui.directory.AppIcons
 internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
 
 private const val RECENT_VISITS_PREVIEW_LIMIT = 3
-private const val RECENT_CHANGES_PREVIEW_LIMIT = 5
+private const val RECENT_CHANGES_PREVIEW_LIMIT = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -357,7 +357,10 @@ fun DashboardScreen(
                                         NewsRow(newsItem) {
                                             runCatching {
                                                 context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, newsItem.link.toUri())
+                                                    Intent(
+                                                        Intent.ACTION_VIEW,
+                                                        newsItem.link.toUri(),
+                                                    )
                                                 )
                                             }
                                         }
@@ -366,7 +369,10 @@ fun DashboardScreen(
                             }
                             DashboardSection.RecentlyViewed -> {
                                 if (recentVisits.isEmpty()) {
-                                    EmptyHint(isRefreshing, "No recently viewed items yet")
+                                    // Recent visits are local history, not sync data. A running
+                                    // sync must not turn this honest empty state into a permanent
+                                    // "Loading…" message on a fresh install.
+                                    EmptyHint(false, "No recently viewed items yet")
                                 } else {
                                     recentVisits
                                         .let { visits ->
@@ -388,8 +394,7 @@ fun DashboardScreen(
                                                     MaterialTheme.colorScheme.detailAccentFor(
                                                         visit.endpointPath,
                                                         objectTypeAccents[
-                                                            visit.endpointPath.trim('/')
-                                                        ],
+                                                            visit.endpointPath.trim('/')],
                                                     ),
                                                 localImageFile = viewModel::localImageFile,
                                                 onClick = {
@@ -431,12 +436,13 @@ fun DashboardScreen(
                                         BookmarkRow(
                                             bookmark = bookmark,
                                             thumbnail = thumbnail,
-                                            typeColor = bookmark.targetEndpointPath?.let { path ->
-                                                MaterialTheme.colorScheme.detailAccentFor(
-                                                    path,
-                                                    objectTypeAccents[path.trim('/')],
-                                                )
-                                            } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                            typeColor =
+                                                bookmark.targetEndpointPath?.let { path ->
+                                                    MaterialTheme.colorScheme.detailAccentFor(
+                                                        path,
+                                                        objectTypeAccents[path.trim('/')],
+                                                    )
+                                                } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                                             localImageFile = viewModel::localImageFile,
                                         ) {
                                             bookmarkTargets[bookmark.id]?.let { (path, id) ->
@@ -456,34 +462,35 @@ fun DashboardScreen(
                                             else changes.take(RECENT_CHANGES_PREVIEW_LIMIT)
                                         }
                                         .forEach { change ->
-                                        val thumbnail =
-                                            change.targetEndpointPath?.let { path ->
-                                                change.targetId?.let { id ->
-                                                    viewModel.thumbnailFor(
-                                                        path,
-                                                        id,
-                                                        devicesById,
-                                                        deviceTypesById,
-                                                    )
+                                            val thumbnail =
+                                                change.targetEndpointPath?.let { path ->
+                                                    change.targetId?.let { id ->
+                                                        viewModel.thumbnailFor(
+                                                            path,
+                                                            id,
+                                                            devicesById,
+                                                            deviceTypesById,
+                                                        )
+                                                    }
                                                 }
-                                            }
-                                        ChangeRow(
-                                            change = change,
-                                            thumbnail = thumbnail,
-                                            typeColor = change.targetEndpointPath?.let { path ->
-                                                MaterialTheme.colorScheme.detailAccentFor(
-                                                    path,
-                                                    objectTypeAccents[path.trim('/')],
-                                                )
-                                            } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                                            localImageFile = viewModel::localImageFile,
-                                            onClick = {
-                                                changeTargets[change.id]?.let { (path, id) ->
-                                                    onNavigateToReference(path, id)
-                                                }
-                                            },
-                                            onDiffClick = { onChangeDiffClick(change.id) },
-                                        )
+                                            ChangeRow(
+                                                change = change,
+                                                thumbnail = thumbnail,
+                                                typeColor =
+                                                    change.targetEndpointPath?.let { path ->
+                                                        MaterialTheme.colorScheme.detailAccentFor(
+                                                            path,
+                                                            objectTypeAccents[path.trim('/')],
+                                                        )
+                                                    } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                                localImageFile = viewModel::localImageFile,
+                                                onClick = {
+                                                    changeTargets[change.id]?.let { (path, id) ->
+                                                        onNavigateToReference(path, id)
+                                                    }
+                                                },
+                                                onDiffClick = { onChangeDiffClick(change.id) },
+                                            )
                                         }
                                     if (changelog.size > RECENT_CHANGES_PREVIEW_LIMIT) {
                                         ExpandSectionButton(
@@ -538,17 +545,24 @@ private fun DashboardSectionContainer(
                     onOrderChanged = { changed ->
                         onOrderChanged(changed.map { it.removePrefix("dashboard-section-") })
                     },
-                ),
+                )
     ) {
-        if (section != DashboardSection.Search) {
-            DashboardSectionHeader(
-                section = section,
-                reorderMode = reorderMode,
-                onLongPress = onEnterReorder,
-                onHide = onHide,
-            )
+        if (section == DashboardSection.Search) {
+            content()
+        } else {
+            // Keep each dashboard section together like the grouped Settings cards: the
+            // heading is part of the surface and the individual rows remain independently
+            // actionable cards inside it.
+            NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                DashboardSectionHeader(
+                    section = section,
+                    reorderMode = reorderMode,
+                    onLongPress = onEnterReorder,
+                    onHide = onHide,
+                )
+                Column(Modifier.padding(horizontal = 8.dp)) { content() }
+            }
         }
-        content()
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -568,7 +582,7 @@ private fun DashboardSectionHeader(
             Modifier.fillMaxWidth()
                 .graphicsLayer { rotationZ = wiggle }
                 .combinedClickable(onClick = {}, onLongClick = onLongPress)
-                .padding(bottom = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Icon(
             when (section) {
@@ -710,7 +724,8 @@ private fun StatTile(
         onClick = onClick,
         modifier = Modifier.size(110.dp, 136.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors =
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
