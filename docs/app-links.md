@@ -29,6 +29,11 @@ adb shell cmd package get-app-links dev.pschmitt.nyetbox
 The expected state for `netbox.brkn.lol` is `verified`. Android should then route this external
 view intent directly to Nyetbox:
 
+The personal NetBox host also advertises `dev.pschmitt.nyetbox.debug` with the shared development
+certificate, so the debug build can be verified when Android accepts that certificate. This is
+specific to the development signing key; debug APKs signed elsewhere still need explicit opening or
+local App Link approval.
+
 ```shell
 adb shell am start -W \
   -a android.intent.action.VIEW \

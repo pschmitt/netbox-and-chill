@@ -5767,8 +5767,9 @@ open Nyetbox directly for the release package.
 - [x] Confirm release App Link verification and document how to force the chooser for debugging.
 
 Status: **done**, 2026-08-04. The live Digital Asset Links response now names
-`dev.pschmitt.nyetbox` with the release certificate fingerprint; Android verified
-`netbox.brkn.lol` on the wired Zenfone 10, and the exact `am start` command launched Nyetbox.
+`dev.pschmitt.nyetbox` and `dev.pschmitt.nyetbox.debug` with their respective certificate
+fingerprints; Android verified the release package on the wired Zenfone 10, and the exact
+`am start` command launched Nyetbox.
 
 
 ## NBC-345: differentiate Settings group and row icons
