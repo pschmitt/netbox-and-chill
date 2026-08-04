@@ -92,6 +92,15 @@ jobs:
             adb reverse tcp:8000 tcp:8000
             serial="$(adb devices | awk '$2 == "device" { print $1; exit }')" && test -n "$serial" && adb -s "$serial" install -r -g -t dist/app-x86_64-debug.apk && E2E_TOKEN="$E2E_TOKEN" SCREENGRAB_DEVICE_TYPE=tenInch SCREENGRAB_SPECIFIC_DEVICE="$serial" fastlane screenshots
 
+      # android-emulator-runner only tears the emulator down in its own post-job hook (visible as
+      # "Post Capture screenshots..." at the bottom of the job), which runs after every other step
+      # - so the emulator is still alive here even though the capture step above failed.
+      - name: Capture emulator diagnostics
+        if: ${{ failure() }}
+        run: |
+          timeout 60s adb logcat -d > screenshot-logcat.txt || true
+          timeout 20s adb exec-out screencap -p > screenshot-screencap.png || true
+
       - name: Upload screenshot artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
@@ -101,6 +110,8 @@ jobs:
           path: |
             fastlane/metadata/android/en-US/images/tenInchScreenshots/
             app/build/reports/androidTests/
+            screenshot-logcat.txt
+            screenshot-screencap.png
 
       - name: Capture fixture diagnostics
         if: ${{ failure() }}
