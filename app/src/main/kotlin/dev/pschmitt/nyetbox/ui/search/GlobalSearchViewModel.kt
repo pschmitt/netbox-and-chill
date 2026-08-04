@@ -4,12 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
-import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
-import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
 import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
+import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.RecentVisitRepository
 import dev.pschmitt.nyetbox.data.repository.SearchHit
@@ -18,6 +17,7 @@ import dev.pschmitt.nyetbox.data.repository.rankSearchHits
 import dev.pschmitt.nyetbox.data.repository.recentVisitsToSearchHits
 import dev.pschmitt.nyetbox.data.repository.queryRemainderAfterTypeSelection
 import dev.pschmitt.nyetbox.data.repository.typeFilterSuggestions
+import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.ui.common.CacheFirstRefreshState
 import dev.pschmitt.nyetbox.ui.common.runCacheFirstRefresh
 import java.io.File
@@ -58,7 +58,7 @@ class GlobalSearchViewModel
 constructor(
     private val searchRepository: GlobalSearchRepository,
     private val deviceRepository: DeviceRepository,
-    private val deviceTypeRepository: DeviceTypeRepository,
+    private val genericObjectRepository: GenericObjectRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     directoryRepository: DirectoryRepository,
     private val settingsRepository: SettingsRepository,
@@ -114,10 +114,13 @@ constructor(
             .map { devices -> devices.associateBy { it.id } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    val deviceTypesById: StateFlow<Map<Int, DeviceTypeEntity>> =
-        deviceTypeRepository
-            .observeAll()
-            .map { types -> types.associateBy { it.id } }
+    // Sourced from the device type's own generically-synced object, not the DeviceTypeEntity
+    // cache table - that table is only populated for device types referenced by a synced Device,
+    // so a device type with zero devices would never surface a thumbnail here otherwise.
+    val deviceTypeFrontImagesById: StateFlow<Map<Int, String>> =
+        genericObjectRepository
+            .observeObjects(GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH, "")
+            .map { types -> types.mapNotNull { t -> frontImageUrlFromRawJson(t.json)?.let { t.id to it } }.toMap() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     private val knownModels: StateFlow<List<NetBoxModelEntity>> =
@@ -193,17 +196,16 @@ constructor(
     fun thumbnailFor(
         hit: SearchHit,
         devicesById: Map<Int, DeviceEntity>,
-        deviceTypesById: Map<Int, DeviceTypeEntity>,
+        deviceTypeFrontImagesById: Map<Int, String>,
     ): SearchThumbnail? =
         when (hit.endpointPath) {
             GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
-                deviceTypesById[hit.id]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
+                deviceTypeFrontImagesById[hit.id]?.let { url ->
                     SearchThumbnail(url, "device-type-${hit.id}-front")
                 }
             GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
                 devicesById[hit.id]?.deviceTypeId?.let { deviceTypeId ->
-                    deviceTypesById[deviceTypeId]?.frontImageUrl?.takeIf(String::isNotBlank)?.let {
-                        url ->
+                    deviceTypeFrontImagesById[deviceTypeId]?.let { url ->
                         SearchThumbnail(url, "device-type-$deviceTypeId-front")
                     }
                 }

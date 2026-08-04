@@ -5,12 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
-import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
 import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
-import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
@@ -33,7 +30,6 @@ class GenericListViewModel
 constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: GenericObjectRepository,
-    private val deviceTypeRepository: DeviceTypeRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
@@ -71,18 +67,6 @@ constructor(
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val deviceTypeImages: StateFlow<Map<Int, DeviceTypeEntity>> =
-        deviceTypeRepository
-            .observeAll()
-            .map { types ->
-                if (route.endpointPath == GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH) {
-                    types.associateBy { it.id }
-                } else {
-                    emptyMap()
-                }
-            }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery

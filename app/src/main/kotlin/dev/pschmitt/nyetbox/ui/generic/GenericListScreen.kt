@@ -37,6 +37,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.schema.assetTagStateFromRawJson
+import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
@@ -60,7 +61,6 @@ fun GenericListScreen(
     viewModel: GenericListViewModel = hiltViewModel(),
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
-    val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
     val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -173,7 +173,6 @@ fun GenericListScreen(
                                     obj = obj,
                                     icon = rowIcon,
                                     iconTint = rowColor,
-                                    frontImageUrl = deviceTypeImages[obj.id]?.frontImageUrl,
                                     query = query,
                                     localImageFile = viewModel::localImageFile,
                                     onClick = { onObjectClick(obj.id) },
@@ -198,12 +197,12 @@ private fun ObjectRow(
     obj: NetBoxObjectEntity,
     icon: ImageVector,
     iconTint: androidx.compose.ui.graphics.Color,
-    frontImageUrl: String?,
     query: String,
     localImageFile: (String, String) -> java.io.File?,
     onClick: () -> Unit,
 ) {
     val assetTag = remember(obj.json) { assetTagStateFromRawJson(obj.json) }
+    val frontImageUrl = remember(obj.json) { frontImageUrlFromRawJson(obj.json) }
     val localFile =
         remember(frontImageUrl, obj.id) {
             frontImageUrl?.let { localImageFile(it, "device-type-${obj.id}-front") }

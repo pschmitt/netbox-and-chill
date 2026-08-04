@@ -6,18 +6,18 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
-import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
-import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
 import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
+import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
 import dev.pschmitt.nyetbox.data.repository.RecentVisitRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
+import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import java.io.File
@@ -37,7 +37,7 @@ class DashboardViewModel
 constructor(
     private val repository: DashboardRepository,
     private val deviceRepository: DeviceRepository,
-    private val deviceTypeRepository: DeviceTypeRepository,
+    private val genericObjectRepository: GenericObjectRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     pendingEditRepository: PendingEditRepository,
     recentVisitRepository: RecentVisitRepository,
@@ -94,10 +94,14 @@ constructor(
             .map { devices -> devices.associateBy { it.id } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    val deviceTypesById: StateFlow<Map<Int, DeviceTypeEntity>> =
-        deviceTypeRepository
-            .observeAll()
-            .map { types -> types.associateBy { it.id } }
+    // Sourced from the device type's own generically-synced object, not the DeviceTypeEntity
+    // cache table - that table is only populated for device types referenced by a synced Device,
+    // so a device type with zero devices (e.g. one just added to NetBox) would never get a
+    // thumbnail here otherwise.
+    val deviceTypeFrontImagesById: StateFlow<Map<Int, String>> =
+        genericObjectRepository
+            .observeObjects(GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH, "")
+            .map { types -> types.mapNotNull { t -> frontImageUrlFromRawJson(t.json)?.let { t.id to it } }.toMap() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val conflictCount: StateFlow<Int> =
@@ -134,17 +138,14 @@ constructor(
         endpointPath: String,
         id: Int,
         devicesById: Map<Int, DeviceEntity>,
-        deviceTypesById: Map<Int, DeviceTypeEntity>,
+        deviceTypeFrontImagesById: Map<Int, String>,
     ): DashboardThumbnail? =
         when (endpointPath) {
             GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
-                deviceTypesById[id]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
-                    DashboardThumbnail(url, "device-type-$id-front")
-                }
+                deviceTypeFrontImagesById[id]?.let { url -> DashboardThumbnail(url, "device-type-$id-front") }
             GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
                 devicesById[id]?.deviceTypeId?.let { deviceTypeId ->
-                    deviceTypesById[deviceTypeId]?.frontImageUrl?.takeIf(String::isNotBlank)?.let {
-                        url ->
+                    deviceTypeFrontImagesById[deviceTypeId]?.let { url ->
                         DashboardThumbnail(url, "device-type-$deviceTypeId-front")
                     }
                 }

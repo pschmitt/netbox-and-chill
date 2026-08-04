@@ -69,7 +69,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
-import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
 import dev.pschmitt.nyetbox.data.repository.SearchHit
@@ -113,7 +112,7 @@ fun GlobalSearchScreen(
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val modelsByEndpointPath by viewModel.modelsByEndpointPath.collectAsStateWithLifecycle()
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
-    val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
+    val deviceTypeFrontImagesById by viewModel.deviceTypeFrontImagesById.collectAsStateWithLifecycle()
     val objectTypeAccents by viewModel.objectTypeAccents.collectAsStateWithLifecycle()
     val recentKeys = remember(recentResults) { recentResults.mapTo(HashSet()) { searchHitKey(it) } }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -192,7 +191,7 @@ fun GlobalSearchScreen(
                         recentResults = recentResults,
                         modelsByEndpointPath = modelsByEndpointPath,
                         devicesById = devicesById,
-                        deviceTypesById = deviceTypesById,
+                        deviceTypeFrontImagesById = deviceTypeFrontImagesById,
                         objectTypeAccents = objectTypeAccents,
                         localImageFile = viewModel::localImageFile,
                         onResultClick = onResultClick,
@@ -211,7 +210,7 @@ fun GlobalSearchScreen(
                         recentKeys = recentKeys,
                         modelsByEndpointPath = modelsByEndpointPath,
                         devicesById = devicesById,
-                        deviceTypesById = deviceTypesById,
+                        deviceTypeFrontImagesById = deviceTypeFrontImagesById,
                         objectTypeAccents = objectTypeAccents,
                         localImageFile = viewModel::localImageFile,
                         onSelectType = viewModel::selectType,
@@ -240,7 +239,7 @@ private fun RecentSearchList(
     recentResults: List<SearchHit>,
     modelsByEndpointPath: Map<String, NetBoxModelEntity>,
     devicesById: Map<Int, DeviceEntity>,
-    deviceTypesById: Map<Int, DeviceTypeEntity>,
+    deviceTypeFrontImagesById: Map<Int, String>,
     objectTypeAccents: Map<String, ThemeAccent>,
     localImageFile: (SearchThumbnail) -> java.io.File?,
     onResultClick: (endpointPath: String, id: Int, display: String) -> Unit,
@@ -269,7 +268,7 @@ private fun RecentSearchList(
                         objectTypeAccents[hit.endpointPath.trim('/')],
                         MaterialTheme.colorScheme,
                     ),
-                thumbnail = searchThumbnailFor(hit, devicesById, deviceTypesById),
+                thumbnail = searchThumbnailFor(hit, devicesById, deviceTypeFrontImagesById),
                 assetTag = searchAssetTagFor(hit, devicesById),
                 hasAssetTagField = searchHasAssetTagField(hit, devicesById),
                 status = searchStatusFor(hit, devicesById),
@@ -290,7 +289,7 @@ private fun SearchResultsContent(
     recentKeys: Set<String>,
     modelsByEndpointPath: Map<String, NetBoxModelEntity>,
     devicesById: Map<Int, DeviceEntity>,
-    deviceTypesById: Map<Int, DeviceTypeEntity>,
+    deviceTypeFrontImagesById: Map<Int, String>,
     objectTypeAccents: Map<String, ThemeAccent>,
     localImageFile: (SearchThumbnail) -> java.io.File?,
     onSelectType: (NetBoxModelEntity) -> Unit,
@@ -360,7 +359,7 @@ private fun SearchResultsContent(
                             objectTypeAccents[hit.endpointPath.trim('/')],
                             MaterialTheme.colorScheme,
                         ),
-                    thumbnail = searchThumbnailFor(hit, devicesById, deviceTypesById),
+                    thumbnail = searchThumbnailFor(hit, devicesById, deviceTypeFrontImagesById),
                     assetTag = searchAssetTagFor(hit, devicesById),
                     hasAssetTagField = searchHasAssetTagField(hit, devicesById),
                     status = searchStatusFor(hit, devicesById),
@@ -727,16 +726,16 @@ private fun searchStatusIcon(value: String) =
 private fun searchThumbnailFor(
     hit: SearchHit,
     devicesById: Map<Int, DeviceEntity>,
-    deviceTypesById: Map<Int, DeviceTypeEntity>,
+    deviceTypeFrontImagesById: Map<Int, String>,
 ): SearchThumbnail? =
     when (hit.endpointPath) {
         GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
-            deviceTypesById[hit.id]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
+            deviceTypeFrontImagesById[hit.id]?.let { url ->
                 SearchThumbnail(url, "device-type-${hit.id}-front")
             }
         GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
             devicesById[hit.id]?.deviceTypeId?.let { deviceTypeId ->
-                deviceTypesById[deviceTypeId]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
+                deviceTypeFrontImagesById[deviceTypeId]?.let { url ->
                     SearchThumbnail(url, "device-type-$deviceTypeId-front")
                 }
             }

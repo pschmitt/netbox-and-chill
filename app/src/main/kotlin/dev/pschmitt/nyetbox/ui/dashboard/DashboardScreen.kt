@@ -124,7 +124,7 @@ fun DashboardScreen(
     val recentVisits by viewModel.recentVisits.collectAsStateWithLifecycle()
     val news by viewModel.news.collectAsStateWithLifecycle()
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
-    val deviceTypesById by viewModel.deviceTypesById.collectAsStateWithLifecycle()
+    val deviceTypeFrontImagesById by viewModel.deviceTypeFrontImagesById.collectAsStateWithLifecycle()
     val conflictCount by viewModel.conflictCount.collectAsStateWithLifecycle()
     val pendingChangeCount by viewModel.pendingChangeCount.collectAsStateWithLifecycle()
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
@@ -385,7 +385,7 @@ fun DashboardScreen(
                                                     visit.endpointPath,
                                                     visit.id,
                                                     devicesById,
-                                                    deviceTypesById,
+                                                    deviceTypeFrontImagesById,
                                                 )
                                             RecentVisitRow(
                                                 visit = visit,
@@ -429,7 +429,7 @@ fun DashboardScreen(
                                                         path,
                                                         id,
                                                         devicesById,
-                                                        deviceTypesById,
+                                                        deviceTypeFrontImagesById,
                                                     )
                                                 }
                                             }
@@ -469,7 +469,7 @@ fun DashboardScreen(
                                                             path,
                                                             id,
                                                             devicesById,
-                                                            deviceTypesById,
+                                                            deviceTypeFrontImagesById,
                                                         )
                                                     }
                                                 }

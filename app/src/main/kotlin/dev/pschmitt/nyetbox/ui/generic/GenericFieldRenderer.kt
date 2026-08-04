@@ -3,6 +3,8 @@ package dev.pschmitt.nyetbox.ui.generic
 import dev.pschmitt.nyetbox.data.repository.CustomFieldDefinition
 import dev.pschmitt.nyetbox.data.schema.Humanize
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
+import dev.pschmitt.nyetbox.data.schema.isHttpUrl
+import dev.pschmitt.nyetbox.data.schema.isMediaUrl
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -325,9 +327,6 @@ private fun renderPrimitive(key: String, label: String, value: JsonPrimitive): F
     return FieldRow.PlainText(label, text, copyable = key in COPYABLE_KEYS)
 }
 
-private fun isHttpUrl(text: String): Boolean =
-    (text.startsWith("http://") || text.startsWith("https://")) && text.toHttpUrlOrNull() != null
-
 /** Shortens only URLs served by the configured NetBox origin; external links stay complete. */
 fun shortenDisplayedUrl(url: String, netboxBaseUrl: String? = null): String {
     val parsed = url.toHttpUrlOrNull() ?: return url
@@ -345,10 +344,6 @@ fun shortenDisplayedUrl(url: String, netboxBaseUrl: String? = null): String {
         parsed.encodedFragment?.let { append('#').append(it) }
     }
 }
-
-/** NetBox-served uploaded files are always under a `/media/` path, regardless of app/plugin. */
-private fun isMediaUrl(text: String): Boolean =
-    isHttpUrl(text) && text.toHttpUrlOrNull()?.encodedPath?.contains("/media/") == true
 
 private fun renderObject(key: String, label: String, value: JsonObject): FieldRow? {
     if (key in USER_REFERENCE_KEYS) {
