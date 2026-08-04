@@ -87,8 +87,14 @@ class StoreScreenshotTest {
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForContentDescription("More actions", 30_000)
         composeRule.onNodeWithContentDescription("Back").performClick()
+        // Unlike every other transition above, nothing here waits for the device list (and its
+        // bottom bar/nav rail) to actually finish recomposing after the pop before clicking Home -
+        // on the wider tablet surface that recomposition is slow enough that the click can land
+        // before the rail's Home tab is attached, so wait for the same tag used to confirm this
+        // screen loaded the first time around.
+        waitForTag("e2e-device-list-entry", 30_000)
         composeRule.onNodeWithText("Home").performClick()
-        waitForText("Search NetBox", 30_000)
+        waitForTag("e2e-search-card", 30_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("core-sw-01")
         // Wait for an actual result card, not text that may also be present in the search field or
