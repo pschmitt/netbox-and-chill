@@ -6081,6 +6081,8 @@ leaking real inventory data into a public store listing.
       cables
 - [x] Build the screenshot-only NetBox fixture with `netbox-topology-views` and `netbox-documents`,
       and seed a named demo document without changing the regular CI E2E fixture
+- [x] Add an explicit `gpc` upload recipe for reviewed screenshots, targeting the release package
+      without making capture itself modify the Play Console listing
 
 Status: **mostly done**, 2026-08-04. `just screenshots` builds and runs an isolated NetBox 4.5
 fixture with `netbox-topology-views` and `netbox-documents`, seeds a realistic demo rack with a

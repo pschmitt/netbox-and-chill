@@ -276,6 +276,7 @@ deploy-all variant="debug":
 netbox_compose_file := "ci/netbox/docker-compose.yml"
 screenshots_netbox_compose_file := "ci/netbox/docker-compose.screenshots.yml"
 screenshots_avd := env_var_or_default("NBC_SCREENSHOTS_AVD", "nyetbox-screenshots")
+play_package := "dev.pschmitt.nyetbox"
 # Disposable screenshot-fixture credential; not a real secret.
 screenshots_token := "nbt_CiE2eKey001X.0123456789abcdef0123456789abcdef01234567"
 
@@ -389,6 +390,35 @@ screenshots host=remote_host:
     adb -s "$serial" shell pm grant dev.pschmitt.nyetbox.debug android.permission.POST_NOTIFICATIONS || true
     E2E_TOKEN={{screenshots_token}} SCREENGRAB_SPECIFIC_DEVICE="$serial" \
       nix develop .#screenshots --command fastlane screenshots
+
+# Upload the generated screenshots to the release application's Play Console listing. This is
+# deliberately separate from `screenshots`: capture uses the debug application, while Play Console
+# metadata belongs to the release package and publishing is an explicit external side effect.
+screenshots-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    image_dir="fastlane/metadata/android"
+    shopt -s nullglob
+    image_glob=("$image_dir"/en-US/images/phoneScreenshots/*)
+    if [[ ! -d "$image_dir/en-US/images/phoneScreenshots" || ${#image_glob[@]} -eq 0 ]]
+    then
+      printf 'No generated phone screenshots found under %s\n' "$image_dir" >&2
+      printf 'Run `just screenshots` first.\n' >&2
+      exit 1
+    fi
+    if ! command -v gpc >/dev/null
+    then
+      printf 'gpc (playconsole-cli) is required for Play Console uploads\n' >&2
+      exit 1
+    fi
+    for image in "${image_glob[@]}"
+    do
+      printf 'Uploading %s\n' "$image"
+      gpc --package {{play_package}} images upload \
+        --locale en-US \
+        --type phoneScreenshots \
+        --file "$image"
+    done
 
 # --- Formatting / hooks ----------------------------------------------------
 

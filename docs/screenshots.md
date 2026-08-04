@@ -58,6 +58,24 @@ just screenshots
 
 Output lands in `fastlane/metadata/android/en-US/images/phoneScreenshots/`.
 
+## Uploading to Google Play
+
+Capturing screenshots never changes the Play Console listing. Once the generated images have been
+reviewed, authenticate `gpc` for the Play Console service account and run the explicit upload
+recipe:
+
+```console
+gpc auth login
+gpc doctor --package dev.pschmitt.nyetbox
+just screenshots-upload
+```
+
+The recipe uploads each Fastlane output to the **release** package `dev.pschmitt.nyetbox`; the
+screenshot test itself runs the separate debug package. It refuses to run when the generated
+phone-screenshot directory is empty and never deletes existing Play Console images automatically.
+Generated images are ignored by Git: this checkout currently has four older POC outputs, but no
+topology capture yet, and no listing upload has been performed.
+
 ## Running it more than once against the same emulator
 
 `just screenshots` clears the app's data before every run (`adb shell pm clear`), so re-running it
@@ -112,8 +130,8 @@ capture fails and the test diagnostics should be inspected rather than publishin
 - Tablet screenshot buckets (7"/10" for the Play Store listing): create an additional AVD with a
   larger profile and repeat `just screenshots` against it; screengrab buckets output by the
   target's screen size automatically.
-- Uploading straight to Play Console: a further `lane` could call `upload_to_play_store` with the
-  captured `fastlane/metadata/android` directory.
+- Uploading is intentionally an explicit `just screenshots-upload` step after reviewing the
+  generated images.
 
 ## Verified POC run, 2026-08-04
 
