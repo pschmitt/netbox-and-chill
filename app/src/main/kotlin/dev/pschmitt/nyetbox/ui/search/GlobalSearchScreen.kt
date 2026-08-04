@@ -12,17 +12,29 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,8 +76,6 @@ import dev.pschmitt.nyetbox.data.repository.SearchHit
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.ThemeAccent
 import dev.pschmitt.nyetbox.ui.common.BottomTab
-import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
-import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
@@ -262,6 +272,7 @@ private fun RecentSearchList(
                 thumbnail = searchThumbnailFor(hit, devicesById, deviceTypesById),
                 assetTag = searchAssetTagFor(hit, devicesById),
                 hasAssetTagField = searchHasAssetTagField(hit, devicesById),
+                status = searchStatusFor(hit, devicesById),
                 localImageFile = localImageFile,
                 isRecent = true,
                 onClick = { onResultClick(hit.endpointPath, hit.id, hit.display) },
@@ -352,6 +363,7 @@ private fun SearchResultsContent(
                     thumbnail = searchThumbnailFor(hit, devicesById, deviceTypesById),
                     assetTag = searchAssetTagFor(hit, devicesById),
                     hasAssetTagField = searchHasAssetTagField(hit, devicesById),
+                    status = searchStatusFor(hit, devicesById),
                     localImageFile = localImageFile,
                     highlightQuery = highlightQuery,
                     isRecent = searchHitKey(hit) in recentKeys,
@@ -542,6 +554,7 @@ private fun SearchResultRow(
     thumbnail: SearchThumbnail?,
     assetTag: String?,
     hasAssetTagField: Boolean,
+    status: String?,
     localImageFile: (SearchThumbnail) -> java.io.File?,
     highlightQuery: String = "",
     isRecent: Boolean = false,
@@ -610,8 +623,12 @@ private fun SearchResultRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                val matchedHint = hit.matchHint?.takeIf { it != hit.secondaryLine }
                 Row(
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .horizontalScroll(rememberScrollState()),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -620,40 +637,27 @@ private fun SearchResultRow(
                         icon = icon,
                         color = typeColor,
                     )
+                    status?.takeIf(String::isNotBlank)?.let { value ->
+                        SearchStatusBadge(label = value, value = value)
+                    }
                     if (isRecent) {
                         RecentBadge()
                     }
-                }
-                if (assetTag?.isNotBlank() == true) {
-                    AssetTagBadge(
-                        assetTag,
-                        modifier = Modifier.padding(top = 6.dp),
-                        highlightQuery = highlightQuery,
-                    )
-                } else if (hasAssetTagField) {
-                    MissingAssetTagBadge(Modifier.padding(top = 6.dp))
-                }
-                hit.matchHint?.takeIf { it != hit.secondaryLine }?.let {
-                    Row(
-                        modifier = Modifier.padding(top = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Default.FilterAlt,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(15.dp),
+                    if (assetTag?.isNotBlank() == true) {
+                        AssetTagSearchBadge(
+                            label = assetTag,
+                            highlightQuery = highlightQuery,
                         )
-                        SearchHighlightedText(
-                            value = "Matched $it",
-                            query = highlightQuery,
-                            style =
-                                MaterialTheme.typography.labelMedium.copy(
-                                    color = MaterialTheme.colorScheme.primary,
-                                ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(start = 5.dp),
+                    } else if (hasAssetTagField) {
+                        AssetTagSearchBadge(label = "No asset tag", missing = true)
+                    }
+                    matchedHint?.let {
+                        CompactSearchBadge(
+                            label = "Matched $it",
+                            icon = Icons.Default.FilterAlt,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            highlightQuery = highlightQuery,
                         )
                     }
                 }
@@ -664,24 +668,61 @@ private fun SearchResultRow(
 
 @Composable
 private fun RecentBadge() {
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
+    CompactSearchBadge(
+        label = "Recent",
+        icon = Icons.Default.History,
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        shape = RoundedCornerShape(50),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(14.dp))
-            Text(
-                "Recent",
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        }
-    }
+    )
 }
+
+@Composable
+private fun AssetTagSearchBadge(label: String, missing: Boolean = false, highlightQuery: String = "") {
+    CompactSearchBadge(
+        label = label,
+        icon = Icons.Default.LocalOffer,
+        containerColor =
+            if (missing) MaterialTheme.colorScheme.errorContainer
+            else MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor =
+            if (missing) MaterialTheme.colorScheme.onErrorContainer
+            else MaterialTheme.colorScheme.onTertiaryContainer,
+        highlightQuery = highlightQuery,
+    )
+}
+
+@Composable
+private fun SearchStatusBadge(label: String, value: String) {
+    val containerColor =
+        when (value.lowercase()) {
+            "active" -> MaterialTheme.colorScheme.primaryContainer
+            "inventory" ->
+                if (isSystemInDarkTheme()) Color(0xFF7A1E52) else Color(0xFFFFC7E2)
+            "offline",
+            "decommissioning",
+            "failed" -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.secondaryContainer
+        }
+    CompactSearchBadge(
+        label = label,
+        icon = searchStatusIcon(value),
+        containerColor = containerColor,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+private fun searchStatusIcon(value: String) =
+    when (value.lowercase()) {
+        "active" -> Icons.Default.CheckCircle
+        "inventory" -> Icons.Default.Inventory2
+        "offline" -> Icons.Default.CloudOff
+        "decommissioning",
+        "failed" -> Icons.Default.Error
+        "planned" -> Icons.Default.Schedule
+        "staged",
+        "maintenance" -> Icons.Default.Build
+        else -> Icons.Default.Info
+    }
 
 private fun searchThumbnailFor(
     hit: SearchHit,
@@ -720,22 +761,53 @@ private fun searchHasAssetTagField(
     hit.hasAssetTagField ||
         (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH && devicesById[hit.id] != null)
 
+private fun searchStatusFor(hit: SearchHit, devicesById: Map<Int, DeviceEntity>): String? =
+    hit.status
+        ?: if (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH) {
+            devicesById[hit.id]?.statusLabel
+        } else {
+            null
+        }
+
 private fun searchHitKey(hit: SearchHit): String = "${hit.endpointPath.trimEnd('/')}:${hit.id}"
 
 @Composable
 private fun ObjectTypeBadge(label: String, icon: ImageVector, color: Color) {
-    Surface(
-        color = color.copy(alpha = 0.18f),
+    CompactSearchBadge(
+        label = label,
+        icon = icon,
+        containerColor = color.copy(alpha = 0.18f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = MaterialTheme.shapes.small,
+    )
+}
+
+@Composable
+private fun CompactSearchBadge(
+    label: String,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    highlightQuery: String = "",
+) {
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(50),
+        modifier = Modifier.widthIn(max = 220.dp),
     ) {
         Row(
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(4.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            SearchHighlightedText(
+                value = label,
+                query = highlightQuery,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

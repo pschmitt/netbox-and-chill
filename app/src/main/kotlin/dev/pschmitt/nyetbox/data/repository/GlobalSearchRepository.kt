@@ -47,6 +47,7 @@ data class SearchHit(
     val secondaryLine: String?,
     val assetTag: String? = null,
     val hasAssetTagField: Boolean = false,
+    val status: String? = null,
     /** Human-readable field/value that caused a recursive related-field match. */
     val matchHint: String? = null,
 )
@@ -497,6 +498,10 @@ private fun NetBoxObjectEntity.toSearchHit(
             secondaryLine = secondaryLine,
             assetTag = assetTag?.value,
             hasAssetTagField = assetTag?.hasField == true,
+            status =
+                searchFields.entries
+                    .firstOrNull { (key, _) -> searchFieldKeyMatches("status", key) }
+                    ?.value,
             matchHint =
                 structuredSearchHint(searchFields, parsedQuery)
                     ?: queryText
@@ -508,7 +513,7 @@ private fun NetBoxObjectEntity.toSearchHit(
 }
 
     private fun DeviceEntity.toSearchHit(
-        secondaryLine: String? = statusLabel ?: siteName,
+        secondaryLine: String? = siteName ?: statusLabel,
         matchHint: String? = null,
         queryText: String? = null,
         parsedQuery: ParsedGlobalSearchQuery = parseGlobalSearchQuery(queryText.orEmpty()),
@@ -520,6 +525,7 @@ private fun NetBoxObjectEntity.toSearchHit(
             secondaryLine = secondaryLine,
             assetTag = assetTag,
             hasAssetTagField = true,
+            status = statusLabel,
             matchHint =
                 matchHint
                     ?: structuredSearchHint(

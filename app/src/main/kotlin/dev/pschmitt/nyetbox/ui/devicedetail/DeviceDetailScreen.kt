@@ -521,7 +521,10 @@ fun DeviceDetailScreen(
                     item {
                         val deviceTypeViewerItems =
                             deviceTypePhotoItems(deviceType, viewModel::localImageFile)
-                        val deviceTypePreview = deviceTypeViewerItems.firstOrNull()
+                        val deviceTypePreview =
+                            deviceTypeViewerItems.firstOrNull { item ->
+                                item.metadata.any { (_, value) -> value == "Front" }
+                            }
                         NyetboxCard(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         ) {
@@ -529,23 +532,36 @@ fun DeviceDetailScreen(
                                 modifier = Modifier.fillMaxWidth().padding(12.dp),
                             ) {
                                 Row(verticalAlignment = Alignment.Top) {
-                                    Surface(
-                                        color = detailAccent.copy(alpha = 0.18f),
-                                        shape =
-                                            androidx.compose.foundation.shape.RoundedCornerShape(
-                                                14.dp,
-                                            ),
-                                        modifier = Modifier.size(52.dp),
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                AppIcons.forEndpointPath(
-                                                    NetBoxRef.DEVICES_ENDPOINT_PATH
+                                    if (deviceTypePreview != null) {
+                                        RemoteThumbnail(
+                                            imageUrl = deviceTypePreview.url,
+                                            contentDescription = deviceTypePreview.title,
+                                            localFile = deviceTypePreview.localFile,
+                                            modifier =
+                                                Modifier.size(64.dp).clickable {
+                                                    imageViewer = deviceTypeViewerItems to 0
+                                                },
+                                            contentScale = ContentScale.Fit,
+                                        )
+                                    } else {
+                                        Surface(
+                                            color = detailAccent.copy(alpha = 0.18f),
+                                            shape =
+                                                androidx.compose.foundation.shape.RoundedCornerShape(
+                                                    14.dp,
                                                 ),
-                                                contentDescription = null,
-                                                tint = detailAccent,
-                                                modifier = Modifier.size(30.dp),
-                                            )
+                                            modifier = Modifier.size(64.dp),
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    AppIcons.forEndpointPath(
+                                                        NetBoxRef.DEVICES_ENDPOINT_PATH
+                                                    ),
+                                                    contentDescription = null,
+                                                    tint = detailAccent,
+                                                    modifier = Modifier.size(34.dp),
+                                                )
+                                            }
                                         }
                                     }
                                     Column(
@@ -579,32 +595,6 @@ fun DeviceDetailScreen(
                                             }
                                         }
                                     }
-                                }
-                                deviceTypePreview?.let { preview ->
-                                    Spacer(Modifier.height(12.dp))
-                                    RemoteThumbnail(
-                                        imageUrl = preview.url,
-                                        contentDescription = preview.title,
-                                        localFile = preview.localFile,
-                                        modifier =
-                                            Modifier.fillMaxWidth()
-                                                .height(160.dp)
-                                                .clickable {
-                                                    imageViewer =
-                                                        deviceTypeViewerItems to
-                                                            deviceTypeViewerItems.indexOf(preview)
-                                                },
-                                        // Keep the complete stock image visible; the transparent
-                                        // padding transformation handles oversized empty margins.
-                                        contentScale = ContentScale.Fit,
-                                    )
-                                    Text(
-                                        preview.metadata.firstOrNull { it.first == "View" }?.second
-                                            ?: "Device type",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                                    )
                                 }
                             }
                         }

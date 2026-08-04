@@ -5830,6 +5830,35 @@ Status: **done**, 2026-08-04 - remote compilation, unit tests, instrumentation c
 and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed.
 
 
+## NBC-355: unify global-search result badges
+
+Global-search result metadata should use one compact pill style. Status should be represented as a
+badge alongside the object type, recent-visit, asset-tag, and matched-field metadata.
+
+- [x] Use the same compact shape, padding, icon size, and typography for all result badges.
+- [x] Display cached object/device status as a status badge.
+- [x] Keep the metadata on one horizontally scrollable row on narrow screens.
+- [x] Verify the shared presentation in the global search screen and topology search.
+
+Status: **done**, 2026-08-04 - shared global-search result rendering now uses compact uniform badges;
+unit tests, instrumentation compilation, and lint passed.
+
+
+## NBC-356: use device-type front photos as device-card identity visuals
+
+The device overview identity card should lead with the cached device-type front photo when one is
+available. The generic device icon is only a fallback for devices without a front photo, and the
+overview should not add a redundant “Front” caption below the image.
+
+- [x] Use the front device-type photo as the leading visual in the identity card.
+- [x] Keep the generic device icon only when no front photo exists.
+- [x] Remove the caption below the front preview while preserving front/rear viewer swiping.
+- [x] Verify front-photo and no-front-photo device paths on the installed build.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, instrumentation compilation, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed.
+
+
 ## NBC-346: extend the rounded card visual language beyond Settings
 
 The rest of the app should share the same calm, grouped Material 3 card treatment as Settings
