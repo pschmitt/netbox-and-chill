@@ -11,14 +11,17 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -26,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,7 +75,10 @@ data class ImageViewerItem(
     val title: String,
     val metadata: List<Pair<String, String>> = emptyList(),
     val localFile: File? = null,
+    val relatedLink: ImageViewerRelatedLink? = null,
 )
+
+data class ImageViewerRelatedLink(val label: String, val id: Int)
 
 private val DismissThreshold = 120.dp
 private const val MIN_SCALE = 1f
@@ -89,7 +96,12 @@ internal fun imageViewerTargetIndex(currentPage: Int, pageCount: Int, step: Int)
  * route.
  */
 @Composable
-fun ImageViewerDialog(items: List<ImageViewerItem>, initialIndex: Int, onDismiss: () -> Unit) {
+fun ImageViewerDialog(
+    items: List<ImageViewerItem>,
+    initialIndex: Int,
+    onDismiss: () -> Unit,
+    onRelatedLinkClick: (ImageViewerRelatedLink) -> Unit = {},
+) {
     if (items.isEmpty()) return
     val pagerState =
         rememberPagerState(initialPage = initialIndex.coerceIn(0, items.lastIndex)) { items.size }
@@ -179,7 +191,8 @@ fun ImageViewerDialog(items: List<ImageViewerItem>, initialIndex: Int, onDismiss
                     }
                 }
                 ImageMetadataPanel(
-                    item = items[pagerState.currentPage.coerceIn(0, items.lastIndex)]
+                    item = items[pagerState.currentPage.coerceIn(0, items.lastIndex)],
+                    onRelatedLinkClick = onRelatedLinkClick,
                 )
             }
             if (items.size > 1) {
@@ -340,7 +353,10 @@ private suspend fun PointerInputScope.detectZoomPan(
 }
 
 @Composable
-private fun ImageMetadataPanel(item: ImageViewerItem) {
+private fun ImageMetadataPanel(
+    item: ImageViewerItem,
+    onRelatedLinkClick: (ImageViewerRelatedLink) -> Unit,
+) {
     Column(
         modifier =
             Modifier.fillMaxWidth()
@@ -356,6 +372,16 @@ private fun ImageMetadataPanel(item: ImageViewerItem) {
                     color = Color.White.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.bodySmall,
                 )
+            }
+        }
+        item.relatedLink?.let { link ->
+            TextButton(
+                onClick = { onRelatedLinkClick(link) },
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text(link.label)
             }
         }
     }

@@ -3,6 +3,21 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-357: link device-type photos back to their device type
+
+The front/rear device-type photos shown in the device overview should offer a compact action to
+open the corresponding device-type detail page. The device identity card should also use its empty
+right-hand space for the device's asset tag.
+
+- [x] Add an optional related-item action to the shared image viewer.
+- [x] Show “Open device type” for device-type front/rear photos.
+- [x] Remove the redundant `Device type: #…` metadata row.
+- [x] Show the device asset tag in the overview identity card.
+- [x] Verify the image-viewer navigation and identity-card layout on a device.
+
+Status: **done**, 2026-08-04 - remote compilation, unit tests, instrumentation compilation, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed.
+
 ## NBC-1: Initial project scaffold + MVP
 
 Offline-first NetBox companion app: token login, device list with a Room cache, QR/barcode

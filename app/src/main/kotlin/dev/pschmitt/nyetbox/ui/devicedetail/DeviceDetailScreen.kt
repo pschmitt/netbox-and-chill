@@ -88,7 +88,9 @@ import dev.pschmitt.nyetbox.ui.common.DocumentsSection
 import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
+import dev.pschmitt.nyetbox.ui.common.ImageViewerRelatedLink
 import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
+import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTab
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTabs
@@ -595,6 +597,14 @@ fun DeviceDetailScreen(
                                             }
                                         }
                                     }
+                                    current.assetTag
+                                        ?.takeIf(String::isNotBlank)
+                                        ?.let { assetTag ->
+                                            AssetTagBadge(
+                                                assetTag = assetTag,
+                                                modifier = Modifier.padding(start = 4.dp),
+                                            )
+                                        }
                                 }
                             }
                         }
@@ -848,7 +858,15 @@ fun DeviceDetailScreen(
     }
 
     imageViewer?.let { (items, index) ->
-        ImageViewerDialog(items = items, initialIndex = index, onDismiss = { imageViewer = null })
+        ImageViewerDialog(
+            items = items,
+            initialIndex = index,
+            onDismiss = { imageViewer = null },
+            onRelatedLinkClick = { link ->
+                imageViewer = null
+                onDeviceTypeClick(link.id, device?.name ?: "Device type")
+            },
+        )
     }
     matterPairingCode?.let { code ->
         MatterPairingCodeDialog(code = code, onDismiss = { matterPairingCode = null })
@@ -1251,6 +1269,7 @@ private fun deviceTypePhotoItems(
                     title = "Front of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Front"),
                     localFile = localImageFile(it, "device-type-$id-front"),
+                    relatedLink = ImageViewerRelatedLink("Open device type", id),
                 )
             },
         rear
@@ -1261,6 +1280,7 @@ private fun deviceTypePhotoItems(
                     title = "Rear of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Rear"),
                     localFile = localImageFile(it, "device-type-$id-rear"),
+                    relatedLink = ImageViewerRelatedLink("Open device type", id),
                 )
             },
     )
@@ -1272,7 +1292,6 @@ private fun deviceTypeImageMetadata(
 ): List<Pair<String, String>> = buildList {
     deviceType.model?.takeIf { it.isNotBlank() }?.let { add("Model" to it) }
     add("View" to view)
-    add("Device type" to "#${deviceType.id}")
 }
 
 /** Pull the useful network identity into interface list subtitles when NetBox includes it. */
