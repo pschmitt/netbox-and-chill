@@ -6049,3 +6049,33 @@ repeating the same label in a card header.
 
 Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instrumentation compilation,
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
+
+
+## NBC-365: replace the launcher icon with an original mark (drop the NetBox logo reference)
+
+The adaptive launcher icon (`ic_launcher_foreground_vector.xml`, from NBC-4) was a vector
+recreation of NetBox's own corner-node logo with a raised-eyebrow face overlaid. That's a real
+trademark risk for a Play Store listing, not just a hobby-repo one.
+
+- [x] Design a replacement box shape that keeps the face (flat left brow, raised right brow,
+  neutral mouth) and the existing palette, but drops NetBox's rectangle-with-corner-nodes layout.
+- [x] Size the mark to actually use the adaptive-icon safe zone instead of the large margin the
+  old NetBox silhouette needed.
+- [x] Update `ic_launcher_foreground_vector.xml` and `docs/images/nyetbox-icon.svg` together so
+  the in-app icon (Sidebar/Onboarding, both resolved from `R.mipmap.ic_launcher`) and the README
+  preview match.
+- [x] Drop the README trademark note's claim that the app's own logo is NetBox's, since it no
+  longer is.
+
+**Why:** user's explicit direction - the previous icon is fine for a side project but not
+something to ship to the Play Store carrying another company's mark.
+**How to apply:** final mark is a wide rounded rack-panel outline (`M35,33 L73,33 A9,9...`, teal
+top/right + white left/bottom two-tone stroke, 7px), face at `(40,58)`/`(68,58)` eyes (r8),
+brows at y47, mouth at y69 - all authored directly in the 108x108 viewport coordinate space
+(no extra scale-down group, unlike the old icon's `scale(.64)` wrapper), since the new shape
+doesn't need the margin the old NetBox silhouette did. Corners land at ~35 of the 108 canvas,
+a few percent past the formal 66dp/r33 safe-zone guideline - accepted deliberately since the
+overhang is only the outer sliver of a rounded corner and only a strict circular mask is
+affected; squircle/rounded-square/teardrop masks clear it comfortably.
+
+Status: **done**, 2026-08-04 - remote `just build` (debug) and `just lint` passed.

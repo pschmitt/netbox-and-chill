@@ -15,9 +15,9 @@ update of the former package.
 
 Nyetbox is an independent community project. It is not a NetBox Labs project and is not
 affiliated with, sponsored by, maintained by, or endorsed by NetBox Labs, Inc. The NetBox name and
-logo, including the logo used by this app, are the intellectual property and trademarks of NetBox
-Labs, Inc.; their use here identifies compatibility only and does not imply an official
-relationship.
+logo are the intellectual property and trademarks of NetBox Labs, Inc.; their use here (in text,
+to describe compatibility) does not imply an official relationship. The app's own icon is an
+original design and does not reuse NetBox's logo.
 
 ## Installation
 

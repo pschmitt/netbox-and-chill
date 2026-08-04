@@ -2,24 +2,15 @@
   <title id="title">Nyetbox app icon</title>
   <desc id="desc">The Nyetbox adaptive launcher icon.</desc>
   <circle cx="54" cy="54" r="54" fill="#011226" />
-  <g transform="translate(19.44 19.44) scale(.64)" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M28 37h47v38H28z" fill="none" stroke="#00e5d6" stroke-width="5" />
-    <path d="M28 37v38h47" fill="none" stroke="#f4f7f8" stroke-width="5" />
-    <path d="M45 37V24M75 37l12-12M28 75L18 85" fill="none" stroke="#f4f7f8" stroke-width="4" />
-    <path d="M75 37l12-12" fill="none" stroke="#00e5d6" stroke-width="4" />
-    <circle cx="45" cy="20" r="5" fill="#f4f7f8" />
-    <circle cx="87" cy="25" r="5" fill="#00e5d6" />
-    <circle cx="18" cy="85" r="5" fill="#f4f7f8" />
-    <circle cx="28" cy="37" r="6" fill="#00e5d6" />
-    <circle cx="75" cy="37" r="6" fill="#00e5d6" />
-    <circle cx="75" cy="75" r="6" fill="#00e5d6" />
-    <circle cx="28" cy="75" r="6" fill="#f4f7f8" />
-    <path d="M37 49h12M57 49l11-4" fill="none" stroke="#f4f7f8" stroke-width="4" />
-    <path d="M57 49l11-4" fill="none" stroke="#00e5d6" stroke-width="4" />
-    <circle cx="38" cy="57" r="5" fill="#f4f7f8" />
-    <circle cx="38" cy="57" r="2" fill="#011226" />
-    <circle cx="62" cy="57" r="5" fill="#f4f7f8" />
-    <circle cx="62" cy="57" r="2" fill="#011226" />
-    <path d="M47 67h12" fill="none" stroke="#f4f7f8" stroke-width="3" />
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M35,33 L73,33 A9,9 0 0 1 82,42 L82,66 A9,9 0 0 1 73,75 L35,75 A9,9 0 0 1 26,66 L26,42 A9,9 0 0 1 35,33 Z" fill="none" stroke="#00e5d6" stroke-width="7" />
+    <path d="M35,33 A9,9 0 0 0 26,42 L26,66 A9,9 0 0 0 35,75 L73,75" fill="none" stroke="#f4f7f8" stroke-width="7" />
+    <path d="M34,47 L47,47" fill="none" stroke="#f4f7f8" stroke-width="6" />
+    <path d="M61,47 L74,41" fill="none" stroke="#00e5d6" stroke-width="6" />
+    <circle cx="40" cy="58" r="8" fill="#f4f7f8" />
+    <circle cx="40" cy="58" r="3.5" fill="#011226" />
+    <circle cx="68" cy="58" r="8" fill="#f4f7f8" />
+    <circle cx="68" cy="58" r="3.5" fill="#011226" />
+    <path d="M46,69 L62,69" fill="none" stroke="#f4f7f8" stroke-width="5" />
   </g>
 </svg>
