@@ -79,12 +79,15 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           # android-emulator-runner runs each line of this script as its own separate `sh -c`
-          # process, so a shell variable set on one line is gone by the next. The serial capture,
-          # the check, and the fastlane invocation that needs it must stay on one line.
+          # process, so a shell variable set on one line is gone by the next - the serial capture,
+          # install, permission grant, and the fastlane invocation that needs the serial must all
+          # stay on one line. MainActivity requests POST_NOTIFICATIONS on API 33+ during startup,
+          # so grant it before screengrab launches the app or the permission dialog blocks the
+          # Compose test from finding any hierarchy (mirrors the `just screenshots` recipe).
           script: |
             bash ci/android-e2e-wait.sh
             adb reverse tcp:8000 tcp:8000
-            serial="$(adb devices | awk '$2 == "device" { print $1; exit }')" && test -n "$serial" && E2E_TOKEN="$E2E_TOKEN" SCREENGRAB_DEVICE_TYPE=tenInch SCREENGRAB_SPECIFIC_DEVICE="$serial" fastlane screenshots
+            serial="$(adb devices | awk '$2 == "device" { print $1; exit }')" && test -n "$serial" && adb -s "$serial" install -r -t dist/app-x86_64-debug.apk && adb -s "$serial" shell pm clear dev.pschmitt.nyetbox.debug && { adb -s "$serial" shell pm grant dev.pschmitt.nyetbox.debug android.permission.POST_NOTIFICATIONS || true; } && E2E_TOKEN="$E2E_TOKEN" SCREENGRAB_DEVICE_TYPE=tenInch SCREENGRAB_SPECIFIC_DEVICE="$serial" fastlane screenshots
 
       - name: Upload screenshot artifact
         if: ${{ always() }}
