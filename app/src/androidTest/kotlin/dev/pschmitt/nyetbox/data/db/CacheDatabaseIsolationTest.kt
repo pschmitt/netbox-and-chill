@@ -26,13 +26,22 @@ class CacheDatabaseIsolationTest {
             manager.activeDatabase.value.deviceDao().upsert(device(id = 1, name = "first"))
 
             manager.switchTo(second)
-            assertEquals(emptyList<DeviceEntity>(), manager.activeDatabase.value.deviceDao().getAll())
+            assertEquals(
+                emptyList<DeviceEntity>(),
+                manager.activeDatabase.value.deviceDao().getAll(),
+            )
             manager.activeDatabase.value.deviceDao().upsert(device(id = 2, name = "second"))
 
             manager.switchTo(first)
-            assertEquals(listOf("first"), manager.activeDatabase.value.deviceDao().getAll().map { it.name })
+            assertEquals(
+                listOf("first"),
+                manager.activeDatabase.value.deviceDao().getAll().map { it.name },
+            )
             manager.switchTo(second)
-            assertEquals(listOf("second"), manager.activeDatabase.value.deviceDao().getAll().map { it.name })
+            assertEquals(
+                listOf("second"),
+                manager.activeDatabase.value.deviceDao().getAll().map { it.name },
+            )
         } finally {
             manager.delete(first)
             manager.delete(second)

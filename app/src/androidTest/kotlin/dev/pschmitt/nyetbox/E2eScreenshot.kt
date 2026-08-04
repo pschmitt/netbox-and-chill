@@ -12,8 +12,7 @@ internal fun captureE2eScreenshot(name: String) {
         val directory =
             instrumentation.targetContext
                 .getExternalFilesDir("e2e-screenshots")
-                ?.apply(File::mkdirs)
-                ?: return
+                ?.apply(File::mkdirs) ?: return
         val safeName = name.replace(Regex("[^A-Za-z0-9._-]"), "_")
         File(directory, "$safeName.png").outputStream().use { output ->
             screenshot.compress(Bitmap.CompressFormat.PNG, 100, output)

@@ -1,10 +1,10 @@
 package dev.pschmitt.nyetbox.ui.generic
 
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.pschmitt.nyetbox.data.repository.CreateChoice
 import dev.pschmitt.nyetbox.data.repository.CreateFieldDefinition
@@ -21,8 +21,7 @@ class GenericCreateFieldInputTest {
 
     @get:Rule val composeRule = createComposeRule()
 
-    private val choices =
-        listOf(CreateChoice("1", "Shelly"), CreateChoice("2", "Turris Omnia"))
+    private val choices = listOf(CreateChoice("1", "Shelly"), CreateChoice("2", "Turris Omnia"))
 
     @Test
     fun choiceFieldBodyOpensPicker() {

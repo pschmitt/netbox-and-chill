@@ -25,7 +25,8 @@ class DatabaseMigrationsTest {
                 id INTEGER NOT NULL PRIMARY KEY,
                 name TEXT NOT NULL
             )
-            """.trimIndent()
+            """
+                .trimIndent()
         )
         database.execSQL("INSERT INTO devices(id, name) VALUES (1, 'cached-device')")
         database.execSQL(
@@ -35,16 +36,20 @@ class DatabaseMigrationsTest {
                 type TEXT NOT NULL,
                 syncedAt INTEGER NOT NULL
             )
-            """.trimIndent()
+            """
+                .trimIndent()
         )
-        database.execSQL("INSERT INTO custom_fields(name, type, syncedAt) VALUES ('purchase_info', 'text', 1)")
+        database.execSQL(
+            "INSERT INTO custom_fields(name, type, syncedAt) VALUES ('purchase_info', 'text', 1)"
+        )
 
         MIGRATION_6_7.migrate(database)
         database.execSQL(
             """
             INSERT INTO pending_edits(endpointPath, id, baseJson, localJson, patchJson, state, createdAt)
             VALUES ('api/dcim/devices/', 1, '{}', '{"name":"local"}', '{}', 'queued', 1)
-            """.trimIndent()
+            """
+                .trimIndent()
         )
         MIGRATION_7_8.migrate(database)
         MIGRATION_8_9.migrate(database)
@@ -58,14 +63,16 @@ class DatabaseMigrationsTest {
             assertTrue(cursor.isNull(1))
             assertTrue(cursor.isNull(2))
         }
-        database.query("SELECT label, groupName, weight, objectTypes, choiceSetUrl FROM custom_fields").use {
-            assertTrue(it.moveToFirst())
-            assertTrue(it.isNull(0))
-            assertTrue(it.isNull(1))
-            assertEquals(0, it.getInt(2))
-            assertTrue(it.isNull(3))
-            assertTrue(it.isNull(4))
-        }
+        database
+            .query("SELECT label, groupName, weight, objectTypes, choiceSetUrl FROM custom_fields")
+            .use {
+                assertTrue(it.moveToFirst())
+                assertTrue(it.isNull(0))
+                assertTrue(it.isNull(1))
+                assertEquals(0, it.getInt(2))
+                assertTrue(it.isNull(3))
+                assertTrue(it.isNull(4))
+            }
         database.query("SELECT localJson FROM pending_edits").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals("{\"name\":\"local\"}", cursor.getString(0))
@@ -76,7 +83,9 @@ class DatabaseMigrationsTest {
     @Test
     fun newsMigrationCreatesCacheWithoutAffectingExistingTables() {
         val database = openDatabase()
-        database.execSQL("CREATE TABLE devices (id INTEGER NOT NULL PRIMARY KEY, name TEXT NOT NULL)")
+        database.execSQL(
+            "CREATE TABLE devices (id INTEGER NOT NULL PRIMARY KEY, name TEXT NOT NULL)"
+        )
         database.execSQL("INSERT INTO devices(id, name) VALUES (7, 'still-here')")
 
         MIGRATION_14_15.migrate(database)
