@@ -1,0 +1,12 @@
+FROM docker.io/netboxcommunity/netbox:v4.5-4.0.2
+
+COPY plugin_requirements.txt /opt/netbox/plugin_requirements.txt
+
+RUN /usr/local/bin/uv pip install --no-cache-dir -r /opt/netbox/plugin_requirements.txt \
+    && mkdir -p /opt/netbox/netbox/static/netbox_topology_views/img
+
+COPY plugins.py /etc/netbox/config/plugins.py
+COPY super_user.py /opt/netbox/super_user.py
+
+RUN SECRET_KEY="ci-only-plugin-collectstatic-key-0123456789abcdefghijklmnopqrstuvwxyz" \
+    /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py collectstatic --no-input

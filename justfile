@@ -266,6 +266,212 @@ deploy-all variant="debug":
     just mipad-install "{{local_dist}}/app-{{default_abi}}-{{variant}}.apk"
     just px5-install "{{local_dist}}/app-{{default_abi}}-{{variant}}.apk"
 
+# --- Play Store screenshots (disposable NetBox + local emulator) -----------
+#
+# Never touches the production NetBox instance: it drives the app against the same disposable
+# docker-compose fixture used by .github/workflows/android-e2e.yaml (see ci/netbox/), so captured
+# screenshots only ever show throwaway seeded demo records. The fixture and its volumes are always
+# torn down at the end of `just screenshots`, success or failure.
+
+netbox_compose_file := "ci/netbox/docker-compose.yml"
+screenshots_netbox_compose_file := "ci/netbox/docker-compose.screenshots.yml"
+screenshots_avd := env_var_or_default("NBC_SCREENSHOTS_AVD", "nyetbox-screenshots")
+play_package := "dev.pschmitt.nyetbox"
+# Disposable screenshot-fixture credential; not a real secret.
+screenshots_token := "nbt_CiE2eKey001X.0123456789abcdef0123456789abcdef01234567"
+
+# Start the disposable NetBox fixture used for Play Store screenshots (and CI E2E).
+netbox-up:
+    docker compose -f {{netbox_compose_file}} up --detach --wait --wait-timeout 600
+
+# Seed a small realistic-looking rack of demo devices into the disposable NetBox fixture. Uses
+# seed_screenshots.py, not the android-e2e.yaml workflow's seed.py - that one's exact-match
+# assertions ("CI E2E Device") aren't meant to look good in a store listing.
+netbox-seed:
+    python3 ci/netbox/seed_screenshots.py --base-url http://127.0.0.1:8000 --token {{screenshots_token}}
+
+# Tear down the disposable NetBox fixture and its volumes.
+netbox-down:
+    docker compose -f {{netbox_compose_file}} down --volumes --remove-orphans
+
+# Build the disposable NetBox image with the plugins used by the screenshot capture. Keep this a
+# separate docker build so the recipe also works with hosts whose Compose buildx is older than the
+# version required by recent Docker Compose releases.
+screenshots-netbox-build:
+    docker build --tag local/nyetbox-netbox-screenshots:4.5-plugins --file ci/netbox/Dockerfile-screenshots ci/netbox
+
+# Start the disposable NetBox fixture with the plugins used by the screenshot capture.
+screenshots-netbox-up:
+    just screenshots-netbox-build
+    docker compose -f {{netbox_compose_file}} -f {{screenshots_netbox_compose_file}} up --no-build --detach --wait --wait-timeout 600
+
+# Tear down the plugin-enabled screenshot fixture and its volumes.
+screenshots-netbox-down:
+    docker compose -f {{netbox_compose_file}} -f {{screenshots_netbox_compose_file}} down --volumes --remove-orphans
+
+# Create the local screenshot-capture AVD once (API 34, google_apis, x86_64 - matches the
+# android-e2e.yaml workflow's emulator profile). Safe to re-run; skips if it already exists.
+screenshots-avd-create:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix develop .#screenshots --command bash -euo pipefail -c '
+      if avdmanager list avd | grep -q "Name: {{screenshots_avd}}$"; then
+        echo "AVD {{screenshots_avd}} already exists"
+        exit 0
+      fi
+      echo "no" | avdmanager create avd \
+        --name {{screenshots_avd}} \
+        --package "system-images;android-34;google_apis;x86_64" \
+        --device "pixel_2"
+    '
+
+# Start the screenshot-capture emulator in the background (hardware-accelerated via /dev/kvm) and
+# wait for it to finish booting. Prints its adb serial on stdout.
+screenshots-emulator-start:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    serial=$(adb devices | awk '/^emulator-/ { print $1; exit }')
+    if [ -n "$serial" ]; then
+      echo "$serial"
+      exit 0
+    fi
+    nix develop .#screenshots --command bash -c '
+      nohup emulator -avd {{screenshots_avd}} -no-window -no-snapshot -no-audio -no-boot-anim \
+        -gpu swiftshader_indirect >/tmp/nyetbox-screenshots-emulator.log 2>&1 &
+      disown
+    '
+    for _ in $(seq 1 60); do
+      serial=$(adb devices | awk '/^emulator-/ { print $1; exit }')
+      [ -n "$serial" ] && break
+      sleep 2
+    done
+    [ -n "$serial" ] || { echo "emulator did not register with adb" >&2; exit 1; }
+    adb -s "$serial" wait-for-device
+    until [ "$(adb -s "$serial" shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do
+      sleep 2
+    done
+    echo "$serial"
+
+# Stop whichever screenshot-capture emulator is currently running, if any.
+screenshots-emulator-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    serial=$(adb devices | awk '/^emulator-/ { print $1; exit }')
+    [ -n "$serial" ] && adb -s "$serial" emu kill || true
+
+# Build the debug app (x86_64, for the emulator) and its instrumentation APK remotely, then fetch
+# both locally for screengrab.
+screenshots-build host=remote_host: (gradle host "assembleDebug assembleDebugAndroidTest")
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just fetch debug {{host}} x86_64
+    scp "{{host}}:{{remote_path}}/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" {{local_dist}}/
+
+# Capture Play Store screenshots (en-US) end to end: starts the disposable NetBox fixture and the
+# screenshot emulator, builds+fetches the APKs, runs fastlane screengrab, then always tears the
+# NetBox fixture back down. See docs/screenshots.md.
+screenshots host=remote_host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'just screenshots-netbox-down' EXIT
+    just screenshots-netbox-up
+    just netbox-seed
+    just screenshots-avd-create
+    serial=$(just screenshots-emulator-start)
+    adb -s "$serial" reverse tcp:8000 tcp:8000
+    just screenshots-build "{{host}}"
+    adb -s "$serial" install -r -t "{{local_dist}}/app-x86_64-debug.apk"
+    # Wipe any state left by a previous run on this emulator (e.g. already onboarded from a prior
+    # capture) so the test always starts from the onboarding screen, then re-grant the
+    # notification permission MainActivity requests at startup on API 33+ - a permission dialog
+    # mid-journey would interrupt the Compose test. reinstall_app is false in Screengrabfile so
+    # fastlane's own `install -r` below reuses this install and preserves the grant.
+    adb -s "$serial" shell pm clear dev.pschmitt.nyetbox.debug
+    adb -s "$serial" shell pm grant dev.pschmitt.nyetbox.debug android.permission.POST_NOTIFICATIONS || true
+    E2E_TOKEN={{screenshots_token}} SCREENGRAB_SPECIFIC_DEVICE="$serial" \
+      nix develop .#screenshots --command fastlane screenshots
+
+# Upload the generated screenshots to the release application's Play Console listing. This is
+# deliberately separate from `screenshots`: capture uses the debug application, while Play Console
+# metadata belongs to the release package and publishing is an explicit external side effect.
+screenshots-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    image_dir="fastlane/metadata/android"
+    shopt -s nullglob
+    image_types=(phoneScreenshots sevenInchScreenshots tenInchScreenshots)
+    found_images=0
+    for image_type in "${image_types[@]}"
+    do
+      image_glob=("$image_dir"/en-US/images/"$image_type"/*)
+      if [[ ${#image_glob[@]} -gt 0 ]]
+      then
+        found_images=1
+      fi
+    done
+    if [[ "$found_images" -eq 0 ]]
+    then
+      printf 'No generated screenshots found under %s\n' "$image_dir" >&2
+      printf 'Run `just screenshots` first.\n' >&2
+      exit 1
+    fi
+    if ! command -v gpc >/dev/null
+    then
+      printf 'gpc (playconsole-cli) is required for Play Console uploads\n' >&2
+      exit 1
+    fi
+    if ! gpc apps list --output json | rg -q '"package_name":"{{play_package}}"'
+    then
+      printf 'Play Console package %s was not found via `gpc apps list`\n' "{{play_package}}" >&2
+      exit 1
+    fi
+    for image_type in "${image_types[@]}"
+    do
+      image_glob=("$image_dir"/en-US/images/"$image_type"/*)
+      for image in "${image_glob[@]}"
+      do
+        printf 'Uploading %s\n' "$image"
+        gpc --package {{play_package}} images upload \
+          --locale en-US \
+          --type "$image_type" \
+          --file "$image"
+      done
+    done
+
+# Flatten and upload the app icon used by the launcher and README. Keep this separate from the
+# screenshot upload because the Play Console icon is not locale-scoped.
+play-icon-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source_icon="docs/images/nyetbox-icon.svg"
+    if [[ ! -f "$source_icon" ]]
+    then
+      printf 'Icon source not found: %s\n' "$source_icon" >&2
+      exit 1
+    fi
+    if ! command -v magick >/dev/null
+    then
+      printf 'ImageMagick `magick` is required to flatten the SVG icon\n' >&2
+      exit 1
+    fi
+    if ! command -v gpc >/dev/null
+    then
+      printf 'gpc (playconsole-cli) is required for Play Console uploads\n' >&2
+      exit 1
+    fi
+    if ! gpc apps list --output json | rg -q '"package_name":"{{play_package}}"'
+    then
+      printf 'Play Console package %s was not found via `gpc apps list`\n' "{{play_package}}" >&2
+      exit 1
+    fi
+    temp_dir=$(mktemp -d)
+    trap 'rm -rf "$temp_dir"' EXIT
+    magick -background none "$source_icon" -resize 512x512 "$temp_dir/nyetbox-icon.png"
+    gpc --package {{play_package}} images upload \
+      --locale en-US \
+      --type icon \
+      --file "$temp_dir/nyetbox-icon.png"
+
 # --- Formatting / hooks ----------------------------------------------------
 
 # Format Kotlin sources locally with ktfmt (lightweight - not a Gradle build, safe to run on this

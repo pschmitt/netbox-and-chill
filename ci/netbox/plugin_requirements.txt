@@ -1,0 +1,2 @@
+netbox-topology-views==4.5.1
+netbox-documents==0.8.5

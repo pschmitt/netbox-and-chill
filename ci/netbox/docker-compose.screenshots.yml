@@ -1,0 +1,3 @@
+services:
+  netbox:
+    image: local/nyetbox-netbox-screenshots:4.5-plugins

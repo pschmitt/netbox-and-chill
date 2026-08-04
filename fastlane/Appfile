@@ -1,0 +1,1 @@
+package_name("dev.pschmitt.nyetbox.debug") # debug build under test; see docs/screenshots.md

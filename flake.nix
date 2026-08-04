@@ -36,6 +36,19 @@
         ]
       );
 
+      # Local-only Android SDK selection for capturing Play Store screenshots: adds the emulator
+      # and an API 34 google_apis x86_64 system image (matching .github/workflows/android-e2e.yaml's
+      # profile) on top of the same base tools. Kept out of the default `android-composition` above
+      # so the ordinary Gradle/lint dev shell doesn't pull in the (large) emulator + system image.
+      android-composition-screenshots = android-nixpkgs.sdk.${system} (
+        sdkPkgs: with sdkPkgs; [
+          cmdline-tools-latest
+          platform-tools
+          emulator
+          system-images-android-34-google-apis-x86-64
+        ]
+      );
+
       pre-commit-check = git-hooks.lib.${system}.run {
         src = ./.;
         hooks = {
@@ -62,6 +75,27 @@
       checks.${system}.pre-commit-check = pre-commit-check;
 
       devShells.${system} = {
+        screenshots = pkgs.mkShell {
+          packages = with pkgs; [
+            fastlane
+            android-composition-screenshots
+          ];
+
+          shellHook = ''
+            export ANDROID_SDK_ROOT=${android-composition-screenshots}/share/android-sdk
+            export ANDROID_HOME=$ANDROID_SDK_ROOT
+            export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
+            export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+            export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
+
+            # avdmanager (XDG-aware) and emulator (not) disagree on the default AVD home when
+            # unset - one lands in ~/.config/.android, the other looks in ~/.android. Pin it
+            # explicitly so both tools agree.
+            export ANDROID_AVD_HOME="$HOME/.android/avd"
+            mkdir -p "$ANDROID_AVD_HOME"
+          '';
+        };
+
         default = pkgs.mkShell {
           buildInputs = with pkgs; [
             jdk21

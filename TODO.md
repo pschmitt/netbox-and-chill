@@ -6084,3 +6084,65 @@ triangle, ~9% margin, not yet device-verified before the next request); current 
 
 Status: **done**, 2026-08-04 - remote `just build` (debug) and `just lint` passed; deployed to
 Zenfone 10, Mi Pad 4, and Pixel 5 via `just deploy-all debug` for visual verification.
+
+## NBC-367: automate Play Store screenshot capture (POC)
+
+Add a fastlane screengrab proof of concept so dashboard/device-detail/search/settings listing
+screenshots don't require manually capturing them against a real NetBox instance, and never risk
+leaking real inventory data into a public store listing.
+
+- [x] Add a `StoreScreenshotTest` instrumented test capturing dashboard, device detail, search,
+      and settings
+- [x] Wire `tools.fastlane:screengrab` into the androidTest dependencies
+- [x] Add `fastlane/` config (Appfile, Screengrabfile, Fastfile) scoped to en-US only
+- [x] Add a `screenshots` Nix dev shell with the Android emulator + an API 34 google_apis x86_64
+      system image
+- [x] Add `netbox-up`/`netbox-seed`/`netbox-down` and `screenshots-avd-create`/
+      `screenshots-emulator-start`/`-stop`/`screenshots-build`/`screenshots` just recipes, reusing
+      the disposable `ci/netbox/` fixture already built for `android-e2e.yaml`
+- [x] Run `just screenshots` end to end on this machine (KVM-accelerated emulator) and verify the
+      captured images show real seeded content, not loading placeholders
+- [x] Integrate with the current `main` after NBC-345/347/etc landed; fix the resulting id
+      collision by assigning this entry `NBC-367`, and fix a pre-existing compile break in
+      `SettingsCategoryContentTest.kt` (stale `onDisconnect` param from the NBC-360 multi-profile
+      refactor) that was blocking the whole androidTest source set
+- [x] Replace the reused E2E seed data with `ci/netbox/seed_screenshots.py`, a small
+      realistic-looking demo rack (Acme Networks / Berlin Data Center / Rack A1, 4 devices),
+      giving the dashboard richer stats than a single bare device
+- [x] Wait for an actual search-result card and fail the capture if search renders no result,
+      rather than silently accepting an empty screenshot
+- [x] Add a topology screenshot using a seeded four-node graph with three connected interface
+      cables
+- [x] Build the screenshot-only NetBox fixture with `netbox-topology-views` and `netbox-documents`,
+      and seed a named demo document without changing the regular CI E2E fixture
+- [x] Add an explicit `gpc` upload recipe for reviewed screenshots, targeting the release package
+      without making capture itself modify the Play Console listing
+- [x] Verify the upload target with `gpc apps list` rather than relying on `gpc doctor`
+- [x] Add a manual GitHub Actions tablet capture job using the existing
+      `reactivecircus/android-emulator-runner` and the disposable plugin-enabled fixture
+- [ ] Run the manual workflow and review the generated tablet screenshots before uploading them
+- [x] Upload the flattened app icon and verify it in the Play Console listing
+
+Status: **mostly done**, 2026-08-04. `just screenshots` builds and runs an isolated NetBox 4.5
+fixture with `netbox-topology-views` and `netbox-documents`, seeds a realistic demo rack with a
+four-node topology and named document, drives a local hardware-accelerated emulator, and runs a
+remote debug + androidTest build with `fastlane screengrab`; the fixture is always torn down.
+`01_dashboard`, `02_device_detail`, and `05_settings` were repeatedly verified showing real
+content; `02_device_detail` additionally needed an explicit "Refresh" click to reliably beat a
+race in the detail screen's own per-device fetch. `03_topology` waits for the seeded four-node,
+three-connection graph, and `04_search` fails rather than silently accepting an empty state.
+The tablet capture now lives in the manual `Play Store screenshots` GitHub Actions workflow,
+reusing the repository's maintained Android emulator runner instead of custom remote SSH/AVD
+plumbing. The tablet bucket still needs one manual run and review.
+
+
+## NBC-366: color object-type icons in color settings
+
+When configuring object-type colors, preview each object type's icon using its selected color so
+the setting is immediately understandable.
+
+- [ ] Apply the configured object-type color to the relevant icon in the color-setting UI.
+- [ ] Keep the preview consistent with object-type icons elsewhere in the app.
+- [ ] Add focused UI/unit coverage for the color preview.
+
+Status: not started, 2026-08-04.
