@@ -1,18 +1,16 @@
 package dev.pschmitt.nyetbox.di
 
-import android.content.Context
-import androidx.room.Room
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import dev.pschmitt.nyetbox.data.db.AppDatabase
 import dev.pschmitt.nyetbox.data.db.BookmarkDao
+import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import dev.pschmitt.nyetbox.data.db.CustomFieldDao
 import dev.pschmitt.nyetbox.data.db.DashboardStatDao
 import dev.pschmitt.nyetbox.data.db.DeviceDao
 import dev.pschmitt.nyetbox.data.db.DeviceTypeDao
+import dev.pschmitt.nyetbox.data.db.DynamicDaoProxy
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentDao
 import dev.pschmitt.nyetbox.data.db.NetBoxModelDao
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectDao
@@ -21,84 +19,61 @@ import dev.pschmitt.nyetbox.data.db.ObjectChangeDao
 import dev.pschmitt.nyetbox.data.db.PendingEditDao
 import dev.pschmitt.nyetbox.data.db.RackElevationDao
 import dev.pschmitt.nyetbox.data.db.RecentVisitDao
-import dev.pschmitt.nyetbox.data.db.MIGRATION_1_2
-import dev.pschmitt.nyetbox.data.db.MIGRATION_10_11
-import dev.pschmitt.nyetbox.data.db.MIGRATION_11_12
-import dev.pschmitt.nyetbox.data.db.MIGRATION_12_13
-import dev.pschmitt.nyetbox.data.db.MIGRATION_13_14
-import dev.pschmitt.nyetbox.data.db.MIGRATION_14_15
-import dev.pschmitt.nyetbox.data.db.MIGRATION_2_3
-import dev.pschmitt.nyetbox.data.db.MIGRATION_3_4
-import dev.pschmitt.nyetbox.data.db.MIGRATION_4_5
-import dev.pschmitt.nyetbox.data.db.MIGRATION_5_6
-import dev.pschmitt.nyetbox.data.db.MIGRATION_6_7
-import dev.pschmitt.nyetbox.data.db.MIGRATION_7_8
-import dev.pschmitt.nyetbox.data.db.MIGRATION_8_9
-import dev.pschmitt.nyetbox.data.db.MIGRATION_9_10
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "nyetbox.db")
-            .addMigrations(
-                MIGRATION_1_2,
-                MIGRATION_2_3,
-                MIGRATION_3_4,
-                MIGRATION_4_5,
-                MIGRATION_5_6,
-                MIGRATION_6_7,
-                MIGRATION_7_8,
-                MIGRATION_8_9,
-                MIGRATION_9_10,
-                MIGRATION_10_11,
-                MIGRATION_11_12,
-                MIGRATION_12_13,
-                MIGRATION_13_14,
-                MIGRATION_14_15,
-            )
-            .build()
-
-    @Provides fun provideDeviceDao(database: AppDatabase): DeviceDao = database.deviceDao()
+    fun provideDeviceDao(manager: CacheDatabaseManager): DeviceDao =
+        DynamicDaoProxy.create(DeviceDao::class.java, manager) { it.deviceDao() }
 
     @Provides
-    fun provideNetBoxModelDao(database: AppDatabase): NetBoxModelDao = database.netBoxModelDao()
+    fun provideNetBoxModelDao(manager: CacheDatabaseManager): NetBoxModelDao =
+        DynamicDaoProxy.create(NetBoxModelDao::class.java, manager) { it.netBoxModelDao() }
 
     @Provides
-    fun provideNetBoxObjectDao(database: AppDatabase): NetBoxObjectDao = database.netBoxObjectDao()
+    fun provideNetBoxObjectDao(manager: CacheDatabaseManager): NetBoxObjectDao =
+        DynamicDaoProxy.create(NetBoxObjectDao::class.java, manager) { it.netBoxObjectDao() }
 
     @Provides
-    fun provideDeviceTypeDao(database: AppDatabase): DeviceTypeDao = database.deviceTypeDao()
+    fun provideDeviceTypeDao(manager: CacheDatabaseManager): DeviceTypeDao =
+        DynamicDaoProxy.create(DeviceTypeDao::class.java, manager) { it.deviceTypeDao() }
 
     @Provides
-    fun provideImageAttachmentDao(database: AppDatabase): ImageAttachmentDao =
-        database.imageAttachmentDao()
-
-    @Provides fun provideBookmarkDao(database: AppDatabase): BookmarkDao = database.bookmarkDao()
+    fun provideImageAttachmentDao(manager: CacheDatabaseManager): ImageAttachmentDao =
+        DynamicDaoProxy.create(ImageAttachmentDao::class.java, manager) { it.imageAttachmentDao() }
 
     @Provides
-    fun provideObjectChangeDao(database: AppDatabase): ObjectChangeDao = database.objectChangeDao()
+    fun provideBookmarkDao(manager: CacheDatabaseManager): BookmarkDao =
+        DynamicDaoProxy.create(BookmarkDao::class.java, manager) { it.bookmarkDao() }
 
     @Provides
-    fun provideDashboardStatDao(database: AppDatabase): DashboardStatDao =
-        database.dashboardStatDao()
+    fun provideObjectChangeDao(manager: CacheDatabaseManager): ObjectChangeDao =
+        DynamicDaoProxy.create(ObjectChangeDao::class.java, manager) { it.objectChangeDao() }
 
     @Provides
-    fun provideCustomFieldDao(database: AppDatabase): CustomFieldDao = database.customFieldDao()
+    fun provideDashboardStatDao(manager: CacheDatabaseManager): DashboardStatDao =
+        DynamicDaoProxy.create(DashboardStatDao::class.java, manager) { it.dashboardStatDao() }
 
     @Provides
-    fun providePendingEditDao(database: AppDatabase): PendingEditDao = database.pendingEditDao()
+    fun provideCustomFieldDao(manager: CacheDatabaseManager): CustomFieldDao =
+        DynamicDaoProxy.create(CustomFieldDao::class.java, manager) { it.customFieldDao() }
 
     @Provides
-    fun provideRecentVisitDao(database: AppDatabase): RecentVisitDao = database.recentVisitDao()
+    fun providePendingEditDao(manager: CacheDatabaseManager): PendingEditDao =
+        DynamicDaoProxy.create(PendingEditDao::class.java, manager) { it.pendingEditDao() }
 
     @Provides
-    fun provideRackElevationDao(database: AppDatabase): RackElevationDao =
-        database.rackElevationDao()
+    fun provideRecentVisitDao(manager: CacheDatabaseManager): RecentVisitDao =
+        DynamicDaoProxy.create(RecentVisitDao::class.java, manager) { it.recentVisitDao() }
 
-    @Provides fun provideNewsDao(database: AppDatabase): NewsDao = database.newsDao()
+    @Provides
+    fun provideRackElevationDao(manager: CacheDatabaseManager): RackElevationDao =
+        DynamicDaoProxy.create(RackElevationDao::class.java, manager) { it.rackElevationDao() }
+
+    @Provides
+    fun provideNewsDao(manager: CacheDatabaseManager): NewsDao =
+        DynamicDaoProxy.create(NewsDao::class.java, manager) { it.newsDao() }
 }

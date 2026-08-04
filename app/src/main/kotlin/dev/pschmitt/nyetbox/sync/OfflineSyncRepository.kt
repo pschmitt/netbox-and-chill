@@ -15,6 +15,7 @@ import dev.pschmitt.nyetbox.data.repository.RackElevationRepository
 import dev.pschmitt.nyetbox.data.repository.RackFace
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.repository.TopologyRepository
+import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -83,9 +84,15 @@ constructor(
     private val pendingEditRepository: PendingEditRepository,
     private val topologyRepository: TopologyRepository,
     private val syncIssueReporter: SyncIssueReporter,
+    private val cacheDatabaseManager: CacheDatabaseManager,
 ) {
 
-    suspend fun syncAll(onProgress: (SyncProgress) -> Unit = {}): Result<OfflineSyncSummary> {
+    suspend fun syncAll(onProgress: (SyncProgress) -> Unit = {}): Result<OfflineSyncSummary> =
+        cacheDatabaseManager.withActiveServer { syncAllLocked(onProgress) }
+
+    private suspend fun syncAllLocked(
+        onProgress: (SyncProgress) -> Unit = {}
+    ): Result<OfflineSyncSummary> {
         var retryableFailure: Throwable? = null
         var step = 0
         var totalSteps = 7 + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0

@@ -115,12 +115,15 @@ fun SettingsScreen(
 @Composable
 fun SettingsCategoryScreen(
     category: SettingsCategory,
+    openServerManager: Boolean = false,
     onBack: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
     printSettingsViewModel: PrintSettingsViewModel = hiltViewModel(),
 ) {
     val credentials by viewModel.settingsRepository.credentials.collectAsStateWithLifecycle()
+    val serverProfiles by viewModel.settingsRepository.serverProfiles.collectAsStateWithLifecycle()
+    val activeServerId by viewModel.settingsRepository.activeServerId.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val isLoadingCurrentUser by viewModel.isLoadingCurrentUser.collectAsStateWithLifecycle()
     val connectionTest by viewModel.connectionTest.collectAsStateWithLifecycle()
@@ -164,7 +167,7 @@ fun SettingsCategoryScreen(
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.settingsRepository.syncIssue.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showEditServerDialog by remember { mutableStateOf(false) }
+    var showEditServerDialog by remember(openServerManager) { mutableStateOf(openServerManager) }
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     var tokenVisible by remember { mutableStateOf(false) }
@@ -259,14 +262,14 @@ fun SettingsCategoryScreen(
     }
 
     if (showEditServerDialog) {
-        EditServerDialog(
-            currentBaseUrl = credentials.baseUrl,
-            isUpdating = isUpdatingBaseUrl,
+        ServerProfilesDialog(
+            profiles = serverProfiles,
+            activeServerId = activeServerId,
+            onSwitch = viewModel::switchServer,
+            onAdd = viewModel::addServer,
+            onUpdate = viewModel::updateServer,
+            onRemove = { id -> viewModel.removeServer(id) { onLoggedOut() } },
             onDismiss = { showEditServerDialog = false },
-            onSave = { newBaseUrl ->
-                viewModel.updateBaseUrl(newBaseUrl)
-                showEditServerDialog = false
-            },
         )
     }
 
@@ -324,6 +327,8 @@ fun SettingsCategoryScreen(
                 state =
                     SettingsCategoryState(
                         credentials = credentials,
+                        serverProfiles = serverProfiles,
+                        activeServerId = activeServerId,
                         currentUser = currentUser,
                         isLoadingCurrentUser = isLoadingCurrentUser,
                         connectionTest = connectionTest,
@@ -358,10 +363,13 @@ fun SettingsCategoryScreen(
                 actions =
                     SettingsCategoryActions(
                         onEditServer = { showEditServerDialog = true },
+                        onSwitchServer = viewModel::switchServer,
+                        onAddServer = viewModel::addServer,
+                        onUpdateServer = viewModel::updateServer,
+                        onRemoveServer = { id -> viewModel.removeServer(id) { onLoggedOut() } },
                         onTestConnection = viewModel::testConnection,
                         onDisconnect = {
-                            viewModel.logOut()
-                            onLoggedOut()
+                            showEditServerDialog = true
                         },
                         onShowToken = { authenticateForToken { tokenVisible = true } },
                         onHideToken = { tokenVisible = false },

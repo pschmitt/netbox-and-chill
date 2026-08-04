@@ -5785,6 +5785,26 @@ Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instr
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-360: support multiple NetBox server profiles with isolated caches
+
+Allow users to add and switch between multiple NetBox instances after onboarding while keeping
+only one instance active at a time. Each instance must retain its own Room and durable-media cache;
+removing a saved instance is the only operation that may delete its cache, and it requires explicit
+confirmation.
+
+- [x] Store multiple server URL/token profiles and migrate the existing single-server settings.
+- [x] Add Settings UI for adding, switching, editing, and removing server profiles.
+- [x] Isolate Room, durable attachment, and topology caches per profile without clearing on switch.
+- [x] Keep active-server identity, sync state, and network operations tied to the selected profile.
+- [x] Add an optional switch-server gesture action.
+- [x] Verify switching and offline cache retention with an Android instrumentation test; no production
+  or temporary NetBox instance was needed.
+
+Status: **done**, 2026-08-04 - remote compile, unit tests, instrumentation compilation and cache
+isolation test, ktfmt, lint, and debug installation on Zenfone 10 and Mi Pad 4 passed. PX5
+installation was attempted but its wireless ADB endpoint was unavailable.
+
+
 ## NBC-350: support split NetBox API token entry on login
 
 The login form should default to the current NetBox token-name + token workflow while retaining

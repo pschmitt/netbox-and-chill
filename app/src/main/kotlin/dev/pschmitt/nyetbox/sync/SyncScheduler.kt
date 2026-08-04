@@ -56,6 +56,13 @@ constructor(
         workManager.cancelUniqueWork(STARTUP_WORK_NAME)
     }
 
+    /** Stops work that could otherwise continue writing into the profile being left. */
+    fun cancelForServerSwitch() {
+        workManager.cancelUniqueWork(ONE_TIME_WORK_NAME)
+        workManager.cancelUniqueWork(STARTUP_WORK_NAME)
+        workManager.cancelUniqueWork(PERIODIC_WORK_NAME)
+    }
+
     private fun syncConstraints(): Constraints =
         Constraints.Builder()
             .setRequiredNetworkType(

@@ -11,10 +11,27 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import java.util.UUID
 
 data class NetBoxCredentials(val baseUrl: String, val token: String) {
     val isValid: Boolean
         get() = baseUrl.isNotBlank() && token.isNotBlank()
+}
+
+/** A saved connection. Only one profile is active, but every profile keeps its own cache. */
+@Serializable
+data class ServerProfile(
+    val id: String,
+    val displayName: String,
+    val baseUrl: String,
+    val token: String,
+    val cacheDatabaseName: String,
+    val cacheNamespace: String = id,
+) {
+    val credentials: NetBoxCredentials
+        get() = NetBoxCredentials(baseUrl, token)
 }
 
 data class NetBoxUserIdentity(
@@ -95,6 +112,7 @@ enum class GestureAction(val storageKey: String, val label: String) {
     Sync("sync", "Sync now"),
     OfflineOn("offline_on", "Turn offline mode on"),
     OfflineOff("offline_off", "Turn offline mode off"),
+    SwitchServer("switch_server", "Switch NetBox server"),
     DeviceList("device_list", "Device list"),
     ListSpecific("list_specific", "Specific item list"),
     DetailSpecific("detail_specific", "Specific item detail");
@@ -183,6 +201,17 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
 
+    private val settingsJson = Json { ignoreUnknownKeys = true }
+
+    private val _serverProfiles = MutableStateFlow(loadServerProfiles())
+    val serverProfiles: StateFlow<List<ServerProfile>> = _serverProfiles.asStateFlow()
+
+    private val _activeServerId = MutableStateFlow(loadActiveServerId())
+    val activeServerId: StateFlow<String?> = _activeServerId.asStateFlow()
+
+    private val _activeServer = MutableStateFlow(activeServerProfile())
+    val activeServer: StateFlow<ServerProfile?> = _activeServer.asStateFlow()
+
     private val _credentials = MutableStateFlow(loadCredentials())
     val credentials: StateFlow<NetBoxCredentials> = _credentials.asStateFlow()
 
@@ -228,9 +257,15 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
 
     /** Highest object-change id seen during a changelog refresh, used to avoid historical spam. */
     var changeNotificationCursor: Int
-        get() = prefs.getInt(KEY_CHANGE_NOTIFICATION_CURSOR, 0)
+        get() =
+            prefs.getInt(
+                serverScopedKey(KEY_CHANGE_NOTIFICATION_CURSOR),
+                if (_activeServerId.value == LEGACY_SERVER_ID) {
+                    prefs.getInt(KEY_CHANGE_NOTIFICATION_CURSOR, 0)
+                } else 0,
+            )
         private set(value) {
-            prefs.edit().putInt(KEY_CHANGE_NOTIFICATION_CURSOR, value).apply()
+            prefs.edit().putInt(serverScopedKey(KEY_CHANGE_NOTIFICATION_CURSOR), value).apply()
         }
 
     private val _gestureActions = MutableStateFlow(loadGestureActions())
@@ -433,20 +468,28 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             SyncIssue(issueMessage.take(MAX_SYNC_MESSAGE_LENGTH), System.currentTimeMillis())
         prefs
             .edit()
-            .putString(KEY_SYNC_ISSUE_MESSAGE, issue.message)
-            .putLong(KEY_SYNC_ISSUE_TIME, issue.occurredAt)
+            .putString(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE), issue.message)
+            .putLong(serverScopedKey(KEY_SYNC_ISSUE_TIME), issue.occurredAt)
             .apply()
         _syncIssue.value = issue
     }
 
     fun clearSyncIssue() {
-        prefs.edit().remove(KEY_SYNC_ISSUE_MESSAGE).remove(KEY_SYNC_ISSUE_TIME).apply()
+        val editor =
+            prefs
+            .edit()
+            .remove(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE))
+            .remove(serverScopedKey(KEY_SYNC_ISSUE_TIME))
+        if (_activeServerId.value == LEGACY_SERVER_ID) {
+            editor.remove(KEY_SYNC_ISSUE_MESSAGE).remove(KEY_SYNC_ISSUE_TIME)
+        }
+        editor.apply()
         _syncIssue.value = null
     }
 
     fun recordSuccessfulSync() {
         val timestamp = System.currentTimeMillis()
-        prefs.edit().putLong(KEY_LAST_SUCCESSFUL_SYNC, timestamp).apply()
+        prefs.edit().putLong(serverScopedKey(KEY_LAST_SUCCESSFUL_SYNC), timestamp).apply()
         _lastSuccessfulSyncAt.value = timestamp
     }
 
@@ -555,39 +598,129 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun save(baseUrl: String, token: String) {
         val normalizedBaseUrl = baseUrl.trim().trimEnd('/')
         val trimmedToken = token.trim()
-        prefs
-            .edit()
-            .putString(KEY_BASE_URL, normalizedBaseUrl)
-            .putString(KEY_TOKEN, trimmedToken)
-            .apply()
+        val current = activeServerProfile()
+        val profile =
+            current?.copy(baseUrl = normalizedBaseUrl, token = trimmedToken)
+                ?: newServerProfile(normalizedBaseUrl, trimmedToken)
+        val profiles =
+            if (current == null) listOf(profile)
+            else _serverProfiles.value.map { if (it.id == profile.id) profile else it }
+        persistServerProfiles(profiles)
+        if (current == null) {
+            prefs.edit().putString(KEY_ACTIVE_SERVER_ID, profile.id).apply()
+            _activeServerId.value = profile.id
+        }
+        _activeServer.value = profile
         clearCurrentUser()
         _credentials.value = NetBoxCredentials(normalizedBaseUrl, trimmedToken)
+    }
+
+    /** Adds a profile without activating it. The caller can validate, then call [switchServer]. */
+    fun addServer(baseUrl: String, token: String, displayName: String? = null): ServerProfile {
+        val normalizedBaseUrl = baseUrl.trim().trimEnd('/')
+        val profile =
+            newServerProfile(
+                normalizedBaseUrl,
+                token.trim(),
+                displayName?.trim()?.takeIf { it.isNotBlank() },
+            )
+        persistServerProfiles(_serverProfiles.value + profile)
+        return profile
+    }
+
+    fun updateServer(id: String, baseUrl: String, token: String, displayName: String?): ServerProfile? {
+        val existing = _serverProfiles.value.firstOrNull { it.id == id } ?: return null
+        val updated =
+            existing.copy(
+                baseUrl = baseUrl.trim().trimEnd('/'),
+                token = token.trim(),
+                displayName = displayName?.trim()?.takeIf { it.isNotBlank() } ?: existing.displayName,
+            )
+        persistServerProfiles(_serverProfiles.value.map { if (it.id == id) updated else it })
+        if (_activeServerId.value == id) {
+            _activeServer.value = updated
+            _credentials.value = updated.credentials
+            clearCurrentUser()
+        }
+        return updated
+    }
+
+    fun renameServer(id: String, displayName: String) {
+        val normalized = displayName.trim().takeIf { it.isNotBlank() } ?: return
+        persistServerProfiles(
+            _serverProfiles.value.map {
+                if (it.id == id) it.copy(displayName = normalized) else it
+            }
+        )
+    }
+
+    /** Selects the active profile while leaving every profile's Room/media cache untouched. */
+    fun switchServer(id: String): ServerProfile? {
+        val profile = _serverProfiles.value.firstOrNull { it.id == id } ?: return null
+        if (_activeServerId.value == id) return profile
+        prefs.edit().putString(KEY_ACTIVE_SERVER_ID, id).apply()
+        _activeServerId.value = id
+        _activeServer.value = profile
+        _credentials.value = profile.credentials
+        _currentUser.value = loadCurrentUser()
+        _syncIssue.value = loadSyncIssue()
+        _lastSuccessfulSyncAt.value = loadLastSuccessfulSyncAt()
+        return profile
+    }
+
+    /** Removes only the profile metadata. The cache is deleted by the caller after confirmation. */
+    fun removeServer(id: String): ServerProfile? {
+        val removed = _serverProfiles.value.firstOrNull { it.id == id } ?: return null
+        val remaining = _serverProfiles.value.filterNot { it.id == id }
+        persistServerProfiles(remaining)
+        if (_activeServerId.value == id) {
+            val next = remaining.firstOrNull()
+            prefs.edit().putString(KEY_ACTIVE_SERVER_ID, next?.id).apply()
+            _activeServerId.value = next?.id
+            _activeServer.value = next
+            _credentials.value = next?.credentials ?: NetBoxCredentials("", "")
+            _currentUser.value = loadCurrentUser()
+            _syncIssue.value = loadSyncIssue()
+            _lastSuccessfulSyncAt.value = loadLastSuccessfulSyncAt()
+        }
+        return removed
     }
 
     fun setCurrentUser(user: NetBoxUserIdentity) {
         prefs
             .edit()
-            .putString(KEY_CURRENT_USER_BASE_URL, credentials.value.baseUrl)
-            .putString(KEY_CURRENT_USER_NAME, user.username)
-            .putString(KEY_CURRENT_USER_FULL_NAME, user.fullName)
-            .putString(KEY_CURRENT_USER_EMAIL, user.email)
+            .putString(serverScopedKey(KEY_CURRENT_USER_BASE_URL), credentials.value.baseUrl)
+            .putString(serverScopedKey(KEY_CURRENT_USER_NAME), user.username)
+            .putString(serverScopedKey(KEY_CURRENT_USER_FULL_NAME), user.fullName)
+            .putString(serverScopedKey(KEY_CURRENT_USER_EMAIL), user.email)
             .apply()
         _currentUser.value = user
     }
 
     fun clearCurrentUser() {
-        prefs
-            .edit()
-            .remove(KEY_CURRENT_USER_BASE_URL)
-            .remove(KEY_CURRENT_USER_NAME)
-            .remove(KEY_CURRENT_USER_FULL_NAME)
-            .remove(KEY_CURRENT_USER_EMAIL)
-            .apply()
+        val editor =
+            prefs
+                .edit()
+            .remove(serverScopedKey(KEY_CURRENT_USER_BASE_URL))
+            .remove(serverScopedKey(KEY_CURRENT_USER_NAME))
+            .remove(serverScopedKey(KEY_CURRENT_USER_FULL_NAME))
+            .remove(serverScopedKey(KEY_CURRENT_USER_EMAIL))
+        if (_activeServerId.value == LEGACY_SERVER_ID) {
+            editor
+                .remove(KEY_CURRENT_USER_BASE_URL)
+                .remove(KEY_CURRENT_USER_NAME)
+                .remove(KEY_CURRENT_USER_FULL_NAME)
+                .remove(KEY_CURRENT_USER_EMAIL)
+        }
+        editor.apply()
         _currentUser.value = null
     }
 
     fun clear() {
         prefs.edit().clear().apply()
+        _serverProfiles.value = emptyList()
+        _activeServerId.value = null
+        _activeServer.value = null
         _credentials.value = NetBoxCredentials("", "")
         _currentUser.value = null
         _offlineMode.value = false
@@ -610,34 +743,152 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         clearSyncIssue()
     }
 
-    private fun loadCredentials() =
-        NetBoxCredentials(
-            baseUrl = prefs.getString(KEY_BASE_URL, "") ?: "",
-            token = prefs.getString(KEY_TOKEN, "") ?: "",
+    private fun loadServerProfiles(): List<ServerProfile> {
+        val stored = prefs.getString(KEY_SERVER_PROFILES, null)
+        if (!stored.isNullOrBlank()) {
+            runCatching {
+                    settingsJson.decodeFromString(
+                        kotlinx.serialization.builtins.ListSerializer(ServerProfile.serializer()),
+                        stored,
+                    )
+                }
+                .getOrNull()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { return it }
+        }
+
+        // Migrate the pre-1.2 single-server settings without touching its existing Room file.
+        val baseUrl = prefs.getString(KEY_BASE_URL, "").orEmpty().trim().trimEnd('/')
+        val token = prefs.getString(KEY_TOKEN, "").orEmpty().trim()
+        if (baseUrl.isBlank() || token.isBlank()) return emptyList()
+        val profile =
+            ServerProfile(
+                id = LEGACY_SERVER_ID,
+                displayName = displayNameFor(baseUrl),
+                baseUrl = baseUrl,
+                token = token,
+                cacheDatabaseName = LEGACY_DATABASE_NAME,
+                cacheNamespace = LEGACY_CACHE_NAMESPACE,
+            )
+        prefs
+            .edit()
+            .putString(
+                KEY_SERVER_PROFILES,
+                settingsJson.encodeToString(
+                    kotlinx.serialization.builtins.ListSerializer(ServerProfile.serializer()),
+                    listOf(profile),
+                ),
+            )
+            .putString(KEY_ACTIVE_SERVER_ID, profile.id)
+            .apply()
+        return listOf(profile)
+    }
+
+    private fun loadActiveServerId(): String? {
+        val stored = prefs.getString(KEY_ACTIVE_SERVER_ID, null)
+        return _serverProfiles.value.firstOrNull { it.id == stored }?.id
+            ?: _serverProfiles.value.firstOrNull()?.id
+    }
+
+    private fun activeServerProfile(): ServerProfile? =
+        _serverProfiles.value.firstOrNull { it.id == _activeServerId.value }
+            ?: _serverProfiles.value.firstOrNull()
+
+    private fun credentialsOrEmpty(): NetBoxCredentials =
+        activeServerProfile()?.credentials ?: NetBoxCredentials("", "")
+
+    private fun newServerProfile(
+        baseUrl: String,
+        token: String,
+        displayName: String? = null,
+    ): ServerProfile {
+        val id = UUID.randomUUID().toString()
+        return ServerProfile(
+            id = id,
+            displayName = displayName ?: displayNameFor(baseUrl),
+            baseUrl = baseUrl,
+            token = token,
+            cacheDatabaseName = "nyetbox-$id.db",
+            cacheNamespace = id,
         )
+    }
+
+    private fun persistServerProfiles(profiles: List<ServerProfile>) {
+        prefs
+            .edit()
+            .putString(
+                KEY_SERVER_PROFILES,
+                settingsJson.encodeToString(
+                    kotlinx.serialization.builtins.ListSerializer(ServerProfile.serializer()),
+                    profiles,
+                ),
+            )
+            .apply()
+        _serverProfiles.value = profiles
+        _activeServer.value = activeServerProfile()
+    }
+
+    private fun serverScopedKey(key: String): String =
+        "${key}:${_activeServerId.value ?: LEGACY_SERVER_ID}"
+
+    private fun displayNameFor(baseUrl: String): String =
+        baseUrl.substringAfter("://", baseUrl).substringBefore('/').ifBlank { baseUrl }
+
+    private fun loadCredentials(): NetBoxCredentials =
+        activeServerProfile()?.credentials ?: NetBoxCredentials("", "")
 
     private fun loadCurrentUser(): NetBoxUserIdentity? {
-        val baseUrl = prefs.getString(KEY_BASE_URL, "").orEmpty()
-        val storedBaseUrl = prefs.getString(KEY_CURRENT_USER_BASE_URL, null)
-        val username = prefs.getString(KEY_CURRENT_USER_NAME, null)?.takeIf { it.isNotBlank() }
+        val baseUrl = credentialsOrEmpty().baseUrl
+        val useLegacyKeys = _activeServerId.value == LEGACY_SERVER_ID
+        val storedBaseUrl =
+            prefs.getString(serverScopedKey(KEY_CURRENT_USER_BASE_URL), null)
+                ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_BASE_URL, null) else null
+        val username =
+            prefs.getString(serverScopedKey(KEY_CURRENT_USER_NAME), null)?.takeIf { it.isNotBlank() }
+                ?: if (useLegacyKeys) {
+                    prefs.getString(KEY_CURRENT_USER_NAME, null)?.takeIf { it.isNotBlank() }
+                } else null
         if (baseUrl.isBlank() || storedBaseUrl != baseUrl || username == null) return null
         return NetBoxUserIdentity(
             username = username,
-            fullName = prefs.getString(KEY_CURRENT_USER_FULL_NAME, null),
-            email = prefs.getString(KEY_CURRENT_USER_EMAIL, null),
+            fullName =
+                prefs.getString(serverScopedKey(KEY_CURRENT_USER_FULL_NAME), null)
+                    ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_FULL_NAME, null) else null,
+            email =
+                prefs.getString(serverScopedKey(KEY_CURRENT_USER_EMAIL), null)
+                    ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_EMAIL, null) else null,
         )
     }
 
     private fun loadSyncIssue(): SyncIssue? {
-        val message = prefs.getString(KEY_SYNC_ISSUE_MESSAGE, null)?.takeIf { it.isNotBlank() }
-        val occurredAt = prefs.getLong(KEY_SYNC_ISSUE_TIME, 0L)
+        val message =
+            prefs
+                .getString(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE), null)
+                ?.takeIf { it.isNotBlank() }
+                ?: if (_activeServerId.value == LEGACY_SERVER_ID) {
+                    prefs.getString(KEY_SYNC_ISSUE_MESSAGE, null)?.takeIf { it.isNotBlank() }
+                } else null
+        val occurredAt =
+            prefs.getLong(
+                serverScopedKey(KEY_SYNC_ISSUE_TIME),
+                if (_activeServerId.value == LEGACY_SERVER_ID) {
+                    prefs.getLong(KEY_SYNC_ISSUE_TIME, 0L)
+                } else 0L,
+            )
         return if (message != null && occurredAt > 0L) {
             SyncIssue(summarizeSyncIssueMessage(message), occurredAt)
         } else null
     }
 
     private fun loadLastSuccessfulSyncAt(): Long? =
-        prefs.getLong(KEY_LAST_SUCCESSFUL_SYNC, 0L).takeIf { it > 0L }
+        prefs
+            .getLong(
+                serverScopedKey(KEY_LAST_SUCCESSFUL_SYNC),
+                if (_activeServerId.value == LEGACY_SERVER_ID) {
+                    prefs.getLong(KEY_LAST_SUCCESSFUL_SYNC, 0L)
+                } else 0L,
+            )
+            .takeIf { it > 0L }
 
     private fun loadThemeMode(): ThemeMode =
         ThemeMode.fromStorage(prefs.getString(KEY_THEME_MODE, ThemeMode.FollowSystem.storageKey))
@@ -805,6 +1056,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private companion object {
         const val KEY_BASE_URL = "base_url"
         const val KEY_TOKEN = "token"
+        const val KEY_SERVER_PROFILES = "server_profiles"
+        const val KEY_ACTIVE_SERVER_ID = "active_server_id"
+        const val LEGACY_SERVER_ID = "legacy"
+        const val LEGACY_DATABASE_NAME = "nyetbox.db"
+        const val LEGACY_CACHE_NAMESPACE = "legacy"
         const val KEY_CURRENT_USER_BASE_URL = "current_user_base_url"
         const val KEY_CURRENT_USER_NAME = "current_user_name"
         const val KEY_CURRENT_USER_FULL_NAME = "current_user_full_name"

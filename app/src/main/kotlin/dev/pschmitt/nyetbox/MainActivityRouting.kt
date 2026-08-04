@@ -8,6 +8,7 @@ import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.scanner.NetBoxTarget
 import dev.pschmitt.nyetbox.scanner.NetBoxUrlParser
 import dev.pschmitt.nyetbox.ui.navigation.Route
+import dev.pschmitt.nyetbox.ui.settings.SettingsCategory
 
 data class SharedMediaPayload(
     val uri: String,
@@ -76,6 +77,8 @@ internal fun routeForGesture(action: GestureAction, target: GestureTarget?): Rou
         GestureAction.GlobalSearch -> Route.GlobalSearch
         GestureAction.Scanner -> Route.Scanner()
         GestureAction.Settings -> Route.Settings
+        GestureAction.SwitchServer ->
+            Route.SettingsCategory(SettingsCategory.Connection, openServerManager = true)
         GestureAction.Add -> Route.Add
         GestureAction.AddSpecific ->
             target?.let { Route.GenericCreate(it.endpointPath, it.label) } ?: Route.Add

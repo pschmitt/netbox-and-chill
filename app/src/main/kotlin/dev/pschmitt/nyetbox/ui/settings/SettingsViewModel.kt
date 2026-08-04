@@ -3,7 +3,7 @@ package dev.pschmitt.nyetbox.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.pschmitt.nyetbox.data.db.AppDatabase
+import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
@@ -20,11 +20,11 @@ import dev.pschmitt.nyetbox.data.repository.ScannerLens
 import dev.pschmitt.nyetbox.data.repository.ScannerRearLens
 import dev.pschmitt.nyetbox.data.repository.NetBoxCredentials
 import dev.pschmitt.nyetbox.data.repository.NetBoxUserIdentity
+import dev.pschmitt.nyetbox.data.repository.ServerProfile
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -60,7 +59,7 @@ constructor(
     syncStatusRepository: SyncStatusRepository,
     private val directoryRepository: DirectoryRepository,
     private val genericObjectRepository: GenericObjectRepository,
-    private val appDatabase: AppDatabase,
+    private val cacheDatabaseManager: CacheDatabaseManager,
     private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
 
@@ -136,6 +135,95 @@ constructor(
     fun syncNow() {
         if (settingsRepository.offlineMode.value) return
         syncScheduler.syncNow()
+    }
+
+    fun switchServer(id: String) {
+        val profile = settingsRepository.serverProfiles.value.firstOrNull { it.id == id } ?: return
+        viewModelScope.launch {
+            syncScheduler.cancelForServerSwitch()
+            cacheDatabaseManager.switchTo(profile)
+            settingsRepository.switchServer(id)
+            refreshCacheCounts()
+            if (!settingsRepository.offlineMode.value) {
+                syncScheduler.schedulePeriodic()
+                syncScheduler.syncNow()
+            }
+        }
+    }
+
+    fun addServer(baseUrl: String, token: String, displayName: String?) {
+        if (baseUrl.isBlank() || token.isBlank()) return
+        val previousId = settingsRepository.activeServerId.value
+        val profile = runCatching { settingsRepository.addServer(baseUrl, token, displayName) }.getOrNull()
+            ?: return
+        viewModelScope.launch {
+            cacheDatabaseManager.switchTo(profile)
+            settingsRepository.switchServer(profile.id)
+            if (settingsRepository.offlineMode.value) {
+                refreshCacheCounts()
+                return@launch
+            }
+            lookupCurrentUser(profile.credentials)
+                .onSuccess {
+                    settingsRepository.setCurrentUser(it)
+                    syncScheduler.syncNow()
+                }
+                .onFailure {
+                    cacheDatabaseManager.delete(profile)
+                    fileDownloadRepository.deletePersistentCache(profile)
+                    settingsRepository.removeServer(profile.id)
+                    previousId?.let { settingsRepository.switchServer(it) }
+                    previousId?.let { id ->
+                        settingsRepository.serverProfiles.value.firstOrNull { it.id == id }?.let {
+                            cacheDatabaseManager.switchTo(it)
+                        }
+                    }
+                    _errorMessage.value = it.connectionMessage()
+                }
+            refreshCacheCounts()
+        }
+    }
+
+    fun updateServer(id: String, baseUrl: String, token: String, displayName: String?) {
+        val previous = settingsRepository.serverProfiles.value.firstOrNull { it.id == id } ?: return
+        val profile = settingsRepository.updateServer(id, baseUrl, token, displayName) ?: return
+        if (settingsRepository.activeServerId.value != id) return
+        viewModelScope.launch {
+            cacheDatabaseManager.switchTo(profile)
+            if (settingsRepository.offlineMode.value) return@launch
+            lookupCurrentUser(profile.credentials)
+                .onSuccess {
+                    settingsRepository.setCurrentUser(it)
+                    syncScheduler.syncNow()
+                }
+                .onFailure {
+                    settingsRepository.updateServer(
+                        previous.id,
+                        previous.baseUrl,
+                        previous.token,
+                        previous.displayName,
+                    )
+                    _errorMessage.value = it.connectionMessage()
+                }
+            refreshCacheCounts()
+        }
+    }
+
+    fun removeServer(id: String, onNoServers: () -> Unit = {}) {
+        val profile = settingsRepository.serverProfiles.value.firstOrNull { it.id == id } ?: return
+        viewModelScope.launch {
+            if (settingsRepository.activeServerId.value == id) syncScheduler.cancelForServerSwitch()
+            cacheDatabaseManager.delete(profile)
+            fileDownloadRepository.deletePersistentCache(profile)
+            val removed = settingsRepository.removeServer(id) ?: return@launch
+            val next = settingsRepository.activeServer.value
+            if (next != null) {
+                cacheDatabaseManager.switchTo(next)
+                refreshCacheCounts()
+            } else {
+                onNoServers()
+            }
+        }
     }
 
     fun testConnection() {
@@ -226,11 +314,12 @@ constructor(
     private fun refreshCacheCounts() {
         viewModelScope.launch {
             _cachedDeviceCount.value = deviceRepository.cachedDeviceCount()
-            _cachedObjectCount.value = appDatabase.netBoxObjectDao().countAll()
+            val database = cacheDatabaseManager.activeDatabase.value
+            _cachedObjectCount.value = database.netBoxObjectDao().countAll()
             _cachedImageCount.value =
-                appDatabase.deviceTypeDao().getAll().count {
+                database.deviceTypeDao().getAll().count {
                     it.frontImageUrl != null || it.rearImageUrl != null
-                } + appDatabase.imageAttachmentDao().getAll().size
+                } + database.imageAttachmentDao().getAll().size
             fileDownloadRepository.persistentStats().let { stats ->
                 _persistentCacheBytes.value = stats.bytes
                 _persistentCacheFiles.value = stats.fileCount
@@ -324,10 +413,8 @@ constructor(
      * from [SettingsRepository] reactively, so there's no other way to actually test the new URL)
      * then validates reachability, reverting back to the previous URL/token on failure rather than
      * leaving the app pointed at an unreachable instance - mirrors
-     * `OnboardingViewModel.connect()`'s save-then-validate shape. On success, wipes the local cache
-     * (`AppDatabase.clearAllTables()`) since cached rows are tied to the *previous* server - ids
-     * from two different NetBox instances aren't the same objects, so keeping them around would
-     * silently mix data from both.
+     * `OnboardingViewModel.connect()`'s save-then-validate shape. Editing a profile preserves its
+     * isolated cache; only explicit profile removal is destructive.
      */
     fun updateBaseUrl(newBaseUrl: String) {
         val previous = settingsRepository.credentials.value
@@ -339,7 +426,6 @@ constructor(
             directoryRepository
                 .refresh()
                 .onSuccess {
-                    withContext(Dispatchers.IO) { appDatabase.clearAllTables() }
                     refreshCacheCounts()
                 }
                 .onFailure {

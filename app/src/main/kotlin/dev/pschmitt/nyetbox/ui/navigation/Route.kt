@@ -26,7 +26,8 @@ sealed interface Route {
 
     @Serializable
     data class SettingsCategory(
-        val category: dev.pschmitt.nyetbox.ui.settings.SettingsCategory
+        val category: dev.pschmitt.nyetbox.ui.settings.SettingsCategory,
+        val openServerManager: Boolean = false,
     ) : Route
 
     /** Model picker for the metadata-driven create form, reachable from the global bottom bar. */

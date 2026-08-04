@@ -25,13 +25,13 @@ class FileDownloadRepository
 constructor(
     @DownloadClient private val okHttpClient: OkHttpClient,
     @ApplicationContext private val context: Context,
+    private val settingsRepository: SettingsRepository,
 ) {
 
     data class PersistentStats(val fileCount: Int, val bytes: Long)
 
     fun persistentStats(): PersistentStats {
-        val files =
-            File(context.filesDir, "offline-attachments").listFiles().orEmpty().filter { it.isFile }
+        val files = persistentDirectory().listFiles().orEmpty().filter { it.isFile }
         return PersistentStats(files.size, files.sumOf { it.length() })
     }
 
@@ -93,7 +93,7 @@ constructor(
             runCatching {
                 okHttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
                     if (!response.isSuccessful) error("Download failed: HTTP ${response.code}")
-                    val downloadsDir = File(context.cacheDir, "downloads").apply { mkdirs() }
+                    val downloadsDir = transientDirectory().apply { mkdirs() }
                     val safeFilename = filename.substringAfterLast('/').substringAfterLast('\\')
                     val outFile = File(downloadsDir, safeFilename.ifBlank { "attachment" })
                     response.body.byteStream().use { input ->
@@ -111,7 +111,33 @@ constructor(
                 .substringAfterLast('.', "")
                 .takeIf { it.length in 1..10 && it.all(Char::isLetterOrDigit) }
                 ?.let { ".${it.lowercase()}" } ?: ""
-        return File(File(context.filesDir, "offline-attachments"), "$hash$extension")
+        return File(persistentDirectory(), "$hash$extension")
+    }
+
+    /** Deletes durable media for one profile, called only after the user confirms profile removal. */
+    suspend fun deletePersistentCache(profile: ServerProfile) =
+        withContext(Dispatchers.IO) {
+            val root = File(context.filesDir, "offline-attachments")
+            val directory =
+                if (profile.cacheNamespace == LEGACY_CACHE_NAMESPACE) root
+                else File(root, profile.cacheNamespace)
+            directory.deleteRecursively()
+        }
+
+    private fun persistentDirectory(): File {
+        val root = File(context.filesDir, "offline-attachments")
+        val namespace = settingsRepository.activeServer.value?.cacheNamespace
+        return if (namespace == null || namespace == LEGACY_CACHE_NAMESPACE) root
+        else File(root, namespace)
+    }
+
+    private fun transientDirectory(): File {
+        val namespace = settingsRepository.activeServer.value?.cacheNamespace ?: LEGACY_CACHE_NAMESPACE
+        return File(context.cacheDir, "downloads/$namespace")
+    }
+
+    private companion object {
+        const val LEGACY_CACHE_NAMESPACE = "legacy"
     }
 
     private fun persistentHash(url: String): String {

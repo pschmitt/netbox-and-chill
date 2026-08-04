@@ -48,6 +48,8 @@ private val THREE_FINGER_SHORTCUTS =
 
 internal data class SettingsCategoryState(
     val credentials: NetBoxCredentials,
+    val serverProfiles: List<ServerProfile> = emptyList(),
+    val activeServerId: String? = null,
     val currentUser: NetBoxUserIdentity?,
     val isLoadingCurrentUser: Boolean,
     val connectionTest: ConnectionTestState,
@@ -82,6 +84,10 @@ internal data class SettingsCategoryState(
 
 internal data class SettingsCategoryActions(
     val onEditServer: () -> Unit,
+    val onSwitchServer: (String) -> Unit = {},
+    val onAddServer: (String, String, String?) -> Unit = { _, _, _ -> },
+    val onUpdateServer: (String, String, String, String?) -> Unit = { _, _, _, _ -> },
+    val onRemoveServer: (String) -> Unit = {},
     val onTestConnection: () -> Unit,
     val onDisconnect: () -> Unit,
     val onShowToken: () -> Unit,
@@ -148,8 +154,30 @@ private fun ConnectionSettingsContent(
             SettingsListItem(
                 modifier = Modifier.clickable(onClick = actions.onEditServer),
                 leadingContent = { Icon(Icons.Default.Cloud, contentDescription = null) },
-                headlineContent = { Text("NetBox instance") },
-                supportingContent = { Text(state.credentials.baseUrl) },
+                headlineContent = { Text("Active NetBox instance") },
+                supportingContent = {
+                    Text(
+                        state.serverProfiles
+                            .firstOrNull { it.id == state.activeServerId }
+                            ?.displayName
+                            ?.takeIf { it.isNotBlank() }
+                            ?: state.credentials.baseUrl
+                    )
+                },
+                trailingContent = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
+            )
+            SettingsListItem(
+                modifier = Modifier.clickable(onClick = actions.onEditServer),
+                leadingContent = { Icon(Icons.Default.Dns, contentDescription = null) },
+                headlineContent = { Text("Manage server connections") },
+                supportingContent = {
+                    Text(
+                        if (state.serverProfiles.size == 1) "1 saved instance"
+                        else "${state.serverProfiles.size} saved instances"
+                    )
+                },
                 trailingContent = {
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                 },
@@ -269,9 +297,9 @@ private fun ConnectionSettingsContent(
                     ),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                Icon(Icons.Default.Dns, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Disconnect")
+                Text("Manage server connections")
             }
         }
     }

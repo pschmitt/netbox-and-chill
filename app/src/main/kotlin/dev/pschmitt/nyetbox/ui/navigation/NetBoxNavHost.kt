@@ -419,6 +419,7 @@ fun NetBoxNavHost(
             val route: Route.SettingsCategory = backStackEntry.toRoute()
             SettingsCategoryScreen(
                 category = route.category,
+                openServerManager = route.openServerManager,
                 onBack = { navController.navigateBackSafely() },
                 onLoggedOut = {
                     navController.navigate(Route.Onboarding) { popUpTo(0) { inclusive = true } }

@@ -13,8 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.repository.ChangeNotificationFilter
+import dev.pschmitt.nyetbox.data.repository.ServerProfile
 import dev.pschmitt.nyetbox.data.repository.ThemeAccent
 import dev.pschmitt.nyetbox.data.repository.normalizeHiddenFieldPreferenceKey
 import dev.pschmitt.nyetbox.ui.common.visualColorForEndpointPath
@@ -183,6 +185,186 @@ internal fun EditServerDialog(
             TextButton(onClick = onDismiss, enabled = !isUpdating) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+internal fun ServerProfilesDialog(
+    profiles: List<ServerProfile>,
+    activeServerId: String?,
+    onSwitch: (String) -> Unit,
+    onAdd: (String, String, String?) -> Unit,
+    onUpdate: (String, String, String, String?) -> Unit,
+    onRemove: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var adding by remember { mutableStateOf(false) }
+    var editingProfile by remember { mutableStateOf<ServerProfile?>(null) }
+    var name by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }
+    var pendingRemoval by remember { mutableStateOf<ServerProfile?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                when {
+                    adding -> "Add NetBox instance"
+                    editingProfile != null -> "Edit NetBox instance"
+                    else -> "Server connections"
+                }
+            )
+        },
+        text = {
+            if (adding || editingProfile != null) {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name (optional)") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Label, contentDescription = null)
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = { Text("NetBox URL") },
+                        leadingIcon = { Icon(Icons.Default.Dns, contentDescription = null) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = token,
+                        onValueChange = { token = it },
+                        label = { Text("API token") },
+                        leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    if (profiles.isEmpty()) {
+                        Text("No saved NetBox instances.")
+                    }
+                    profiles.forEach { profile ->
+                        SettingsListItem(
+                            modifier = Modifier.clickable { onSwitch(profile.id); onDismiss() },
+                            leadingContent = {
+                                Icon(
+                                    if (profile.id == activeServerId) Icons.Default.RadioButtonChecked
+                                    else Icons.Default.Dns,
+                                    contentDescription = null,
+                                    tint =
+                                        if (profile.id == activeServerId) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            headlineContent = { Text(profile.displayName) },
+                            supportingContent = { Text(profile.baseUrl) },
+                            trailingContent = {
+                                Row {
+                                    IconButton(
+                                        onClick = {
+                                            editingProfile = profile
+                                            adding = false
+                                            name = profile.displayName
+                                            url = profile.baseUrl
+                                            token = profile.token
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit ${profile.displayName}")
+                                    }
+                                    IconButton(onClick = { pendingRemoval = profile }) {
+                                        Icon(
+                                            Icons.Default.DeleteOutline,
+                                            contentDescription = "Remove ${profile.displayName}",
+                                        )
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                    onClick = {
+                        adding = true
+                        editingProfile = null
+                        name = ""
+                        url = ""
+                        token = ""
+                    },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Add server")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (adding || editingProfile != null) {
+                TextButton(
+                    onClick = {
+                        editingProfile?.let { profile ->
+                            onUpdate(profile.id, url, token, name.takeIf { it.isNotBlank() })
+                        } ?: onAdd(url, token, name.takeIf { it.isNotBlank() })
+                        adding = false
+                        editingProfile = null
+                        name = ""
+                        url = ""
+                        token = ""
+                    },
+                    enabled = url.isNotBlank() && token.isNotBlank(),
+                ) { Text("Add") }
+            } else {
+                TextButton(onClick = onDismiss) { Text("Done") }
+            }
+        },
+        dismissButton =
+            if (adding || editingProfile != null) {
+                {
+                    TextButton(
+                        onClick = {
+                            adding = false
+                            editingProfile = null
+                        }
+                    ) { Text("Cancel") }
+                }
+            } else null,
+    )
+
+    pendingRemoval?.let { profile ->
+        AlertDialog(
+            onDismissRequest = { pendingRemoval = null },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null) },
+            title = { Text("Remove ${profile.displayName}?") },
+            text = {
+                Text(
+                    "This removes the saved connection and permanently deletes its offline cache. Other server caches are kept."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onRemove(profile.id)
+                        pendingRemoval = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Remove and delete cache") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemoval = null }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 @Composable

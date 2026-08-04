@@ -77,6 +77,7 @@ internal fun GestureShortcutRow(
                                         GestureAction.Sync -> Icons.Default.Sync
                                         GestureAction.OfflineOn,
                                         GestureAction.OfflineOff -> Icons.Default.CloudOff
+                                        GestureAction.SwitchServer -> Icons.Default.SwapHoriz
                                         GestureAction.DeviceList,
                                         GestureAction.ListSpecific,
                                         GestureAction.DetailSpecific -> Icons.Default.Storage
