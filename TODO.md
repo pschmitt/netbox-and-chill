@@ -6163,3 +6163,18 @@ downloaded assets, image attachments, or documents.
 Status: **done**, 2026-08-04; unit tests and compile passed remotely, and manual export/restore
 were verified on the wired Zenfone 10. Scheduled worker behavior is covered by the same
 versioned/password-protected manager and WorkManager wiring; no cache/media data is serialized.
+
+## NBC-368: sync the Play Console icon to the final launcher mark
+
+The Play Console listing's icon (uploaded whenever `docs/images/nyetbox-icon.svg` changes, via
+`just play-icon-upload`) was still the very first NetBox-derived pass from NBC-365, before the
+size corrections in that same entry's history.
+
+- [x] Ran `just play-icon-upload` after NBC-365/367's final icon size landed - flattens the
+  current `docs/images/nyetbox-icon.svg` to 512x512 and uploads it as the Play Console icon via
+  `gpc`, using the app's existing recipe (no new tooling needed).
+
+**Why:** user asked to confirm all three apps' Play Console icons/banners were current.
+**How to apply:** N/A, existing recipe.
+
+Status: **done**, 2026-08-04.
