@@ -7,6 +7,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,9 +16,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Badge
 import androidx.compose.material3.AlertDialog
@@ -77,6 +83,7 @@ fun DocumentsSection(
         if (documents.isNotEmpty()) {
             documents.forEach { document ->
                 val canOpen = !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
+                val localFile = localFileFor?.invoke(document)
                 NyetboxCard(
                     modifier =
                         Modifier.fillMaxWidth()
@@ -92,12 +99,17 @@ fun DocumentsSection(
                     NyetboxListItem(
                         headlineContent = { Text(document.name) },
                         supportingContent = {
-                            document.documentType?.let { type -> DocumentTypeBadge(type) }
+                            Column {
+                                document.documentType?.let { type -> DocumentTypeBadge(type) }
+                                if (localFile?.isFile == true) {
+                                    CachedDocumentBadge()
+                                }
+                            }
                         },
                         leadingContent = {
                             DocumentPreview(
                                 document = document,
-                                localFile = localFileFor?.invoke(document),
+                                localFile = localFile,
                             )
                         },
                     )
@@ -202,11 +214,24 @@ private fun DocumentTypeBadge(rawType: String) {
         contentColor = colors.content,
         shape = RoundedCornerShape(50),
     ) {
-        Text(
-            presentation.label,
-            style = MaterialTheme.typography.labelSmall,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-        )
+        ) {
+            Icon(
+                imageVector =
+                    when (presentation.key) {
+                        "manual" -> Icons.AutoMirrored.Filled.MenuBook
+                        "purchaseorder" -> Icons.Default.ShoppingCart
+                        "floorplan" -> Icons.Default.Map
+                        else -> Icons.Default.Description
+                    },
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(presentation.label, style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 
@@ -266,12 +291,21 @@ private fun DocumentPreview(document: CachedDocument, localFile: File?) {
                 }
             }
         }
-        if (localFile?.isFile == true) {
-            Badge(
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-            ) {
-                Text("Cached", style = MaterialTheme.typography.labelSmall)
-            }
+    }
+}
+
+@Composable
+private fun CachedDocumentBadge() {
+    Badge(
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(12.dp))
+            Text("Cached", style = MaterialTheme.typography.labelSmall)
         }
     }
 }
