@@ -22,6 +22,9 @@ class GlobalSearchLabelsTest {
 
     @Test
     fun preservesAcronymsWhenSingularizingLabels() {
-        assertEquals("MAC Address", searchObjectTypeLabel("MAC Addresses", "api/ipam/ip-addresses/"))
+        assertEquals(
+            "MAC Address",
+            searchObjectTypeLabel("MAC Addresses", "api/ipam/ip-addresses/"),
+        )
     }
 }

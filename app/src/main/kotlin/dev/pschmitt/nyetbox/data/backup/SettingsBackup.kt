@@ -188,9 +188,7 @@ constructor(
                     gestureActions =
                         settingsRepository.gestureActions.value
                             .mapKeys { it.key.storageKey }
-                            .mapValues {
-                                it.value.storageKey
-                            },
+                            .mapValues { it.value.storageKey },
                     gestureTargets =
                         settingsRepository.gestureTargets.value.mapKeys { it.key.storageKey },
                     scannerLens = settingsRepository.scannerLens.value.storageKey,

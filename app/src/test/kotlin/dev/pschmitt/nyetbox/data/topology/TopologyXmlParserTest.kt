@@ -22,7 +22,8 @@ class TopologyXmlParserTest {
                     <mxGeometry x="300" y="200" width="50" height="50" as="geometry"/>
                   </mxCell>
                 </root></mxGraphModel></diagram></mxfile>
-                """.trimIndent()
+                """
+                    .trimIndent()
             )
 
         assertEquals(2, graph.nodes.size)
@@ -43,7 +44,8 @@ class TopologyXmlParserTest {
               <mxCell id="device-1" value="One" vertex="1"/>
               <mxCell id="device-2" value="Two" vertex="1"/>
             </root></mxGraphModel></diagram></mxfile>
-            """.trimIndent()
+            """
+                .trimIndent()
         val graph = parseTopologyXml(xml)
 
         assertEquals(listOf("device-1", "device-2"), graph.nodes.map { it.id })

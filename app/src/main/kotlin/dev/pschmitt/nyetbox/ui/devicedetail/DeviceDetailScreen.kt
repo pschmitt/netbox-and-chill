@@ -179,9 +179,7 @@ fun DeviceDetailScreen(
     val changelogTabIndex = visibleRelatedTabs.size + 1
     val tabCount = changelogTabIndex + 1
     val visibleSelectedTab = selectedTab.coerceIn(0, tabCount - 1)
-    LaunchedEffect(visibleRelatedTabs) {
-        selectedTab = visibleSelectedTab
-    }
+    LaunchedEffect(visibleRelatedTabs) { selectedTab = visibleSelectedTab }
     val selectedRelatedObjects =
         if (visibleSelectedTab in 1..visibleRelatedTabs.size) {
             val endpointPath = visibleRelatedTabs[visibleSelectedTab - 1].endpointPath
@@ -302,9 +300,7 @@ fun DeviceDetailScreen(
                         navigationIconContentColor = detailAccent,
                         actionIconContentColor = detailAccent,
                     ),
-                title = {
-                    Text(device?.name ?: "Device", maxLines = 1)
-                },
+                title = { Text(device?.name ?: "Device", maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -966,9 +962,7 @@ fun DeviceDetailScreen(
         JournalEntryEditorDialog(
             entry = journalEditorEntry,
             state = journalMutationState,
-            onDismiss = {
-                if (!journalMutationState.isSaving) showJournalEditor = false
-            },
+            onDismiss = { if (!journalMutationState.isSaving) showJournalEditor = false },
             onSave = { kind, comments ->
                 viewModel.saveJournalEntry(journalEditorEntry, kind, comments)
             },
@@ -1192,15 +1186,11 @@ private fun DeviceRelatedObjects(
                                         ipAddress.address,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier =
-                                            Modifier.weight(1f).clickable {
-                                                onIpClick(ipAddress)
-                                            },
+                                            Modifier.weight(1f).clickable { onIpClick(ipAddress) },
                                     )
                                     DetailTrailingActions(
                                         copyLabel = "IP address",
-                                        onCopy = {
-                                            onCopyValue("IP address", ipAddress.address)
-                                        },
+                                        onCopy = { onCopyValue("IP address", ipAddress.address) },
                                         openLabel = "IP address",
                                         onOpen = { onIpClick(ipAddress) },
                                     )

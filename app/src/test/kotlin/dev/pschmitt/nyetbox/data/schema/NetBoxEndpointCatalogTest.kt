@@ -19,6 +19,9 @@ class NetBoxEndpointCatalogTest {
     @Test
     fun `plugin paths retain generic fallback behavior`() {
         assertNull(NetBoxEndpointCatalog.forPath("api/plugins/example/widgets/"))
-        assertEquals("plugins/example", NetBoxRef.appKeyFromEndpointPath("api/plugins/example/widgets/"))
+        assertEquals(
+            "plugins/example",
+            NetBoxRef.appKeyFromEndpointPath("api/plugins/example/widgets/"),
+        )
     }
 }

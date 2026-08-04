@@ -90,9 +90,7 @@ fun SettingsScreen(
                     checked = offlineMode,
                     onCheckedChange = viewModel::setOfflineMode,
                     leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
-                    headlineContent = {
-                        Text("Offline mode")
-                    },
+                    headlineContent = { Text("Offline mode") },
                     supportingContent = {
                         Text(
                             if (offlineMode) "Network access is paused"
@@ -411,9 +409,7 @@ fun SettingsCategoryScreen(
         )
     }
 
-    qrBitmap?.let { bitmap ->
-        SetupQrDialog(bitmap = bitmap, onDismiss = { qrBitmap = null })
-    }
+    qrBitmap?.let { bitmap -> SetupQrDialog(bitmap = bitmap, onDismiss = { qrBitmap = null }) }
 
     if (hiddenFieldsDialogVisible) {
         HiddenFieldsDialog(

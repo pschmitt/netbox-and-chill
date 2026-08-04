@@ -174,16 +174,15 @@ class PendingEditReconciliationMatrixTest(
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0} / {1}")
-        fun cases(): List<Array<Any>> =
-            buildList {
-                Mutation.entries.forEach { mutation ->
-                    Failure.entries.forEach { failure ->
-                        if (failure != Failure.Conflict || mutation == Mutation.Edit) {
-                            add(arrayOf(mutation, failure))
-                        }
+        fun cases(): List<Array<Any>> = buildList {
+            Mutation.entries.forEach { mutation ->
+                Failure.entries.forEach { failure ->
+                    if (failure != Failure.Conflict || mutation == Mutation.Edit) {
+                        add(arrayOf(mutation, failure))
                     }
                 }
             }
+        }
 
         private fun httpException(code: Int): HttpException =
             HttpException(
@@ -196,7 +195,9 @@ class PendingEditReconciliationMatrixTest(
 }
 
 private fun JsonObject.plus(key: String, value: JsonPrimitive): JsonObject =
-    JsonObject(buildMap {
-        putAll(this@plus)
-        put(key, value)
-    })
+    JsonObject(
+        buildMap {
+            putAll(this@plus)
+            put(key, value)
+        }
+    )

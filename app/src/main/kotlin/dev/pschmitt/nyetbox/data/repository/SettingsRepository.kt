@@ -744,9 +744,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun renameServer(id: String, displayName: String) {
         val normalized = displayName.trim().takeIf { it.isNotBlank() } ?: return
         persistServerProfiles(
-            _serverProfiles.value.map {
-                if (it.id == id) it.copy(displayName = normalized) else it
-            }
+            _serverProfiles.value.map { if (it.id == id) it.copy(displayName = normalized) else it }
         )
     }
 
@@ -880,9 +878,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         settings.gestureTargets.forEach { (shortcutKey, target) ->
             GestureShortcut.entries
                 .firstOrNull { it.storageKey == shortcutKey }
-                ?.let {
-                    setGestureTarget(it, target)
-                }
+                ?.let { setGestureTarget(it, target) }
         }
         setScannerLens(ScannerLens.fromStorage(settings.scannerLens))
         setScannerRearLens(ScannerRearLens.fromStorage(settings.scannerRearLens))

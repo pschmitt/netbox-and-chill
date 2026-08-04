@@ -31,14 +31,15 @@ class NewsFeedParserTest {
     fun `uses namespaced encoded content and link as fallback guid`() {
         val item =
             parseNewsFeed(
-                """
+                    """
                 <rss><channel><item>
                   <title>Second</title>
                   <link>https://example.test/second</link>
                   <content:encoded><![CDATA[<p>Body</p>]]></content:encoded>
                 </item></channel></rss>
                 """
-            ).single()
+                )
+                .single()
 
         assertEquals("https://example.test/second", item.guid)
         assertEquals("Body", item.summary)

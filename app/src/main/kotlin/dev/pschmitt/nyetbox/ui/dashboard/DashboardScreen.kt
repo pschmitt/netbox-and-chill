@@ -664,14 +664,10 @@ private fun NewsRow(item: NewsItemEntity, onClick: () -> Unit) {
     NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
         NyetboxListItem(
             leadingContent = { Icon(Icons.Default.Newspaper, contentDescription = null) },
-            headlineContent = {
-                Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            },
+            headlineContent = { Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
             supportingContent = {
                 Column {
-                    item.summary?.let {
-                        Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
+                    item.summary?.let { Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                     if (item.publishedAt > 0) {
                         Text(
                             formatTimestamp(
@@ -816,9 +812,7 @@ private fun BookmarkRow(
 ) {
     val hasTarget = bookmark.targetEndpointPath != null && bookmark.targetId != null
     val icon =
-        bookmark.targetEndpointPath?.let {
-            AppIcons.forEndpointPath(it)
-        } ?: Icons.Default.Bookmark
+        bookmark.targetEndpointPath?.let { AppIcons.forEndpointPath(it) } ?: Icons.Default.Bookmark
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
         NyetboxListItem(

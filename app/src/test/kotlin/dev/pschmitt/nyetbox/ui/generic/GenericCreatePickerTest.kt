@@ -1,8 +1,8 @@
 package dev.pschmitt.nyetbox.ui.generic
 
 import dev.pschmitt.nyetbox.data.repository.CreateChoice
-import dev.pschmitt.nyetbox.data.repository.compactSearchMatchValue
 import dev.pschmitt.nyetbox.data.repository.choiceSearchHint
+import dev.pschmitt.nyetbox.data.repository.compactSearchMatchValue
 import dev.pschmitt.nyetbox.data.repository.createChoiceSearchFields
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -47,7 +47,10 @@ class GenericCreatePickerTest {
             listOf(CreateChoiceFieldSuggestion("manufacturer", "Manufacturer")),
             createChoiceFieldSuggestions(deviceTypes, "manu"),
         )
-        assertEquals(listOf(deviceTypes[1]), filterCreateChoices(deviceTypes, "manufacturer d-link"))
+        assertEquals(
+            listOf(deviceTypes[1]),
+            filterCreateChoices(deviceTypes, "manufacturer d-link"),
+        )
         assertEquals(deviceTypes, filterCreateChoices(deviceTypes, "manufacturer "))
     }
 
@@ -55,8 +58,9 @@ class GenericCreatePickerTest {
     fun `extracts generic nested relation values for linked filters`() {
         val objectJson =
             Json.parseToJsonElement(
-                """{"display":"Turris Omnia","manufacturer":{"display":"CZ.NIC"}}"""
-            ).jsonObject
+                    """{"display":"Turris Omnia","manufacturer":{"display":"CZ.NIC"}}"""
+                )
+                .jsonObject
 
         val fields = objectJson.createChoiceSearchFields()
         assertEquals("Turris Omnia", fields["display"])

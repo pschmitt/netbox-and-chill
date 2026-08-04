@@ -395,9 +395,7 @@ internal fun CreateChoiceInput(
                     if (!field.required) {
                         DropdownMenuItem(
                             text = { Text("Clear") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Clear, contentDescription = null)
-                            },
+                            leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
                             onClick = {
                                 onValueChange(field.key, "")
                                 expanded = false
@@ -425,9 +423,7 @@ internal fun CreateChoiceInput(
                                             )
                                         }
                                     },
-                                leadingContent = {
-                                    CreateChoicePreview(option, localImageFile)
-                                },
+                                leadingContent = { CreateChoicePreview(option, localImageFile) },
                                 modifier =
                                     Modifier.clickable {
                                         onValueChange(field.key, option.value)

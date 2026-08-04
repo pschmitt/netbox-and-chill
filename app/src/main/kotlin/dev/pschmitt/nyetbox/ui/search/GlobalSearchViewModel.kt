@@ -97,9 +97,7 @@ constructor(
 
     val results: StateFlow<List<SearchHit>> =
         kotlinx.coroutines.flow
-            .combine(debouncedQuery, cachedResults) { text, hits ->
-                rankSearchHits(text, hits)
-            }
+            .combine(debouncedQuery, cachedResults) { text, hits -> rankSearchHits(text, hits) }
             .flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

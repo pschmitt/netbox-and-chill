@@ -1,7 +1,7 @@
 package dev.pschmitt.nyetbox.ui.topology
 
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
 import dev.pschmitt.nyetbox.data.topology.TopologyEdge
@@ -20,8 +20,10 @@ class TopologyViewportTest {
 
     @Test
     fun largeGraphsUseACalmerInitialZoom() {
-        assertTrue(initialTopologyZoom(nodeCount = 80, viewportWidth = 400f) <
-            initialTopologyZoom(nodeCount = 12, viewportWidth = 400f))
+        assertTrue(
+            initialTopologyZoom(nodeCount = 80, viewportWidth = 400f) <
+                initialTopologyZoom(nodeCount = 12, viewportWidth = 400f)
+        )
     }
 
     @Test

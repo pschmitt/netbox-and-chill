@@ -30,9 +30,7 @@ object BrotherPrinter {
     private fun pairedPrinter(device: BluetoothDevice): PairedPrinter? =
         device
             .takeIf { it.bondState == BluetoothDevice.BOND_BONDED && isBrotherPrinter(it) }
-            ?.let {
-                PairedPrinter(it.name ?: "Brother printer", it.address, it)
-            }
+            ?.let { PairedPrinter(it.name ?: "Brother printer", it.address, it) }
 
     @SuppressLint("MissingPermission")
     private fun isBrotherPrinter(device: BluetoothDevice): Boolean {

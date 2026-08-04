@@ -21,8 +21,7 @@ class DirectoryRepositoryTest {
         val dao = FakeModelDao()
         val api = FakeDirectoryApi()
         val result =
-            DirectoryRepository(api, dao, dev.pschmitt.nyetbox.sync.SyncIssueReporter())
-                .refresh()
+            DirectoryRepository(api, dao, dev.pschmitt.nyetbox.sync.SyncIssueReporter()).refresh()
 
         assertEquals(1, result.getOrThrow())
         assertEquals(listOf("api/dcim/racks/"), dao.models.map(NetBoxModelEntity::endpointPath))
@@ -46,8 +45,7 @@ class DirectoryRepositoryTest {
         val api = FailingDirectoryApi()
 
         val result =
-            DirectoryRepository(api, dao, dev.pschmitt.nyetbox.sync.SyncIssueReporter())
-                .refresh()
+            DirectoryRepository(api, dao, dev.pschmitt.nyetbox.sync.SyncIssueReporter()).refresh()
 
         assertFalse(result.isSuccess)
         assertEquals(listOf("api/dcim/racks/"), dao.models.map(NetBoxModelEntity::endpointPath))

@@ -156,9 +156,7 @@ class CreateObjectTest {
                                     )
                                     put(
                                         "choice_set",
-                                        buildJsonObject {
-                                            put("type", "nested object")
-                                        },
+                                        buildJsonObject { put("type", "nested object") },
                                     )
                                 },
                             )
@@ -203,9 +201,12 @@ class CreateObjectTest {
         val body =
             buildCreateBody(
                     fields,
-                    mapOf("object_types" to """["dcim.device","dcim.rack"]""", "default" to "false"),
+                    mapOf(
+                        "object_types" to """["dcim.device","dcim.rack"]""",
+                        "default" to "false",
+                    ),
                 )
-                    .getOrThrow()
+                .getOrThrow()
 
         assertEquals(
             kotlinx.serialization.json.JsonArray(

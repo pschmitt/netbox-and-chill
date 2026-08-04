@@ -119,17 +119,11 @@ fun PrintLabelDialog(
             mutableStateOf(savedPrintSettings.verticalText)
         }
     var longLabel by
-        remember(savedPrintSettings.longLabel) {
-            mutableStateOf(savedPrintSettings.longLabel)
-        }
+        remember(savedPrintSettings.longLabel) { mutableStateOf(savedPrintSettings.longLabel) }
     var copiesText by
-        remember(savedPrintSettings.copies) {
-            mutableStateOf(savedPrintSettings.copies.toString())
-        }
+        remember(savedPrintSettings.copies) { mutableStateOf(savedPrintSettings.copies.toString()) }
     var qrSize by
-        remember(savedPrintSettings.qrSize) {
-            mutableIntStateOf(savedPrintSettings.qrSize)
-        }
+        remember(savedPrintSettings.qrSize) { mutableIntStateOf(savedPrintSettings.qrSize) }
     var qrSizeMenuExpanded by remember { mutableStateOf(false) }
     val pairedAddresses = printers.mapTo(mutableSetOf()) { it.address }
     val printerOptions = buildList {
@@ -172,9 +166,7 @@ fun PrintLabelDialog(
             }
                 .getOrNull()
         }
-    DisposableEffect(previewBitmap) {
-        onDispose { previewBitmap?.recycle() }
-    }
+    DisposableEffect(previewBitmap) { onDispose { previewBitmap?.recycle() } }
     val selectedPrinterIsVisible =
         selected?.let { current -> nearbyPrinters.any { it.address == current.address } } == true
     val selectedPrinterNotVisible =
@@ -206,9 +198,7 @@ fun PrintLabelDialog(
         }
         printers = adapter?.let { BrotherPrinter.pairedPrinters(it.bondedDevices) }.orEmpty()
         selected =
-            printers.firstOrNull {
-                it.address == savedPrintSettings.defaultPrinterAddress
-            }
+            printers.firstOrNull { it.address == savedPrintSettings.defaultPrinterAddress }
                 ?: selected?.takeIf { current -> printers.any { it.address == current.address } }
                 ?: printers.firstOrNull()
         nearbyPrinters = emptyList()
@@ -324,9 +314,7 @@ fun PrintLabelDialog(
                     Icon(Icons.Default.Security, contentDescription = null)
                     Text("Bluetooth permission is needed to find paired Brother printers.")
                     OutlinedButton(
-                        onClick = {
-                            permissionLauncher.launch(bluetoothPermissions())
-                        },
+                        onClick = { permissionLauncher.launch(bluetoothPermissions()) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Default.Security, contentDescription = null)

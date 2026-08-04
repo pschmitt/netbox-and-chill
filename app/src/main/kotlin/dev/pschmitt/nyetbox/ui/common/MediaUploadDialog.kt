@@ -67,10 +67,7 @@ fun MediaUploadDialog(
     val defaultKind =
         if (endpointPath == "api/dcim/device-types/") MediaUploadKind.DeviceTypeFront
         else MediaUploadKind.ImageAttachment
-    var kind by
-        remember(endpointPath, initialKind) {
-            mutableStateOf(initialKind ?: defaultKind)
-        }
+    var kind by remember(endpointPath, initialKind) { mutableStateOf(initialKind ?: defaultKind) }
     var selectedUri by remember(initialUri) { mutableStateOf(initialUri) }
     var selectedFilename by
         remember(initialUri, initialFilename) {
@@ -133,9 +130,7 @@ fun MediaUploadDialog(
         }
     }
 
-    LaunchedEffect(state.message) {
-        if (state.message != null) selectedUri = null
-    }
+    LaunchedEffect(state.message) { if (state.message != null) selectedUri = null }
 
     val isDocument = kind == MediaUploadKind.Document
     val isDeviceTypePhoto =
@@ -201,9 +196,7 @@ fun MediaUploadDialog(
                                 )
                                 .forEach { option ->
                                     DropdownMenuItem(
-                                        text = {
-                                            Text(option.label)
-                                        },
+                                        text = { Text(option.label) },
                                         onClick = {
                                             kind = option
                                             deviceTypeKindMenuExpanded = false
@@ -246,9 +239,7 @@ fun MediaUploadDialog(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
-                        onClick = {
-                            filePicker.launch(if (isDocument) "*/*" else "image/*")
-                        },
+                        onClick = { filePicker.launch(if (isDocument) "*/*" else "image/*") },
                         enabled = !state.isUploading,
                         modifier = Modifier.weight(1f),
                     ) {

@@ -278,9 +278,7 @@ internal fun LazyListScope.fieldRow(
             }
         is FieldRow.Reference ->
             detailCard(
-                onClick = {
-                    onNavigateToReference(row.target.endpointPath, row.target.id)
-                },
+                onClick = { onNavigateToReference(row.target.endpointPath, row.target.id) },
                 onLongPress = { onFieldLongPress(row.label) },
             ) {
                 Column(Modifier.padding(vertical = 6.dp)) {
@@ -391,9 +389,7 @@ internal fun LazyListScope.fieldRow(
                     ) {
                         row.targets.forEach { target ->
                             AssistChip(
-                                onClick = {
-                                    onNavigateToReference(target.endpointPath, target.id)
-                                },
+                                onClick = { onNavigateToReference(target.endpointPath, target.id) },
                                 label = { Text(target.display) },
                                 leadingIcon = {
                                     Icon(

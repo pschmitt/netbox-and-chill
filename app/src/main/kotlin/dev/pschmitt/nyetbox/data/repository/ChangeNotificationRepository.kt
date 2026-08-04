@@ -26,9 +26,7 @@ constructor(
 
         val filters =
             settingsRepository.changeNotificationFilters.value
-                .mapNotNull {
-                    ChangeNotificationFilter.fromStorage(it)
-                }
+                .mapNotNull { ChangeNotificationFilter.fromStorage(it) }
                 .toSet()
         val matching = matchingChangeNotificationEvents(freshEvents, filters)
         runCatching { syncNotifier.notifyNetBoxChanges(matching) }

@@ -30,10 +30,11 @@ class CacheFirstRefreshTest {
         val state = MutableStateFlow(CacheFirstRefreshState())
         var cachedValue = "cached"
 
-        val result: Result<String>? = state.runCacheFirstRefresh(
-            operation = { Result.failure<String>(IllegalStateException("offline")) },
-            errorMessage = { "Showing cached data: ${it.message}" },
-        )
+        val result: Result<String>? =
+            state.runCacheFirstRefresh(
+                operation = { Result.failure<String>(IllegalStateException("offline")) },
+                errorMessage = { "Showing cached data: ${it.message}" },
+            )
         result?.getOrNull()?.let { cachedValue = it }
 
         assertEquals("cached", cachedValue)

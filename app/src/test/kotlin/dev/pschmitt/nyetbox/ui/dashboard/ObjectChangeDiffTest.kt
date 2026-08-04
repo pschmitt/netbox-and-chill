@@ -71,14 +71,8 @@ class ObjectChangeDiffTest {
 
     @Test
     fun `custom fields become individually labeled and grouped markdown rows`() {
-        val pre =
-            parse(
-                """{"custom_fields":{"purchase_info":"old **details**","enabled":false}}"""
-            )
-        val post =
-            parse(
-                """{"custom_fields":{"purchase_info":"new **details**","enabled":true}}"""
-            )
+        val pre = parse("""{"custom_fields":{"purchase_info":"old **details**","enabled":false}}""")
+        val post = parse("""{"custom_fields":{"purchase_info":"new **details**","enabled":true}}""")
         val definitions =
             listOf(
                 CustomFieldDefinition("purchase_info", "text", "Purchase info", "Purchase", 10),
@@ -193,10 +187,11 @@ class ObjectChangeDiffTest {
                 change["postchange_data"] as JsonObject,
             )
 
-        val resolved = resolveLinkedDiffRows(change, rows) { endpoint, id ->
-            assertEquals("api/dcim/device-types/", endpoint)
-            "Device type $id"
-        }
+        val resolved =
+            resolveLinkedDiffRows(change, rows) { endpoint, id ->
+                assertEquals("api/dcim/device-types/", endpoint)
+                "Device type $id"
+            }
         val deviceType = resolved.single()
 
         assertEquals("Device type 244", deviceType.before)

@@ -15,7 +15,10 @@ class PrintOperationStateTest {
 
     @Test
     fun `failure carries the user-facing message`() {
-        assertEquals("Printer not reachable", PrintOperationState.Failed("Printer not reachable").message)
+        assertEquals(
+            "Printer not reachable",
+            PrintOperationState.Failed("Printer not reachable").message,
+        )
         assertEquals(null, PrintOperationState.Idle.message)
     }
 }

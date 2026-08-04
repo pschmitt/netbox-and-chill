@@ -159,9 +159,7 @@ internal fun PrintingSettingsSection(
         )
         if (!hasBluetoothPermission) {
             OutlinedButton(
-                onClick = {
-                    permissionLauncher.launch(settingsBluetoothPermissions())
-                },
+                onClick = { permissionLauncher.launch(settingsBluetoothPermissions()) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             ) {
                 Icon(Icons.Default.Bluetooth, contentDescription = null)
@@ -208,9 +206,7 @@ internal fun PrintingSettingsSection(
                     copiesText
                         .toIntOrNull()
                         ?.takeIf { it in 1..9 }
-                        ?.let { copies ->
-                            onUpdate { it.copy(copies = copies) }
-                        }
+                        ?.let { copies -> onUpdate { it.copy(copies = copies) } }
                 },
                 label = { Text("Copies") },
                 singleLine = true,

@@ -63,9 +63,7 @@ fun SyncSummaryScreen(summary: String, onBack: () -> Unit) {
             } else {
                 items(changes) { change ->
                     ListItem(
-                        leadingContent = {
-                            Icon(Icons.Default.Done, contentDescription = null)
-                        },
+                        leadingContent = { Icon(Icons.Default.Done, contentDescription = null) },
                         headlineContent = { Text(change) },
                     )
                 }

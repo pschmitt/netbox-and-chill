@@ -52,7 +52,12 @@ class GlobalSearchRankingTest {
         val hits =
             listOf(
                 SearchHit("api/dcim/sites/", 3, "Router site", null),
-                SearchHit(GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH, 2, "Router type", null),
+                SearchHit(
+                    GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH,
+                    2,
+                    "Router type",
+                    null,
+                ),
                 SearchHit(GlobalSearchRepository.DEVICES_ENDPOINT_PATH, 1, "Router device", null),
             )
 

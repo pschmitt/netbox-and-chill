@@ -21,9 +21,16 @@ class RefreshToastStateTest {
         assertEquals("Refresh failed", refreshCompletionToast(WorkInfo.State.FAILED))
         assertEquals("Refresh failed", refreshCompletionToast(WorkInfo.State.CANCELLED))
     }
+
     @Test
     fun offlineRefreshNeverReportsQueued() {
-        assertEquals(false, shouldShowRefreshQueuedToast(showConfirmation = true, offlineMode = true))
-        assertEquals(true, shouldShowRefreshQueuedToast(showConfirmation = true, offlineMode = false))
+        assertEquals(
+            false,
+            shouldShowRefreshQueuedToast(showConfirmation = true, offlineMode = true),
+        )
+        assertEquals(
+            true,
+            shouldShowRefreshQueuedToast(showConfirmation = true, offlineMode = false),
+        )
     }
 }

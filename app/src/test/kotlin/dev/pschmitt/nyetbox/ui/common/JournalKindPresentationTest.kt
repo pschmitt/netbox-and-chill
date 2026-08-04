@@ -13,6 +13,9 @@ class JournalKindPresentationTest {
 
     @Test
     fun knownKindsHaveDistinctOptions() {
-        assertEquals(listOf("info", "success", "warning", "danger"), journalKindOptions.map { it.value })
+        assertEquals(
+            listOf("info", "success", "warning", "danger"),
+            journalKindOptions.map { it.value },
+        )
     }
 }

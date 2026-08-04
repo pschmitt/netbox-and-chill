@@ -74,9 +74,7 @@ constructor(
                     typeModel != null ->
                         genericObjectRepository.observeObjects(typeModel.endpointPath, "").map {
                             objects ->
-                            objects.map {
-                                MediaDocumentTypeOption(it.id.toString(), it.display)
-                            }
+                            objects.map { MediaDocumentTypeOption(it.id.toString(), it.display) }
                         }
                     documentModel != null ->
                         genericObjectRepository

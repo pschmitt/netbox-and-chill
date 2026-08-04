@@ -390,11 +390,7 @@ constructor(
             val local = decode(edit.localJson)
             val patch =
                 JsonObject(
-                    keepLocalKeys
-                        .mapNotNull { key ->
-                            local[key]?.let { key to it }
-                        }
-                        .toMap()
+                    keepLocalKeys.mapNotNull { key -> local[key]?.let { key to it } }.toMap()
                 )
             if (patch.isNotEmpty()) {
                 val updated = api.patchObject("${edit.endpointPath}${edit.id}/", patch)

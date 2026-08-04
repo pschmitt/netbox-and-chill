@@ -72,9 +72,7 @@ internal fun SettingsToggleItem(
         leadingContent = leadingContent,
         headlineContent = headlineContent,
         supportingContent = supportingContent,
-        trailingContent = {
-            Switch(checked = checked, onCheckedChange = null, enabled = enabled)
-        },
+        trailingContent = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
     )
 }
 

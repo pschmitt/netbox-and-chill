@@ -28,8 +28,6 @@ class GlobalSearchAssetTagTest {
         assertNull(blank.value)
 
         assertNull(Json.parseToJsonElement("{}").jsonObject.assetTag())
-        assertNull(
-            Json.parseToJsonElement("""{"asset_tag":"  "}""").jsonObject.assetTag()
-        )
+        assertNull(Json.parseToJsonElement("""{"asset_tag":"  "}""").jsonObject.assetTag())
     }
 }

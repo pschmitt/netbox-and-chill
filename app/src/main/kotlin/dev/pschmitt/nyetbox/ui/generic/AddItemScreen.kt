@@ -81,9 +81,7 @@ fun AddItemScreen(
             modelsByApp
                 .toList()
                 .sortedBy { (appKey, models) -> models.firstOrNull()?.appLabel ?: appKey }
-                .flatMap { (_, appModels) ->
-                    appModels.sortedBy { it.modelLabel.lowercase() }
-                }
+                .flatMap { (_, appModels) -> appModels.sortedBy { it.modelLabel.lowercase() } }
         )
     }
         .distinctBy { it.endpointPath }

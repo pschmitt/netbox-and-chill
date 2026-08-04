@@ -22,8 +22,14 @@ class HighlightedTextTest {
         val result = highlightedSearchText("Shelly router", "hel router", SpanStyle())
 
         assertEquals(2, result.spanStyles.size)
-        assertEquals("hel", result.text.substring(result.spanStyles[0].start, result.spanStyles[0].end))
-        assertEquals("router", result.text.substring(result.spanStyles[1].start, result.spanStyles[1].end))
+        assertEquals(
+            "hel",
+            result.text.substring(result.spanStyles[0].start, result.spanStyles[0].end),
+        )
+        assertEquals(
+            "router",
+            result.text.substring(result.spanStyles[1].start, result.spanStyles[1].end),
+        )
     }
 
     @Test

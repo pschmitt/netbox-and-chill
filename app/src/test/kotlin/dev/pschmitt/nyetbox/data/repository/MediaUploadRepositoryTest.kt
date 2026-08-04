@@ -20,9 +20,7 @@ class MediaUploadRepositoryTest {
     fun `derives plugin content type without losing plugin namespace`() {
         assertEquals(
             "netbox_documents.document",
-            MediaUploadRepository.contentTypeForEndpoint(
-                "api/plugins/netbox_documents/documents/"
-            ),
+            MediaUploadRepository.contentTypeForEndpoint("api/plugins/netbox_documents/documents/"),
         )
     }
 

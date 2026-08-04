@@ -108,9 +108,7 @@ constructor(
             // Resolve queued edits before the normal cache refresh can replace their local view.
             reportProgress("Uploading queued edits…")
             val pendingResult = pendingEditRepository.syncPending()
-            pendingResult.retryableFailure?.let {
-                recordFailure("Queued mutation sync", it)
-            }
+            pendingResult.retryableFailure?.let { recordFailure("Queued mutation sync", it) }
             reportProgress("Syncing dashboard data…")
             dashboardRepository.refresh().onFailure { recordFailure("Dashboard sync", it) }
             reportProgress("Syncing custom-field definitions…")
@@ -224,9 +222,7 @@ constructor(
 
     private fun Throwable.isRetryableSyncFailure(): Boolean =
         generateSequence(this) { it.cause }
-            .any { cause ->
-                cause is IOException || cause is HttpException && cause.code() >= 500
-            }
+            .any { cause -> cause is IOException || cause is HttpException && cause.code() >= 500 }
 
     private suspend fun syncAttachments(onProgress: (completed: Int, total: Int) -> Unit): Int {
         imageAttachmentRepository.refreshAll("dcim.device").onFailure { error ->

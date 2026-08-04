@@ -172,10 +172,12 @@ class PendingEditRepositoryTest {
             val queued =
                 repository.submitCreate("api/dcim/devices/", body, offline = true).getOrThrow()
                     as CreateSubmission.Queued
-            val localId =
-                (queued.objectJson["id"] as JsonPrimitive).content.toInt()
+            val localId = (queued.objectJson["id"] as JsonPrimitive).content.toInt()
             assertTrue(localId < 0)
-            assertEquals(PendingEditEntity.CREATE_QUEUED, pending.get("api/dcim/devices/", localId)!!.state)
+            assertEquals(
+                PendingEditEntity.CREATE_QUEUED,
+                pending.get("api/dcim/devices/", localId)!!.state,
+            )
 
             repository.submitEdit(
                 endpointPath = "api/dcim/devices/",
@@ -186,7 +188,10 @@ class PendingEditRepositoryTest {
             val sync = repository.syncPending()
 
             assertEquals(1, sync.reconciliation.created.size)
-            assertEquals("NBC-145-disposable-offline-edited", api.lastCreate!!["name"]?.toString()?.trim('"'))
+            assertEquals(
+                "NBC-145-disposable-offline-edited",
+                api.lastCreate!!["name"]?.toString()?.trim('"'),
+            )
             assertNull(pending.get("api/dcim/devices/", localId))
             assertEquals("untouched-existing-fixture", api.server["name"]?.toString()?.trim('"'))
             assertEquals(101, objectDao.last!!.id)
@@ -443,11 +448,12 @@ internal class FakeNetBoxObjectDao : NetBoxObjectDao {
     override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
         flowOf(last)
 
-    override fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> =
-        flowOf(listOfNotNull(last))
+    override fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> = flowOf(listOfNotNull(last))
 
     override suspend fun getById(endpointPath: String, id: Int): NetBoxObjectEntity? =
-        last?.takeIf { it.endpointPath == endpointPath && it.id == id }
+        last?.takeIf {
+            it.endpointPath == endpointPath && it.id == id
+        }
 
     override fun searchAll(query: String, limit: Int): Flow<List<NetBoxObjectEntity>> =
         flowOf(emptyList())

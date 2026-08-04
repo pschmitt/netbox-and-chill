@@ -420,9 +420,7 @@ internal fun EditMultiPickerField(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(field.label) },
-                trailingIcon = {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Box(
@@ -453,9 +451,7 @@ internal fun EditMultiPickerField(
                     onCreateLinkedItem?.let { createLinkedItem ->
                         ListItem(
                             headlineContent = { Text("Create new ${field.label}") },
-                            leadingContent = {
-                                Icon(Icons.Default.Add, contentDescription = null)
-                            },
+                            leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
                             modifier =
                                 Modifier.clickable {
                                     expanded = false
@@ -548,9 +544,7 @@ internal fun EditPickerField(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(field.label) },
-                trailingIcon = {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Box(
@@ -582,9 +576,7 @@ internal fun EditPickerField(
                     onCreateLinkedItem?.let { createLinkedItem ->
                         ListItem(
                             headlineContent = { Text("Create new ${field.label}") },
-                            leadingContent = {
-                                Icon(Icons.Default.Add, contentDescription = null)
-                            },
+                            leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
                             modifier =
                                 Modifier.clickable {
                                     expanded = false

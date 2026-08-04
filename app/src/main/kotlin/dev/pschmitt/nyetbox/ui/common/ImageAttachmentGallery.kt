@@ -62,9 +62,7 @@ fun ImageAttachmentGallery(
                     imageUrl = attachment.imageUrl,
                     contentDescription = attachment.displayName(),
                     localFile =
-                        attachment.imageUrl?.let {
-                            localImageFile(it, attachment.fileName())
-                        },
+                        attachment.imageUrl?.let { localImageFile(it, attachment.fileName()) },
                     modifier =
                         Modifier.width(AttachmentTileWidth)
                             .height(AttachmentTileHeight)

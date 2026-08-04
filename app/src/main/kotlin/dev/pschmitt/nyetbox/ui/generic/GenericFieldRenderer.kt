@@ -128,9 +128,7 @@ fun buildFieldRows(
                             leftGroup.isBlank() -> left.index.compareTo(right.index)
                             else ->
                                 String.CASE_INSENSITIVE_ORDER.compare(leftGroup, rightGroup)
-                                    .takeIf {
-                                        it != 0
-                                    }
+                                    .takeIf { it != 0 }
                                     ?: (leftDefinition?.weight ?: Int.MAX_VALUE)
                                         .compareTo(rightDefinition?.weight ?: Int.MAX_VALUE)
                                         .takeIf { it != 0 }

@@ -424,9 +424,7 @@ private fun CameraPreview(
 
     DisposableEffect(Unit) { onDispose { cameraExecutor.shutdown() } }
 
-    LaunchedEffect(cameraProviderFuture) {
-        cameraProvider = cameraProviderFuture.get()
-    }
+    LaunchedEffect(cameraProviderFuture) { cameraProvider = cameraProviderFuture.get() }
 
     LaunchedEffect(boundCamera.value, zoomRatio) {
         val camera = boundCamera.value ?: return@LaunchedEffect
@@ -578,9 +576,7 @@ private fun CameraPreview(
 
                 previewView
             },
-            update = { view ->
-                previewView = view
-            },
+            update = { view -> previewView = view },
         )
         if (switchOverlayAlpha > 0f) {
             Box(

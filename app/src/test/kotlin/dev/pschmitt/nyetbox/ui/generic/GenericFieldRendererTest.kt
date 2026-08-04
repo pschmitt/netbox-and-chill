@@ -337,9 +337,7 @@ class GenericFieldRendererTest {
     @Test
     fun `ungrouped custom fields are grouped under Other`() {
         val rows =
-            buildFieldRows(
-                parse("""{"custom_fields":{"asset_owner":"NetOps","notes":"Ready"}}""")
-            )
+            buildFieldRows(parse("""{"custom_fields":{"asset_owner":"NetOps","notes":"Ready"}}"""))
 
         assertEquals(
             listOf(
@@ -576,9 +574,7 @@ class GenericFieldRendererTest {
     fun `renders linked template counts with correct plural labels and endpoints`() {
         val rows =
             buildFieldRows(
-                parse(
-                    """{"id":244,"power_port_template_count":1,"device_bay_template_count":2}"""
-                ),
+                parse("""{"id":244,"power_port_template_count":1,"device_bay_template_count":2}"""),
                 endpointPath = "api/dcim/device-types/",
             )
 
@@ -638,9 +634,7 @@ class GenericFieldRendererTest {
     fun doesNotRenderAHeadingForAnEmptyCustomFieldGroup() {
         val rows =
             buildFieldRows(
-                parse(
-                    """{"custom_fields":{"empty_purchase_field":null,"asset_owner":"NetOps"}}"""
-                ),
+                parse("""{"custom_fields":{"empty_purchase_field":null,"asset_owner":"NetOps"}}"""),
                 listOf(
                     CustomFieldDefinition(
                         "empty_purchase_field",
@@ -668,6 +662,7 @@ class GenericFieldRendererTest {
             rows,
         )
     }
+
     @Test
     fun renders_system_timestamps_as_metadata_rows() {
         val rows =

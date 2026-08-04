@@ -1033,9 +1033,7 @@ fun GenericDetailScreen(
         JournalEntryEditorDialog(
             entry = journalEditorEntry,
             state = journalMutationState,
-            onDismiss = {
-                if (!journalMutationState.isSaving) showJournalEditor = false
-            },
+            onDismiss = { if (!journalMutationState.isSaving) showJournalEditor = false },
             onSave = { kind, comments ->
                 viewModel.saveJournalEntry(journalEditorEntry, kind, comments)
             },
@@ -1071,9 +1069,7 @@ fun GenericDetailScreen(
                 fields
                     .firstOrNull { it.label == label }
                     ?.actionValue()
-                    ?.let {
-                        onCopyValue(label, it)
-                    }
+                    ?.let { onCopyValue(label, it) }
                 fieldActionLabel = null
             },
             onChangelog = {
@@ -1238,8 +1234,7 @@ internal fun FieldLabel(text: String, onLongPress: (() -> Unit)? = null) {
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier =
-            onLongPress?.let {
-                Modifier.combinedClickable(onClick = {}, onLongClick = it)
-            } ?: Modifier,
+            onLongPress?.let { Modifier.combinedClickable(onClick = {}, onLongClick = it) }
+                ?: Modifier,
     )
 }

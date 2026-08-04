@@ -62,9 +62,7 @@ internal fun ChangeNotificationsDialog(
                         }
                     Row(
                         modifier =
-                            Modifier.fillMaxWidth().clickable {
-                                onFilterChanged(filter, !checked)
-                            },
+                            Modifier.fillMaxWidth().clickable { onFilterChanged(filter, !checked) },
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     ) {
                         Checkbox(
@@ -377,9 +375,7 @@ internal fun ServerProfilesDialog(
                     Text("Remove and delete cache")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { pendingRemoval = null }) { Text("Cancel") }
-            },
+            dismissButton = { TextButton(onClick = { pendingRemoval = null }) { Text("Cancel") } },
         )
     }
 }

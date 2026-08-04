@@ -164,9 +164,7 @@ fun DocumentsSection(
                     }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = { actionDocument = null }) { Text("Cancel") }
-            },
+            confirmButton = { TextButton(onClick = { actionDocument = null }) { Text("Cancel") } },
         )
     }
     deleteDocument?.let { document ->
@@ -201,9 +199,7 @@ fun DocumentsSection(
                     Text("Delete", modifier = Modifier.padding(start = 8.dp))
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { deleteDocument = null }) { Text("Cancel") }
-            },
+            dismissButton = { TextButton(onClick = { deleteDocument = null }) { Text("Cancel") } },
         )
     }
 }

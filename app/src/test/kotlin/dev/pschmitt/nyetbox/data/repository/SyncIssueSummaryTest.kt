@@ -12,7 +12,8 @@ class SyncIssueSummaryTest {
             Device type 3 sync: Job was cancelled
             Device type 7 sync: Job was cancelled
             Device type 20 sync: Job was cancelled
-            """.trimIndent()
+            """
+                .trimIndent()
 
         assertEquals("Sync was cancelled.", summarizeSyncIssueMessage(message))
     }
@@ -23,7 +24,8 @@ class SyncIssueSummaryTest {
             """
             Device sync: Read timed out
             Device type 3 sync: HTTP 500 Server Error
-            """.trimIndent()
+            """
+                .trimIndent()
 
         assertEquals(
             "Sync failed: Read timed out (+1 other issue).",

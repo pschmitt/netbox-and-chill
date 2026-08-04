@@ -176,9 +176,7 @@ constructor(
                     previousId?.let { id ->
                         settingsRepository.serverProfiles.value
                             .firstOrNull { it.id == id }
-                            ?.let {
-                                cacheDatabaseManager.switchTo(it)
-                            }
+                            ?.let { cacheDatabaseManager.switchTo(it) }
                     }
                     _errorMessage.value = it.connectionMessage()
                 }
@@ -433,9 +431,7 @@ constructor(
             settingsRepository.save(trimmed, previous.token)
             directoryRepository
                 .refresh()
-                .onSuccess {
-                    refreshCacheCounts()
-                }
+                .onSuccess { refreshCacheCounts() }
                 .onFailure {
                     settingsRepository.save(previous.baseUrl, previous.token)
                     _errorMessage.value =

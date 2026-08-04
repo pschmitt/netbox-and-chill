@@ -127,9 +127,7 @@ fun TopologyScreen(
             }
             .orEmpty()
             .distinctBy { it.nodeId }
-    LaunchedEffect(searchOpen) {
-        if (searchOpen) viewModel.searchDevices("")
-    }
+    LaunchedEffect(searchOpen) { if (searchOpen) viewModel.searchDevices("") }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -295,16 +293,12 @@ private fun TopologyGraphCanvas(
             }
         }
     val renderData =
-        remember(graph, colorScheme.outline) {
-            buildTopologyRenderData(graph, colorScheme.outline)
-        }
+        remember(graph, colorScheme.outline) { buildTopologyRenderData(graph, colorScheme.outline) }
     val graphBounds = renderData.bounds
     val focusedPoint = focusedNodeId?.let { id ->
         graph.nodes
             .firstOrNull { it.id == id }
-            ?.let {
-                Offset(it.x + it.width / 2f, it.y + it.height / 2f)
-            }
+            ?.let { Offset(it.x + it.width / 2f, it.y + it.height / 2f) }
     }
 
     fun updateZoom(requestedZoom: Float) {

@@ -44,9 +44,8 @@ constructor(
             .map { models -> models.firstOrNull(::isDocumentsPluginModel)?.endpointPath }
             .distinctUntilChanged()
             .flatMapLatest { documentEndpointPath ->
-                documentEndpointPath?.let {
-                    genericObjectRepository.observeObjects(it, "")
-                } ?: flowOf(emptyList())
+                documentEndpointPath?.let { genericObjectRepository.observeObjects(it, "") }
+                    ?: flowOf(emptyList())
             }
             .map { objects ->
                 objects
@@ -104,9 +103,7 @@ constructor(
         val documentType = documentTypeCandidates.firstNotNullOfOrNull { candidate ->
             candidate
                 .takeIf { it.any(Char::isLetter) }
-                ?.let { type ->
-                    documentTypePresentation(type)?.label ?: type
-                }
+                ?.let { type -> documentTypePresentation(type)?.label ?: type }
         }
         return CachedDocumentWithTarget(
             document =

@@ -146,9 +146,7 @@ fun GlobalSearchScreen(
                     TextField(
                         value = query,
                         onValueChange = viewModel::onQueryChange,
-                        placeholder = {
-                            Text(selectionPrompt ?: "Search all NetBox objects")
-                        },
+                        placeholder = { Text(selectionPrompt ?: "Search all NetBox objects") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
                             if (query.isNotEmpty()) {
@@ -408,9 +406,7 @@ private fun ActiveTypeFilter(
         FilterChip(
             selected = true,
             onClick = onClear,
-            label = {
-                Text(model.modelLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            },
+            label = { Text(model.modelLabel, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             leadingIcon = {
                 Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
             },

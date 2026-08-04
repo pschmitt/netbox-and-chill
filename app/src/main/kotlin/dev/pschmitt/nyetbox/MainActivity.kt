@@ -198,9 +198,7 @@ class MainActivity : FragmentActivity() {
                             startDestination = startDestination,
                             onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
                             setup = pendingSetup,
-                            onSetupImport = { setup ->
-                                pendingSetup = setup
-                            },
+                            onSetupImport = { setup -> pendingSetup = setup },
                             onSetupConsumed = { pendingSetup = null },
                             onSetupCompleted = {
                                 pendingSharedMedia?.let { sharedMedia ->
