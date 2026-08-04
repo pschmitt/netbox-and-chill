@@ -261,7 +261,7 @@
         errorLine2="         ~~~~~~~">
         <location
             file="gradle/libs.versions.toml"
-            line="27"
+            line="28"
             column="10"/>
     </issue>
 
@@ -272,7 +272,7 @@
         errorLine2="         ~~~~~~~">
         <location
             file="gradle/libs.versions.toml"
-            line="27"
+            line="28"
             column="10"/>
     </issue>
 
@@ -283,7 +283,7 @@
         errorLine2="                     ~~~~~~~~">
         <location
             file="gradle/libs.versions.toml"
-            line="28"
+            line="29"
             column="22"/>
     </issue>
 
@@ -294,7 +294,7 @@
         errorLine2="                    ~~~~~~~~">
         <location
             file="gradle/libs.versions.toml"
-            line="35"
+            line="36"
             column="21"/>
     </issue>
 
@@ -305,7 +305,7 @@
         errorLine2="                    ~~~~~~~~">
         <location
             file="gradle/libs.versions.toml"
-            line="35"
+            line="36"
             column="21"/>
     </issue>
 
