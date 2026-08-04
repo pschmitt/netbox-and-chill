@@ -12,7 +12,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -36,6 +35,8 @@ import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SearchHighlightedText
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
@@ -138,15 +139,17 @@ fun GenericListScreen(
                         )
                     LazyColumn(modifier = Modifier.weight(1f)) {
                         items(objects, key = { it.id }) { obj ->
-                            ObjectRow(
-                                obj = obj,
-                                icon = rowIcon,
-                                iconTint = rowColor,
-                                frontImageUrl = deviceTypeImages[obj.id]?.frontImageUrl,
-                                query = query,
-                                localImageFile = viewModel::localImageFile,
-                                onClick = { onObjectClick(obj.id) },
-                            )
+                            NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                                ObjectRow(
+                                    obj = obj,
+                                    icon = rowIcon,
+                                    iconTint = rowColor,
+                                    frontImageUrl = deviceTypeImages[obj.id]?.frontImageUrl,
+                                    query = query,
+                                    localImageFile = viewModel::localImageFile,
+                                    onClick = { onObjectClick(obj.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -178,7 +181,7 @@ private fun ObjectRow(
             frontImageUrl?.let { localImageFile(it, "device-type-${obj.id}-front") }
         }
 
-    ListItem(
+    NyetboxListItem(
         leadingContent = {
             if (frontImageUrl.isNullOrBlank()) {
                 Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {

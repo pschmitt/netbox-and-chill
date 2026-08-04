@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 
 /** NetBox component models that can be attached to a device. */
 data class DeviceComponentKind(
@@ -81,12 +82,16 @@ fun AddComponentScreen(
                 )
             }
             items(deviceComponentKinds, key = DeviceComponentKind::endpointPath) { component ->
-                ListItem(
-                    leadingContent = { Icon(component.icon, contentDescription = null) },
-                    headlineContent = { Text(component.label) },
-                    supportingContent = { Text("Create a ${component.label.lowercase()} on this device") },
-                    modifier = Modifier.clickable { onComponentClick(component) },
-                )
+                NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                    NyetboxListItem(
+                        leadingContent = { Icon(component.icon, contentDescription = null) },
+                        headlineContent = { Text(component.label) },
+                        supportingContent = {
+                            Text("Create a ${component.label.lowercase()} on this device")
+                        },
+                        modifier = Modifier.clickable { onComponentClick(component) },
+                    )
+                }
             }
         }
     }

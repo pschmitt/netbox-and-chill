@@ -59,6 +59,8 @@ import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SearchQueryVisualTransformation
 import dev.pschmitt.nyetbox.ui.common.visualColorForEndpointPath
@@ -365,14 +367,16 @@ private fun ActiveTypeFilter(
 
 @Composable
 private fun TypeSuggestionRow(model: NetBoxModelEntity, onClick: () -> Unit) {
-    ListItem(
-        leadingContent = {
-            Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
-        },
-        headlineContent = { Text(model.modelLabel) },
-        supportingContent = { Text("Search only " + model.modelLabel.lowercase()) },
-        modifier = Modifier.clickable(onClick = onClick),
-    )
+    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+        NyetboxListItem(
+            leadingContent = {
+                Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
+            },
+            headlineContent = { Text(model.modelLabel) },
+            supportingContent = { Text("Search only " + model.modelLabel.lowercase()) },
+            modifier = Modifier.clickable(onClick = onClick),
+        )
+    }
 }
 
 @Composable
@@ -422,78 +426,80 @@ private fun SearchResultRow(
 ) {
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
 
-    ListItem(
-        leadingContent = {
-            if (thumbnail == null) {
-                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = typeColor)
+    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+        NyetboxListItem(
+            leadingContent = {
+                if (thumbnail == null) {
+                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = null, tint = typeColor)
+                    }
+                } else {
+                    RemoteThumbnail(
+                        imageUrl = thumbnail.url,
+                        contentDescription = hit.display,
+                        localFile = localFile,
+                        modifier = Modifier.size(56.dp),
+                    )
                 }
-            } else {
-                RemoteThumbnail(
-                    imageUrl = thumbnail.url,
-                    contentDescription = hit.display,
-                    localFile = localFile,
-                    modifier = Modifier.size(56.dp),
-                )
-            }
-        },
-        headlineContent = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    hit.display,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.width(8.dp))
-                ObjectTypeBadge(
-                    label = searchObjectTypeLabel(modelLabel, hit.endpointPath),
-                    icon = icon,
-                    color = typeColor,
-                )
-            }
-        },
-        supportingContent = {
-            val secondaryLine = hit.secondaryLine?.takeIf(String::isNotBlank)
-            val visibleAssetTag = assetTag?.takeIf(String::isNotBlank)
-            val matchHint = hit.matchHint?.takeIf { it != secondaryLine }
-            if (isRecent || secondaryLine != null || visibleAssetTag != null || hasAssetTagField || matchHint != null) {
-                Column {
-                    if (isRecent) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.padding(bottom = 2.dp),
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            },
+            headlineContent = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        hit.display,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    ObjectTypeBadge(
+                        label = searchObjectTypeLabel(modelLabel, hit.endpointPath),
+                        icon = icon,
+                        color = typeColor,
+                    )
+                }
+            },
+            supportingContent = {
+                val secondaryLine = hit.secondaryLine?.takeIf(String::isNotBlank)
+                val visibleAssetTag = assetTag?.takeIf(String::isNotBlank)
+                val matchHint = hit.matchHint?.takeIf { it != secondaryLine }
+                if (isRecent || secondaryLine != null || visibleAssetTag != null || hasAssetTagField || matchHint != null) {
+                    Column {
+                        if (isRecent) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.padding(bottom = 2.dp),
                             ) {
-                                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(13.dp))
-                                Text("Recently visited", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                ) {
+                                    Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(13.dp))
+                                    Text("Recently visited", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
+                                }
                             }
                         }
-                    }
-                    secondaryLine?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    if (visibleAssetTag != null) AssetTagBadge(visibleAssetTag)
-                    else if (hasAssetTagField) MissingAssetTagBadge()
-                    matchHint?.let {
-                        Text(
-                            "Matched $it",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        secondaryLine?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                        if (visibleAssetTag != null) AssetTagBadge(visibleAssetTag)
+                        else if (hasAssetTagField) MissingAssetTagBadge()
+                        matchHint?.let {
+                            Text(
+                                "Matched $it",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
-            }
-        },
-        modifier = Modifier.clickable(onClick = onClick),
-    )
+            },
+            modifier = Modifier.clickable(onClick = onClick),
+        )
+    }
 }
 
 private fun searchHitKey(hit: SearchHit): String = "${hit.endpointPath.trimEnd('/')}:${hit.id}"

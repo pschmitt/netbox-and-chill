@@ -5753,6 +5753,21 @@ Status: **done**, 2026-08-04 - remote ktfmt and Kotlin compilation passed withou
 debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-346: extend the rounded card visual language beyond Settings
+
+The rest of the app should share the same calm, grouped Material 3 card treatment as Settings
+without turning every screen into a collection of unrelated nested surfaces.
+
+- [x] Add reusable app card and transparent list-row primitives.
+- [x] Apply them to item detail, list, and dashboard surfaces.
+- [x] Preserve existing navigation, actions, loading, and offline behavior.
+- [x] Verify the migration through remote compilation, tests, lint, and device installation.
+
+Status: **done**, 2026-08-04. Verified with remote `ktfmtCheck`, `:app:compileDebugKotlin`,
+`:app:testDebugUnitTest`, `:app:lintDebug`, `:app:compileDebugAndroidTestKotlin`, and
+`just deploy-all debug` (Zenfone 10, Mi Pad 4, and Pixel 5).
+
+
 ## NBC-344: avoid redundant headers on single-setting cards
 
 Cards containing one setting or action should let that row carry the title and icon instead of

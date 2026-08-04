@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -22,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,19 +60,21 @@ internal fun RelatedItemsBottomSheet(
                 else ->
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
                         items(objects, key = { it.id }) { objectEntity ->
-                            ListItem(
-                                leadingContent = {
-                                    RemoteThumbnail(
-                                        imageUrl = previewUrls[objectEntity.id],
-                                        contentDescription = objectEntity.display,
-                                        modifier = Modifier.size(56.dp),
-                                    )
-                                },
-                                headlineContent = { Text(objectEntity.display) },
-                                supportingContent =
-                                    objectEntity.secondaryLine?.let { line -> { Text(line) } },
-                                modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
-                            )
+                            NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                                NyetboxListItem(
+                                    leadingContent = {
+                                        RemoteThumbnail(
+                                            imageUrl = previewUrls[objectEntity.id],
+                                            contentDescription = objectEntity.display,
+                                            modifier = Modifier.size(56.dp),
+                                        )
+                                    },
+                                    headlineContent = { Text(objectEntity.display) },
+                                    supportingContent =
+                                        objectEntity.secondaryLine?.let { line -> { Text(line) } },
+                                    modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
+                                )
+                            }
                         }
                     }
             }

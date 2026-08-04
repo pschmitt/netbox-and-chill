@@ -19,7 +19,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -39,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.PendingEditEntity
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,27 +107,32 @@ fun PendingChangesScreen(
                     }
                 }
                 items(changes, key = { "${it.endpointPath}:${it.id}" }) { change ->
-                    ListItem(
-                        leadingContent = {
-                            Icon(
-                                if (change.state == PendingEditEntity.CREATE_QUEUED) {
-                                    Icons.Default.AddCircle
-                                } else if (change.state == PendingEditEntity.DELETE_QUEUED) {
-                                    Icons.Default.Delete
-                                } else Icons.Default.Edit,
-                                contentDescription = null,
-                            )
-                        },
-                        headlineContent = { Text(viewModel.display(change)) },
-                        supportingContent = {
-                            Text("${viewModel.kind(change)} · ${change.endpointPath}")
-                        },
-                        trailingContent = {
-                            IconButton(onClick = { selected = change }) {
-                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Revert this change")
-                            }
-                        },
-                    )
+                    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                        NyetboxListItem(
+                            leadingContent = {
+                                Icon(
+                                    if (change.state == PendingEditEntity.CREATE_QUEUED) {
+                                        Icons.Default.AddCircle
+                                    } else if (change.state == PendingEditEntity.DELETE_QUEUED) {
+                                        Icons.Default.Delete
+                                    } else Icons.Default.Edit,
+                                    contentDescription = null,
+                                )
+                            },
+                            headlineContent = { Text(viewModel.display(change)) },
+                            supportingContent = {
+                                Text("${viewModel.kind(change)} · ${change.endpointPath}")
+                            },
+                            trailingContent = {
+                                IconButton(onClick = { selected = change }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Undo,
+                                        contentDescription = "Revert this change",
+                                    )
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }

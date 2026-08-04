@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.BarChart
@@ -42,6 +43,8 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -78,6 +81,9 @@ import dev.pschmitt.nyetbox.data.db.NewsItemEntity
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.nyetbox.ui.common.NyetboxActionCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.SectionReorderState
@@ -229,7 +235,7 @@ fun DashboardScreen(
                 }
                 if (offlineMode) {
                     item {
-                        ElevatedCard(
+                        NyetboxActionCard(
                             onClick = onPendingChangesClick,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -273,7 +279,7 @@ fun DashboardScreen(
                 }
                 if (conflictCount > 0) {
                     item {
-                        ElevatedCard(
+                        NyetboxActionCard(
                             onClick = onConflictsClick,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -552,32 +558,34 @@ private fun DashboardVisibilityDialog(
 
 @Composable
 private fun NewsRow(item: NewsItemEntity, onClick: () -> Unit) {
-    ListItem(
-        leadingContent = { Icon(Icons.Default.Newspaper, contentDescription = null) },
-        headlineContent = {
-            Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        },
-        supportingContent = {
-            Column {
-                item.summary?.let {
-                    Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+        NyetboxListItem(
+            leadingContent = { Icon(Icons.Default.Newspaper, contentDescription = null) },
+            headlineContent = {
+                Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            },
+            supportingContent = {
+                Column {
+                    item.summary?.let {
+                        Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (item.publishedAt > 0) {
+                        Text(
+                            formatTimestamp(
+                                java.time.Instant.ofEpochMilli(item.publishedAt).toString()
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
                 }
-                if (item.publishedAt > 0) {
-                    Text(
-                        formatTimestamp(
-                            java.time.Instant.ofEpochMilli(item.publishedAt).toString()
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-            }
-        },
-        trailingContent = {
-            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open news article")
-        },
-        modifier = Modifier.clickable(onClick = onClick),
-    )
+            },
+            trailingContent = {
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open news article")
+            },
+            modifier = Modifier.clickable(onClick = onClick),
+        )
+    }
 }
 
 @Composable
@@ -610,7 +618,13 @@ private fun StatTile(
     // Fixed height too, not just width - the label ("Device Types" vs. "Racks") wraps to a
     // different number of lines depending on its length, which otherwise leaves the cards in a
     // row at different heights.
-    ElevatedCard(onClick = onClick, modifier = Modifier.size(110.dp, 136.dp)) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.size(110.dp, 136.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -702,26 +716,28 @@ private fun BookmarkRow(
             AppIcons.forEndpointPath(it)
         } ?: Icons.Default.Bookmark
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
-    ListItem(
-        leadingContent = {
-            if (thumbnail == null) {
-                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = typeColor)
+    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+        NyetboxListItem(
+            leadingContent = {
+                if (thumbnail == null) {
+                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = null, tint = typeColor)
+                    }
+                } else {
+                    RemoteThumbnail(
+                        imageUrl = thumbnail.url,
+                        contentDescription = bookmark.display,
+                        localFile = localFile,
+                        modifier = Modifier.size(56.dp),
+                        fallbackTint = typeColor,
+                    )
                 }
-            } else {
-                RemoteThumbnail(
-                    imageUrl = thumbnail.url,
-                    contentDescription = bookmark.display,
-                    localFile = localFile,
-                    modifier = Modifier.size(56.dp),
-                    fallbackTint = typeColor,
-                )
-            }
-        },
-        headlineContent = { Text(bookmark.display) },
-        supportingContent = { Text(formatTimestamp(bookmark.created)) },
-        modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
-    )
+            },
+            headlineContent = { Text(bookmark.display) },
+            supportingContent = { Text(formatTimestamp(bookmark.created)) },
+            modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
+        )
+    }
 }
 
 @Composable
@@ -742,43 +758,45 @@ private fun ChangeRow(
             else -> Icons.Default.History
         }
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
-    ListItem(
-        leadingContent = {
-            if (thumbnail == null) {
-                Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = change.actionLabel, tint = typeColor)
+    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+        NyetboxListItem(
+            leadingContent = {
+                if (thumbnail == null) {
+                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = change.actionLabel, tint = typeColor)
+                    }
+                } else {
+                    RemoteThumbnail(
+                        imageUrl = thumbnail.url,
+                        contentDescription = change.objectRepr,
+                        localFile = localFile,
+                        modifier = Modifier.size(56.dp),
+                        fallbackTint = typeColor,
+                    )
                 }
-            } else {
-                RemoteThumbnail(
-                    imageUrl = thumbnail.url,
-                    contentDescription = change.objectRepr,
-                    localFile = localFile,
-                    modifier = Modifier.size(56.dp),
-                    fallbackTint = typeColor,
-                )
-            }
-        },
-        headlineContent = { Text(change.objectRepr) },
-        supportingContent = {
-            Column {
-                Text("${change.actionLabel} by ${change.userDisplay}")
-                Text(
-                    formatTimestamp(change.time),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
-        // A separate affordance from the row tap (which navigates to the object's *current*
-        // state) - the diff view shows what this specific change actually did, which the user
-        // explicitly asked for as its own destination rather than folded into the object page.
-        trailingContent = {
-            IconButton(onClick = onDiffClick) {
-                Icon(Icons.Default.Difference, contentDescription = "View change diff")
-            }
-        },
-        modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
-    )
+            },
+            headlineContent = { Text(change.objectRepr) },
+            supportingContent = {
+                Column {
+                    Text("${change.actionLabel} by ${change.userDisplay}")
+                    Text(
+                        formatTimestamp(change.time),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            // A separate affordance from the row tap (which navigates to the object's *current*
+            // state) - the diff view shows what this specific change actually did, which the user
+            // explicitly asked for as its own destination rather than folded into the object page.
+            trailingContent = {
+                IconButton(onClick = onDiffClick) {
+                    Icon(Icons.Default.Difference, contentDescription = "View change diff")
+                }
+            },
+            modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
+        )
+    }
 }
 
 @Composable

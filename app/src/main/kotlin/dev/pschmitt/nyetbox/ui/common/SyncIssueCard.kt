@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,7 +34,7 @@ fun SyncIssueCard(
 ) {
     var retryRequested by remember(issue.occurredAt) { mutableStateOf(false) }
     val retryActive = retryRequested || isSyncing
-    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+    NyetboxCard(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.Top,

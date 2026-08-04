@@ -23,6 +23,7 @@ import dev.pschmitt.nyetbox.data.schema.Humanize
 import dev.pschmitt.nyetbox.ui.common.CollapsibleCommentCard
 import dev.pschmitt.nyetbox.ui.common.DetailTrailingActions
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
@@ -59,21 +60,15 @@ private fun LazyListScope.detailCard(
     content: @Composable () -> Unit,
 ) {
     item {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        NyetboxCard(
+            modifier =
+                Modifier.padding(vertical = 4.dp).then(
+                    onLongPress?.let {
+                        Modifier.combinedClickable(onClick = {}, onLongClick = it)
+                    } ?: Modifier
+                ),
         ) {
-            Column(
-                Modifier.fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .then(
-                        onLongPress?.let {
-                            Modifier.combinedClickable(onClick = {}, onLongClick = it)
-                        } ?: Modifier
-                    )
-            ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
                 content()
             }
         }
@@ -144,12 +139,7 @@ internal fun LazyListScope.fieldRow(
             }
         is FieldRow.Metadata ->
             item {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    shape = RoundedCornerShape(12.dp),
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                ) {
+                NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,

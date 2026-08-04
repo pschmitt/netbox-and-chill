@@ -18,7 +18,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -39,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.PendingEditEntity
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.generic.ConflictChoice
 import dev.pschmitt.nyetbox.ui.generic.ConflictField
 
@@ -100,22 +101,24 @@ fun EditConflictsScreen(
                     )
                 }
                 items(conflicts, key = { "${it.endpointPath}-${it.id}" }) { conflict ->
-                    ListItem(
-                        leadingContent = {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        headlineContent = { Text("${conflict.endpointPath} #${conflict.id}") },
-                        supportingContent = { Text("Choose which changes to keep") },
-                        modifier =
-                            Modifier.clickable {
-                                selected = conflict
-                                choices = defaultChoices(viewModel.fields(conflict))
+                    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                        NyetboxListItem(
+                            leadingContent = {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
                             },
-                    )
+                            headlineContent = { Text("${conflict.endpointPath} #${conflict.id}") },
+                            supportingContent = { Text("Choose which changes to keep") },
+                            modifier =
+                                Modifier.clickable {
+                                    selected = conflict
+                                    choices = defaultChoices(viewModel.fields(conflict))
+                                },
+                        )
+                    }
                 }
             }
         }

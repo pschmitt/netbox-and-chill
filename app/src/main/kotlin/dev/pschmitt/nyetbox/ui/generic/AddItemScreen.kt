@@ -19,7 +19,6 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -39,6 +38,8 @@ import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.nyetbox.ui.common.NetBoxSectionHeader
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
 import dev.pschmitt.nyetbox.ui.directory.DirectoryViewModel
 
@@ -232,30 +233,32 @@ private fun AddModelRow(
     onTogglePin: () -> Unit,
     isPinned: Boolean,
 ) {
-    ListItem(
-        leadingContent = {
-            Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
-        },
-        headlineContent = { Text(model.modelLabel) },
-        supportingContent = { Text(model.appLabel) },
-        trailingContent = {
-            Row {
-                Icon(
-                    if (isPinned) Icons.Default.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isPinned) "Pinned" else "Not pinned",
-                    tint =
-                        if (isPinned) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Icon(Icons.Default.AddCircle, contentDescription = "Add ${model.modelLabel}")
-            }
-        },
-        modifier =
-            Modifier.combinedClickable(
-                onClick = { onModelClick(model) },
-                onLongClick = onTogglePin,
-            ),
-    )
+    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+        NyetboxListItem(
+            leadingContent = {
+                Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
+            },
+            headlineContent = { Text(model.modelLabel) },
+            supportingContent = { Text(model.appLabel) },
+            trailingContent = {
+                Row {
+                    Icon(
+                        if (isPinned) Icons.Default.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (isPinned) "Pinned" else "Not pinned",
+                        tint =
+                            if (isPinned) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Icon(Icons.Default.AddCircle, contentDescription = "Add ${model.modelLabel}")
+                }
+            },
+            modifier =
+                Modifier.combinedClickable(
+                    onClick = { onModelClick(model) },
+                    onLongClick = onTogglePin,
+                ),
+        )
+    }
 }
 
 private const val MAX_PINNED_ITEM_TYPES = 5

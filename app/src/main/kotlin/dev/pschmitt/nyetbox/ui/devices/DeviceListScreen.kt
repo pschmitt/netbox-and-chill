@@ -13,7 +13,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -36,6 +35,8 @@ import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SearchHighlightedText
 import dev.pschmitt.nyetbox.ui.common.StatusChip
@@ -141,15 +142,17 @@ fun DeviceListScreen(
                             key = { it.id },
                             contentType = { "device-row" },
                         ) { device ->
-                            DeviceRow(
-                                device = device,
-                                frontImageUrl =
-                                    deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
-                                fallbackTint = rowColor,
-                                query = query,
-                                localImageFile = viewModel::localImageFile,
-                                onClick = { onDeviceClick(device.id) },
-                            )
+                            NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                                DeviceRow(
+                                    device = device,
+                                    frontImageUrl =
+                                        deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
+                                    fallbackTint = rowColor,
+                                    query = query,
+                                    localImageFile = viewModel::localImageFile,
+                                    onClick = { onDeviceClick(device.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -179,7 +182,7 @@ private fun DeviceRow(
             frontImageUrl?.let { localImageFile(it, "device-type-${device.deviceTypeId}-front") }
         }
 
-    ListItem(
+    NyetboxListItem(
         leadingContent = {
             RemoteThumbnail(
                 imageUrl = frontImageUrl,

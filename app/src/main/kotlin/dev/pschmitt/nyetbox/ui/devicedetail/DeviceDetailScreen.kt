@@ -42,12 +42,9 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -100,6 +97,8 @@ import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadKind
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.itemTabSwipe
 import dev.pschmitt.nyetbox.ui.common.PrintLabelDialog
 import dev.pschmitt.nyetbox.ui.common.PrintLabelRequest
@@ -519,7 +518,7 @@ fun DeviceDetailScreen(
                         contentPadding = PaddingValues(16.dp),
                     ) {
                     item {
-                        ElevatedCard(
+                        NyetboxCard(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         ) {
                             Box(Modifier.fillMaxWidth()) {
@@ -1044,24 +1043,26 @@ private fun DeviceConnectedDevices(
         return
     }
     devices.forEach { connected ->
-        ListItem(
-            leadingContent = {
-                Icon(
-                    AppIcons.forEndpointPath(NetBoxRef.DEVICES_ENDPOINT_PATH),
-                    contentDescription = null,
-                )
-            },
-            headlineContent = { Text(connected.name) },
-            supportingContent = {
-                connected.deviceTypeModel?.let { model ->
-                    Text(
-                        listOfNotNull(model, connected.statusLabel).joinToString(" · "),
-                        maxLines = 1,
+        NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+            NyetboxListItem(
+                leadingContent = {
+                    Icon(
+                        AppIcons.forEndpointPath(NetBoxRef.DEVICES_ENDPOINT_PATH),
+                        contentDescription = null,
                     )
-                }
-            },
-            modifier = Modifier.clickable { onDeviceClick(connected.id) },
-        )
+                },
+                headlineContent = { Text(connected.name) },
+                supportingContent = {
+                    connected.deviceTypeModel?.let { model ->
+                        Text(
+                            listOfNotNull(model, connected.statusLabel).joinToString(" · "),
+                            maxLines = 1,
+                        )
+                    }
+                },
+                modifier = Modifier.clickable { onDeviceClick(connected.id) },
+            )
+        }
     }
 }
 
@@ -1095,70 +1096,71 @@ private fun DeviceRelatedObjects(
             } else {
                 emptyList()
             }
-        ListItem(
-            leadingContent = {
-                Icon(AppIcons.forEndpointPath(tab.endpointPath), contentDescription = null)
-            },
-            headlineContent = { Text(objectEntity.display) },
-            supportingContent = {
-                if (ipAddresses.isNotEmpty() || macAddresses.isNotEmpty()) {
-                    Column {
-                        ipAddresses.forEach { ipAddress ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(
-                                    "IP: ",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    ipAddress.address,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier =
-                                        Modifier.weight(1f).clickable {
-                                            onIpClick(ipAddress)
+        NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+            NyetboxListItem(
+                leadingContent = {
+                    Icon(AppIcons.forEndpointPath(tab.endpointPath), contentDescription = null)
+                },
+                headlineContent = { Text(objectEntity.display) },
+                supportingContent = {
+                    if (ipAddresses.isNotEmpty() || macAddresses.isNotEmpty()) {
+                        Column {
+                            ipAddresses.forEach { ipAddress ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        "IP: ",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        ipAddress.address,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier =
+                                            Modifier.weight(1f).clickable {
+                                                onIpClick(ipAddress)
+                                            },
+                                    )
+                                    DetailTrailingActions(
+                                        copyLabel = "IP address",
+                                        onCopy = {
+                                            onCopyValue("IP address", ipAddress.address)
                                         },
-                                )
-                                DetailTrailingActions(
-                                    copyLabel = "IP address",
-                                    onCopy = {
-                                        onCopyValue("IP address", ipAddress.address)
-                                    },
-                                    openLabel = "IP address",
-                                    onOpen = { onIpClick(ipAddress) },
-                                )
+                                        openLabel = "IP address",
+                                        onOpen = { onIpClick(ipAddress) },
+                                    )
+                                }
+                            }
+                            macAddresses.forEach { macAddress ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        "MAC: ",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(macAddress, modifier = Modifier.weight(1f))
+                                    DetailTrailingActions(
+                                        copyLabel = "MAC address",
+                                        onCopy = { onCopyValue("MAC address", macAddress) },
+                                    )
+                                }
                             }
                         }
-                        macAddresses.forEach { macAddress ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(
-                                    "MAC: ",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(macAddress, modifier = Modifier.weight(1f))
-                                DetailTrailingActions(
-                                    copyLabel = "MAC address",
-                                    onCopy = { onCopyValue("MAC address", macAddress) },
-                                )
-                            }
-                        }
+                    } else {
+                        (if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
+                                objectEntity.interfaceSubtitle(emptyList())
+                            } else {
+                                objectEntity.secondaryLine
+                            })
+                            ?.let { Text(it) }
                     }
-                } else {
-                    (if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
-                            objectEntity.interfaceSubtitle(emptyList())
-                        } else {
-                            objectEntity.secondaryLine
-                        })
-                        ?.let { Text(it) }
-                }
-            },
-            modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
-        )
-        HorizontalDivider()
+                },
+                modifier = Modifier.clickable { onObjectClick(objectEntity.id) },
+            )
+        }
     }
 }
 
@@ -1349,18 +1351,15 @@ private fun LazyListScope.detailField(
 ) {
     if (value.isNullOrBlank()) return
     item {
-        Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        NyetboxCard(
+            modifier =
+                Modifier.padding(vertical = 4.dp).combinedClickable(
+                    onClick = { onClick?.invoke() },
+                    onLongClick = { onFieldLongPress(label) },
+                )
         ) {
             Column(
                 Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                    .combinedClickable(
-                        onClick = { onClick?.invoke() },
-                        onLongClick = { onFieldLongPress(label) },
-                    )
             ) {
                 Text(
                     label,
@@ -1406,15 +1405,15 @@ private fun LazyListScope.detailMarkdownField(
 ) {
     if (value.isNullOrBlank()) return
     item {
-        Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        NyetboxCard(
+            modifier =
+                Modifier.padding(vertical = 4.dp).combinedClickable(
+                    onClick = {},
+                    onLongClick = { onFieldLongPress(label) },
+                )
         ) {
             Column(
                 Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                    .combinedClickable(onClick = {}, onLongClick = { onFieldLongPress(label) })
             ) {
                 Text(
                     label,

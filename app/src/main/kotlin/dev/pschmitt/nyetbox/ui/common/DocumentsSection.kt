@@ -22,10 +22,8 @@ import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Badge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -81,7 +79,7 @@ fun DocumentsSection(
         if (documents.isNotEmpty()) {
             documents.forEach { document ->
                 val canOpen = !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
-                ElevatedCard(
+                NyetboxCard(
                     modifier =
                         Modifier.fillMaxWidth()
                             .padding(vertical = 4.dp)
@@ -93,7 +91,7 @@ fun DocumentsSection(
                                     } else null,
                             )
                 ) {
-                    ListItem(
+                    NyetboxListItem(
                         headlineContent = { Text(document.name) },
                         supportingContent = {
                             document.documentType?.let { type -> DocumentTypeBadge(type) }
