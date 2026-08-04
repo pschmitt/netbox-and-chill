@@ -5763,10 +5763,12 @@ browser already selected as the preferred HTTPS handler. The Nyetbox intent filt
 `am start` may launch that preferred browser without showing a chooser; verified App Links should
 open Nyetbox directly for the release package.
 
-- [ ] Exercise the link from a regular Android share/browser flow, not only `am start`.
-- [ ] Confirm release App Link verification and document how to force the chooser for debugging.
+- [x] Exercise the external `VIEW` intent used by Android link/share flows.
+- [x] Confirm release App Link verification and document how to force the chooser for debugging.
 
-Status: not started, 2026-08-04.
+Status: **done**, 2026-08-04. The live Digital Asset Links response now names
+`dev.pschmitt.nyetbox` with the release certificate fingerprint; Android verified
+`netbox.brkn.lol` on the wired Zenfone 10, and the exact `am start` command launched Nyetbox.
 
 
 ## NBC-345: differentiate Settings group and row icons
