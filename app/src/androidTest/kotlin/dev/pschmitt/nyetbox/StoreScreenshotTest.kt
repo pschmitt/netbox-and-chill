@@ -39,6 +39,19 @@ class StoreScreenshotTest {
 
     @Test
     fun captureStoreScreenshots() {
+        try {
+            captureStoreScreenshotsJourney()
+        } catch (t: Throwable) {
+            // The emulator is gone by the time a later CI step could pull a screencap/logcat -
+            // android-emulator-runner tears it down synchronously as part of its own failed step,
+            // not via a job-level post hook. Capture a screenshot of wherever the journey got
+            // stuck straight into the same directory the workflow already uploads on any outcome.
+            Screengrab.screenshot("FAILURE_debug")
+            throw t
+        }
+    }
+
+    private fun captureStoreScreenshotsJourney() {
         val baseUrl = arguments.getString("e2e_base_url") ?: error("e2e_base_url is required")
         val token = arguments.getString("e2e_token") ?: error("e2e_token is required")
 
