@@ -22,9 +22,9 @@ import tools.fastlane.screengrab.locale.LocaleTestRule
  * Captures Play Store listing screenshots (en-US only, see fastlane/Screengrabfile) against a
  * disposable NetBox instance (`ci/netbox/docker-compose.yml`) seeded with a small realistic-
  * looking demo rack (`ci/netbox/seed_screenshots.py`), reusing the same
- * onboarding/dashboard/device-detail/search/settings journey as [NetBoxE2eSmokeTest]. Never point
- * this test at a real NetBox instance - the dashboard and search screenshots it produces show
- * whatever inventory data the connected instance has.
+ * onboarding/dashboard/device-detail/topology/search/settings journey as [NetBoxE2eSmokeTest].
+ * Never point this test at a real NetBox instance - the screenshots it produces show whatever
+ * inventory data the connected instance has.
  */
 @RunWith(AndroidJUnit4::class)
 class StoreScreenshotTest {
@@ -78,6 +78,14 @@ class StoreScreenshotTest {
         Thread.sleep(5_000)
         Screengrab.screenshot("02_device_detail")
 
+        composeRule.onNodeWithContentDescription("More actions").performClick()
+        waitForText("Open topology", 30_000)
+        composeRule.onNodeWithText("Open topology").performClick()
+        waitForContentDescription("Topology graph with 4 nodes and 3 connections", 120_000)
+        Screengrab.screenshot("03_topology")
+
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForContentDescription("More actions", 30_000)
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Search NetBox", 30_000)
@@ -87,7 +95,7 @@ class StoreScreenshotTest {
         // in a previous composition. A missing result must fail the capture instead of silently
         // producing an empty store-listing asset.
         waitForTag("e2e-search-result", 60_000)
-        Screengrab.screenshot("03_search")
+        Screengrab.screenshot("04_search")
 
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
@@ -96,7 +104,7 @@ class StoreScreenshotTest {
         waitForContentDescription("Settings", 30_000)
         composeRule.onNodeWithContentDescription("Settings").performClick()
         waitForText("Settings", 30_000)
-        Screengrab.screenshot("04_settings")
+        Screengrab.screenshot("05_settings")
     }
 
     private fun waitForText(text: String, timeoutMillis: Long) {

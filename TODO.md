@@ -6077,15 +6077,17 @@ leaking real inventory data into a public store listing.
       giving the dashboard richer stats than a single bare device
 - [x] Wait for an actual search-result card and fail the capture if search renders no result,
       rather than silently accepting an empty screenshot
+- [x] Add a topology screenshot using a seeded four-node graph with three connected interface
+      cables
+- [x] Build the screenshot-only NetBox fixture with `netbox-topology-views` and `netbox-documents`,
+      and seed a named demo document without changing the regular CI E2E fixture
 
-Status: **mostly done**, 2026-08-04. `just screenshots` runs the disposable NetBox fixture (now
-seeded with `seed_screenshots.py`'s nicer demo rack), a local hardware-accelerated emulator, a
-remote debug + androidTest build, and `fastlane screengrab` end to end, then tears the NetBox
-fixture down (success or failure). `01_dashboard`, `02_device_detail`, and `04_settings` were
-repeatedly verified showing real content; `02_device_detail` additionally needed an explicit
-"Refresh" click to reliably beat a race in the detail screen's own per-device fetch (confirmed
-the NetBox API itself is fast, so this isn't a NetBox performance issue). `03_search` is left as
-best-effort (wrapped in `runCatching`, doesn't block the remaining screenshots) - it still
-intermittently captures an empty "No matches yet" state for a reason not fully root-caused; see
-`docs/screenshots.md` for what's been ruled out and a suggested next debugging step. Tablet
-screenshot buckets are noted in `docs/screenshots.md` but not yet done.
+Status: **mostly done**, 2026-08-04. `just screenshots` builds and runs an isolated NetBox 4.5
+fixture with `netbox-topology-views` and `netbox-documents`, seeds a realistic demo rack with a
+four-node topology and named document, drives a local hardware-accelerated emulator, and runs a
+remote debug + androidTest build with `fastlane screengrab`; the fixture is always torn down.
+`01_dashboard`, `02_device_detail`, and `05_settings` were repeatedly verified showing real
+content; `02_device_detail` additionally needed an explicit "Refresh" click to reliably beat a
+race in the detail screen's own per-device fetch. `03_topology` waits for the seeded four-node,
+three-connection graph, and `04_search` fails rather than silently accepting an empty state.
+Tablet screenshot buckets are noted in `docs/screenshots.md` but not yet done.

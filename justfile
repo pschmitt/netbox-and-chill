@@ -274,8 +274,9 @@ deploy-all variant="debug":
 # torn down at the end of `just screenshots`, success or failure.
 
 netbox_compose_file := "ci/netbox/docker-compose.yml"
+screenshots_netbox_compose_file := "ci/netbox/docker-compose.screenshots.yml"
 screenshots_avd := env_var_or_default("NBC_SCREENSHOTS_AVD", "nyetbox-screenshots")
-# CI-only disposable-fixture credential (see ci/netbox/docker-compose.yml); not a real secret.
+# Disposable screenshot-fixture credential; not a real secret.
 screenshots_token := "nbt_CiE2eKey001X.0123456789abcdef0123456789abcdef01234567"
 
 # Start the disposable NetBox fixture used for Play Store screenshots (and CI E2E).
@@ -291,6 +292,21 @@ netbox-seed:
 # Tear down the disposable NetBox fixture and its volumes.
 netbox-down:
     docker compose -f {{netbox_compose_file}} down --volumes --remove-orphans
+
+# Build the disposable NetBox image with the plugins used by the screenshot capture. Keep this a
+# separate docker build so the recipe also works with hosts whose Compose buildx is older than the
+# version required by recent Docker Compose releases.
+screenshots-netbox-build:
+    docker build --tag local/nyetbox-netbox-screenshots:4.5-plugins --file ci/netbox/Dockerfile-screenshots ci/netbox
+
+# Start the disposable NetBox fixture with the plugins used by the screenshot capture.
+screenshots-netbox-up:
+    just screenshots-netbox-build
+    docker compose -f {{netbox_compose_file}} -f {{screenshots_netbox_compose_file}} up --no-build --detach --wait --wait-timeout 600
+
+# Tear down the plugin-enabled screenshot fixture and its volumes.
+screenshots-netbox-down:
+    docker compose -f {{netbox_compose_file}} -f {{screenshots_netbox_compose_file}} down --volumes --remove-orphans
 
 # Create the local screenshot-capture AVD once (API 34, google_apis, x86_64 - matches the
 # android-e2e.yaml workflow's emulator profile). Safe to re-run; skips if it already exists.
@@ -356,8 +372,8 @@ screenshots-build host=remote_host: (gradle host "assembleDebug assembleDebugAnd
 screenshots host=remote_host:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just netbox-down' EXIT
-    just netbox-up
+    trap 'just screenshots-netbox-down' EXIT
+    just screenshots-netbox-up
     just netbox-seed
     just screenshots-avd-create
     serial=$(just screenshots-emulator-start)

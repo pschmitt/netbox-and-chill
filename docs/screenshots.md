@@ -3,7 +3,7 @@
 Captures Play Store listing screenshots with [fastlane screengrab][screengrab], driven by the
 `StoreScreenshotTest` instrumented test
 (`app/src/androidTest/kotlin/dev/pschmitt/nyetbox/StoreScreenshotTest.kt`). Scope is intentionally
-narrow for now: **en-US only**, dashboard + device detail + search + settings.
+narrow for now: **en-US only**, dashboard + device detail + topology + search + settings.
 
 Fastlane regenerates `fastlane/README.md` itself on every run, so this doc lives outside
 `fastlane/` to avoid being overwritten.
@@ -17,7 +17,8 @@ physical test devices (Zenfone 10, Mi Pad 4, Pixel 5) are the user's own daily-d
 connected to their real NetBox instance - store screenshots must never show that inventory data.
 Rather than inventing a NetBox mocking layer, `just screenshots` reuses the disposable
 docker-compose NetBox fixture already built for `.github/workflows/android-e2e.yaml` (see
-`ci/netbox/docker-compose.yml`): same pinned images, same throwaway CI-only credentials. It's
+`ci/netbox/docker-compose.yml`): same throwaway CI-only credentials, with the screenshot-only
+Compose overlay adding the pinned `netbox-topology-views` and `netbox-documents` plugins. It's
 seeded with its own demo data (`ci/netbox/seed_screenshots.py`, not the E2E workflow's
 `seed.py` - see "Demo data" below) and created fresh and torn down
 (`docker compose down --volumes`) at the end of every `just screenshots` run, success or
@@ -34,7 +35,8 @@ much faster than CI's software-rendered fallback.
 Per `AGENTS.md`, Gradle/Android SDK work stays on the remote build hosts. `just screenshots`
 respects that split - only `adb`/`emulator`/`fastlane` (no Gradle) run locally:
 
-1. Starts the disposable NetBox fixture (`just netbox-up`) and seeds it (`just netbox-seed`).
+1. Builds and starts the disposable plugin-enabled NetBox fixture (`just screenshots-netbox-up`) and
+   seeds it (`just netbox-seed`).
 2. Creates the screenshot AVD once if needed (`just screenshots-avd-create`) and boots it
    (`just screenshots-emulator-start`), API 34 google_apis x86_64 - the same profile
    `android-e2e.yaml` uses.
@@ -45,7 +47,7 @@ respects that split - only `adb`/`emulator`/`fastlane` (no Gradle) run locally:
    mid-journey - same reason `android-e2e.yaml` grants it before the first launch).
 5. `fastlane screengrab` (via `nix develop .#screenshots`) drives `StoreScreenshotTest` over adb
    and pulls the results into `fastlane/metadata/android/`.
-6. Always tears the NetBox fixture back down (`just netbox-down`, via a shell `trap`), even on
+6. Always tears the NetBox fixture back down (`just screenshots-netbox-down`, via a shell `trap`), even on
    failure.
 
 Run the whole thing with:
@@ -79,8 +81,9 @@ than reusing `android-e2e.yaml`'s `ci/netbox/seed.py` - that script's exact-matc
 (`CI E2E Device`, `CI E2E Manufacturer`, ...) exist for deterministic E2E test assertions, not to
 look good in a store listing. `seed_screenshots.py` creates one manufacturer (Acme Networks), one
 site (Berlin Data Center), one rack (Rack A1), and four devices (`core-sw-01`/`-02`, `edge-rtr-01`,
-`fw-01`) with distinct roles and device types, giving the dashboard richer stats (3 device types,
-4 devices, 1 rack) than a single bare device would.
+`fw-01`) with distinct roles and device types, three connected interface cables, and a named demo
+document attached to `core-sw-01`. This gives the dashboard richer stats (3 device types, 4 devices,
+1 rack) and gives the topology screen a real graph rather than a collection of isolated nodes.
 
 ## Search screenshot synchronization
 
@@ -120,7 +123,8 @@ Ran end to end on this machine (KVM-accelerated Pixel 2 profile, API 34 google_a
 just screenshots
 ```
 
-`01_dashboard`, `02_device_detail`, and `04_settings` were repeatedly verified showing real
-seeded content, not loading placeholders. `03_search` now fails instead of silently accepting
-an empty state when no result card renders. The disposable NetBox fixture was confirmed torn down
+`01_dashboard`, `02_device_detail`, and `05_settings` were repeatedly verified showing real
+seeded content, not loading placeholders. `03_topology` waits for the seeded four-node,
+three-connection graph, and `04_search` fails instead of silently accepting an empty state when no
+result card renders. The disposable NetBox fixture was confirmed torn down
 (`docker compose ... down --volumes`) after every run, including failed ones.

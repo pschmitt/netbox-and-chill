@@ -122,6 +122,66 @@ def seed(base_url, token):
             },
         )
 
+    interfaces = {}
+    for device_name, interface_names in {
+        "core-sw-01": ("uplink-1", "uplink-2"),
+        "core-sw-02": ("uplink-1",),
+        "edge-rtr-01": ("uplink-1", "uplink-2"),
+        "fw-01": ("uplink-1",),
+    }.items():
+        for interface_name in interface_names:
+            interfaces[(device_name, interface_name)] = create_or_get(
+                base_url,
+                token,
+                "api/dcim/interfaces/",
+                {"device_id": devices[device_name]["id"], "name": interface_name},
+                {
+                    "device": devices[device_name]["id"],
+                    "name": interface_name,
+                    "type": "1000base-t",
+                },
+            )
+
+    for left, right, label in (
+        (("core-sw-01", "uplink-1"), ("core-sw-02", "uplink-1"), "Core interconnect"),
+        (("core-sw-01", "uplink-2"), ("edge-rtr-01", "uplink-1"), "Edge uplink"),
+        (("edge-rtr-01", "uplink-2"), ("fw-01", "uplink-1"), "Firewall uplink"),
+    ):
+        create_or_get(
+            base_url,
+            token,
+            "api/dcim/cables/",
+            {"label": label},
+            {
+                "a_terminations": [
+                    {"object_type": "dcim.interface", "object_id": interfaces[left]["id"]}
+                ],
+                "b_terminations": [
+                    {"object_type": "dcim.interface", "object_id": interfaces[right]["id"]}
+                ],
+                "status": "connected",
+                "type": "cat6",
+                "label": label,
+                "length": 3,
+                "length_unit": "m",
+            },
+        )
+
+    create_or_get(
+        base_url,
+        token,
+        "api/plugins/documents/documents/",
+        {"name": "Network overview"},
+        {
+            "name": "Network overview",
+            "external_url": "https://example.invalid/network-overview.pdf",
+            "document_type": "diagram",
+            "content_type": "dcim.device",
+            "object_id": devices["core-sw-01"]["id"],
+            "comments": "Demo document for the store listing screenshot fixture.",
+        },
+    )
+
     print(
         json.dumps(
             {
@@ -131,6 +191,8 @@ def seed(base_url, token):
                 "primary_device": devices["core-sw-01"]["id"],
                 "primary_device_name": "core-sw-01",
                 "primary_device_asset_tag": "ACME-1001",
+                "topology_plugin": True,
+                "documents_plugin": True,
             },
             sort_keys=True,
         )
