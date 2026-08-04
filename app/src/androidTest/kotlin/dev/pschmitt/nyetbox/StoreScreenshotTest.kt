@@ -1,5 +1,6 @@
 package dev.pschmitt.nyetbox
 
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -105,12 +106,15 @@ class StoreScreenshotTest {
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForContentDescription("More actions", 30_000)
         composeRule.onNodeWithContentDescription("Back").performClick()
-        // Unlike every other transition above, nothing here waits for the device list (and its
-        // bottom bar/nav rail) to actually finish recomposing after the pop before clicking Home -
-        // on the wider tablet surface that recomposition is slow enough that the click can land
-        // before the rail's Home tab is attached, so wait for the same tag used to confirm this
-        // screen loaded the first time around.
-        waitForTag("e2e-device-list-entry", 30_000)
+        // "e2e-device-list-entry" is the sidebar drawer's own "Devices" item (see Sidebar.kt), not
+        // a row on this screen - ModalNavigationDrawer keeps drawer content mounted in the
+        // semantics tree even while closed, so waiting for that tag to merely *exist* is always
+        // trivially true and never actually confirmed anything. The real, screenshot-confirmed
+        // failure is that the drawer's scrim can still be open here (open since the very first
+        // "Open navigation" click earlier in this journey) and intercepts the click on "Home"
+        // meant for the NavigationRail/NavigationBar tab underneath it. Wait for that same tag to
+        // stop being *displayed* instead, which only holds once the drawer has actually closed.
+        waitForTagNotDisplayed("e2e-device-list-entry", 30_000)
         composeRule.onNodeWithText("Home").performClick()
         waitForTag("e2e-search-card", 30_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
@@ -153,5 +157,9 @@ class StoreScreenshotTest {
         composeRule.waitUntil(timeoutMillis) {
             composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun waitForTagNotDisplayed(tag: String, timeoutMillis: Long) {
+        composeRule.waitUntil(timeoutMillis) { !composeRule.onNodeWithTag(tag).isDisplayed() }
     }
 }
