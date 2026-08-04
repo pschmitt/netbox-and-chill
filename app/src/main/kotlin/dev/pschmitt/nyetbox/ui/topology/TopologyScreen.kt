@@ -306,6 +306,22 @@ private fun TopologyGraphCanvas(
         zoom = nextZoom
     }
 
+    fun zoomAt(position: Offset) {
+        val nextZoom =
+            (zoom * TOPOLOGY_DOUBLE_TAP_ZOOM_FACTOR)
+                .coerceIn(MIN_TOPOLOGY_ZOOM, MAX_TOPOLOGY_ZOOM)
+        if (nextZoom == zoom || viewportSize == IntSize.Zero) return
+        pan =
+            topologyDoubleTapZoomPan(
+                viewportSize = viewportSize,
+                currentZoom = zoom,
+                nextZoom = nextZoom,
+                currentPan = pan,
+                tapPosition = position,
+            )
+        zoom = nextZoom
+    }
+
     LaunchedEffect(graph, viewportSize, focusedNodeId) {
         if (!initialized && viewportSize != IntSize.Zero) {
             zoom = initialTopologyZoom(graph.nodes.size, viewportSize.width.toFloat())
@@ -363,17 +379,20 @@ private fun TopologyGraphCanvas(
             modifier =
                 Modifier.fillMaxSize()
                     .pointerInput(renderData, viewportSize, zoom, pan) {
-                        detectTapGestures { position ->
-                            topologyNodeAt(
-                                    position,
-                                    renderData,
-                                    viewportSize,
-                                    zoom,
-                                    pan,
-                                    dragOffsets,
-                                )
-                                ?.let { latestOnNodeClick(it.node.id) }
-                        }
+                        detectTapGestures(
+                            onDoubleTap = ::zoomAt,
+                            onTap = { position ->
+                                topologyNodeAt(
+                                        position,
+                                        renderData,
+                                        viewportSize,
+                                        zoom,
+                                        pan,
+                                        dragOffsets,
+                                    )
+                                    ?.let { latestOnNodeClick(it.node.id) }
+                            },
+                        )
                     }
                     .pointerInput(renderData, viewportSize, zoom, pan) {
                         var activeNodeId: String? = null
@@ -591,7 +610,7 @@ private fun TopologyNodeSheet(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (showDeviceTypeImages && info.localImageFile != null) {
+            if (showDeviceTypeImages && !info.frontImageUrl.isNullOrBlank()) {
                 RemoteThumbnail(
                     imageUrl = info.frontImageUrl,
                     localFile = info.localImageFile,
@@ -622,7 +641,18 @@ private fun TopologyNodeSheet(
             Text("Connected devices", style = MaterialTheme.typography.titleMedium)
             connectedDevices.forEach { connected ->
                 ListItem(
-                    leadingContent = { Icon(Icons.Default.Hub, contentDescription = null) },
+                    leadingContent = {
+                        if (showDeviceTypeImages && !connected.frontImageUrl.isNullOrBlank()) {
+                            RemoteThumbnail(
+                                imageUrl = connected.frontImageUrl,
+                                localFile = connected.localImageFile,
+                                contentDescription = connected.displayName,
+                                modifier = Modifier.size(56.dp),
+                            )
+                        } else {
+                            Icon(Icons.Default.Hub, contentDescription = null)
+                        }
+                    },
                     headlineContent = { Text(connected.displayName) },
                     supportingContent = { connected.deviceTypeModel?.let { Text(it) } },
                     modifier = Modifier.clickable { onSelectConnected(connected) },
@@ -870,6 +900,20 @@ internal fun topologyButtonZoomPan(
     return -(target - bounds.center) * (fitScale * nextZoom)
 }
 
+/** Keeps the point under a double-tap stationary while increasing the topology zoom. */
+internal fun topologyDoubleTapZoomPan(
+    viewportSize: IntSize,
+    currentZoom: Float,
+    nextZoom: Float,
+    currentPan: Offset,
+    tapPosition: Offset,
+): Offset {
+    val viewportCenter = Offset(viewportSize.width / 2f, viewportSize.height / 2f)
+    val zoomRatio = nextZoom / currentZoom.coerceAtLeast(0.001f)
+    return (tapPosition - viewportCenter) -
+        (tapPosition - viewportCenter - currentPan) * zoomRatio
+}
+
 internal fun topologyZoomForScroll(currentZoom: Float, scrollY: Float, ctrlPressed: Boolean): Float =
     if (!ctrlPressed || scrollY == 0f) {
         currentZoom
@@ -881,6 +925,7 @@ internal fun topologyZoomForScroll(currentZoom: Float, scrollY: Float, ctrlPress
 private const val MIN_TOPOLOGY_ZOOM = 0.35f
 private const val MAX_TOPOLOGY_ZOOM = 8f
 private const val ZOOM_STEP = 1.4f
+private const val TOPOLOGY_DOUBLE_TAP_ZOOM_FACTOR = 2f
 private const val TOPOLOGY_LABEL_SCALE = 0.55f
 private const val TOPOLOGY_DETAIL_SCALE = 1.4f
 private const val TOPOLOGY_IMAGE_SCALE = 1.4f

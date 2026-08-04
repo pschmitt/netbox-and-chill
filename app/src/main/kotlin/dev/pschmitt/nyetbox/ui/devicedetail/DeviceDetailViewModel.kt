@@ -260,6 +260,12 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val deviceTypeImages: StateFlow<Map<Int, DeviceTypeEntity>> =
+        deviceTypeRepository
+            .observeAll()
+            .map { types -> types.associateBy { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     /** Manufacturer references live in the cached generic device-type object. */
     val manufacturerId: StateFlow<Int?> =
         device

@@ -72,6 +72,28 @@ class TopologyViewportTest {
     }
 
     @Test
+    fun doubleTapZoomKeepsTheTappedGraphPointUnderTheTap() {
+        val viewport = IntSize(800, 600)
+        val tap = Offset(600f, 200f)
+        val currentPan = Offset(80f, -40f)
+        val nextPan =
+            topologyDoubleTapZoomPan(
+                viewportSize = viewport,
+                currentZoom = 1f,
+                nextZoom = 2f,
+                currentPan = currentPan,
+                tapPosition = tap,
+            )
+        val viewportCenter = Offset(400f, 300f)
+        val zoomRatio = 2f
+        val transformedTap =
+            viewportCenter + nextPan + (tap - viewportCenter - currentPan) * zoomRatio
+
+        assertEquals(tap.x, transformedTap.x, 0.01f)
+        assertEquals(tap.y, transformedTap.y, 0.01f)
+    }
+
+    @Test
     fun ctrlScrollZoomsOnlyWithTheModifier() {
         assertTrue(topologyZoomForScroll(1f, -1f, ctrlPressed = true) > 1f)
         assertTrue(topologyZoomForScroll(1f, 1f, ctrlPressed = true) < 1f)

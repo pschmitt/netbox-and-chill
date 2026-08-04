@@ -147,6 +147,7 @@ fun DeviceDetailScreen(
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
+    val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
     val manufacturerId by viewModel.manufacturerId.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val interfaceIpAddresses by viewModel.interfaceIpAddresses.collectAsStateWithLifecycle()
@@ -799,6 +800,8 @@ fun DeviceDetailScreen(
                             } else if (tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH) {
                                 DeviceConnectedDevices(
                                     devices = connectedDevices,
+                                    deviceTypeImages = deviceTypeImages,
+                                    localImageFile = viewModel::localImageFile,
                                     onDeviceClick = { deviceId ->
                                         onReferenceClick(
                                             NetBoxRef.DEVICES_ENDPOINT_PATH,
@@ -1032,6 +1035,8 @@ private fun tabIcon(tab: DeviceRelatedTab) =
 @Composable
 private fun DeviceConnectedDevices(
     devices: List<DeviceEntity>,
+    deviceTypeImages: Map<Int, DeviceTypeEntity>,
+    localImageFile: (String, String) -> File?,
     onDeviceClick: (Int) -> Unit,
 ) {
     if (devices.isEmpty()) {
@@ -1043,13 +1048,23 @@ private fun DeviceConnectedDevices(
         return
     }
     devices.forEach { connected ->
+        val frontImage = connected.deviceTypeId?.let(deviceTypeImages::get)?.frontImageUrl
         NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
             NyetboxListItem(
                 leadingContent = {
-                    Icon(
-                        AppIcons.forEndpointPath(NetBoxRef.DEVICES_ENDPOINT_PATH),
-                        contentDescription = null,
-                    )
+                    if (frontImage.isNullOrBlank()) {
+                        Icon(
+                            AppIcons.forEndpointPath(NetBoxRef.DEVICES_ENDPOINT_PATH),
+                            contentDescription = null,
+                        )
+                    } else {
+                        RemoteThumbnail(
+                            imageUrl = frontImage,
+                            localFile = localImageFile(frontImage, "device-type-${connected.deviceTypeId}-front"),
+                            contentDescription = connected.name,
+                            modifier = Modifier.size(56.dp),
+                        )
+                    }
                 },
                 headlineContent = { Text(connected.name) },
                 supportingContent = {

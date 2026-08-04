@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 
 enum class SwipeDirection {
     Up,
@@ -13,7 +14,14 @@ enum class SwipeDirection {
     Right,
 }
 
-/** Observes, but does not consume, a swipe made with exactly [fingerCount] fingers. */
+/**
+ * Observes, but does not consume, a swipe made with exactly [fingerCount] fingers.
+ *
+ * This runs in the Main pass so child gesture detectors get first refusal. A child such as
+ * topology's [androidx.compose.foundation.gestures.transformable] consumes positional movement
+ * for pinch/zoom; once that happens this observer abandons the gesture instead of triggering a
+ * global shortcut from the same pointer stream.
+ */
 fun Modifier.multiFingerSwipe(
     fingerCount: Int,
     direction: SwipeDirection,
@@ -24,7 +32,8 @@ fun Modifier.multiFingerSwipe(
             var start: Offset? = null
             var triggered = false
             while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val event = awaitPointerEvent(PointerEventPass.Main)
+                if (event.changes.any { it.positionChanged() && it.isConsumed }) break
                 val pressed = event.changes.filter { it.pressed }
                 if (pressed.isEmpty()) break
                 if (pressed.size == fingerCount) {

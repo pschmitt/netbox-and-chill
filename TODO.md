@@ -5768,6 +5768,49 @@ Status: **done**, 2026-08-04. Verified with remote `ktfmtCheck`, `:app:compileDe
 `just deploy-all debug` (Zenfone 10, Mi Pad 4, and Pixel 5).
 
 
+## NBC-347: keep topology pinch zoom separate from global two-finger gestures
+
+Pinching on the topology canvas currently also triggers the configured two-finger swipe action.
+The topology transform gesture should take precedence over the app-wide shortcut recognizer.
+
+- [x] Ignore global multi-finger swipes once a child consumes positional movement.
+- [x] Preserve two-finger shortcuts on surfaces without a competing gesture.
+- [x] Verify with remote compilation, tests, lint, and device installation.
+
+Status: **done**, 2026-08-04. Verified with remote `ktfmtCheck`, `:app:compileDebugKotlin`,
+`:app:testDebugUnitTest`, `:app:lintDebug`, `:app:compileDebugAndroidTestKotlin`, and
+`just deploy-all debug` (Zenfone 10, Mi Pad 4, and Pixel 5).
+
+
+## NBC-349: show device-type photos in topology-related device lists
+
+Topology node details and the device view's Connected devices tab should use the cached device-type
+front photo when one exists, falling back to the normal device icon otherwise.
+
+- [x] Show front photos in the topology node bottom sheet and its connected-device rows.
+- [x] Show front photos in the device view Connected devices tab.
+- [x] Verify with remote compilation, tests, lint, and device installation.
+
+Status: **done**, 2026-08-04. Verified with remote `ktfmtCheck`, `:app:compileDebugKotlin`,
+`:app:testDebugUnitTest`, `:app:lintDebug`, `:app:compileDebugAndroidTestKotlin`, and
+`just deploy-all debug` (Zenfone 10, Mi Pad 4, and Pixel 5).
+
+
+## NBC-348: add double-tap zoom-in to topology
+
+Topology should offer a familiar double-tap gesture for zooming into the graph. Double-tap should
+only zoom in; zooming out remains available through the existing controls and reset action.
+
+- [x] Zoom toward the tapped graph position on double-tap.
+- [x] Keep repeated double-taps zooming in without introducing a zoom-out toggle.
+- [x] Verify with remote compilation, tests, lint, and device installation.
+
+Status: **done**, 2026-08-04. Verified with the focal-point viewport unit test plus remote
+`ktfmtCheck`, `:app:compileDebugKotlin`, `:app:testDebugUnitTest`, `:app:lintDebug`,
+`:app:compileDebugAndroidTestKotlin`, and `just deploy-all debug` (Zenfone 10, Mi Pad 4, and
+Pixel 5).
+
+
 ## NBC-344: avoid redundant headers on single-setting cards
 
 Cards containing one setting or action should let that row carry the title and icon instead of
