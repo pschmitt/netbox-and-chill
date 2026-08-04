@@ -276,6 +276,7 @@ deploy-all variant="debug":
 netbox_compose_file := "ci/netbox/docker-compose.yml"
 screenshots_netbox_compose_file := "ci/netbox/docker-compose.screenshots.yml"
 screenshots_avd := env_var_or_default("NBC_SCREENSHOTS_AVD", "nyetbox-screenshots")
+screenshots_tablet_avd := env_var_or_default("NBC_SCREENSHOTS_TABLET_AVD", "nyetbox-tablet")
 play_package := "dev.pschmitt.nyetbox"
 # Disposable screenshot-fixture credential; not a real secret.
 screenshots_token := "nbt_CiE2eKey001X.0123456789abcdef0123456789abcdef01234567"
@@ -359,6 +360,86 @@ screenshots-emulator-stop:
     serial=$(adb devices | awk '/^emulator-/ { print $1; exit }')
     [ -n "$serial" ] && adb -s "$serial" emu kill || true
 
+# Create the tablet screenshot AVD once (Pixel Tablet profile, API 34 google_apis x86_64).
+screenshots-tablet-avd-create:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix develop .#screenshots --command bash -euo pipefail -c '
+      if avdmanager list avd | grep -q "Name: {{screenshots_tablet_avd}}$"; then
+        echo "AVD {{screenshots_tablet_avd}} already exists"
+        exit 0
+      fi
+      echo "no" | avdmanager create avd \
+        --name {{screenshots_tablet_avd}} \
+        --package "system-images;android-34;google_apis;x86_64" \
+        --device "pixel_tablet"
+    '
+
+# Start the tablet emulator and print its adb serial. Reuse only the configured tablet AVD when
+# another emulator (for example the phone screenshot AVD) is already connected.
+screenshots-tablet-emulator-start:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    find_tablet_serial() {
+      local candidate avd
+      while read -r candidate
+      do
+        avd=$(adb -s "$candidate" emu avd name 2>/dev/null | tr -d '\r' | tail -n1 || true)
+        if [[ "$avd" == "{{screenshots_tablet_avd}}" ]]
+        then
+          printf '%s\n' "$candidate"
+          return 0
+        fi
+      done < <(adb devices | awk '$2 == "device" && $1 ~ /^emulator-/ { print $1 }')
+      return 1
+    }
+    serial=$(find_tablet_serial || true)
+    if [[ -n "$serial" ]]
+    then
+      printf '%s\n' "$serial"
+      exit 0
+    fi
+    nix develop .#screenshots --command bash -c '
+      nohup emulator -avd {{screenshots_tablet_avd}} -no-window -no-snapshot -no-audio -no-boot-anim \
+        -gpu swiftshader_indirect >/tmp/nyetbox-tablet-emulator.log 2>&1 &
+      disown
+    '
+    serial=""
+    for _ in $(seq 1 90)
+    do
+      serial=$(find_tablet_serial || true)
+      if [[ -n "$serial" ]]
+      then
+        break
+      fi
+      sleep 2
+    done
+    if [[ -z "$serial" ]]
+    then
+      printf 'tablet emulator did not register with adb\n' >&2
+      exit 1
+    fi
+    adb -s "$serial" wait-for-device
+    until [[ "$(adb -s "$serial" shell getprop sys.boot_completed | tr -d '\r')" == "1" ]]
+    do
+      sleep 2
+    done
+    printf '%s\n' "$serial"
+
+# Stop the configured tablet emulator, if one is running.
+screenshots-tablet-emulator-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    while read -r candidate
+    do
+      avd=$(adb -s "$candidate" emu avd name 2>/dev/null | tr -d '\r' | tail -n1 || true)
+      if [[ "$avd" == "{{screenshots_tablet_avd}}" ]]
+      then
+        adb -s "$candidate" emu kill
+        exit 0
+      fi
+    done < <(adb devices | awk '$2 == "device" && $1 ~ /^emulator-/ { print $1 }')
+
 # Build the debug app (x86_64, for the emulator) and its instrumentation APK remotely, then fetch
 # both locally for screengrab.
 screenshots-build host=remote_host: (gradle host "assembleDebug assembleDebugAndroidTest")
@@ -391,6 +472,26 @@ screenshots host=remote_host:
     E2E_TOKEN={{screenshots_token}} SCREENGRAB_SPECIFIC_DEVICE="$serial" \
       nix develop .#screenshots --command fastlane screenshots
 
+# Capture the same journey on a Pixel Tablet emulator. Output is routed to the Play Console
+# ten-inch bucket and kept separate from phone screenshots.
+screenshots-tablet host=remote_host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'just screenshots-netbox-down' EXIT
+    just screenshots-netbox-up
+    just netbox-seed
+    just screenshots-tablet-avd-create
+    serial=$(just screenshots-tablet-emulator-start)
+    adb -s "$serial" reverse tcp:8000 tcp:8000
+    just screenshots-build "{{host}}"
+    adb -s "$serial" install -r -t "{{local_dist}}/app-x86_64-debug.apk"
+    adb -s "$serial" shell pm clear dev.pschmitt.nyetbox.debug
+    adb -s "$serial" shell pm grant dev.pschmitt.nyetbox.debug android.permission.POST_NOTIFICATIONS || true
+    E2E_TOKEN={{screenshots_token}} \
+      SCREENGRAB_DEVICE_TYPE=tenInch \
+      SCREENGRAB_SPECIFIC_DEVICE="$serial" \
+      nix develop .#screenshots --command fastlane screenshots
+
 # Upload the generated screenshots to the release application's Play Console listing. This is
 # deliberately separate from `screenshots`: capture uses the debug application, while Play Console
 # metadata belongs to the release package and publishing is an explicit external side effect.
@@ -399,10 +500,19 @@ screenshots-upload:
     set -euo pipefail
     image_dir="fastlane/metadata/android"
     shopt -s nullglob
-    image_glob=("$image_dir"/en-US/images/phoneScreenshots/*)
-    if [[ ! -d "$image_dir/en-US/images/phoneScreenshots" || ${#image_glob[@]} -eq 0 ]]
+    image_types=(phoneScreenshots sevenInchScreenshots tenInchScreenshots)
+    found_images=0
+    for image_type in "${image_types[@]}"
+    do
+      image_glob=("$image_dir"/en-US/images/"$image_type"/*)
+      if [[ ${#image_glob[@]} -gt 0 ]]
+      then
+        found_images=1
+      fi
+    done
+    if [[ "$found_images" -eq 0 ]]
     then
-      printf 'No generated phone screenshots found under %s\n' "$image_dir" >&2
+      printf 'No generated screenshots found under %s\n' "$image_dir" >&2
       printf 'Run `just screenshots` first.\n' >&2
       exit 1
     fi
@@ -416,14 +526,52 @@ screenshots-upload:
       printf 'Play Console package %s was not found via `gpc apps list`\n' "{{play_package}}" >&2
       exit 1
     fi
-    for image in "${image_glob[@]}"
+    for image_type in "${image_types[@]}"
     do
-      printf 'Uploading %s\n' "$image"
-      gpc --package {{play_package}} images upload \
-        --locale en-US \
-        --type phoneScreenshots \
-        --file "$image"
+      image_glob=("$image_dir"/en-US/images/"$image_type"/*)
+      for image in "${image_glob[@]}"
+      do
+        printf 'Uploading %s\n' "$image"
+        gpc --package {{play_package}} images upload \
+          --locale en-US \
+          --type "$image_type" \
+          --file "$image"
+      done
     done
+
+# Flatten and upload the app icon used by the launcher and README. Keep this separate from the
+# screenshot upload because the Play Console icon is not locale-scoped.
+play-icon-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source_icon="docs/images/nyetbox-icon.svg"
+    if [[ ! -f "$source_icon" ]]
+    then
+      printf 'Icon source not found: %s\n' "$source_icon" >&2
+      exit 1
+    fi
+    if ! command -v magick >/dev/null
+    then
+      printf 'ImageMagick `magick` is required to flatten the SVG icon\n' >&2
+      exit 1
+    fi
+    if ! command -v gpc >/dev/null
+    then
+      printf 'gpc (playconsole-cli) is required for Play Console uploads\n' >&2
+      exit 1
+    fi
+    if ! gpc apps list --output json | rg -q '"package_name":"{{play_package}}"'
+    then
+      printf 'Play Console package %s was not found via `gpc apps list`\n' "{{play_package}}" >&2
+      exit 1
+    fi
+    temp_dir=$(mktemp -d)
+    trap 'rm -rf "$temp_dir"' EXIT
+    magick -background none "$source_icon" -resize 512x512 "$temp_dir/nyetbox-icon.png"
+    gpc --package {{play_package}} images upload \
+      --locale en-US \
+      --type icon \
+      --file "$temp_dir/nyetbox-icon.png"
 
 # --- Formatting / hooks ----------------------------------------------------
 

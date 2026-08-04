@@ -6084,6 +6084,8 @@ leaking real inventory data into a public store listing.
 - [x] Add an explicit `gpc` upload recipe for reviewed screenshots, targeting the release package
       without making capture itself modify the Play Console listing
 - [x] Verify the upload target with `gpc apps list` rather than relying on `gpc doctor`
+- [ ] Add and capture the tablet screenshot bucket using a disposable Pixel Tablet emulator
+- [x] Upload the flattened app icon and verify it in the Play Console listing
 
 Status: **mostly done**, 2026-08-04. `just screenshots` builds and runs an isolated NetBox 4.5
 fixture with `netbox-topology-views` and `netbox-documents`, seeds a realistic demo rack with a
@@ -6094,3 +6096,15 @@ content; `02_device_detail` additionally needed an explicit "Refresh" click to r
 race in the detail screen's own per-device fetch. `03_topology` waits for the seeded four-node,
 three-connection graph, and `04_search` fails rather than silently accepting an empty state.
 Tablet screenshot buckets are noted in `docs/screenshots.md` but not yet done.
+
+
+## NBC-366: color object-type icons in color settings
+
+When configuring object-type colors, preview each object type's icon using its selected color so
+the setting is immediately understandable.
+
+- [ ] Apply the configured object-type color to the relevant icon in the color-setting UI.
+- [ ] Keep the preview consistent with object-type icons elsewhere in the app.
+- [ ] Add focused UI/unit coverage for the color preview.
+
+Status: not started, 2026-08-04.

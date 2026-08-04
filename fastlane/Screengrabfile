@@ -12,6 +12,10 @@ tests_apk_path("dist/app-debug-androidTest.apk")
 
 output_directory("fastlane/metadata/android")
 
+# "phone" by default; the tablet recipe overrides this to "tenInch" so its captures land in a
+# separate Play Console bucket instead of overwriting the phone screenshots.
+device_type(ENV.fetch("SCREENGRAB_DEVICE_TYPE", "phone"))
+
 # Points StoreScreenshotTest at the disposable NetBox fixture (see `just netbox-up`/`netbox-seed`)
 # instead of a real instance - never hardcode a real NetBox URL/token here.
 launch_arguments([

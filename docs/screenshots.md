@@ -56,7 +56,18 @@ Run the whole thing with:
 just screenshots
 ```
 
-Output lands in `fastlane/metadata/android/en-US/images/phoneScreenshots/`.
+Phone output lands in `fastlane/metadata/android/en-US/images/phoneScreenshots/`.
+
+For the tablet layout, use the dedicated Pixel Tablet AVD:
+
+```console
+just screenshots-tablet
+```
+
+Those captures use the same journey and disposable NetBox fixture, but are written to
+`fastlane/metadata/android/en-US/images/tenInchScreenshots/` so they cannot overwrite phone
+screenshots. The tablet emulator is intentionally separate from the physical Mi Pad 4 and other
+test devices.
 
 ## Uploading to Google Play
 
@@ -70,6 +81,13 @@ gpc apps list
 just screenshots-upload
 ```
 
+The upload recipe includes both phone and tablet screenshot buckets. The launcher icon can be
+uploaded separately after reviewing the flattened asset:
+
+```console
+just play-icon-upload
+```
+
 The recipe uploads each Fastlane output to the **release** package `dev.pschmitt.nyetbox`; the
 screenshot test itself runs the separate debug package. It refuses to run when the generated
 phone-screenshot directory is empty and never deletes existing Play Console images automatically.
@@ -77,7 +95,8 @@ It verifies the target package through `gpc apps list`; `gpc doctor` is not used
 gate because its package/credential diagnostics can be misleading when the package is supplied via
 flags or another working authentication context.
 Generated images are ignored by Git: this checkout currently has four older POC outputs, but no
-topology capture yet, and no listing upload has been performed.
+topology or tablet capture yet. The four phone images and the flattened icon have been uploaded;
+the tablet bucket remains empty until `just screenshots-tablet` is run.
 
 ## Running it more than once against the same emulator
 
@@ -130,9 +149,8 @@ capture fails and the test diagnostics should be inspected rather than publishin
   screen you're leaving" rule documented in the code comments.
 - More locales: add entries to `locales(...)` in `fastlane/Screengrabfile` - screengrab switches
   the device locale for each one via `LocaleTestRule`, which is already wired into the test.
-- Tablet screenshot buckets (7"/10" for the Play Store listing): create an additional AVD with a
-  larger profile and repeat `just screenshots` against it; screengrab buckets output by the
-  target's screen size automatically.
+- Tablet screenshot buckets: `just screenshots-tablet` uses the Pixel Tablet AVD and the Play
+  Console `tenInchScreenshots` bucket.
 - Uploading is intentionally an explicit `just screenshots-upload` step after reviewing the
   generated images.
 
