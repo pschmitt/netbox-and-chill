@@ -44,9 +44,12 @@ class StoreScreenshotTest {
         } catch (t: Throwable) {
             // The emulator is gone by the time a later CI step could pull a screencap/logcat -
             // android-emulator-runner tears it down synchronously as part of its own failed step,
-            // not via a job-level post hook. Capture a screenshot of wherever the journey got
-            // stuck straight into the same directory the workflow already uploads on any outcome.
-            Screengrab.screenshot("FAILURE_debug")
+            // not via a job-level post hook. screengrab itself is no help either: it skips pulling
+            // any Screengrab.screenshot() captures at all once the test class reports a failure,
+            // dashboard/topology shots included. captureE2eScreenshot (already used by the E2E
+            // suite) writes straight to the app's external files dir instead, which the workflow
+            // can adb pull independently of screengrab's own success-gated pull step.
+            captureE2eScreenshot("FAILURE_debug")
             throw t
         }
     }
