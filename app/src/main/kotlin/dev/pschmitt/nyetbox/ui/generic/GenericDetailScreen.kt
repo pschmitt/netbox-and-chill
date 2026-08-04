@@ -5,72 +5,42 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Label
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cable
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Difference
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Badge
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -81,57 +51,43 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
-import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
-import dev.pschmitt.nyetbox.data.db.RackElevationEntity
-import dev.pschmitt.nyetbox.data.repository.RackFace
 import dev.pschmitt.nyetbox.data.repository.DeleteSubmission
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldObjectKey
-import dev.pschmitt.nyetbox.data.repository.hiddenFieldPreferenceKey
-import dev.pschmitt.nyetbox.data.repository.choiceSearchHint
-import dev.pschmitt.nyetbox.data.schema.Humanize
-import dev.pschmitt.nyetbox.ui.common.CollapsibleCommentCard
 import dev.pschmitt.nyetbox.ui.common.CommentCard
-import dev.pschmitt.nyetbox.ui.common.DetailTrailingActions
 import dev.pschmitt.nyetbox.ui.common.DocumentsSection
 import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
+import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
 import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
-import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
-import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTab
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTabs
 import dev.pschmitt.nyetbox.ui.common.JournalEntryEditorDialog
-import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadKind
-import dev.pschmitt.nyetbox.ui.common.itemTabSwipe
 import dev.pschmitt.nyetbox.ui.common.PrintLabelDialog
 import dev.pschmitt.nyetbox.ui.common.PrintLabelRequest
-import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
-import dev.pschmitt.nyetbox.ui.common.StatusChip
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
+import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.fileViewIntent
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
+import dev.pschmitt.nyetbox.ui.common.itemTabSwipe
+import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.shareIntent
-import dev.pschmitt.nyetbox.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -139,12 +95,13 @@ fun GenericDetailScreen(
     highlightDeviceId: Int? = null,
     onBack: () -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int, breadcrumb: String?) -> Unit,
-    onCreateLinkedItem: (
-        fieldKey: String,
-        endpointPath: String,
-        label: String,
-        reopenFocusedEditor: Boolean,
-    ) -> Unit,
+    onCreateLinkedItem:
+        (
+            fieldKey: String,
+            endpointPath: String,
+            label: String,
+            reopenFocusedEditor: Boolean,
+        ) -> Unit,
     onAddComponent: () -> Unit,
     onChangeDiffClick: (changeId: Int) -> Unit,
     viewModel: GenericDetailViewModel = hiltViewModel(),
@@ -170,8 +127,7 @@ fun GenericDetailScreen(
     val changelog by viewModel.changelog.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
     val documentDeleteResult by viewModel.documentDeleteResult.collectAsStateWithLifecycle()
-    val documentPluginAvailable by
-        viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
+    val documentPluginAvailable by viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
@@ -227,8 +183,24 @@ fun GenericDetailScreen(
     val deviceTypePhotoRows =
         if (viewModel.isDeviceType) visibleOverviewFields.filterIsInstance<FieldRow.Image>()
         else emptyList()
-    val detailOverviewFields =
-        visibleOverviewFields.filterNot { viewModel.isDeviceType && it is FieldRow.Image }
+    val detailOverviewFields = visibleOverviewFields.filterNot {
+        viewModel.isDeviceType && it is FieldRow.Image
+    }
+    val deviceTypePhotoViewerItems =
+        deviceTypePhotoItems(deviceTypePhotoRows, title, viewModel::localAttachmentFile)
+    val deviceTypePreviewIndex =
+        deviceTypePhotoRows
+            .indexOfFirst { it.label.contains("front", ignoreCase = true) }
+            .takeIf { it >= 0 }
+            ?.coerceAtMost(deviceTypePhotoViewerItems.lastIndex)
+            ?: deviceTypePhotoViewerItems.indices.firstOrNull()
+            ?: -1
+    val deviceTypePreview = deviceTypePhotoViewerItems.getOrNull(deviceTypePreviewIndex)
+    val openDeviceTypePreview = {
+        if (deviceTypePreviewIndex >= 0) {
+            imageViewer = deviceTypePhotoViewerItems to deviceTypePreviewIndex
+        }
+    }
     val modelLabel = endpointModelLabel(viewModel.route.endpointPath)
     val detailAccent =
         MaterialTheme.colorScheme.detailAccentFor(viewModel.route.endpointPath, objectTypeAccent)
@@ -384,7 +356,7 @@ fun GenericDetailScreen(
                     ),
                 title = {
                     Column {
-                        Text(title ?: modelLabel, maxLines = 1)
+                        Text(modelLabel, maxLines = 1)
                         if (viewModel.route.breadcrumb != null) {
                             Text(
                                 "from ${viewModel.route.breadcrumb}",
@@ -665,37 +637,33 @@ fun GenericDetailScreen(
                     else -> {
                         val hasJournal = journalEntries.isNotEmpty()
                         val tabCount =
-                            1 +
-                                (if (viewModel.isRack) 1 else 0) +
-                                (if (hasJournal) 1 else 0) +
-                                1
+                            1 + (if (viewModel.isRack) 1 else 0) + (if (hasJournal) 1 else 0) + 1
                         val visibleSelectedTab = selectedTab.coerceIn(0, tabCount - 1)
                         LaunchedEffect(viewModel.isRack, hasJournal, changelog.size) {
                             selectedTab = visibleSelectedTab
                         }
-                        val tabs =
-                            buildList {
-                                add(ItemDetailTab("Overview", Icons.Default.Info))
-                                if (viewModel.isRack) {
-                                    add(ItemDetailTab("Elevation", Icons.Default.Storage))
-                                }
-                                if (hasJournal) {
-                                    add(
-                                        ItemDetailTab(
-                                            "Journal",
-                                            Icons.Default.History,
-                                            journalEntries.size,
-                                        )
-                                    )
-                                }
+                        val tabs = buildList {
+                            add(ItemDetailTab("Overview", Icons.Default.Info))
+                            if (viewModel.isRack) {
+                                add(ItemDetailTab("Elevation", Icons.Default.Storage))
+                            }
+                            if (hasJournal) {
                                 add(
                                     ItemDetailTab(
-                                        "Changelog",
-                                        Icons.Default.Difference,
-                                        changelog.size,
+                                        "Journal",
+                                        Icons.Default.History,
+                                        journalEntries.size,
                                     )
                                 )
                             }
+                            add(
+                                ItemDetailTab(
+                                    "Changelog",
+                                    Icons.Default.Difference,
+                                    changelog.size,
+                                )
+                            )
+                        }
                         val changelogTabIndex = tabs.lastIndex
                         LaunchedEffect(openChangelogRequested, changelogTabIndex) {
                             if (openChangelogRequested) {
@@ -718,223 +686,268 @@ fun GenericDetailScreen(
                                 )
                             }
                             if (visibleSelectedTab == 0) {
-                            LazyColumn(
-                                modifier =
-                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                        visibleSelectedTab,
-                                        tabCount,
-                                    ) { selectedTab = it },
-                                contentPadding = PaddingValues(16.dp),
-                            ) {
-                                item {
+                                LazyColumn(
+                                    modifier =
+                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                            visibleSelectedTab,
+                                            tabCount,
+                                        ) {
+                                            selectedTab = it
+                                        },
+                                    contentPadding = PaddingValues(16.dp),
+                                ) {
+                                    item {
                                         GenericDetailIdentityCard(
                                             id = viewModel.route.id,
                                             endpointPath = viewModel.route.endpointPath,
+                                            title = title,
+                                            preview = deviceTypePreview,
+                                            onPreviewClick = openDeviceTypePreview,
                                             statusField = statusField,
                                             detailAccent = detailAccent,
-                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
-                                    )
-                                }
-                                item { Spacer(Modifier.height(8.dp)) }
-                                deviceTypePhotos(
-                                    rows = deviceTypePhotoRows,
-                                    title = title,
-                                    localImageFile = viewModel::localAttachmentFile,
-                                    onImageClick = { items, index -> imageViewer = items to index },
-                                    onLongPress = { fieldActionLabel = it },
-                                )
-                                item {
-                                    ImageAttachmentGallery(
-                                        attachments = imageAttachments,
+                                            onStatusLongPress = {
+                                                fieldActionLabel = statusField?.label
+                                            },
+                                        )
+                                    }
+                                    item { Spacer(Modifier.height(8.dp)) }
+                                    deviceTypePhotos(
+                                        rows = deviceTypePhotoRows,
+                                        title = title,
                                         localImageFile = viewModel::localAttachmentFile,
                                         onImageClick = { items, index ->
                                             imageViewer = items to index
                                         },
-                                        onAdd = {
-                                            mediaUploadInitialKind = MediaUploadKind.ImageAttachment
-                                            showMediaUpload = true
-                                        },
-                                        onAttachmentLongPress = { imageAttachmentAction = it },
+                                        onLongPress = { fieldActionLabel = it },
                                     )
-                                }
-                                if (documentPluginAvailable) item {
-                                    DocumentsSection(
-                                        documents = documents,
-                                        onOpenDocument = { document ->
-                                            document.documentUrl?.let { url ->
-                                                viewModel.downloadAttachment(url, document.filename)
-                                            }
-                                                ?: document.externalUrl?.let { url ->
-                                                    context.startActivity(
-                                                        Intent(Intent.ACTION_VIEW, url.toUri())
-                                                    )
-                                                }
-                                        },
-                                        onAddDocument = {
-                                            mediaUploadInitialKind = MediaUploadKind.Document
-                                            showMediaUpload = true
-                                        },
-                                        localFileFor = { document ->
-                                            document.documentUrl?.let {
-                                                viewModel.localAttachmentFile(it, document.filename)
-                                            }
-                                        },
-                                        onDeleteDocument = viewModel::deleteDocument,
-                                    )
-                                }
-                                item {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(bottom = 6.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Description,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp),
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text("Details", style = MaterialTheme.typography.titleLarge)
-                                    }
-                                }
-                                detailOverviewFields.forEach { row ->
-                                    fieldRow(
-                                        row,
-                                        onNavigateToReference = { endpointPath, id ->
-                                            onNavigateToReference(
-                                                endpointPath,
-                                                id,
-                                                title ?: modelLabel,
-                                            )
-                                        },
-                                        viewModel::showRelatedItems,
-                                        onOpenUrl = { url ->
-                                            context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, url.toUri())
-                                            )
-                                        },
-                                        netboxBaseUrl = netboxBaseUrl,
-                                        onDownloadAttachment = viewModel::downloadAttachment,
-                                        localAttachmentFile = viewModel::localAttachmentFile,
-                                        onImageClick = { imageViewer = listOf(it) to 0 },
-                                        isDownloading = isDownloading,
-                                        onCopyValue = onCopyValue,
-                                        onFieldLongPress = { fieldActionLabel = it },
-                                        onMatterPairingCode = { matterPairingCode = it },
-                                    )
-                                }
-                            }
-                        } else if (viewModel.isRack && visibleSelectedTab == 1) {
-                            LazyColumn(
-                                modifier =
-                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                        visibleSelectedTab,
-                                        tabCount,
-                                    ) { selectedTab = it },
-                                contentPadding = PaddingValues(16.dp),
-                            ) {
-                                item {
-                                    GenericDetailIdentityCard(
-                                        id = viewModel.route.id,
-                                        endpointPath = viewModel.route.endpointPath,
-                                        statusField = statusField,
-                                        detailAccent = detailAccent,
-                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
-                                    )
-                                }
-                                item { Spacer(Modifier.height(8.dp)) }
-                                item {
-                                    RackElevationOverview(
-                                        front = frontElevation,
-                                        rear = rearElevation,
-                                        previews = rackDevicePreviews,
-                                        localImageFile = viewModel::localAttachmentFile,
-                                        highlightDeviceId = highlightDeviceId,
-                                        onDeviceClick = { id ->
-                                            onNavigateToReference(
-                                                "api/dcim/devices/",
-                                                id,
-                                                title ?: modelLabel,
-                                            )
-                                        },
-                                    )
-                                }
-                            }
-                        } else if (visibleSelectedTab == journalTabIndex) {
-                            LazyColumn(
-                                modifier =
-                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                        visibleSelectedTab,
-                                        tabCount,
-                                    ) { selectedTab = it },
-                                contentPadding = PaddingValues(16.dp),
-                            ) {
-                                item {
-                                    GenericDetailIdentityCard(
-                                        id = viewModel.route.id,
-                                        endpointPath = viewModel.route.endpointPath,
-                                        statusField = statusField,
-                                        detailAccent = detailAccent,
-                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
-                                    )
-                                }
-                                if (journalEntries.isEmpty()) {
                                     item {
-                                        Text(
-                                            "No journal entries found for this item.",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontStyle = FontStyle.Italic,
-                                            modifier = Modifier.padding(vertical = 16.dp),
+                                        ImageAttachmentGallery(
+                                            attachments = imageAttachments,
+                                            localImageFile = viewModel::localAttachmentFile,
+                                            onImageClick = { items, index ->
+                                                imageViewer = items to index
+                                            },
+                                            onAdd = {
+                                                mediaUploadInitialKind =
+                                                    MediaUploadKind.ImageAttachment
+                                                showMediaUpload = true
+                                            },
+                                            onAttachmentLongPress = { imageAttachmentAction = it },
                                         )
                                     }
-                                } else {
-                                    items(journalEntries, key = { it.id }) { entry ->
-                                        JournalEntryItem(
-                                            entry,
-                                            onEdit = {
-                                                journalEditorEntry = entry
-                                                showJournalEditor = true
+                                    if (documentPluginAvailable)
+                                        item {
+                                            DocumentsSection(
+                                                documents = documents,
+                                                onOpenDocument = { document ->
+                                                    document.documentUrl?.let { url ->
+                                                        viewModel.downloadAttachment(
+                                                            url,
+                                                            document.filename,
+                                                        )
+                                                    }
+                                                        ?: document.externalUrl?.let { url ->
+                                                            context.startActivity(
+                                                                Intent(
+                                                                    Intent.ACTION_VIEW,
+                                                                    url.toUri(),
+                                                                )
+                                                            )
+                                                        }
+                                                },
+                                                onAddDocument = {
+                                                    mediaUploadInitialKind =
+                                                        MediaUploadKind.Document
+                                                    showMediaUpload = true
+                                                },
+                                                localFileFor = { document ->
+                                                    document.documentUrl?.let {
+                                                        viewModel.localAttachmentFile(
+                                                            it,
+                                                            document.filename,
+                                                        )
+                                                    }
+                                                },
+                                                onDeleteDocument = viewModel::deleteDocument,
+                                            )
+                                        }
+                                    item {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(bottom = 6.dp),
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Description,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                "Details",
+                                                style = MaterialTheme.typography.titleLarge,
+                                            )
+                                        }
+                                    }
+                                    detailOverviewFields.forEach { row ->
+                                        fieldRow(
+                                            row,
+                                            onNavigateToReference = { endpointPath, id ->
+                                                onNavigateToReference(
+                                                    endpointPath,
+                                                    id,
+                                                    title ?: modelLabel,
+                                                )
+                                            },
+                                            viewModel::showRelatedItems,
+                                            onOpenUrl = { url ->
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, url.toUri())
+                                                )
+                                            },
+                                            netboxBaseUrl = netboxBaseUrl,
+                                            onDownloadAttachment = viewModel::downloadAttachment,
+                                            localAttachmentFile = viewModel::localAttachmentFile,
+                                            onImageClick = { imageViewer = listOf(it) to 0 },
+                                            isDownloading = isDownloading,
+                                            onCopyValue = onCopyValue,
+                                            onFieldLongPress = { fieldActionLabel = it },
+                                            onMatterPairingCode = { matterPairingCode = it },
+                                        )
+                                    }
+                                }
+                            } else if (viewModel.isRack && visibleSelectedTab == 1) {
+                                LazyColumn(
+                                    modifier =
+                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                            visibleSelectedTab,
+                                            tabCount,
+                                        ) {
+                                            selectedTab = it
+                                        },
+                                    contentPadding = PaddingValues(16.dp),
+                                ) {
+                                    item {
+                                        GenericDetailIdentityCard(
+                                            id = viewModel.route.id,
+                                            endpointPath = viewModel.route.endpointPath,
+                                            title = title,
+                                            preview = deviceTypePreview,
+                                            onPreviewClick = openDeviceTypePreview,
+                                            statusField = statusField,
+                                            detailAccent = detailAccent,
+                                            onStatusLongPress = {
+                                                fieldActionLabel = statusField?.label
+                                            },
+                                        )
+                                    }
+                                    item { Spacer(Modifier.height(8.dp)) }
+                                    item {
+                                        RackElevationOverview(
+                                            front = frontElevation,
+                                            rear = rearElevation,
+                                            previews = rackDevicePreviews,
+                                            localImageFile = viewModel::localAttachmentFile,
+                                            highlightDeviceId = highlightDeviceId,
+                                            onDeviceClick = { id ->
+                                                onNavigateToReference(
+                                                    "api/dcim/devices/",
+                                                    id,
+                                                    title ?: modelLabel,
+                                                )
                                             },
                                         )
                                     }
                                 }
-                            }
-                        } else {
-                            LazyColumn(
-                                modifier =
-                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                        visibleSelectedTab,
-                                        tabCount,
-                                    ) { selectedTab = it },
-                                contentPadding = PaddingValues(16.dp),
-                            ) {
-                                item {
-                                    GenericDetailIdentityCard(
-                                        id = viewModel.route.id,
-                                        endpointPath = viewModel.route.endpointPath,
-                                        statusField = statusField,
-                                        detailAccent = detailAccent,
-                                        onStatusLongPress = { fieldActionLabel = statusField?.label },
-                                    )
-                                }
-                                if (changelog.isEmpty()) {
+                            } else if (visibleSelectedTab == journalTabIndex) {
+                                LazyColumn(
+                                    modifier =
+                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                            visibleSelectedTab,
+                                            tabCount,
+                                        ) {
+                                            selectedTab = it
+                                        },
+                                    contentPadding = PaddingValues(16.dp),
+                                ) {
                                     item {
-                                        Text(
-                                            "No changelog entries found for this item.",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontStyle = FontStyle.Italic,
-                                            modifier = Modifier.padding(vertical = 16.dp),
+                                        GenericDetailIdentityCard(
+                                            id = viewModel.route.id,
+                                            endpointPath = viewModel.route.endpointPath,
+                                            title = title,
+                                            preview = deviceTypePreview,
+                                            onPreviewClick = openDeviceTypePreview,
+                                            statusField = statusField,
+                                            detailAccent = detailAccent,
+                                            onStatusLongPress = {
+                                                fieldActionLabel = statusField?.label
+                                            },
                                         )
                                     }
-                                } else {
-                                    items(changelog, key = { it.id }) { change ->
-                                        GenericDetailChangelogRow(
-                                            change = change,
-                                            onClick = { onChangeDiffClick(change.id) },
-                                        )
+                                    if (journalEntries.isEmpty()) {
+                                        item {
+                                            Text(
+                                                "No journal entries found for this item.",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontStyle = FontStyle.Italic,
+                                                modifier = Modifier.padding(vertical = 16.dp),
+                                            )
+                                        }
+                                    } else {
+                                        items(journalEntries, key = { it.id }) { entry ->
+                                            JournalEntryItem(
+                                                entry,
+                                                onEdit = {
+                                                    journalEditorEntry = entry
+                                                    showJournalEditor = true
+                                                },
+                                            )
+                                        }
                                     }
                                 }
-                            }
+                            } else {
+                                LazyColumn(
+                                    modifier =
+                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                            visibleSelectedTab,
+                                            tabCount,
+                                        ) {
+                                            selectedTab = it
+                                        },
+                                    contentPadding = PaddingValues(16.dp),
+                                ) {
+                                    item {
+                                        GenericDetailIdentityCard(
+                                            id = viewModel.route.id,
+                                            endpointPath = viewModel.route.endpointPath,
+                                            title = title,
+                                            preview = deviceTypePreview,
+                                            onPreviewClick = openDeviceTypePreview,
+                                            statusField = statusField,
+                                            detailAccent = detailAccent,
+                                            onStatusLongPress = {
+                                                fieldActionLabel = statusField?.label
+                                            },
+                                        )
+                                    }
+                                    if (changelog.isEmpty()) {
+                                        item {
+                                            Text(
+                                                "No changelog entries found for this item.",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontStyle = FontStyle.Italic,
+                                                modifier = Modifier.padding(vertical = 16.dp),
+                                            )
+                                        }
+                                    } else {
+                                        items(changelog, key = { it.id }) { change ->
+                                            GenericDetailChangelogRow(
+                                                change = change,
+                                                onClick = { onChangeDiffClick(change.id) },
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -969,7 +982,10 @@ fun GenericDetailScreen(
                         ),
                 ) {
                     if (isDeleting) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
                     } else {
                         Text("Delete")
                     }
@@ -1037,9 +1053,12 @@ fun GenericDetailScreen(
                 deviceTypePhotoUploadKind(label) != null ||
                     editableFields.any { it.label == label },
             onCopy = {
-                fields.firstOrNull { it.label == label }?.actionValue()?.let {
-                    onCopyValue(label, it)
-                }
+                fields
+                    .firstOrNull { it.label == label }
+                    ?.actionValue()
+                    ?.let {
+                        onCopyValue(label, it)
+                    }
                 fieldActionLabel = null
             },
             onChangelog = {

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -32,15 +31,7 @@ internal fun LazyListScope.deviceTypePhotos(
     val photoRows = rows.filter { deviceTypePhotoUploadKind(it.label) != null }
     if (photoRows.isEmpty()) return
     val itemTitle = title?.takeIf { it.isNotBlank() } ?: "Device type"
-    val viewerItems =
-        photoRows.map { row ->
-            ImageViewerItem(
-                url = row.url,
-                title = "${row.label} of $itemTitle",
-                metadata = listOf("View" to row.label),
-                localFile = localImageFile(row.url, row.url.attachmentFilename()),
-            )
-        }
+    val viewerItems = deviceTypePhotoItems(photoRows, itemTitle, localImageFile)
     item {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -49,10 +40,11 @@ internal fun LazyListScope.deviceTypePhotos(
             photoRows.forEachIndexed { index, row ->
                 Column(
                     modifier =
-                        Modifier.weight(1f).combinedClickable(
-                            onClick = { onImageClick(viewerItems, index) },
-                            onLongClick = { onLongPress(row.label) },
-                        ),
+                        Modifier.weight(1f)
+                            .combinedClickable(
+                                onClick = { onImageClick(viewerItems, index) },
+                                onLongClick = { onLongPress(row.label) },
+                            ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     RemoteThumbnail(
@@ -65,7 +57,8 @@ internal fun LazyListScope.deviceTypePhotos(
                     Text(
                         row.label,
                         style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        color =
+                            androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 2.dp),
                     )
@@ -73,6 +66,24 @@ internal fun LazyListScope.deviceTypePhotos(
             }
         }
     }
+}
+
+internal fun deviceTypePhotoItems(
+    rows: List<FieldRow.Image>,
+    title: String?,
+    localImageFile: (String, String) -> java.io.File?,
+): List<ImageViewerItem> {
+    val itemTitle = title?.takeIf { it.isNotBlank() } ?: "Device type"
+    return rows
+        .filter { deviceTypePhotoUploadKind(it.label) != null }
+        .map { row ->
+            ImageViewerItem(
+                url = row.url,
+                title = "${row.label} of $itemTitle",
+                metadata = listOf("View" to row.label),
+                localFile = localImageFile(row.url, row.url.attachmentFilename()),
+            )
+        }
 }
 
 internal fun deviceTypePhotoUploadKind(label: String): MediaUploadKind? =

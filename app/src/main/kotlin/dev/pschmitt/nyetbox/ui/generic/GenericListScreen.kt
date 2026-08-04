@@ -1,22 +1,27 @@
 package dev.pschmitt.nyetbox.ui.generic
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -35,8 +40,6 @@ import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
-import dev.pschmitt.nyetbox.ui.common.NyetboxCard
-import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SearchHighlightedText
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
@@ -116,30 +119,55 @@ fun GenericListScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Column(Modifier.fillMaxSize()) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = viewModel::onQueryChange,
-                    label = { Text("Search ${viewModel.route.label.lowercase()}") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                )
-                if (objects.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            if (isRefreshing) "Loading…" else "Nothing cached yet - pull to sync",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    val rowIcon = AppIcons.forEndpointPath(viewModel.route.endpointPath)
-                    val rowColor =
-                        MaterialTheme.colorScheme.detailAccentFor(
-                            viewModel.route.endpointPath,
-                            objectTypeAccent,
-                        )
-                    LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(objects, key = { it.id }) { obj ->
-                            NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                    TextField(
+                        value = query,
+                        onValueChange = viewModel::onQueryChange,
+                        placeholder = { Text("Search ${viewModel.route.label.lowercase()}") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (query.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier =
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors =
+                            TextFieldDefaults.colors(
+                                focusedContainerColor =
+                                    MaterialTheme.colorScheme.surfaceContainerHighest,
+                                unfocusedContainerColor =
+                                    MaterialTheme.colorScheme.surfaceContainerHighest,
+                                focusedIndicatorColor =
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor =
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                            ),
+                    )
+                    if (objects.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                if (isRefreshing) "Loading…"
+                                else "Nothing cached yet - pull to sync",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        val rowIcon = AppIcons.forEndpointPath(viewModel.route.endpointPath)
+                        val rowColor =
+                            MaterialTheme.colorScheme.detailAccentFor(
+                                viewModel.route.endpointPath,
+                                objectTypeAccent,
+                            )
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(objects, key = { it.id }) { obj ->
                                 ObjectRow(
                                     obj = obj,
                                     icon = rowIcon,
@@ -152,7 +180,6 @@ fun GenericListScreen(
                             }
                         }
                     }
-                }
                 }
             }
             FloatingActionButton(
@@ -181,34 +208,81 @@ private fun ObjectRow(
             frontImageUrl?.let { localImageFile(it, "device-type-${obj.id}-front") }
         }
 
-    NyetboxListItem(
-        leadingContent = {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors =
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (frontImageUrl.isNullOrBlank()) {
-                Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = iconTint)
+                androidx.compose.material3.Surface(
+                    color = iconTint.copy(alpha = 0.14f),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.size(64.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
                 }
             } else {
                 RemoteThumbnail(
                     imageUrl = frontImageUrl,
                     contentDescription = obj.display,
                     localFile = localFile,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(64.dp),
                 )
             }
-        },
-        headlineContent = { SearchHighlightedText(obj.display, query) },
-        supportingContent = {
-            val subtitle = obj.secondaryLine?.takeIf(String::isNotBlank)
-            if (subtitle != null || assetTag.hasField) {
-                Column {
-                    subtitle?.let { SearchHighlightedText(it, query) }
-                    if (assetTag.value != null) {
-                        AssetTagBadge(assetTag.value, highlightQuery = query)
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SearchHighlightedText(
+                        value = obj.display,
+                        query = query,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp).size(20.dp),
+                    )
+                }
+                obj.secondaryLine?.takeIf(String::isNotBlank)?.let {
+                    SearchHighlightedText(
+                        value = it,
+                        query = query,
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                        maxLines = 1,
+                    )
+                }
+                if (assetTag.value != null || assetTag.hasField) {
+                    Row(Modifier.padding(top = 8.dp)) {
+                        if (assetTag.value != null) {
+                            AssetTagBadge(assetTag.value, highlightQuery = query)
+                        } else {
+                            MissingAssetTagBadge()
+                        }
                     }
-                    else if (assetTag.hasField) MissingAssetTagBadge()
                 }
             }
-        },
-        modifier = Modifier.clickable(onClick = onClick),
-    )
+        }
+    }
 }

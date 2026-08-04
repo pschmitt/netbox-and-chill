@@ -1,6 +1,7 @@
 package dev.pschmitt.nyetbox.ui.generic
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +20,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import dev.pschmitt.nyetbox.ui.common.StatusChip
+import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
+import dev.pschmitt.nyetbox.ui.common.StatusChip
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -29,37 +33,62 @@ import dev.pschmitt.nyetbox.ui.directory.AppIcons
 internal fun GenericDetailIdentityCard(
     id: Int,
     endpointPath: String,
+    title: String? = null,
+    preview: ImageViewerItem? = null,
+    onPreviewClick: (() -> Unit)? = null,
     statusField: FieldRow.PlainText?,
     detailAccent: Color,
     onStatusLongPress: () -> Unit,
 ) {
-    NyetboxCard(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-    ) {
+    NyetboxCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                color = detailAccent.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.size(52.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        AppIcons.forEndpointPath(endpointPath),
-                        contentDescription = null,
-                        tint = detailAccent,
-                        modifier = Modifier.size(30.dp),
-                    )
+            if (preview != null) {
+                RemoteThumbnail(
+                    imageUrl = preview.url,
+                    contentDescription = preview.title,
+                    localFile = preview.localFile,
+                    modifier =
+                        Modifier.size(64.dp)
+                            .then(
+                                if (onPreviewClick != null)
+                                    Modifier.clickable(onClick = onPreviewClick)
+                                else Modifier
+                            ),
+                    contentScale = ContentScale.Fit,
+                    fallbackTint = detailAccent,
+                )
+            } else {
+                Surface(
+                    color = detailAccent.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.size(64.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            AppIcons.forEndpointPath(endpointPath),
+                            contentDescription = null,
+                            tint = detailAccent,
+                            modifier = Modifier.size(34.dp),
+                        )
+                    }
                 }
             }
-            Column(
-                Modifier.padding(start = 10.dp).padding(end = 8.dp).weight(1f),
-            ) {
+            Column(Modifier.padding(start = 12.dp).padding(end = 8.dp).weight(1f)) {
+                title
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 2,
+                        )
+                    }
                 Text(
                     "ID #$id",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 statusField?.let { status ->

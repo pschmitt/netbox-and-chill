@@ -5785,6 +5785,22 @@ Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instr
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-361: polish item identity cards, dashboard sections, and list rows
+
+The shared generic item/device-type card was still mostly empty, while the dashboard and scoped
+item lists did not yet use the same grouped, image-forward presentation as global search.
+
+- [x] Make generic item cards show the item identity and cached device-type preview when available.
+- [x] Keep front/rear device-type images available through the full-screen viewer.
+- [x] Make the device asset-tag badge vertically centered in its identity card.
+- [x] Show a useful empty state for a fresh Recently viewed section while sync is running.
+- [x] Group dashboard sections into a large titled card with independently actionable rows.
+- [x] Bring device and generic item list rows in line with the global-search card treatment.
+
+Status: **done**, 2026-08-04 - remote Kotlin compilation, unit tests, Android-test compilation, lint,
+and debug installation on Zenfone 10, Mi Pad 4, and PX5 passed.
+
+
 ## NBC-360: support multiple NetBox server profiles with isolated caches
 
 Allow users to add and switch between multiple NetBox instances after onboarding while keeping

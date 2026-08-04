@@ -92,7 +92,6 @@ class SettingsCategoryContentTest {
         SettingsCategoryActions(
             onEditServer = {},
             onTestConnection = {},
-            onDisconnect = {},
             onShowToken = {},
             onHideToken = {},
             onCopyToken = {},
