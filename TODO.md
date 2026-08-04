@@ -6066,16 +6066,21 @@ trademark risk for a Play Store listing, not just a hobby-repo one.
   preview match.
 - [x] Drop the README trademark note's claim that the app's own logo is NetBox's, since it no
   longer is.
+- [x] Correct the mark's size after on-device testing showed real clipping, not just a
+  documentation-radius overshoot.
+- [x] Shrink it once more for extra margin after the first correction, still unverified on a
+  device at that point.
 
 **Why:** user's explicit direction - the previous icon is fine for a side project but not
 something to ship to the Play Store carrying another company's mark.
-**How to apply:** final mark is a wide rounded rack-panel outline (`M35,33 L73,33 A9,9...`, teal
-top/right + white left/bottom two-tone stroke, 7px), face at `(40,58)`/`(68,58)` eyes (r8),
-brows at y47, mouth at y69 - all authored directly in the 108x108 viewport coordinate space
-(no extra scale-down group, unlike the old icon's `scale(.64)` wrapper), since the new shape
-doesn't need the margin the old NetBox silhouette did. Corners land at ~35 of the 108 canvas,
-a few percent past the formal 66dp/r33 safe-zone guideline - accepted deliberately since the
-overhang is only the outer sliver of a rounded corner and only a strict circular mask is
-affected; squircle/rounded-square/teardrop masks clear it comfortably.
+**How to apply:** final mark is a wide rounded rack-panel outline (`M39,38 L69,38 A7,7...`, teal
+top/right + white left/bottom two-tone stroke, 5px), face at `(42,57)`/`(66,57)` eyes (r6),
+brows at y47, mouth at y66 - all authored directly in the 108x108 viewport coordinate space (no
+extra scale-down group, unlike the old icon's `scale(.64)` wrapper). History of this box's size,
+corner reach vs. the formal 66dp/r33 safe-zone guideline: first shipped pass reached ~35 (over
+the line, and it showed - Zenfone 10/Mi Pad 4/Pixel 5 all clipped it); corrected to 30 (a 4-3-5
+triangle, ~9% margin, not yet device-verified before the next request); current pass to 27.2
+(a 22x16 box, ~18% margin) per follow-up "smidge smaller" feedback.
 
-Status: **done**, 2026-08-04 - remote `just build` (debug) and `just lint` passed.
+Status: **done**, 2026-08-04 - remote `just build` (debug) and `just lint` passed; deployed to
+Zenfone 10, Mi Pad 4, and Pixel 5 via `just deploy-all debug` for visual verification.

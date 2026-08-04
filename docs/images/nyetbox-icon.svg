@@ -3,14 +3,14 @@
   <desc id="desc">The Nyetbox adaptive launcher icon.</desc>
   <circle cx="54" cy="54" r="54" fill="#011226" />
   <g stroke-linecap="round" stroke-linejoin="round">
-    <path d="M35,33 L73,33 A9,9 0 0 1 82,42 L82,66 A9,9 0 0 1 73,75 L35,75 A9,9 0 0 1 26,66 L26,42 A9,9 0 0 1 35,33 Z" fill="none" stroke="#00e5d6" stroke-width="7" />
-    <path d="M35,33 A9,9 0 0 0 26,42 L26,66 A9,9 0 0 0 35,75 L73,75" fill="none" stroke="#f4f7f8" stroke-width="7" />
-    <path d="M34,47 L47,47" fill="none" stroke="#f4f7f8" stroke-width="6" />
-    <path d="M61,47 L74,41" fill="none" stroke="#00e5d6" stroke-width="6" />
-    <circle cx="40" cy="58" r="8" fill="#f4f7f8" />
-    <circle cx="40" cy="58" r="3.5" fill="#011226" />
-    <circle cx="68" cy="58" r="8" fill="#f4f7f8" />
-    <circle cx="68" cy="58" r="3.5" fill="#011226" />
-    <path d="M46,69 L62,69" fill="none" stroke="#f4f7f8" stroke-width="5" />
+    <path d="M39,38 L69,38 A7,7 0 0 1 76,45 L76,63 A7,7 0 0 1 69,70 L39,70 A7,7 0 0 1 32,63 L32,45 A7,7 0 0 1 39,38 Z" fill="none" stroke="#00e5d6" stroke-width="5" />
+    <path d="M39,38 A7,7 0 0 0 32,45 L32,63 A7,7 0 0 0 39,70 L69,70" fill="none" stroke="#f4f7f8" stroke-width="5" />
+    <path d="M36,47 L47,47" fill="none" stroke="#f4f7f8" stroke-width="4" />
+    <path d="M61,47 L71,42" fill="none" stroke="#00e5d6" stroke-width="4" />
+    <circle cx="42" cy="57" r="6" fill="#f4f7f8" />
+    <circle cx="42" cy="57" r="3" fill="#011226" />
+    <circle cx="66" cy="57" r="6" fill="#f4f7f8" />
+    <circle cx="66" cy="57" r="3" fill="#011226" />
+    <path d="M49,66 L59,66" fill="none" stroke="#f4f7f8" stroke-width="4" />
   </g>
 </svg>
