@@ -66,13 +66,16 @@ recipe:
 
 ```console
 gpc auth login
-gpc doctor --package dev.pschmitt.nyetbox
+gpc apps list
 just screenshots-upload
 ```
 
 The recipe uploads each Fastlane output to the **release** package `dev.pschmitt.nyetbox`; the
 screenshot test itself runs the separate debug package. It refuses to run when the generated
 phone-screenshot directory is empty and never deletes existing Play Console images automatically.
+It verifies the target package through `gpc apps list`; `gpc doctor` is not used as a publishing
+gate because its package/credential diagnostics can be misleading when the package is supplied via
+flags or another working authentication context.
 Generated images are ignored by Git: this checkout currently has four older POC outputs, but no
 topology capture yet, and no listing upload has been performed.
 

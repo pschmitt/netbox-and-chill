@@ -411,6 +411,11 @@ screenshots-upload:
       printf 'gpc (playconsole-cli) is required for Play Console uploads\n' >&2
       exit 1
     fi
+    if ! gpc apps list --output json | rg -q '"package_name":"{{play_package}}"'
+    then
+      printf 'Play Console package %s was not found via `gpc apps list`\n' "{{play_package}}" >&2
+      exit 1
+    fi
     for image in "${image_glob[@]}"
     do
       printf 'Uploading %s\n' "$image"

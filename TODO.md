@@ -6083,6 +6083,7 @@ leaking real inventory data into a public store listing.
       and seed a named demo document without changing the regular CI E2E fixture
 - [x] Add an explicit `gpc` upload recipe for reviewed screenshots, targeting the release package
       without making capture itself modify the Play Console listing
+- [x] Verify the upload target with `gpc apps list` rather than relying on `gpc doctor`
 
 Status: **mostly done**, 2026-08-04. `just screenshots` builds and runs an isolated NetBox 4.5
 fixture with `netbox-topology-views` and `netbox-documents`, seeds a realistic demo rack with a
