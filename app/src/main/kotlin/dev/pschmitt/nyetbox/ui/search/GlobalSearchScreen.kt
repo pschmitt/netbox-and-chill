@@ -1,36 +1,43 @@
 package dev.pschmitt.nyetbox.ui.search
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,25 +50,26 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pschmitt.nyetbox.data.db.DeviceEntity
+import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
 import dev.pschmitt.nyetbox.data.repository.SearchHit
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
+import dev.pschmitt.nyetbox.data.repository.ThemeAccent
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
-import dev.pschmitt.nyetbox.ui.common.NyetboxCard
-import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
+import dev.pschmitt.nyetbox.ui.common.SearchHighlightedText
 import dev.pschmitt.nyetbox.ui.common.SearchQueryVisualTransformation
 import dev.pschmitt.nyetbox.ui.common.visualColorForEndpointPath
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
@@ -125,13 +133,20 @@ fun GlobalSearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    OutlinedTextField(
+                    TextField(
                         value = query,
                         onValueChange = viewModel::onQueryChange,
                         placeholder = {
                             Text(selectionPrompt ?: "Search all NetBox objects")
                         },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (query.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                                }
+                            }
+                        },
                         singleLine = true,
                         visualTransformation =
                             SearchQueryVisualTransformation(MaterialTheme.colorScheme.primary),
@@ -139,6 +154,14 @@ fun GlobalSearchScreen(
                             Modifier.fillMaxWidth()
                                 .focusRequester(focusRequester)
                                 .testTag("e2e-global-search"),
+                        shape = RoundedCornerShape(28.dp),
+                        colors =
+                            TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                            ),
                     )
                 },
                 navigationIcon = {
@@ -155,134 +178,37 @@ fun GlobalSearchScreen(
             if (isRefreshing) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             when {
                 typeFilter == null && query.isBlank() && recentResults.isNotEmpty() ->
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        item {
-                            ListItem(
-                                leadingContent = {
-                                    Icon(Icons.Default.History, contentDescription = null)
-                                },
-                                headlineContent = { Text("Recently visited") },
-                                supportingContent = {
-                                    Text("Your latest devices and NetBox pages")
-                                },
-                            )
-                        }
-                        items(recentResults, key = { "recent-${it.endpointPath}-${it.id}" }) { hit
-                            ->
-                            val model = modelsByEndpointPath[hit.endpointPath]
-                            val thumbnail =
-                                viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
-                            SearchResultRow(
-                                hit = hit,
-                                modelLabel = model?.modelLabel,
-                                icon = AppIcons.forEndpointPath(hit.endpointPath),
-                                typeColor =
-                                    visualColorForEndpointPath(
-                                        hit.endpointPath,
-                                        objectTypeAccents[hit.endpointPath.trim('/')],
-                                        MaterialTheme.colorScheme,
-                                    ),
-                                thumbnail = thumbnail,
-                                assetTag =
-                                    hit.assetTag
-                                        ?: if (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH) {
-                                            devicesById[hit.id]?.assetTag
-                                        } else {
-                                            null
-                                        },
-                                hasAssetTagField =
-                                    hit.hasAssetTagField ||
-                                        (hit.endpointPath ==
-                                            GlobalSearchRepository.DEVICES_ENDPOINT_PATH &&
-                                            devicesById[hit.id] != null),
-                                localImageFile = viewModel::localImageFile,
-                                isRecent = true,
-                                onClick = {
-                                    onResultClick(hit.endpointPath, hit.id, hit.display)
-                                },
-                            )
-                        }
-                    }
+                    RecentSearchList(
+                        recentResults = recentResults,
+                        modelsByEndpointPath = modelsByEndpointPath,
+                        devicesById = devicesById,
+                        deviceTypesById = deviceTypesById,
+                        objectTypeAccents = objectTypeAccents,
+                        localImageFile = viewModel::localImageFile,
+                        onResultClick = onResultClick,
+                    )
                 typeFilter == null && query.isBlank() ->
                     SearchEmptyState(
                         title = "Search your NetBox",
-                        message = "Find devices, sites, racks, IPs, circuits, and more",
+                        message = "Find devices, IP addresses, racks, circuits, and more",
                     )
-                typeSuggestions.isNotEmpty() || results.isNotEmpty() ->
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        typeFilter?.let { model ->
-                            item(key = "active-type-filter") {
-                                ActiveTypeFilter(
-                                    model = model,
-                                    accent =
-                                        visualColorForEndpointPath(
-                                            model.endpointPath,
-                                            objectTypeAccents[model.endpointPath.trim('/')],
-                                            MaterialTheme.colorScheme,
-                                        ),
-                                    onClear = viewModel::clearTypeFilter,
-                                )
-                            }
-                        }
-                        if (typeSuggestions.isNotEmpty()) {
-                            item(key = "type-filter-heading") {
-                                ListItem(
-                                    headlineContent = { Text("Filter by object type") },
-                                    supportingContent = {
-                                        Text("Choose a type to search only that NetBox collection")
-                                    },
-                                )
-                            }
-                            items(
-                                typeSuggestions,
-                                key = { "type-suggestion-${it.endpointPath}" },
-                            ) { model ->
-                                TypeSuggestionRow(
-                                    model = model,
-                                    onClick = { viewModel.selectType(model) },
-                                )
-                            }
-                        }
-                        if (results.isNotEmpty() && typeSuggestions.isNotEmpty()) {
-                            item(key = "search-results-heading") {
-                                ListItem(headlineContent = { Text("Matches") })
-                            }
-                        }
-                        items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
-                            val model = modelsByEndpointPath[hit.endpointPath]
-                            val thumbnail =
-                                viewModel.thumbnailFor(hit, devicesById, deviceTypesById)
-                            SearchResultRow(
-                                hit = hit,
-                                modelLabel = model?.modelLabel,
-                                icon = AppIcons.forEndpointPath(hit.endpointPath),
-                                typeColor =
-                                    visualColorForEndpointPath(
-                                        hit.endpointPath,
-                                        objectTypeAccents[hit.endpointPath.trim('/')],
-                                        MaterialTheme.colorScheme,
-                                    ),
-                                thumbnail = thumbnail,
-                                assetTag =
-                                    hit.assetTag
-                                        ?: if (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH) {
-                                            devicesById[hit.id]?.assetTag
-                                        } else {
-                                            null
-                                        },
-                                hasAssetTagField =
-                                    hit.hasAssetTagField ||
-                                        (hit.endpointPath ==
-                                            GlobalSearchRepository.DEVICES_ENDPOINT_PATH &&
-                                            devicesById[hit.id] != null),
-                                localImageFile = viewModel::localImageFile,
-                                isRecent = searchHitKey(hit) in recentKeys,
-                                onClick = {
-                                    onResultClick(hit.endpointPath, hit.id, hit.display)
-                                },
-                            )
-                        }
-                    }
+                typeSuggestions.isNotEmpty() || results.isNotEmpty() || typeFilter != null ->
+                    SearchResultsContent(
+                        query = query,
+                        typeFilter = typeFilter,
+                        typeSuggestions = typeSuggestions,
+                        results = results,
+                        recentKeys = recentKeys,
+                        modelsByEndpointPath = modelsByEndpointPath,
+                        devicesById = devicesById,
+                        deviceTypesById = deviceTypesById,
+                        objectTypeAccents = objectTypeAccents,
+                        localImageFile = viewModel::localImageFile,
+                        onSelectType = viewModel::selectType,
+                        onClearTypeFilter = viewModel::clearTypeFilter,
+                        onResultClick = onResultClick,
+                        isRefreshing = isRefreshing,
+                    )
                 isRefreshing -> CenteredHint("Searching…")
                 else ->
                     SearchEmptyState(
@@ -300,113 +226,309 @@ fun GlobalSearchScreen(
 }
 
 @Composable
-private fun ActiveTypeFilter(
-    model: NetBoxModelEntity,
-    accent: Color,
-    onClear: () -> Unit,
+private fun RecentSearchList(
+    recentResults: List<SearchHit>,
+    modelsByEndpointPath: Map<String, NetBoxModelEntity>,
+    devicesById: Map<Int, DeviceEntity>,
+    deviceTypesById: Map<Int, DeviceTypeEntity>,
+    objectTypeAccents: Map<String, ThemeAccent>,
+    localImageFile: (SearchThumbnail) -> java.io.File?,
+    onResultClick: (endpointPath: String, id: Int, display: String) -> Unit,
 ) {
-    Surface(
-        color = accent.copy(alpha = 0.12f),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.32f)),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                color = accent.copy(alpha = 0.16f),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.size(40.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        AppIcons.forEndpointPath(model.endpointPath),
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(22.dp),
-                    )
+        item(key = "recent-heading") {
+            SearchSectionHeader(
+                icon = Icons.Default.History,
+                title = "Recently visited",
+                subtitle = "Pick up where you left off",
+                count = recentResults.size,
+            )
+        }
+        items(recentResults, key = { "recent-${it.endpointPath}-${it.id}" }) { hit ->
+            SearchResultRow(
+                hit = hit,
+                modelLabel = modelsByEndpointPath[hit.endpointPath]?.modelLabel,
+                icon = AppIcons.forEndpointPath(hit.endpointPath),
+                typeColor =
+                    visualColorForEndpointPath(
+                        hit.endpointPath,
+                        objectTypeAccents[hit.endpointPath.trim('/')],
+                        MaterialTheme.colorScheme,
+                    ),
+                thumbnail = searchThumbnailFor(hit, devicesById, deviceTypesById),
+                assetTag = searchAssetTagFor(hit, devicesById),
+                hasAssetTagField = searchHasAssetTagField(hit, devicesById),
+                localImageFile = localImageFile,
+                isRecent = true,
+                onClick = { onResultClick(hit.endpointPath, hit.id, hit.display) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchResultsContent(
+    query: String,
+    typeFilter: NetBoxModelEntity?,
+    typeSuggestions: List<NetBoxModelEntity>,
+    results: List<SearchHit>,
+    recentKeys: Set<String>,
+    modelsByEndpointPath: Map<String, NetBoxModelEntity>,
+    devicesById: Map<Int, DeviceEntity>,
+    deviceTypesById: Map<Int, DeviceTypeEntity>,
+    objectTypeAccents: Map<String, ThemeAccent>,
+    localImageFile: (SearchThumbnail) -> java.io.File?,
+    onSelectType: (NetBoxModelEntity) -> Unit,
+    onClearTypeFilter: () -> Unit,
+    onResultClick: (endpointPath: String, id: Int, display: String) -> Unit,
+    isRefreshing: Boolean,
+) {
+    val highlightQuery = remember(query) { parseGlobalSearchQuery(query).networkQuery }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        typeFilter?.let { model ->
+            item(key = "active-type-filter") {
+                ActiveTypeFilter(
+                    model = model,
+                    accent =
+                        visualColorForEndpointPath(
+                            model.endpointPath,
+                            objectTypeAccents[model.endpointPath.trim('/')],
+                            MaterialTheme.colorScheme,
+                        ),
+                    onClear = onClearTypeFilter,
+                )
+            }
+        }
+        if (typeSuggestions.isNotEmpty()) {
+            item(key = "type-filter-heading") {
+                SearchSectionHeader(
+                    icon = Icons.Default.FilterAlt,
+                    title = "Filter by type",
+                    subtitle = "Search one NetBox collection",
+                )
+            }
+            item(key = "type-suggestions") {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
+                ) {
+                    items(
+                        typeSuggestions,
+                        key = { "type-suggestion-${it.endpointPath}" },
+                    ) { model ->
+                        TypeSuggestionChip(model = model, onClick = { onSelectType(model) })
+                    }
                 }
             }
-            Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.FilterAlt,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Active filter",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = accent,
-                    )
-                }
-                Text(
-                    model.modelLabel,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    "Only ${model.modelLabel.lowercase()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        }
+        if (results.isNotEmpty()) {
+            item(key = "search-results-heading") {
+                SearchSectionHeader(
+                    icon = Icons.Default.Search,
+                    title = if (typeFilter == null) "Matches" else "Matches in ${typeFilter.modelLabel}",
+                    subtitle = "Cached results update as you type",
+                    count = results.size,
                 )
             }
-            IconButton(onClick = onClear) {
-                Icon(Icons.Default.Clear, contentDescription = "Clear object type filter")
+            items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
+                SearchResultRow(
+                    hit = hit,
+                    modelLabel = modelsByEndpointPath[hit.endpointPath]?.modelLabel,
+                    icon = AppIcons.forEndpointPath(hit.endpointPath),
+                    typeColor =
+                        visualColorForEndpointPath(
+                            hit.endpointPath,
+                            objectTypeAccents[hit.endpointPath.trim('/')],
+                            MaterialTheme.colorScheme,
+                        ),
+                    thumbnail = searchThumbnailFor(hit, devicesById, deviceTypesById),
+                    assetTag = searchAssetTagFor(hit, devicesById),
+                    hasAssetTagField = searchHasAssetTagField(hit, devicesById),
+                    localImageFile = localImageFile,
+                    highlightQuery = highlightQuery,
+                    isRecent = searchHitKey(hit) in recentKeys,
+                    onClick = { onResultClick(hit.endpointPath, hit.id, hit.display) },
+                )
+            }
+        } else if (!isRefreshing && typeFilter != null) {
+            item(key = "no-filtered-results") {
+                SearchEmptyState(
+                    title = "No matches",
+                    message = "Try another query or remove the ${typeFilter.modelLabel.lowercase()} filter",
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TypeSuggestionRow(model: NetBoxModelEntity, onClick: () -> Unit) {
-    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
-        NyetboxListItem(
-            leadingContent = {
+private fun ActiveTypeFilter(
+    model: NetBoxModelEntity,
+    accent: Color,
+    onClear: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Default.FilterAlt,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(20.dp),
+        )
+        Text("Scope", style = MaterialTheme.typography.labelLarge, color = accent)
+        FilterChip(
+            selected = true,
+            onClick = onClear,
+            label = {
+                Text(model.modelLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
+            leadingIcon = {
                 Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
             },
-            headlineContent = { Text(model.modelLabel) },
-            supportingContent = { Text("Search only " + model.modelLabel.lowercase()) },
-            modifier = Modifier.clickable(onClick = onClick),
+            trailingIcon = {
+                Icon(Icons.Default.Clear, contentDescription = "Clear object type filter")
+            },
+            modifier = Modifier.weight(1f),
         )
+    }
+}
+
+@Composable
+private fun TypeSuggestionChip(model: NetBoxModelEntity, onClick: () -> Unit) {
+    AssistChip(
+        onClick = onClick,
+        label = { Text(model.modelLabel) },
+        leadingIcon = {
+            Icon(AppIcons.forEndpointPath(model.endpointPath), contentDescription = null)
+        },
+        trailingIcon = {
+            Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp))
+        },
+    )
+}
+
+@Composable
+private fun SearchSectionHeader(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    count: Int? = null,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.size(36.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Column(Modifier.padding(start = 10.dp).weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        count?.takeIf { it > 0 }?.let {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(50),
+            ) {
+                Text(
+                    it.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun CenteredHint(text: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun SearchEmptyState(title: String, message: String) {
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 Icons.Default.Search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier.size(36.dp),
             )
             Text(
-                title,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(top = 16.dp),
-            )
-            Text(
-                message,
+                text,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontStyle = FontStyle.Italic,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 12.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun SearchEmptyState(
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier.size(64.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                }
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Text(
+                    message,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontStyle = FontStyle.Italic,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
         }
     }
 }
@@ -421,86 +543,182 @@ private fun SearchResultRow(
     assetTag: String?,
     hasAssetTagField: Boolean,
     localImageFile: (SearchThumbnail) -> java.io.File?,
+    highlightQuery: String = "",
     isRecent: Boolean = false,
     onClick: () -> Unit,
 ) {
     val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
 
-    NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
-        NyetboxListItem(
-            leadingContent = {
-                if (thumbnail == null) {
-                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = null, tint = typeColor)
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            if (thumbnail == null) {
+                Surface(
+                    color = typeColor.copy(alpha = 0.14f),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.size(64.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = null, tint = typeColor, modifier = Modifier.size(28.dp))
                     }
-                } else {
-                    RemoteThumbnail(
-                        imageUrl = thumbnail.url,
-                        contentDescription = hit.display,
-                        localFile = localFile,
-                        modifier = Modifier.size(56.dp),
-                    )
                 }
-            },
-            headlineContent = {
+            } else {
+                RemoteThumbnail(
+                    imageUrl = thumbnail.url,
+                    contentDescription = hit.display,
+                    localFile = localFile,
+                    modifier = Modifier.size(64.dp),
+                )
+            }
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        hit.display,
+                    SearchHighlightedText(
+                        value = hit.display,
+                        query = highlightQuery,
                         modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp).size(20.dp),
+                    )
+                }
+                hit.secondaryLine?.takeIf(String::isNotBlank)?.let {
+                    SearchHighlightedText(
+                        value = it,
+                        query = highlightQuery,
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.width(8.dp))
+                }
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     ObjectTypeBadge(
                         label = searchObjectTypeLabel(modelLabel, hit.endpointPath),
                         icon = icon,
                         color = typeColor,
                     )
-                }
-            },
-            supportingContent = {
-                val secondaryLine = hit.secondaryLine?.takeIf(String::isNotBlank)
-                val visibleAssetTag = assetTag?.takeIf(String::isNotBlank)
-                val matchHint = hit.matchHint?.takeIf { it != secondaryLine }
-                if (isRecent || secondaryLine != null || visibleAssetTag != null || hasAssetTagField || matchHint != null) {
-                    Column {
-                        if (isRecent) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.padding(bottom = 2.dp),
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                ) {
-                                    Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(13.dp))
-                                    Text("Recently visited", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
-                                }
-                            }
-                        }
-                        secondaryLine?.let { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                        if (visibleAssetTag != null) AssetTagBadge(visibleAssetTag)
-                        else if (hasAssetTagField) MissingAssetTagBadge()
-                        matchHint?.let {
-                            Text(
-                                "Matched $it",
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                    if (isRecent) {
+                        RecentBadge()
                     }
                 }
-            },
-            modifier = Modifier.clickable(onClick = onClick),
-        )
+                if (assetTag?.isNotBlank() == true) {
+                    AssetTagBadge(
+                        assetTag,
+                        modifier = Modifier.padding(top = 6.dp),
+                        highlightQuery = highlightQuery,
+                    )
+                } else if (hasAssetTagField) {
+                    MissingAssetTagBadge(Modifier.padding(top = 6.dp))
+                }
+                hit.matchHint?.takeIf { it != hit.secondaryLine }?.let {
+                    Row(
+                        modifier = Modifier.padding(top = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Default.FilterAlt,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(15.dp),
+                        )
+                        SearchHighlightedText(
+                            value = "Matched $it",
+                            query = highlightQuery,
+                            style =
+                                MaterialTheme.typography.labelMedium.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 5.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
+
+@Composable
+private fun RecentBadge() {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = RoundedCornerShape(50),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(14.dp))
+            Text(
+                "Recent",
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+    }
+}
+
+private fun searchThumbnailFor(
+    hit: SearchHit,
+    devicesById: Map<Int, DeviceEntity>,
+    deviceTypesById: Map<Int, DeviceTypeEntity>,
+): SearchThumbnail? =
+    when (hit.endpointPath) {
+        GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
+            deviceTypesById[hit.id]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
+                SearchThumbnail(url, "device-type-${hit.id}-front")
+            }
+        GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
+            devicesById[hit.id]?.deviceTypeId?.let { deviceTypeId ->
+                deviceTypesById[deviceTypeId]?.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
+                    SearchThumbnail(url, "device-type-$deviceTypeId-front")
+                }
+            }
+        else -> null
+    }
+
+private fun searchAssetTagFor(
+    hit: SearchHit,
+    devicesById: Map<Int, DeviceEntity>,
+): String? =
+    hit.assetTag
+        ?: if (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH) {
+            devicesById[hit.id]?.assetTag
+        } else {
+            null
+        }
+
+private fun searchHasAssetTagField(
+    hit: SearchHit,
+    devicesById: Map<Int, DeviceEntity>,
+): Boolean =
+    hit.hasAssetTagField ||
+        (hit.endpointPath == GlobalSearchRepository.DEVICES_ENDPOINT_PATH && devicesById[hit.id] != null)
 
 private fun searchHitKey(hit: SearchHit): String = "${hit.endpointPath.trimEnd('/')}:${hit.id}"
 

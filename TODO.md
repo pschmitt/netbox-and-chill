@@ -5784,6 +5784,23 @@ Status: **done**, 2026-08-04 - remote ktfmt and Kotlin compilation passed withou
 debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
 
 
+## NBC-352: modernize the global search presentation
+
+Global search is functionally complete, but its visual hierarchy is still dense and inconsistent
+with the newer Material 3 Settings and dashboard surfaces. Make the search experience feel like a
+native Android search screen while preserving cache-first/offline behavior, recent visits, magic
+syntax, type filtering, thumbnails, and result navigation.
+
+- [x] Replace the outlined app-bar field with a modern persistent search control.
+- [x] Present type completions and active type filters as compact, discoverable chips.
+- [x] Improve the landing, recent, loading, and no-results states with clear hierarchy.
+- [x] Make result metadata (type, recent visit, asset tag, and matched field) easier to scan.
+- [x] Verify formatting, tests, lint, and installation on physical devices.
+
+Status: **done**, 2026-08-04 - remote ktfmt, unit tests, Kotlin compilation, Android test
+compilation, and lint passed; the debug APK was installed on Zenfone 10, Mi Pad 4, and PX5.
+
+
 ## NBC-346: extend the rounded card visual language beyond Settings
 
 The rest of the app should share the same calm, grouped Material 3 card treatment as Settings
