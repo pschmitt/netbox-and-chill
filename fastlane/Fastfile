@@ -1,0 +1,8 @@
+default_platform(:android)
+
+platform :android do
+  desc "Capture Play Store screenshots (en-US) against the disposable NetBox fixture"
+  lane :screenshots do
+    capture_android_screenshots
+  end
+end

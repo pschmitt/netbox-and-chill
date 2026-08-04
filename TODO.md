@@ -5992,3 +5992,41 @@ repeating the same label in a card header.
 
 Status: **done**, 2026-08-04 - remote ktfmt, Kotlin/unit-test compilation, instrumentation compilation,
 and Android Lint passed; the debug build was installed on Zenfone 10, Mi Pad 4, and PX5.
+
+
+## NBC-361: automate Play Store screenshot capture (POC)
+
+Add a fastlane screengrab proof of concept so dashboard/device-detail/search/settings listing
+screenshots don't require manually capturing them against a real NetBox instance, and never risk
+leaking real inventory data into a public store listing.
+
+- [x] Add a `StoreScreenshotTest` instrumented test capturing dashboard, device detail, search,
+      and settings
+- [x] Wire `tools.fastlane:screengrab` into the androidTest dependencies
+- [x] Add `fastlane/` config (Appfile, Screengrabfile, Fastfile) scoped to en-US only
+- [x] Add a `screenshots` Nix dev shell with the Android emulator + an API 34 google_apis x86_64
+      system image
+- [x] Add `netbox-up`/`netbox-seed`/`netbox-down` and `screenshots-avd-create`/
+      `screenshots-emulator-start`/`-stop`/`screenshots-build`/`screenshots` just recipes, reusing
+      the disposable `ci/netbox/` fixture already built for `android-e2e.yaml`
+- [x] Run `just screenshots` end to end on this machine (KVM-accelerated emulator) and verify the
+      captured images show real seeded content, not loading placeholders
+- [x] Rebase onto `main` after NBC-345/347/etc landed; fix the resulting `NBC-358` id collision
+      (renumbered this entry to `NBC-361`) and a pre-existing compile break in
+      `SettingsCategoryContentTest.kt` (stale `onDisconnect` param from the NBC-360 multi-profile
+      refactor) that was blocking the whole androidTest source set
+- [x] Replace the reused E2E seed data with `ci/netbox/seed_screenshots.py`, a small
+      realistic-looking demo rack (Acme Networks / Berlin Data Center / Rack A1, 4 devices),
+      giving the dashboard richer stats than a single bare device
+
+Status: **mostly done**, 2026-08-04. `just screenshots` runs the disposable NetBox fixture (now
+seeded with `seed_screenshots.py`'s nicer demo rack), a local hardware-accelerated emulator, a
+remote debug + androidTest build, and `fastlane screengrab` end to end, then tears the NetBox
+fixture down (success or failure). `01_dashboard`, `02_device_detail`, and `04_settings` were
+repeatedly verified showing real content; `02_device_detail` additionally needed an explicit
+"Refresh" click to reliably beat a race in the detail screen's own per-device fetch (confirmed
+the NetBox API itself is fast, so this isn't a NetBox performance issue). `03_search` is left as
+best-effort (wrapped in `runCatching`, doesn't block the remaining screenshots) - it still
+intermittently captures an empty "No matches yet" state for a reason not fully root-caused; see
+`docs/screenshots.md` for what's been ruled out and a suggested next debugging step. Tablet
+screenshot buckets are noted in `docs/screenshots.md` but not yet done.

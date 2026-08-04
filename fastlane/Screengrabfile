@@ -1,0 +1,27 @@
+# POC scope: en-US only. Add locales here if/when other languages are needed.
+locales(["en-US"])
+
+app_package_name("dev.pschmitt.nyetbox.debug")
+tests_package_name("dev.pschmitt.nyetbox.debug.test")
+use_tests_in_classes(["dev.pschmitt.nyetbox.StoreScreenshotTest"])
+
+# Built remotely by `just screenshots-build` for the x86_64 emulator ABI; screengrab only
+# installs/drives them over adb.
+app_apk_path("dist/app-x86_64-debug.apk")
+tests_apk_path("dist/app-debug-androidTest.apk")
+
+output_directory("fastlane/metadata/android")
+
+# Points StoreScreenshotTest at the disposable NetBox fixture (see `just netbox-up`/`netbox-seed`)
+# instead of a real instance - never hardcode a real NetBox URL/token here.
+launch_arguments([
+  "e2e_base_url #{ENV.fetch('E2E_BASE_URL', 'http://127.0.0.1:8000')}",
+  "e2e_token #{ENV.fetch('E2E_TOKEN')}",
+])
+
+# Kept false (screengrab's default) so its `adb install -r` reuses the app instance `just
+# screenshots` already installed and granted POST_NOTIFICATIONS to, rather than uninstalling and
+# losing that grant - MainActivity requests it at startup on API 33+ and a permission dialog
+# mid-journey would break the test.
+reinstall_app(false)
+skip_open_summary(true)
