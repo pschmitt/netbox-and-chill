@@ -76,6 +76,14 @@ jobs:
           # Keep the generous timeout for cold runners even with KVM acceleration enabled above.
           emulator-boot-timeout: 1800
           disable-animations: true
+          # Diagnostics from two failed runs showed the emulator dropping off adb entirely
+          # (`adb devices` reporting it "offline") partway through the journey, with the *host*
+          # sitting on 8GB+ free RAM the whole time - so the guest AVD's own default RAM/core
+          # allocation, not the runner, was the likely ceiling. Give it real headroom instead of
+          # the action's conservative defaults.
+          ram-size: 4096M
+          heap-size: 512M
+          cores: 4
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           script: |
             bash ci/android-e2e-wait.sh
