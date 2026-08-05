@@ -25,6 +25,30 @@ import timber.log.Timber
 private const val CONTENT_TYPES_ENDPOINT_PATH = "api/contenttypes/content-types/"
 private val JSON_FORM_KEYS = setOf("default", "related_object_filter")
 
+private val NATURAL_SORT_CHUNK = Regex("\\d+|\\D+")
+
+/**
+ * Splits into alternating digit/non-digit chunks and compares digit chunks numerically, so
+ * "Gi1/0/2" sorts before "Gi1/0/10" instead of after it - matching NetBox's own
+ * `naturalize_interface()` ordering instead of a plain lexicographic string sort.
+ */
+internal fun naturalCompare(a: String, b: String): Int {
+    val chunksA = NATURAL_SORT_CHUNK.findAll(a).map { it.value }.iterator()
+    val chunksB = NATURAL_SORT_CHUNK.findAll(b).map { it.value }.iterator()
+    while (chunksA.hasNext() && chunksB.hasNext()) {
+        val x = chunksA.next()
+        val y = chunksB.next()
+        val cmp =
+            x.toLongOrNull()?.let { xNum -> y.toLongOrNull()?.let { yNum -> xNum.compareTo(yNum) } }
+                ?: x.compareTo(y, ignoreCase = true)
+        if (cmp != 0) return cmp
+    }
+    return chunksA.hasNext().compareTo(chunksB.hasNext())
+}
+
+private val naturalDisplayComparator =
+    Comparator<NetBoxObjectEntity> { a, b -> naturalCompare(a.display, b.display) }
+
 /** Cache-first list/detail access for any NetBox object type, keyed by its endpoint path. */
 data class CreateChoice(
     val value: String,
@@ -65,7 +89,8 @@ constructor(
         filterValue: Int? = null,
     ): Flow<List<NetBoxObjectEntity>> {
         val source =
-            if (query.isBlank()) dao.observeAll(endpointPath) else dao.search(endpointPath, query)
+            (if (query.isBlank()) dao.observeAll(endpointPath) else dao.search(endpointPath, query))
+                .map { objects -> objects.sortedWith(naturalDisplayComparator) }
         if (filterKey == null || filterValue == null) return source
         return source.map { objects ->
             objects.filter { it.matchesRelation(json, filterKey, filterValue) }
