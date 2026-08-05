@@ -28,7 +28,7 @@ jobs:
       TEST_CLASS: ${{ github.event_name == 'pull_request' && 'dev.pschmitt.nyetbox.NetBoxPullRequestSmokeSuite' || 'dev.pschmitt.nyetbox.NetBoxFullE2eSuite' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
