@@ -31,6 +31,11 @@ class NetBoxE2eSmokeTest {
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(token)
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", 45_000)
+        // Dashboard blocks interaction behind a "Setting up your NetBox instance" dialog until
+        // the first sync completes (DashboardViewModel.showInitialSyncOverlay) - the dialog owns
+        // its own Android window, so a click dispatched while it's still up would hit that window
+        // instead of the navigation drawer button underneath.
+        waitForTagAbsent("e2e-initial-sync-overlay", 60_000)
         captureE2eScreenshot("smoke-01-dashboard")
 
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
@@ -62,6 +67,12 @@ class NetBoxE2eSmokeTest {
     private fun waitForTag(tag: String, timeoutMillis: Long) {
         composeRule.waitUntil(timeoutMillis) {
             composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForTagAbsent(tag: String, timeoutMillis: Long) {
+        composeRule.waitUntil(timeoutMillis) {
+            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
         }
     }
 }

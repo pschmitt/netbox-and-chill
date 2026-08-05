@@ -55,6 +55,11 @@ class NetBoxE2eTest {
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(validToken)
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", timeoutMillis = 45_000)
+        // Dashboard blocks interaction behind a "Setting up your NetBox instance" dialog until
+        // the first sync completes (DashboardViewModel.showInitialSyncOverlay). Nothing below
+        // clicks through that dialog's own window before it clears on its own, but wait it out
+        // explicitly anyway so this screenshot reflects the real, fully-synced dashboard.
+        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
         captureE2eScreenshot("02-dashboard-after-connect")
 
         // A configured activity must survive recreation without falling back to onboarding or
@@ -139,6 +144,12 @@ class NetBoxE2eTest {
     private fun waitForTag(tag: String, timeoutMillis: Long) {
         composeRule.waitUntil(timeoutMillis) {
             composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForTagAbsent(tag: String, timeoutMillis: Long) {
+        composeRule.waitUntil(timeoutMillis) {
+            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
         }
     }
 }

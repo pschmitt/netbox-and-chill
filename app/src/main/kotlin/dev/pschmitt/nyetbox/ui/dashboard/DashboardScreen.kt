@@ -46,6 +46,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -55,6 +56,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -73,9 +75,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
@@ -131,6 +136,7 @@ fun DashboardScreen(
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
     val lastSuccessfulSyncAt by viewModel.lastSuccessfulSyncAt.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val showInitialSyncOverlay by viewModel.showInitialSyncOverlay.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
     val dashboardSavedOrder by viewModel.dashboardSectionOrder.collectAsStateWithLifecycle()
@@ -155,6 +161,18 @@ fun DashboardScreen(
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
+        }
+    }
+
+    // Last-resort escape hatch: if the overlay's own conditions (see
+    // DashboardViewModel.showInitialSyncOverlay) somehow never resolve - e.g. a sync stays
+    // RUNNING without ever reaching a terminal state - don't trap the user behind it forever.
+    var initialSyncTimedOut by remember { mutableStateOf(false) }
+    LaunchedEffect(showInitialSyncOverlay) {
+        if (showInitialSyncOverlay) {
+            initialSyncTimedOut = false
+            delay(20_000)
+            initialSyncTimedOut = true
         }
     }
 
@@ -511,6 +529,10 @@ fun DashboardScreen(
         }
     }
 
+    if (showInitialSyncOverlay && !initialSyncTimedOut) {
+        InitialSyncOverlay()
+    }
+
     if (showDashboardVisibilityDialog) {
         DashboardVisibilityDialog(
             hidden = hiddenDashboardSections,
@@ -608,6 +630,40 @@ private fun DashboardSectionHeader(
         if (reorderMode) {
             IconButton(onClick = onHide) {
                 Icon(Icons.Default.VisibilityOff, contentDescription = "Hide ${section.title}")
+            }
+        }
+    }
+}
+
+@Composable
+private fun InitialSyncOverlay() {
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.testTag("e2e-initial-sync-overlay"),
+        ) {
+            Column(
+                modifier = Modifier.padding(32.dp).width(240.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    "Setting up your NetBox instance",
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Fetching your inventory for the first time - this only happens once.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }

@@ -20,12 +20,14 @@ import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
+import dev.pschmitt.nyetbox.sync.shouldScheduleStartup
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -59,6 +61,46 @@ constructor(
             SharingStarted.WhileSubscribed(5000),
             false,
         )
+
+    // Blocks the dashboard behind a full-screen "setting up" overlay for a profile that has never
+    // completed a sync, instead of letting every section flash its "nothing cached yet" empty
+    // state during the gap between onboarding finishing and the startup sync worker actually
+    // reaching WorkManager's RUNNING state (which isRefreshing alone can't cover, since it's only
+    // true once the worker has already started). `shouldScheduleStartup` mirrors exactly what
+    // SyncScheduler.scheduleStartup() itself checks, so this stays false for anyone who has sync-
+    // on-launch disabled or is in offline mode - nothing will ever run for them, so nothing should
+    // ever block them. `syncIssue != null` releases the overlay the moment a sync attempt fails,
+    // so a broken first connection surfaces the normal SyncIssueCard/retry flow instead of hanging
+    // forever; DashboardScreen adds its own short hard timeout as a last-resort safety net on top.
+    val showInitialSyncOverlay: StateFlow<Boolean> =
+        combine(
+                lastSuccessfulSyncAt,
+                isRefreshing,
+                syncIssue,
+                settingsRepository.syncOnAppLaunch,
+                settingsRepository.offlineMode,
+            ) { lastSync, refreshing, issue, syncOnLaunch, offline ->
+                lastSync == null &&
+                    issue == null &&
+                    (refreshing || shouldScheduleStartup(syncOnLaunch, offline))
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                // Computed synchronously from each upstream StateFlow's current .value, not a
+                // hardcoded false - Dashboard's very first composition reads this initial value
+                // (combine's own first emission is async, one dispatcher hop later), so a
+                // hardcoded false here would flash the overlay-less dashboard for a frame or two
+                // on every fresh connect, reopening the exact race this whole thing exists to close.
+                initialValue =
+                    lastSuccessfulSyncAt.value == null &&
+                        syncIssue.value == null &&
+                        (isRefreshing.value ||
+                            shouldScheduleStartup(
+                                settingsRepository.syncOnAppLaunch.value,
+                                settingsRepository.offlineMode.value,
+                            )),
+            )
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()

@@ -55,6 +55,11 @@ class StoreScreenshotTest {
             composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(token)
             composeRule.onNodeWithText("Connect").performClick()
             waitForText("Dashboard", 45_000)
+            // Dashboard shows a blocking "Setting up your NetBox instance" overlay
+            // (DashboardViewModel.showInitialSyncOverlay) until the first sync actually
+            // completes - without this, a screenshot grabbed right after Connect can catch
+            // individual sections still showing "nothing cached yet" instead of real data.
+            waitForTagAbsent("e2e-initial-sync-overlay", 60_000)
 
             captureJourney(suffix = "")
             // captureJourney("") always ends on Settings (see below); switch the color scheme
@@ -177,6 +182,13 @@ class StoreScreenshotTest {
         // in a previous composition. A missing result must fail the capture instead of silently
         // producing an empty store-listing asset.
         waitForTag("e2e-search-result", 60_000)
+        // performTextInput leaves the field focused, which raises the on-screen keyboard and
+        // covers the bottom half of the store screenshot. A back-press with the IME visible only
+        // dismisses the keyboard (standard Android behavior) without navigating away from this
+        // screen - confirmed via a debug capture before this fix, which showed the keyboard
+        // covering the lower search results.
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
+        Thread.sleep(500)
         captureScreenshot("04_search$suffix")
 
         composeRule.onNodeWithContentDescription("Back").performClick()
@@ -232,5 +244,15 @@ class StoreScreenshotTest {
 
     private fun waitForTagNotDisplayed(tag: String, timeoutMillis: Long) {
         composeRule.waitUntil(timeoutMillis) { !composeRule.onNodeWithTag(tag).isDisplayed() }
+    }
+
+    // Unlike waitForTagNotDisplayed (for nodes that stay mounted but hidden, e.g. inside a closed
+    // drawer), the initial-sync overlay is conditionally composed and fully leaves the semantics
+    // tree once dismissed - onNodeWithTag(...).isDisplayed() throws once no node matches at all,
+    // so this checks for the absence of any match instead.
+    private fun waitForTagAbsent(tag: String, timeoutMillis: Long) {
+        composeRule.waitUntil(timeoutMillis) {
+            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
+        }
     }
 }
