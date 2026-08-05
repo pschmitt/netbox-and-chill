@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -39,7 +40,14 @@ fun NetBoxResponsiveScaffold(
             ) { padding ->
                 Row(Modifier.fillMaxSize()) {
                     if (useNavigationRail && !fullScreenOnRail) {
-                        Box(Modifier.fillMaxHeight()) { bottomBar() }
+                        // `content(padding)` applies `padding` itself below, but this sibling box
+                        // shares the same unpadded Row, so without its own top inset the rail
+                        // extends up underneath the TopAppBar - occluding and misplacing its
+                        // topmost item (invisible and unclickable, though still present and
+                        // "clickable" in the semantics tree at its true, occluded bounds).
+                        Box(Modifier.fillMaxHeight().padding(top = padding.calculateTopPadding())) {
+                            bottomBar()
+                        }
                     }
                     Box(Modifier.weight(1f).fillMaxHeight()) { content(padding) }
                 }

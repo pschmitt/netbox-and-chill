@@ -1,5 +1,6 @@
 package dev.pschmitt.nyetbox
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -115,9 +116,11 @@ class StoreScreenshotTest {
         // meant for the NavigationRail/NavigationBar tab underneath it. Wait for that same tag to
         // stop being *displayed* instead, which only holds once the drawer has actually closed.
         waitForTagNotDisplayed("e2e-device-list-entry", 30_000)
-        captureE2eScreenshot("DEBUG_before_home_click")
-        composeRule.onNodeWithText("Home").performClick()
-        captureE2eScreenshot("DEBUG_after_home_click")
+        // assertIsDisplayed guards against NetBoxResponsiveScaffold's rail-vs-TopAppBar padding
+        // bug (fixed alongside this test): the rail's first item was laid out underneath the
+        // TopAppBar, present and "clickable" in the semantics tree at its true occluded bounds but
+        // invisible and unreachable by a real tap - performClick() alone doesn't catch that.
+        composeRule.onNodeWithText("Home").assertIsDisplayed().performClick()
         waitForTag("e2e-search-card", 30_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("core-sw-01")
