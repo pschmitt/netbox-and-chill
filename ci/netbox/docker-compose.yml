@@ -5,6 +5,14 @@ services:
       POSTGRES_DB: netbox
       POSTGRES_PASSWORD: ci-db-password
       POSTGRES_USER: netbox
+      # Which vendored fixture (see ./fixtures/, restore-fixture.sh) to restore into this
+      # otherwise-empty database on first start. docker-compose.screenshots.yml overrides this to
+      # "screenshots" - e2e and the plugin-enabled screenshots fixture run different NetBox
+      # versions/plugin sets and so need different pre-migrated dumps.
+      NETBOX_CI_FIXTURE: e2e
+    volumes:
+      - ./fixtures:/fixtures:ro
+      - ./restore-fixture.sh:/docker-entrypoint-initdb.d/10-restore-fixture.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER"]
       interval: 5s

@@ -55,7 +55,13 @@
           trim-trailing-whitespace.enable = true;
           end-of-file-fixer.enable = true;
           check-merge-conflicts.enable = true;
-          check-added-large-files.enable = true;
+          check-added-large-files = {
+            enable = true;
+            # Vendored, pre-migrated/pre-seeded Postgres dumps for the disposable CI NetBox
+            # fixtures (see justfile's netbox-fixture-regen) - deliberately committed binaries,
+            # not an accidental large-file slip.
+            excludes = [ "^ci/netbox/fixtures/.*\\.dump$" ];
+          };
           check-yaml.enable = true;
           nixfmt.enable = true;
           statix.enable = true;

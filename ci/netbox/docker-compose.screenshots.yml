@@ -1,3 +1,6 @@
 services:
   netbox:
     image: local/nyetbox-netbox-screenshots:4.5-plugins
+  postgres:
+    environment:
+      NETBOX_CI_FIXTURE: screenshots

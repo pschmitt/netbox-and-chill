@@ -309,6 +309,41 @@ screenshots-netbox-up:
 screenshots-netbox-down:
     docker compose -f {{netbox_compose_file}} -f {{screenshots_netbox_compose_file}} down --volumes --remove-orphans
 
+# Regenerate a vendored CI NetBox fixture (ci/netbox/fixtures/<name>.dump) from a fresh instance:
+# full migrations + the real seed script, then a pg_dump of the result. postgres restores this dump
+# automatically on its next empty-volume start (see restore-fixture.sh), which is what lets
+# android-e2e.yaml/screenshots.yaml skip both the migration wait and the seed script's API calls on
+# every normal run. Re-run this whenever seed.py/seed_screenshots.py changes, or the NetBox
+# image/plugin versions in docker-compose.yml or Dockerfile-screenshots bump - then review and
+# commit the resulting dump like any other change.
+netbox-fixture-regen name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{name}}" in
+      e2e)
+        compose_args=(-f {{netbox_compose_file}})
+        seed_script=ci/netbox/seed.py
+        ;;
+      screenshots)
+        just screenshots-netbox-build
+        compose_args=(-f {{netbox_compose_file}} -f {{screenshots_netbox_compose_file}})
+        seed_script=ci/netbox/seed_screenshots.py
+        ;;
+      *)
+        echo "Unknown fixture '{{name}}' - expected 'e2e' or 'screenshots'" >&2
+        exit 1
+        ;;
+    esac
+    # A stale dump for this fixture would otherwise get restored instead of starting empty.
+    rm -f "ci/netbox/fixtures/{{name}}.dump"
+    docker compose "${compose_args[@]}" down --volumes --remove-orphans
+    docker compose "${compose_args[@]}" up --no-build --detach --wait --wait-timeout 600
+    python3 "$seed_script" --base-url http://127.0.0.1:8000 --token {{screenshots_token}}
+    docker compose "${compose_args[@]}" exec -T postgres \
+        pg_dump -Fc --no-owner -U netbox -d netbox > "ci/netbox/fixtures/{{name}}.dump"
+    docker compose "${compose_args[@]}" down --volumes --remove-orphans
+    echo "Wrote ci/netbox/fixtures/{{name}}.dump - review (git diff --stat) and commit it."
+
 # Create the local screenshot-capture AVD once (API 34, google_apis, x86_64 - matches the
 # android-e2e.yaml workflow's emulator profile). Safe to re-run; skips if it already exists.
 screenshots-avd-create:
