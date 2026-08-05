@@ -35,7 +35,17 @@ class AnrDismissRule : TestWatcher() {
                                 device.findObject(By.text("Wait"))?.click()
                             }
                         }
-                        Thread.sleep(1_000)
+                        try {
+                            Thread.sleep(1_000)
+                        } catch (_: InterruptedException) {
+                            // finished() below interrupts this thread to stop it - almost always
+                            // while it's inside this sleep, not the runCatching block above. Left
+                            // unhandled, that InterruptedException escapes the thread uncaught and
+                            // crashes the whole instrumentation process (observed: killed the
+                            // suite's next test mid-run). Restore the interrupt flag and let the
+                            // while condition above exit the loop normally instead.
+                            Thread.currentThread().interrupt()
+                        }
                     }
                 }
                 .apply {
