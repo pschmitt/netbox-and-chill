@@ -80,7 +80,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
@@ -95,6 +94,7 @@ import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SectionReorderState
 import dev.pschmitt.nyetbox.ui.common.SyncIssueCard
+import dev.pschmitt.nyetbox.ui.common.SyncStatusCard
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.rememberReorderWiggle
@@ -102,8 +102,16 @@ import dev.pschmitt.nyetbox.ui.common.rememberSectionReorderState
 import dev.pschmitt.nyetbox.ui.common.sectionDragOffset
 import dev.pschmitt.nyetbox.ui.common.sectionReorderGesture
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
+import kotlinx.coroutines.delay
 
 internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
+
+/**
+ * The status card and the issue card share one slot - never show a bland "Synced" line right
+ * above (or below) the error explaining why it actually isn't.
+ */
+internal fun shouldShowSyncStatus(offlineMode: Boolean, hasSyncIssue: Boolean): Boolean =
+    !offlineMode && !hasSyncIssue
 
 private const val RECENT_VISITS_PREVIEW_LIMIT = 3
 private const val RECENT_CHANGES_PREVIEW_LIMIT = 3
@@ -259,6 +267,15 @@ fun DashboardScreen(
                             )
                             Spacer(Modifier.height(16.dp))
                         }
+                    }
+                }
+                if (shouldShowSyncStatus(offlineMode, hasSyncIssue = syncIssue != null)) {
+                    item {
+                        SyncStatusCard(
+                            lastSuccessfulSyncAt = lastSuccessfulSyncAt,
+                            isSyncing = isRefreshing,
+                        )
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
                 if (offlineMode) {

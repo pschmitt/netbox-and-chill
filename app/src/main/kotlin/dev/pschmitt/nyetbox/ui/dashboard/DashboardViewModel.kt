@@ -91,7 +91,8 @@ constructor(
                 // hardcoded false - Dashboard's very first composition reads this initial value
                 // (combine's own first emission is async, one dispatcher hop later), so a
                 // hardcoded false here would flash the overlay-less dashboard for a frame or two
-                // on every fresh connect, reopening the exact race this whole thing exists to close.
+                // on every fresh connect, reopening the exact race this whole thing exists to
+                // close.
                 initialValue =
                     lastSuccessfulSyncAt.value == null &&
                         syncIssue.value == null &&
