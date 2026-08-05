@@ -8,11 +8,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.printToLog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.pschmitt.nyetbox.sync.SyncNotifier
@@ -114,11 +112,16 @@ class NetBoxE2eTest {
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Search NetBox", timeoutMillis = 30_000)
+        // waitForText above only confirms the node exists somewhere in the tree, not that it's
+        // actually reachable - a diagnostic tree dump caught the initial-sync overlay (see
+        // DashboardScreen.InitialSyncOverlay) still present here, its invisible full-screen
+        // no-op-clickable Box silently absorbing the click meant for the search card below and
+        // leaving nothing to ever navigate to e2e-global-search. A later, unrelated sync
+        // (background/periodic, not the onboarding one already waited out above) can retrigger
+        // the same overlay long after the app is otherwise fully usable. Wait it out again, right
+        // before the click that would otherwise be swallowed by it.
+        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
-        // Diagnostic: this click has hung with zero further logcat activity across many CI
-        // configurations (KVM on/off, extra RAM/cores, longer timeouts). Dump the tree immediately
-        // after the click, before any wait, to see what actually rendered.
-        runCatching { composeRule.onRoot().printToLog("E2E_TREE_AFTER_SEARCH_CLICK") }
         waitForTag("e2e-global-search", timeoutMillis = 60_000)
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("CI E2E Device")
         waitForText("CI E2E Device", timeoutMillis = 30_000)

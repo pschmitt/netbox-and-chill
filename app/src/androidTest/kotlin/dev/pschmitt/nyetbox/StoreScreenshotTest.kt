@@ -176,6 +176,14 @@ class StoreScreenshotTest {
         // invisible and unreachable by a real tap - performClick() alone doesn't catch that.
         composeRule.onNodeWithText("Home").assertIsDisplayed().performClick()
         waitForTag("e2e-search-card", 30_000)
+        // A later, unrelated sync (background/periodic, not the onboarding one already waited out
+        // near the top of this journey) can retrigger DashboardScreen.InitialSyncOverlay long
+        // after the app is otherwise fully usable. Its invisible full-screen no-op-clickable Box
+        // silently absorbs whatever click lands on the dashboard while it's up - confirmed via a
+        // diagnostic tree dump in NetBoxE2eTest catching it present at exactly this point, with the
+        // click meant for the search card below never reaching it. Wait it out again right before
+        // that click, the same guard already applied at this journey's start.
+        waitForTagAbsent("e2e-initial-sync-overlay", 60_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
         waitForTag("e2e-global-search", 60_000)
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("core-sw-01")
