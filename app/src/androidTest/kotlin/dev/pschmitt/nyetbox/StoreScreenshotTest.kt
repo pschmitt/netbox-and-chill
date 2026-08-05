@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -73,10 +74,17 @@ class StoreScreenshotTest {
 
     private fun switchToDarkModeAndReturnToDashboard() {
         // "Color scheme" lives under the "Display" category, not directly on the top-level
-        // Settings list (see SettingsCategory.kt/SettingsCategoryContent.kt).
-        composeRule.onNodeWithText("Display").performClick()
+        // Settings list (see SettingsCategory.kt/SettingsCategoryContent.kt). That list is a
+        // plain scrollable Column (every item stays composed, just not all on-screen at once),
+        // and "Display" sits below the fold - performClick() alone dispatches a touch at the
+        // node's true (off-screen) coordinates and silently does nothing, so scroll it into view
+        // first (confirmed via the FAILURE_debug capture: this click landed with zero effect).
+        composeRule.onNodeWithText("Display").performScrollTo().performClick()
         waitForText("Color scheme", 30_000)
-        composeRule.onNodeWithText("Color scheme").performClick()
+        // "Appearance" is the first group card on this category screen too, but the same
+        // scroll-into-view treatment is cheap insurance now that this exact failure mode has
+        // shown up once already.
+        composeRule.onNodeWithText("Color scheme").performScrollTo().performClick()
         composeRule.onNodeWithText("Dark").performClick()
         // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
         // only other match while the dropdown was open (the item just clicked) is gone by then.
