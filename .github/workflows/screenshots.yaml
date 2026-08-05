@@ -1,9 +1,15 @@
 name: Play Store screenshots
 
 # Screenshot capture is intentionally manual. It uses the same disposable fixture and Android
-# emulator action as the E2E workflow, then uploads the reviewed images as a build artifact.
+# emulator action as the E2E workflow, then uploads the reviewed images as a build artifact (or,
+# with open_pr, commits them straight to a PR for review there instead).
 on:
   workflow_dispatch:
+    inputs:
+      open_pr:
+        description: Open a PR with the captured screenshots committed, instead of only uploading a build artifact
+        type: boolean
+        default: false
 
 concurrency:
   group: screenshots-${{ github.ref }}
@@ -14,7 +20,20 @@ permissions:
 
 jobs:
   capture:
-    name: Capture tablet screenshots
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device_type: phone
+            profile: pixel_2
+            folder: phoneScreenshots
+          - device_type: sevenInch
+            profile: Nexus 7
+            folder: sevenInchScreenshots
+          - device_type: tenInch
+            profile: medium_tablet
+            folder: tenInchScreenshots
+    name: Capture ${{ matrix.device_type }} screenshots
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -67,12 +86,12 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Capture screenshots in a tablet emulator
+      - name: Capture screenshots in a ${{ matrix.device_type }} emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           arch: x86_64
-          profile: medium_tablet
+          profile: ${{ matrix.profile }}
           target: google_apis
           force-avd-creation: true
           emulator-boot-timeout: 1800
@@ -88,7 +107,7 @@ jobs:
           # to reset first (unlike the reused local AVD in `just screenshots`, which also does a
           # pm clear before granting).
           # screengrab skips pulling any Screengrab.screenshot() captures at all once the test
-          # class reports a failure, so a failed run leaves fastlane/.../tenInchScreenshots/ empty
+          # class reports a failure, so a failed run leaves fastlane/.../<device>Screenshots/ empty
           # even for the steps that succeeded before the failure. The `; rc=$?; ... ; exit $rc`
           # tail always attempts to pull StoreScreenshotTest's independent failure screenshot
           # (captureE2eScreenshot, written straight to the app's external files dir) while still
@@ -96,16 +115,16 @@ jobs:
           script: |
             bash ci/android-e2e-wait.sh
             adb reverse tcp:8000 tcp:8000
-            serial="$(adb devices | awk '$2 == "device" { print $1; exit }')" && test -n "$serial" && adb -s "$serial" install -r -g -t dist/app-x86_64-debug.apk && E2E_TOKEN="$E2E_TOKEN" SCREENGRAB_DEVICE_TYPE=tenInch SCREENGRAB_SPECIFIC_DEVICE="$serial" fastlane screenshots; rc=$?; mkdir -p dist/failure-screenshots; adb -s "$serial" pull /sdcard/Android/data/dev.pschmitt.nyetbox.debug/files/e2e-screenshots dist/failure-screenshots >/dev/null 2>&1 || true; exit $rc
+            serial="$(adb devices | awk '$2 == "device" { print $1; exit }')" && test -n "$serial" && adb -s "$serial" install -r -g -t dist/app-x86_64-debug.apk && E2E_TOKEN="$E2E_TOKEN" SCREENGRAB_DEVICE_TYPE=${{ matrix.device_type }} SCREENGRAB_SPECIFIC_DEVICE="$serial" fastlane screenshots; rc=$?; mkdir -p dist/failure-screenshots; adb -s "$serial" pull /sdcard/Android/data/dev.pschmitt.nyetbox.debug/files/e2e-screenshots dist/failure-screenshots >/dev/null 2>&1 || true; exit $rc
 
       - name: Upload screenshot artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: nyetbox-tablet-screenshots-${{ github.run_id }}
+          name: nyetbox-${{ matrix.device_type }}-screenshots-${{ github.run_id }}
           if-no-files-found: warn
           path: |
-            fastlane/metadata/android/en-US/images/tenInchScreenshots/
+            fastlane/metadata/android/en-US/images/${{ matrix.folder }}/
             app/build/reports/androidTests/
             dist/failure-screenshots/
 
@@ -117,10 +136,75 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: nyetbox-screenshot-diagnostics-${{ github.run_id }}
+          name: nyetbox-${{ matrix.device_type }}-screenshot-diagnostics-${{ github.run_id }}
           if-no-files-found: ignore
           path: screenshot-netbox.log
 
       - name: Tear down disposable NetBox
         if: ${{ always() }}
         run: docker compose -f ci/netbox/docker-compose.yml -f ci/netbox/docker-compose.screenshots.yml down --volumes --remove-orphans
+
+  open-pr:
+    name: Open PR with updated screenshots
+    needs: capture
+    if: ${{ !cancelled() && !failure() && inputs.open_pr }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download phone screenshots
+        uses: actions/download-artifact@v6
+        with:
+          name: nyetbox-phone-screenshots-${{ github.run_id }}
+          path: fastlane/metadata/android/en-US/images/phoneScreenshots
+
+      - name: Download sevenInch screenshots
+        uses: actions/download-artifact@v6
+        with:
+          name: nyetbox-sevenInch-screenshots-${{ github.run_id }}
+          path: fastlane/metadata/android/en-US/images/sevenInchScreenshots
+
+      - name: Download tenInch screenshots
+        uses: actions/download-artifact@v6
+        with:
+          name: nyetbox-tenInch-screenshots-${{ github.run_id }}
+          path: fastlane/metadata/android/en-US/images/tenInchScreenshots
+
+      # Each device-type artifact was uploaded alongside app/build/reports/androidTests/ and
+      # dist/failure-screenshots/ (see the capture job), so it unpacks with the actual .pngs
+      # nested some levels deep rather than directly in the download path. Find them regardless of
+      # exact depth and drop everything else before committing.
+      - name: Flatten downloaded artifacts to just the screenshots
+        run: |
+          for device_type in phone sevenInch tenInch; do
+            dir="fastlane/metadata/android/en-US/images/${device_type}Screenshots"
+            find "$dir" -mindepth 2 -iname '*.png' -exec mv {} "$dir/" \;
+            find "$dir" -mindepth 1 -type d -exec rm -rf {} +
+          done
+
+      - name: Check for changes
+        id: diff
+        run: |
+          git add fastlane/metadata/android/en-US/images
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create branch, commit, and open PR
+        if: ${{ steps.diff.outputs.changed == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="screenshots/update-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -m "chore: update Play Store screenshots (phone, 7in, 10in tablet)"
+          git push origin "$branch"
+          gh pr create --title "Update Play Store screenshots" --body "Automated screenshot refresh from the \`Play Store screenshots\` workflow (run ${{ github.run_id }}). Review the images before merging." --head "$branch" --base "${{ github.ref_name }}"

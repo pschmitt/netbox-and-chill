@@ -44,7 +44,20 @@ class StoreScreenshotTest {
     @Test
     fun captureStoreScreenshots() {
         try {
-            captureStoreScreenshotsJourney()
+            val baseUrl = arguments.getString("e2e_base_url") ?: error("e2e_base_url is required")
+            val token = arguments.getString("e2e_token") ?: error("e2e_token is required")
+
+            composeRule.onNodeWithTag("e2e-onboarding-url").performTextInput(baseUrl)
+            composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(token)
+            composeRule.onNodeWithText("Connect").performClick()
+            waitForText("Dashboard", 45_000)
+
+            captureJourney(suffix = "")
+            // captureJourney("") always ends on Settings (see below); switch the color scheme
+            // there for real, through the same UI a user would use, then repeat the whole journey
+            // with a "_dark" suffix so the store listing gets both variants from one test run.
+            switchToDarkModeAndReturnToDashboard()
+            captureJourney(suffix = "_dark")
         } catch (t: Throwable) {
             // The emulator is gone by the time a later CI step could pull a screencap/logcat -
             // android-emulator-runner tears it down synchronously as part of its own failed step,
@@ -58,15 +71,21 @@ class StoreScreenshotTest {
         }
     }
 
-    private fun captureStoreScreenshotsJourney() {
-        val baseUrl = arguments.getString("e2e_base_url") ?: error("e2e_base_url is required")
-        val token = arguments.getString("e2e_token") ?: error("e2e_token is required")
+    private fun switchToDarkModeAndReturnToDashboard() {
+        composeRule.onNodeWithText("Color scheme").performClick()
+        composeRule.onNodeWithText("Dark").performClick()
+        // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
+        // only other match while the dropdown was open (the item just clicked) is gone by then.
+        waitForText("Dark", 30_000)
+        // Let the theme recomposition (colors across the whole tree) settle before navigating,
+        // matching the settle delay already used for snackbar animations below.
+        Thread.sleep(500)
+        composeRule.onNodeWithText("Home").assertIsDisplayed().performClick()
+        waitForText("Dashboard", 30_000)
+    }
 
-        composeRule.onNodeWithTag("e2e-onboarding-url").performTextInput(baseUrl)
-        composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(token)
-        composeRule.onNodeWithText("Connect").performClick()
-        waitForText("Dashboard", 45_000)
-        Screengrab.screenshot("01_dashboard")
+    private fun captureJourney(suffix: String) {
+        Screengrab.screenshot("01_dashboard$suffix")
 
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
         waitForTag("e2e-device-list-entry", 60_000)
@@ -96,13 +115,13 @@ class StoreScreenshotTest {
         // finishes, and there are two snackbars in sequence, not one), so a fixed settle delay
         // covering Material3's default SnackbarDuration.Short is simpler and more reliable here.
         Thread.sleep(5_000)
-        Screengrab.screenshot("02_device_detail")
+        Screengrab.screenshot("02_device_detail$suffix")
 
         composeRule.onNodeWithContentDescription("More actions").performClick()
         waitForText("Open topology", 30_000)
         composeRule.onNodeWithText("Open topology").performClick()
         waitForContentDescription("Topology graph with 4 nodes and 3 connections", 120_000)
-        Screengrab.screenshot("03_topology")
+        Screengrab.screenshot("03_topology$suffix")
 
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForContentDescription("More actions", 30_000)
@@ -128,7 +147,7 @@ class StoreScreenshotTest {
         // in a previous composition. A missing result must fail the capture instead of silently
         // producing an empty store-listing asset.
         waitForTag("e2e-search-result", 60_000)
-        Screengrab.screenshot("04_search")
+        Screengrab.screenshot("04_search$suffix")
 
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
@@ -137,7 +156,7 @@ class StoreScreenshotTest {
         waitForContentDescription("Settings", 30_000)
         composeRule.onNodeWithContentDescription("Settings").performClick()
         waitForText("Settings", 30_000)
-        Screengrab.screenshot("05_settings")
+        Screengrab.screenshot("05_settings$suffix")
     }
 
     private fun waitForText(text: String, timeoutMillis: Long) {
