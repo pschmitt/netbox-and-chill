@@ -1,11 +1,13 @@
 package dev.pschmitt.nyetbox.sync
 
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -23,6 +25,7 @@ constructor(
         val request =
             PeriodicWorkRequestBuilder<SyncWorker>(6, TimeUnit.HOURS)
                 .setConstraints(syncConstraints())
+                .setSyncBackoffCriteria()
                 .build()
         workManager.enqueueUniquePeriodicWork(
             PERIODIC_WORK_NAME,
@@ -33,7 +36,10 @@ constructor(
 
     fun syncNow() {
         val request =
-            OneTimeWorkRequestBuilder<SyncWorker>().setConstraints(syncConstraints()).build()
+            OneTimeWorkRequestBuilder<SyncWorker>()
+                .setConstraints(syncConstraints())
+                .setSyncBackoffCriteria()
+                .build()
         workManager.enqueueUniqueWork(ONE_TIME_WORK_NAME, ExistingWorkPolicy.KEEP, request)
     }
 
@@ -50,6 +56,7 @@ constructor(
         val request =
             OneTimeWorkRequestBuilder<SyncWorker>()
                 .setConstraints(syncConstraints())
+                .setSyncBackoffCriteria()
                 // A short grace period (NBC-370) so a quick reopen of the app shortly after the
                 // last sync doesn't visibly retrigger a syncing state on every launch - only a
                 // genuinely stale cache survives long enough to still see this fire.
@@ -68,6 +75,14 @@ constructor(
         workManager.cancelUniqueWork(STARTUP_WORK_NAME)
         workManager.cancelUniqueWork(PERIODIC_WORK_NAME)
     }
+
+    // WorkManager's own default backoff for an unconfigured retry is BackoffPolicy.EXPONENTIAL
+    // starting at WorkRequest.MIN_BACKOFF_MILLIS (10 seconds) - fine for something like a quick
+    // network fetch, but far too aggressive for SyncWorker's up-to-3 retries on a real sync
+    // failure (every model, plus attachments): 10s/20s/40s of near-immediate hammering instead of
+    // backing off. Every sync WorkRequest sets this explicitly instead of inheriting that default.
+    private fun <B : WorkRequest.Builder<B, *>> B.setSyncBackoffCriteria(): B =
+        setBackoffCriteria(BackoffPolicy.EXPONENTIAL, SYNC_RETRY_BACKOFF_MINUTES, TimeUnit.MINUTES)
 
     private fun syncConstraints(): Constraints =
         Constraints.Builder()
@@ -91,6 +106,8 @@ constructor(
         const val STARTUP_WORK_NAME = "netbox-startup-sync"
 
         const val STARTUP_SYNC_DELAY_SECONDS = 10L
+
+        private const val SYNC_RETRY_BACKOFF_MINUTES = 1L
     }
 }
 

@@ -6395,4 +6395,36 @@ toggle). `DeviceDetailScreen`'s separate overflow menu (device-specific, has its
 deliberately left untouched - the user's exact item list (including "Upload media") only matches
 `GenericDetailScreen`'s menu.
 
-Status: **done**, 2026-08-05; verified remotely, not yet pushed.
+Status: **done**, 2026-08-05; verified remotely, merged to main.
+
+## NBC-375: sync `WorkRequest`s had no explicit retry backoff, defaulting to 10s/20s/40s
+
+While another session was working on E2E screenshot CI, they noticed `SyncWorker` firing roughly
+every 10 seconds throughout a test run - suspiciously matching NBC-370's new
+`STARTUP_SYNC_DELAY_SECONDS` constant (also 10). That match is coincidental: the real cause is that
+none of `SyncScheduler`'s three `WorkRequest.Builder`s (`schedulePeriodic`/`syncNow`/
+`scheduleStartup`) ever called `.setBackoffCriteria(...)`. `SyncWorker.doWork()` returns
+`Result.retry()` up to `MAX_RETRY_ATTEMPTS = 3` times on failure, and without explicit backoff
+WorkManager falls back to its own default: `BackoffPolicy.EXPONENTIAL` starting at
+`WorkRequest.MIN_BACKOFF_MILLIS` (10 seconds) - i.e. retries at 10s, 20s, 40s. That's a reasonable
+default for a quick network call, but far too aggressive for a full multi-model sync failing
+repeatedly (real battery/data drain if this ever happens for a real user, e.g. a flaky connection),
+and explains the observed ~10s cadence during CI (sync failing in that environment and hammering
+retries at the default rate).
+
+- [x] Added a shared `<B : WorkRequest.Builder<B, *>> B.setSyncBackoffCriteria()` extension in
+  `SyncScheduler.kt` (works for both `OneTimeWorkRequest.Builder` and
+  `PeriodicWorkRequest.Builder`, since both share `WorkRequest.Builder`'s self-typed API) setting
+  `BackoffPolicy.EXPONENTIAL` starting at 1 minute (roughly 1min/2min/4min across the 3 allowed
+  retries) instead of the 10s default, and applied it to all three sync `WorkRequest` builders.
+- [x] Verified remotely: `compileDebugKotlin compileDebugAndroidTestKotlin
+  compileDebugUnitTestKotlin testDebugUnitTest` and `just lint` both pass.
+
+**Why:** flagged by a parallel session working on E2E CI; confirmed as a real, separate bug (not
+caused by the NBC-370 startup-delay work, just numerically coincidental with it) worth fixing
+regardless of the CI investigation's outcome, since it affects real users on a flaky connection.
+**How to apply:** any new WorkManager `WorkRequest` in this app that can retry should set explicit
+backoff criteria rather than relying on WorkManager's default, which is tuned for quick jobs, not a
+multi-model sync.
+
+Status: **done**, 2026-08-05; verified remotely, merged to main.
