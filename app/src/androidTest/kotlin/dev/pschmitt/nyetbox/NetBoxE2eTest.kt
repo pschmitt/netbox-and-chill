@@ -3,9 +3,6 @@ package dev.pschmitt.nyetbox
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -30,13 +27,9 @@ import org.junit.runner.RunWith
  * together rather than only in isolated mocks.
  */
 @RunWith(AndroidJUnit4::class)
-class NetBoxE2eTest {
+class NetBoxE2eTest : NetBoxJourneyTest() {
 
     @get:Rule val anrDismissRule = AnrDismissRule()
-    @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
-
-    private val arguments
-        get() = InstrumentationRegistry.getArguments()
 
     private val baseUrl: String
         get() = arguments.getString("e2e_base_url") ?: error("e2e_base_url is required")
@@ -49,21 +42,18 @@ class NetBoxE2eTest {
 
     @Test
     fun onboardingSyncSearchAndOfflineCache() {
-        composeRule.onNodeWithTag("e2e-onboarding-url").performTextInput(baseUrl)
-        composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput("invalid-e2e-token")
+        typeOnboardingCredentials(baseUrl, "invalid-e2e-token")
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("NetBox rejected this API token", timeoutMillis = 30_000)
         captureE2eScreenshot("01-invalid-token")
 
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextClearance()
         composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(validToken)
-        composeRule.onNodeWithText("Connect").performClick()
-        waitForText("Dashboard", timeoutMillis = 45_000)
-        // Dashboard blocks interaction behind a "Setting up your NetBox instance" dialog until
-        // the first sync completes (DashboardViewModel.showInitialSyncOverlay). Nothing below
-        // clicks through that dialog's own window before it clears on its own, but wait it out
-        // explicitly anyway so this screenshot reflects the real, fully-synced dashboard.
-        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
+        // clickConnectAndWaitForDashboard also waits out the "Setting up your NetBox instance"
+        // dialog (DashboardViewModel.showInitialSyncOverlay) - nothing below clicks through that
+        // dialog's own window before it clears on its own, but wait it out explicitly anyway so
+        // this screenshot reflects the real, fully-synced dashboard.
+        clickConnectAndWaitForDashboard()
         captureE2eScreenshot("02-dashboard-after-connect")
 
         // A configured activity must survive recreation without falling back to onboarding or
@@ -200,61 +190,5 @@ class NetBoxE2eTest {
         // more time before returning, on the chance a tick fired between the last capture above and
         // now.
         waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
-    }
-
-    private fun waitForText(text: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule
-                .onAllNodesWithText(text, substring = true, useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-    }
-
-    private fun waitForTag(tag: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    private fun waitForTagAbsent(tag: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
-        }
-    }
-
-    // The dashboard's initial-sync overlay (DashboardScreen.InitialSyncOverlay) can reappear
-    // briefly - a background sync tick (observed firing roughly every 10s throughout this test,
-    // well beyond the one that onboarding already waited out) retriggers it for its duration. Its
-    // invisible full-screen no-op-clickable Box absorbs any click while it's up, so waiting for its
-    // absence once immediately before a click isn't quite enough to rule out it reappearing in the
-    // instant between that check and the click actually landing. Retry the click itself instead of
-    // just the wait: if the destination tag hasn't shown up shortly after clicking, the overlay
-    // most likely ate that click - wait it out again and click again.
-    private fun clickUntilTagAppears(
-        destinationTag: String,
-        overlayTag: String = "e2e-initial-sync-overlay",
-        maxAttempts: Int = 5,
-        perAttemptTimeoutMillis: Long = 12_000,
-        click: () -> Unit,
-    ) {
-        repeat(maxAttempts) { attempt ->
-            waitForTagAbsent(overlayTag, timeoutMillis = 60_000)
-            click()
-            val landed = runCatching {
-                waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis)
-            }
-                .isSuccess
-            if (landed) return
-            check(attempt < maxAttempts - 1) {
-                "Never reached tag '$destinationTag' after $maxAttempts clicks"
-            }
-        }
-    }
-
-    private fun clickUntilTagAppears(clickTag: String, destinationTag: String) {
-        clickUntilTagAppears(destinationTag = destinationTag) {
-            composeRule.onNodeWithTag(clickTag).performClick()
-        }
     }
 }

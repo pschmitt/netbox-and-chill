@@ -1,11 +1,6 @@
 package dev.pschmitt.nyetbox
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.isDisplayed
-import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -28,22 +23,18 @@ import tools.fastlane.screengrab.locale.LocaleTestRule
  * Captures Play Store listing screenshots (en-US only, see fastlane/Screengrabfile) against a
  * disposable NetBox instance (`ci/netbox/docker-compose.yml`) seeded with a small realistic-
  * looking demo rack (`ci/netbox/seed_screenshots.py`), reusing the same
- * onboarding/dashboard/device-detail/topology/search/settings journey as [NetBoxE2eSmokeTest].
+ * onboarding/dashboard/device-detail/topology/search/settings journey as [NetBoxE2eSmokeTest]
+ * (shared plumbing lives in [NetBoxJourneyTest]).
  * Never point this test at a real NetBox instance - the screenshots it produces show whatever
  * inventory data the connected instance has.
  */
 @RunWith(AndroidJUnit4::class)
-class StoreScreenshotTest {
+class StoreScreenshotTest : NetBoxJourneyTest() {
     companion object {
         @get:ClassRule @JvmStatic val localeTestRule = LocaleTestRule()
     }
 
     @get:Rule val anrDismissRule = AnrDismissRule()
-
-    @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
-
-    private val arguments
-        get() = InstrumentationRegistry.getArguments()
 
     @Test
     fun captureStoreScreenshots() {
@@ -51,15 +42,7 @@ class StoreScreenshotTest {
             val baseUrl = arguments.getString("e2e_base_url") ?: error("e2e_base_url is required")
             val token = arguments.getString("e2e_token") ?: error("e2e_token is required")
 
-            composeRule.onNodeWithTag("e2e-onboarding-url").performTextInput(baseUrl)
-            composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(token)
-            composeRule.onNodeWithText("Connect").performClick()
-            waitForText("Dashboard", 45_000)
-            // Dashboard shows a blocking "Setting up your NetBox instance" overlay
-            // (DashboardViewModel.showInitialSyncOverlay) until the first sync actually
-            // completes - without this, a screenshot grabbed right after Connect can catch
-            // individual sections still showing "nothing cached yet" instead of real data.
-            waitForTagAbsent("e2e-initial-sync-overlay", 60_000)
+            connectToNetBox(baseUrl, token)
 
             captureJourney(suffix = "")
             // captureJourney("") always ends on Settings (see below); switch the color scheme
@@ -221,78 +204,5 @@ class StoreScreenshotTest {
             Thread.sleep(200)
         }
         Screengrab.screenshot(name)
-    }
-
-    private fun waitForText(text: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule
-                .onAllNodesWithText(text, substring = true, useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-    }
-
-    private fun waitForContentDescription(description: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule
-                .onAllNodesWithContentDescription(description, useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-    }
-
-    private fun waitForTag(tag: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    private fun waitForTagNotDisplayed(tag: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) { !composeRule.onNodeWithTag(tag).isDisplayed() }
-    }
-
-    // Unlike waitForTagNotDisplayed (for nodes that stay mounted but hidden, e.g. inside a closed
-    // drawer), the initial-sync overlay is conditionally composed and fully leaves the semantics
-    // tree once dismissed - onNodeWithTag(...).isDisplayed() throws once no node matches at all,
-    // so this checks for the absence of any match instead.
-    private fun waitForTagAbsent(tag: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
-        }
-    }
-
-    // The dashboard's initial-sync overlay can reappear briefly - a background sync tick
-    // (observed firing roughly every 10s throughout the E2E journey, well beyond the one that
-    // onboarding already waited out) retriggers it for its duration. Its invisible full-screen
-    // no-op-clickable Box absorbs any click while it's up, so waiting for its absence once
-    // immediately before a click isn't quite enough to rule out it reappearing in the instant
-    // between that check and the click actually landing. Retry the click itself instead of just
-    // the wait: if the destination tag hasn't shown up shortly after clicking, the overlay most
-    // likely ate that click - wait it out again and click again.
-    private fun clickUntilTagAppears(
-        destinationTag: String,
-        overlayTag: String = "e2e-initial-sync-overlay",
-        maxAttempts: Int = 5,
-        perAttemptTimeoutMillis: Long = 12_000,
-        click: () -> Unit,
-    ) {
-        repeat(maxAttempts) { attempt ->
-            waitForTagAbsent(overlayTag, timeoutMillis = 60_000)
-            click()
-            val landed = runCatching {
-                waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis)
-            }
-                .isSuccess
-            if (landed) return
-            check(attempt < maxAttempts - 1) {
-                "Never reached tag '$destinationTag' after $maxAttempts clicks"
-            }
-        }
-    }
-
-    private fun clickUntilTagAppears(clickTag: String, destinationTag: String) {
-        clickUntilTagAppears(destinationTag = destinationTag) {
-            composeRule.onNodeWithTag(clickTag).performClick()
-        }
     }
 }

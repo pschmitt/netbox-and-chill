@@ -1,41 +1,23 @@
 package dev.pschmitt.nyetbox
 
-import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /** Short PR-gate journey: onboarding, cache-backed detail navigation, and settings routing. */
 @RunWith(AndroidJUnit4::class)
-class NetBoxE2eSmokeTest {
-    @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
-
-    private val arguments
-        get() = InstrumentationRegistry.getArguments()
+class NetBoxE2eSmokeTest : NetBoxJourneyTest() {
 
     @Test
     fun onboardingDetailAndSettingsRoutes() {
         val baseUrl = arguments.getString("e2e_base_url") ?: error("e2e_base_url is required")
         val token = arguments.getString("e2e_token") ?: error("e2e_token is required")
 
-        composeRule.onNodeWithTag("e2e-onboarding-url").performTextInput(baseUrl)
-        composeRule.onNodeWithTag("e2e-onboarding-token").performTextInput(token)
-        composeRule.onNodeWithText("Connect").performClick()
-        waitForText("Dashboard", 45_000)
-        // Dashboard blocks interaction behind a "Setting up your NetBox instance" dialog until
-        // the first sync completes (DashboardViewModel.showInitialSyncOverlay) - the dialog owns
-        // its own Android window, so a click dispatched while it's still up would hit that window
-        // instead of the navigation drawer button underneath.
-        waitForTagAbsent("e2e-initial-sync-overlay", 60_000)
+        connectToNetBox(baseUrl, token)
         captureE2eScreenshot("smoke-01-dashboard")
 
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
@@ -53,26 +35,5 @@ class NetBoxE2eSmokeTest {
         composeRule.onNodeWithText("About").performClick()
         waitForText("Build", 30_000)
         captureE2eScreenshot("smoke-03-about")
-    }
-
-    private fun waitForText(text: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule
-                .onAllNodesWithText(text, substring = true, useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-    }
-
-    private fun waitForTag(tag: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    private fun waitForTagAbsent(tag: String, timeoutMillis: Long) {
-        composeRule.waitUntil(timeoutMillis) {
-            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
-        }
     }
 }
