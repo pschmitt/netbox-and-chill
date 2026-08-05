@@ -109,7 +109,6 @@ fun ObjectChangeDiffScreen(
                 DiffContent(
                     diff = diff!!,
                     onOpenChangedObject = onOpenChangedObject,
-                    localImageFile = viewModel::localImageFile,
                     modifier = Modifier.padding(padding).fillMaxSize(),
                 )
         }
@@ -120,7 +119,6 @@ fun ObjectChangeDiffScreen(
 private fun DiffContent(
     diff: ObjectChangeDiffUi,
     onOpenChangedObject: (endpointPath: String, id: Int) -> Unit,
-    localImageFile: (ChangeImage) -> java.io.File?,
     modifier: Modifier = Modifier,
 ) {
     var showInlineDiff by rememberSaveable { mutableStateOf(false) }
@@ -174,7 +172,6 @@ private fun DiffContent(
                                             imageUrl = image.url,
                                             contentDescription =
                                                 "${diff.objectRepr} ${image.label.lowercase()} image",
-                                            localFile = localImageFile(image),
                                             modifier = Modifier.size(96.dp),
                                         )
                                         Text(

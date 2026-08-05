@@ -186,8 +186,7 @@ fun GenericDetailScreen(
     val detailOverviewFields = visibleOverviewFields.filterNot {
         viewModel.isDeviceType && it is FieldRow.Image
     }
-    val deviceTypePhotoViewerItems =
-        deviceTypePhotoItems(deviceTypePhotoRows, title, viewModel::localAttachmentFile)
+    val deviceTypePhotoViewerItems = deviceTypePhotoItems(deviceTypePhotoRows, title)
     val deviceTypePreviewIndex =
         deviceTypePhotoRows
             .indexOfFirst { it.label.contains("front", ignoreCase = true) }
@@ -726,7 +725,6 @@ fun GenericDetailScreen(
                                     item {
                                         ImageAttachmentGallery(
                                             attachments = imageAttachments,
-                                            localImageFile = viewModel::localAttachmentFile,
                                             onImageClick = { items, index ->
                                                 imageViewer = items to index
                                             },
@@ -810,7 +808,6 @@ fun GenericDetailScreen(
                                             },
                                             netboxBaseUrl = netboxBaseUrl,
                                             onDownloadAttachment = viewModel::downloadAttachment,
-                                            localAttachmentFile = viewModel::localAttachmentFile,
                                             onImageClick = { imageViewer = listOf(it) to 0 },
                                             isDownloading = isDownloading,
                                             onCopyValue = onCopyValue,
@@ -851,7 +848,6 @@ fun GenericDetailScreen(
                                             front = frontElevation,
                                             rear = rearElevation,
                                             previews = rackDevicePreviews,
-                                            localImageFile = viewModel::localAttachmentFile,
                                             highlightDeviceId = highlightDeviceId,
                                             onDeviceClick = { id ->
                                                 onNavigateToReference(
@@ -1195,9 +1191,6 @@ fun GenericDetailScreen(
         )
     }
 }
-
-internal fun String.attachmentFilename(): String =
-    substringAfterLast('/').substringBefore('?').ifBlank { "attachment" }
 
 @Composable
 private fun JournalEntryItem(entry: JournalEntryUi, onEdit: () -> Unit) {

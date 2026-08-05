@@ -6,7 +6,6 @@ import dev.pschmitt.nyetbox.ui.common.MediaUploadKind
 internal fun deviceTypePhotoItems(
     rows: List<FieldRow.Image>,
     title: String?,
-    localImageFile: (String, String) -> java.io.File?,
 ): List<ImageViewerItem> {
     val itemTitle = title?.takeIf { it.isNotBlank() } ?: "Device type"
     return rows
@@ -16,7 +15,6 @@ internal fun deviceTypePhotoItems(
                 url = row.url,
                 title = "${row.label} of $itemTitle",
                 metadata = listOf("View" to row.label),
-                localFile = localImageFile(row.url, row.url.attachmentFilename()),
                 canEdit = true,
             )
         }

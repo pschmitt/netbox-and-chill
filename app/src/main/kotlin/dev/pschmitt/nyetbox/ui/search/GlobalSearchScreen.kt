@@ -174,7 +174,6 @@ fun GlobalSearchScreen(
                         devicesById = devicesById,
                         deviceTypeFrontImagesById = deviceTypeFrontImagesById,
                         objectTypeAccents = objectTypeAccents,
-                        localImageFile = viewModel::localImageFile,
                         onResultClick = onResultClick,
                     )
                 typeFilter == null && query.isBlank() ->
@@ -193,7 +192,6 @@ fun GlobalSearchScreen(
                         devicesById = devicesById,
                         deviceTypeFrontImagesById = deviceTypeFrontImagesById,
                         objectTypeAccents = objectTypeAccents,
-                        localImageFile = viewModel::localImageFile,
                         onSelectType = viewModel::selectType,
                         onClearTypeFilter = viewModel::clearTypeFilter,
                         onResultClick = onResultClick,
@@ -222,7 +220,6 @@ private fun RecentSearchList(
     devicesById: Map<Int, DeviceEntity>,
     deviceTypeFrontImagesById: Map<Int, String>,
     objectTypeAccents: Map<String, ThemeAccent>,
-    localImageFile: (SearchThumbnail) -> java.io.File?,
     onResultClick: (endpointPath: String, id: Int, display: String) -> Unit,
 ) {
     LazyColumn(
@@ -253,7 +250,6 @@ private fun RecentSearchList(
                 assetTag = searchAssetTagFor(hit, devicesById),
                 hasAssetTagField = searchHasAssetTagField(hit, devicesById),
                 status = searchStatusFor(hit, devicesById),
-                localImageFile = localImageFile,
                 isRecent = true,
                 onClick = { onResultClick(hit.endpointPath, hit.id, hit.display) },
             )
@@ -272,7 +268,6 @@ private fun SearchResultsContent(
     devicesById: Map<Int, DeviceEntity>,
     deviceTypeFrontImagesById: Map<Int, String>,
     objectTypeAccents: Map<String, ThemeAccent>,
-    localImageFile: (SearchThumbnail) -> java.io.File?,
     onSelectType: (NetBoxModelEntity) -> Unit,
     onClearTypeFilter: () -> Unit,
     onResultClick: (endpointPath: String, id: Int, display: String) -> Unit,
@@ -346,7 +341,6 @@ private fun SearchResultsContent(
                     assetTag = searchAssetTagFor(hit, devicesById),
                     hasAssetTagField = searchHasAssetTagField(hit, devicesById),
                     status = searchStatusFor(hit, devicesById),
-                    localImageFile = localImageFile,
                     highlightQuery = highlightQuery,
                     isRecent = searchHitKey(hit) in recentKeys,
                     onClick = { onResultClick(hit.endpointPath, hit.id, hit.display) },
@@ -549,13 +543,10 @@ private fun SearchResultRow(
     assetTag: String?,
     hasAssetTagField: Boolean,
     status: String?,
-    localImageFile: (SearchThumbnail) -> java.io.File?,
     highlightQuery: String = "",
     isRecent: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
-
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().testTag("e2e-search-result"),
@@ -587,7 +578,6 @@ private fun SearchResultRow(
                 RemoteThumbnail(
                     imageUrl = thumbnail.url,
                     contentDescription = hit.display,
-                    localFile = localFile,
                     modifier = Modifier.size(64.dp),
                 )
             }
@@ -734,14 +724,10 @@ private fun searchThumbnailFor(
 ): SearchThumbnail? =
     when (hit.endpointPath) {
         GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
-            deviceTypeFrontImagesById[hit.id]?.let { url ->
-                SearchThumbnail(url, "device-type-${hit.id}-front")
-            }
+            deviceTypeFrontImagesById[hit.id]?.let { url -> SearchThumbnail(url) }
         GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
             devicesById[hit.id]?.deviceTypeId?.let { deviceTypeId ->
-                deviceTypeFrontImagesById[deviceTypeId]?.let { url ->
-                    SearchThumbnail(url, "device-type-$deviceTypeId-front")
-                }
+                deviceTypeFrontImagesById[deviceTypeId]?.let { url -> SearchThumbnail(url) }
             }
         else -> null
     }

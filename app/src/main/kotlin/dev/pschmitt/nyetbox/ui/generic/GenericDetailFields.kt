@@ -93,7 +93,6 @@ internal fun LazyListScope.fieldRow(
     onOpenUrl: (String) -> Unit,
     netboxBaseUrl: String?,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
-    localAttachmentFile: (url: String, filename: String) -> java.io.File?,
     onImageClick: (ImageViewerItem) -> Unit,
     isDownloading: Boolean,
     onCopyValue: (label: String, value: String) -> Unit,
@@ -321,20 +320,9 @@ internal fun LazyListScope.fieldRow(
                     RemoteThumbnail(
                         imageUrl = row.url,
                         contentDescription = row.label,
-                        localFile = localAttachmentFile(row.url, row.url.attachmentFilename()),
                         modifier =
                             Modifier.fillMaxWidth().height(160.dp).padding(top = 4.dp).clickable {
-                                onImageClick(
-                                    ImageViewerItem(
-                                        url = row.url,
-                                        title = row.label,
-                                        localFile =
-                                            localAttachmentFile(
-                                                row.url,
-                                                row.url.attachmentFilename(),
-                                            ),
-                                    )
-                                )
+                                onImageClick(ImageViewerItem(url = row.url, title = row.label))
                             },
                         contentScale = ContentScale.Fit,
                     )

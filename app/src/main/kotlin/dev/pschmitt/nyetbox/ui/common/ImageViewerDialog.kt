@@ -60,9 +60,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.net.toUri
 import coil3.compose.AsyncImage
-import java.io.File
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -76,7 +74,6 @@ data class ImageViewerItem(
     val url: String,
     val title: String,
     val metadata: List<Pair<String, String>> = emptyList(),
-    val localFile: File? = null,
     val relatedLink: ImageViewerRelatedLink? = null,
     val canEdit: Boolean = false,
 )
@@ -293,7 +290,7 @@ private fun ZoomableImagePage(item: ImageViewerItem, onZoomChanged: (Boolean) ->
             }
     ) {
         AsyncImage(
-            model = item.localFile?.toUri() ?: item.url,
+            model = item.url,
             contentDescription = item.title,
             modifier =
                 Modifier.fillMaxSize().graphicsLayer {

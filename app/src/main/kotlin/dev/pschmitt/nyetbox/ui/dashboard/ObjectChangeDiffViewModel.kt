@@ -10,12 +10,10 @@ import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
-import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.schema.Humanize
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.ui.navigation.Route
-import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,11 +49,7 @@ data class DiffRow(
 
 data class DiffReference(val endpointPath: String, val id: Int)
 
-data class ChangeImage(
-    val label: String,
-    val url: String,
-    val filename: String,
-)
+data class ChangeImage(val label: String, val url: String)
 
 data class ObjectChangeDiffUi(
     val objectRepr: String,
@@ -78,7 +72,6 @@ constructor(
     private val genericObjectRepository: GenericObjectRepository,
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
-    private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
 
     private val route: Route.ObjectChangeDiff = savedStateHandle.toRoute()
@@ -166,16 +159,13 @@ constructor(
         val deviceType = deviceTypeRepository.observe(deviceTypeId).first() ?: return emptyList()
         return buildList {
             deviceType.frontImageUrl?.takeIf(String::isNotBlank)?.let { url ->
-                add(ChangeImage("Front", url, "device-type-${deviceTypeId}-front"))
+                add(ChangeImage("Front", url))
             }
             deviceType.rearImageUrl?.takeIf(String::isNotBlank)?.let { url ->
-                add(ChangeImage("Rear", url, "device-type-${deviceTypeId}-rear"))
+                add(ChangeImage("Rear", url))
             }
         }
     }
-
-    fun localImageFile(image: ChangeImage): File? =
-        fileDownloadRepository.persistentFile(image.url, image.filename)
 }
 
 private const val DEVICES_ENDPOINT_PATH = "api/dcim/devices/"

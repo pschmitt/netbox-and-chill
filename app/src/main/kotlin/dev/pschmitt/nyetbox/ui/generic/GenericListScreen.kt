@@ -145,7 +145,6 @@ fun GenericListScreen(
                                     icon = rowIcon,
                                     iconTint = rowColor,
                                     query = query,
-                                    localImageFile = viewModel::localImageFile,
                                     onClick = { onObjectClick(obj.id) },
                                 )
                             }
@@ -169,15 +168,10 @@ private fun ObjectRow(
     icon: ImageVector,
     iconTint: androidx.compose.ui.graphics.Color,
     query: String,
-    localImageFile: (String, String) -> java.io.File?,
     onClick: () -> Unit,
 ) {
     val assetTag = remember(obj.json) { assetTagStateFromRawJson(obj.json) }
     val frontImageUrl = remember(obj.json) { frontImageUrlFromRawJson(obj.json) }
-    val localFile =
-        remember(frontImageUrl, obj.id) {
-            frontImageUrl?.let { localImageFile(it, "device-type-${obj.id}-front") }
-        }
 
     Card(
         onClick = onClick,
@@ -210,7 +204,6 @@ private fun ObjectRow(
                 RemoteThumbnail(
                     imageUrl = frontImageUrl,
                     contentDescription = obj.display,
-                    localFile = localFile,
                     modifier = Modifier.size(64.dp),
                     contentScale = ContentScale.Fit,
                 )

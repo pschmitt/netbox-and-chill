@@ -112,7 +112,6 @@ import dev.pschmitt.nyetbox.ui.generic.GenericDetailChangelogRow
 import dev.pschmitt.nyetbox.ui.generic.JournalEntryUi
 import dev.pschmitt.nyetbox.ui.generic.actionValue
 import dev.pschmitt.nyetbox.ui.generic.fieldRow
-import java.io.File
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.serialization.json.Json
@@ -512,8 +511,7 @@ fun DeviceDetailScreen(
                         contentPadding = PaddingValues(16.dp),
                     ) {
                         item {
-                            val deviceTypeViewerItems =
-                                deviceTypePhotoItems(deviceType, viewModel::localImageFile)
+                            val deviceTypeViewerItems = deviceTypePhotoItems(deviceType)
                             val deviceTypePreview = deviceTypeViewerItems.firstOrNull { item ->
                                 item.metadata.any { (_, value) -> value == "Front" }
                             }
@@ -526,7 +524,6 @@ fun DeviceDetailScreen(
                                             RemoteThumbnail(
                                                 imageUrl = deviceTypePreview.url,
                                                 contentDescription = deviceTypePreview.title,
-                                                localFile = deviceTypePreview.localFile,
                                                 modifier =
                                                     Modifier.size(64.dp).clickable {
                                                         imageViewer = deviceTypeViewerItems to 0
@@ -606,7 +603,6 @@ fun DeviceDetailScreen(
                             item {
                                 ImageAttachmentGallery(
                                     attachments = imageAttachments,
-                                    localImageFile = viewModel::localImageFile,
                                     onImageClick = { items, index -> imageViewer = items to index },
                                     onAdd = {
                                         mediaUploadInitialKind = MediaUploadKind.ImageAttachment
@@ -784,7 +780,6 @@ fun DeviceDetailScreen(
                                     },
                                     netboxBaseUrl = netboxBaseUrl,
                                     onDownloadAttachment = viewModel::downloadAttachment,
-                                    localAttachmentFile = viewModel::localImageFile,
                                     onImageClick = { item -> imageViewer = listOf(item) to 0 },
                                     isDownloading = isDownloading,
                                     onCopyValue = onCopyValue,
@@ -837,7 +832,6 @@ fun DeviceDetailScreen(
                                     DeviceConnectedDevices(
                                         devices = connectedDevices,
                                         deviceTypeImages = deviceTypeImages,
-                                        localImageFile = viewModel::localImageFile,
                                         onDeviceClick = { deviceId ->
                                             onReferenceClick(
                                                 NetBoxRef.DEVICES_ENDPOINT_PATH,
@@ -1085,7 +1079,6 @@ private fun tabIcon(tab: DeviceRelatedTab) =
 private fun DeviceConnectedDevices(
     devices: List<DeviceEntity>,
     deviceTypeImages: Map<Int, DeviceTypeEntity>,
-    localImageFile: (String, String) -> File?,
     onDeviceClick: (Int) -> Unit,
 ) {
     if (devices.isEmpty()) {
@@ -1109,11 +1102,6 @@ private fun DeviceConnectedDevices(
                     } else {
                         RemoteThumbnail(
                             imageUrl = frontImage,
-                            localFile =
-                                localImageFile(
-                                    frontImage,
-                                    "device-type-${connected.deviceTypeId}-front",
-                                ),
                             contentDescription = connected.name,
                             modifier = Modifier.size(56.dp),
                         )
@@ -1272,10 +1260,7 @@ private fun DeviceJournalEntries(
 }
 
 /** Device-type stock photos for the overview preview and its front/rear viewer pager. */
-private fun deviceTypePhotoItems(
-    deviceType: DeviceTypeEntity?,
-    localImageFile: (String, String) -> File?,
-): List<ImageViewerItem> {
+private fun deviceTypePhotoItems(deviceType: DeviceTypeEntity?): List<ImageViewerItem> {
     val front = deviceType?.frontImageUrl
     val rear = deviceType?.rearImageUrl
     val id = deviceType?.id ?: return emptyList()
@@ -1288,7 +1273,6 @@ private fun deviceTypePhotoItems(
                     url = it,
                     title = "Front of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Front"),
-                    localFile = localImageFile(it, "device-type-$id-front"),
                     relatedLink = ImageViewerRelatedLink("Open device type", id),
                 )
             },
@@ -1299,7 +1283,6 @@ private fun deviceTypePhotoItems(
                     url = it,
                     title = "Rear of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Rear"),
-                    localFile = localImageFile(it, "device-type-$id-rear"),
                     relatedLink = ImageViewerRelatedLink("Open device type", id),
                 )
             },
@@ -1320,13 +1303,13 @@ private fun dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity.interfaceMacAddresse
         runCatching { interfaceJson.parseToJsonElement(json).jsonObject }.getOrNull()
             ?: return emptyList()
     return buildList {
-        listOf("mac_address", "primary_mac_address").forEach { key ->
-            objectJson[key]?.displayValue()?.let(::add)
+            listOf("mac_address", "primary_mac_address").forEach { key ->
+                objectJson[key]?.displayValue()?.let(::add)
+            }
+            (objectJson["mac_addresses"] as? JsonArray).orEmpty().forEach { element ->
+                element.displayValue()?.let(::add)
+            }
         }
-        (objectJson["mac_addresses"] as? JsonArray).orEmpty().forEach { element ->
-            element.displayValue()?.let(::add)
-        }
-    }
         .distinct()
 }
 
@@ -1336,15 +1319,16 @@ private fun dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity.interfaceSubtitle(
     val objectJson =
         runCatching { interfaceJson.parseToJsonElement(json).jsonObject }.getOrNull()
             ?: return secondaryLine
-    val addresses = buildList {
-        val ipList = objectJson["ip_addresses"] as? JsonArray
-        ipList.orEmpty().forEach { element -> element.displayValue()?.let(::add) }
-        listOf("primary_ip4", "primary_ip6", "ip_address").forEach { key ->
-            objectJson[key]?.displayValue()?.let(::add)
-        }
-        addAll(cachedIpAddresses)
-    }
-        .distinct()
+    val addresses =
+        buildList {
+                val ipList = objectJson["ip_addresses"] as? JsonArray
+                ipList.orEmpty().forEach { element -> element.displayValue()?.let(::add) }
+                listOf("primary_ip4", "primary_ip6", "ip_address").forEach { key ->
+                    objectJson[key]?.displayValue()?.let(::add)
+                }
+                addAll(cachedIpAddresses)
+            }
+            .distinct()
     val macAddresses = interfaceMacAddresses()
     val networkParts = buildList {
         if (addresses.isNotEmpty()) add("IP: ${addresses.joinToString(", ")}")

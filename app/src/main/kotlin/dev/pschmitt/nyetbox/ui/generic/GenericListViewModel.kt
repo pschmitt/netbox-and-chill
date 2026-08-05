@@ -6,13 +6,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
-import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import dev.pschmitt.nyetbox.ui.navigation.Route
-import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +28,6 @@ class GenericListViewModel
 constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: GenericObjectRepository,
-    private val fileDownloadRepository: FileDownloadRepository,
     settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
@@ -79,7 +76,4 @@ constructor(
     fun errorShown() {
         _errorMessage.value = null
     }
-
-    fun localImageFile(url: String, filename: String): File? =
-        fileDownloadRepository.persistentFile(url, filename)
 }

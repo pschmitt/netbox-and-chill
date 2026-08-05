@@ -149,7 +149,6 @@ fun DeviceListScreen(
                                         deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
                                     fallbackTint = rowColor,
                                     query = query,
-                                    localImageFile = viewModel::localImageFile,
                                     onClick = { onDeviceClick(device.id) },
                                 )
                             }
@@ -171,16 +170,10 @@ fun DeviceListScreen(
 private fun DeviceRow(
     device: DeviceEntity,
     frontImageUrl: String?,
-    localImageFile: (String, String) -> java.io.File?,
     fallbackTint: androidx.compose.ui.graphics.Color,
     query: String,
     onClick: () -> Unit,
 ) {
-    val localFile =
-        remember(frontImageUrl, device.deviceTypeId) {
-            frontImageUrl?.let { localImageFile(it, "device-type-${device.deviceTypeId}-front") }
-        }
-
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -196,7 +189,6 @@ private fun DeviceRow(
             RemoteThumbnail(
                 imageUrl = frontImageUrl,
                 contentDescription = device.deviceTypeModel,
-                localFile = localFile,
                 modifier = Modifier.size(64.dp),
                 fallbackTint = fallbackTint,
                 contentScale = ContentScale.Fit,

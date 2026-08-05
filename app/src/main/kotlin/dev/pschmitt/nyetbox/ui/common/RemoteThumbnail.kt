@@ -27,6 +27,13 @@ import java.io.File
 /**
  * Square thumbnail for a NetBox-hosted image (device-type stock photo, image attachment). Falls
  * back to a generic device icon when [imageUrl] is null/blank (not yet synced, or none set).
+ *
+ * Local-vs-remote resolution normally happens inside Coil's own async pipeline (see
+ * [dev.pschmitt.nyetbox.image.PersistentCacheFetcher]) - most callers just pass the remote URL, no
+ * filesystem lookups needed here. [localFile] is an escape hatch for callers that must never
+ * trigger a network fetch (e.g. the topology graph, which only shows already-cached device
+ * thumbnails to avoid flooding the network while panning/zooming a large diagram) - when set, it's
+ * used as-is and no remote fallback is attempted.
  */
 @Composable
 fun RemoteThumbnail(
@@ -55,16 +62,27 @@ fun RemoteThumbnail(
         val context = LocalPlatformContext.current
         val request =
             remember(imageUrl, localFile) {
-                ImageRequest.Builder(context)
-                    .data(localFile?.toUri() ?: imageUrl)
-                    // These are thumbnails everywhere this composable is used. Bounding the
-                    // decode is important for long device-type lists: NetBox photos can be much
-                    // larger than the 64-140dp surface they occupy, and the alpha-cropping
-                    // transformation otherwise has to allocate a full-size pixel buffer.
-                    .size(256, 256)
-                    .precision(Precision.INEXACT)
-                    .transformations(TransparentPaddingTransformation())
-                    .build()
+                val builder =
+                    ImageRequest.Builder(context)
+                        .data(localFile?.toUri() ?: imageUrl)
+                        // These are thumbnails everywhere this composable is used. Bounding the
+                        // decode is important for long device-type lists: NetBox photos can be
+                        // much larger than the 64-140dp surface they occupy, and the
+                        // alpha-cropping transformation otherwise has to allocate a full-size
+                        // pixel buffer.
+                        .size(256, 256)
+                        .precision(Precision.INEXACT)
+                // Coil forces a software (Java-heap) bitmap for any request carrying a
+                // transformation, since transformations need CPU pixel access - hardware bitmaps
+                // (the default, living in graphics memory outside the heap ceiling) can't support
+                // that. Skip attaching the crop for formats that can never carry an alpha channel
+                // (JPEGs - most user-uploaded image attachments) so those keep the cheaper,
+                // heap-free hardware-bitmap path; NetBox's own PNG/AVIF/WEBP stock photos still
+                // get cropped.
+                if (canHaveAlphaChannel(localFile?.name ?: imageUrl.orEmpty())) {
+                    builder.transformations(TransparentPaddingTransformation())
+                }
+                builder.build()
             }
         AsyncImage(
             model = request,
@@ -73,4 +91,10 @@ fun RemoteThumbnail(
             contentScale = contentScale,
         )
     }
+}
+
+/** JPEG is the only common image format that can never carry an alpha channel. */
+private fun canHaveAlphaChannel(source: String): Boolean {
+    val extension = source.substringBefore('?').substringAfterLast('.', "").lowercase()
+    return extension != "jpg" && extension != "jpeg"
 }

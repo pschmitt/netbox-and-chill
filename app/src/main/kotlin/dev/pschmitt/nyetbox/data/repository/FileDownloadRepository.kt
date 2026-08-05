@@ -53,6 +53,9 @@ constructor(
         }
     }
 
+    /** Looks up a durable copy by URL alone, for callers with no meaningful display filename. */
+    fun persistentFile(url: String): File? = persistentFile(url, "")
+
     /** Downloads an attachment into filesDir so Android's cache eviction cannot remove it. */
     suspend fun downloadToPersistent(url: String, filename: String): Result<File> =
         withContext(Dispatchers.IO) {

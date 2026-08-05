@@ -59,7 +59,6 @@ internal fun GenericDetailIdentityCard(
                 RemoteThumbnail(
                     imageUrl = preview.url,
                     contentDescription = preview.title,
-                    localFile = preview.localFile,
                     modifier = previewModifier,
                     contentScale = ContentScale.Fit,
                     fallbackTint = detailAccent,

@@ -19,8 +19,10 @@ import dev.pschmitt.nyetbox.data.api.MediaNetBoxApi
 import dev.pschmitt.nyetbox.data.api.NetBoxApi
 import dev.pschmitt.nyetbox.data.api.OfflineModeInterceptor
 import dev.pschmitt.nyetbox.data.api.TopologyApi
+import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.image.LibavifImageDecoder
 import dev.pschmitt.nyetbox.image.LocalFileFetcher
+import dev.pschmitt.nyetbox.image.PersistentCacheFetcher
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -139,6 +141,7 @@ object NetworkModule {
     fun provideImageLoader(
         @ApplicationContext context: Context,
         @DownloadClient okHttpClient: OkHttpClient,
+        fileDownloadRepository: FileDownloadRepository,
     ): ImageLoader =
         ImageLoader.Builder(context)
             // Keep Coil's platform file/URI mappers and fetchers available in debug and release;
@@ -146,6 +149,10 @@ object NetworkModule {
             .serviceLoaderEnabled(true)
             .components {
                 add(LocalFileFetcher.Factory())
+                // Ahead of the network fetcher so a cached NetBox media URL resolves to its
+                // offline copy without ever hitting the network - see PersistentCacheFetcher's
+                // kdoc for why this replaced synchronous per-row lookups in list composables.
+                add(PersistentCacheFetcher.Factory(fileDownloadRepository))
                 add(LibavifImageDecoder.Factory())
                 // The app uses coil-core directly through Compose. Register the standard Android
                 // decoder explicitly so cached PNG/JPEG images work even when service-loader

@@ -5,7 +5,6 @@ import dev.pschmitt.nyetbox.data.db.DeviceDao
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectDao
-import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.schema.AssetTagState
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
@@ -128,16 +127,17 @@ fun parseGlobalSearchQuery(queryText: String): ParsedGlobalSearchQuery {
         return ParsedGlobalSearchQuery(queryText, queryText.trim(), emptyList())
     }
 
-    val freeText = buildString {
-        var cursor = 0
-        filters.forEach { filter ->
-            append(queryText.substring(cursor, filter.tokenRange.first))
-            cursor = filter.tokenRange.last + 1
-        }
-        append(queryText.substring(cursor))
-    }
-        .trim()
-        .replace(Regex("\\s+"), " ")
+    val freeText =
+        buildString {
+                var cursor = 0
+                filters.forEach { filter ->
+                    append(queryText.substring(cursor, filter.tokenRange.first))
+                    cursor = filter.tokenRange.last + 1
+                }
+                append(queryText.substring(cursor))
+            }
+            .trim()
+            .replace(Regex("\\s+"), " ")
     return ParsedGlobalSearchQuery(queryText, freeText, filters)
 }
 
@@ -180,8 +180,16 @@ constructor(
     private val json: Json,
 ) {
 
+    // Deliberately doesn't hold the source `NetBoxObjectEntity` (and thus its raw `json` string) -
+    // only the handful of scalar fields actually needed post-index-build, plus the already-parsed
+    // JsonObject. Retaining the full entity here duplicated every cached object's payload three
+    // times over (raw JSON string + parsed JsonObject tree + derived search text) for as long as
+    // this index lives, which contributed to an OOM on a 256MB-heap device (Pixel 5).
     private data class IndexedGenericObject(
-        val entity: NetBoxObjectEntity,
+        val endpointPath: String,
+        val id: Int,
+        val display: String,
+        val secondaryLine: String?,
         val objectJson: JsonObject,
         val searchFields: Map<String, String>,
         val assetTag: AssetTagState,
@@ -195,7 +203,7 @@ constructor(
             val objectFilters = query.objectFilters
             if (
                 objectFilters.any { it.key == "manufacturer" } &&
-                    entity.endpointPath !in
+                    endpointPath !in
                         setOf(
                             GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH,
                             GlobalSearchRepository.DEVICES_ENDPOINT_PATH,
@@ -242,8 +250,12 @@ constructor(
     // OfflineSyncRepository.syncAll), and each page upsert invalidates this whole-table Room flow.
     // Without debouncing, this rebuilds the entire (potentially thousands-of-rows) search index
     // from scratch on every single page of every model during that burst - reparsing JSON and
-    // recursively walking every nested field each time - which was severe enough to OOM on a
-    // 256MB-heap device. Debouncing coalesces a sync burst into one rebuild after it settles.
+    // recursively walking every nested field each time. `SharingStarted.WhileSubscribed` (rather
+    // than `Eagerly`) matters just as much as the debounce: this index is otherwise rebuilt for the
+    // *entire app lifetime*, including while the user is nowhere near Search - e.g. mid-sync while
+    // just browsing the device list - which OOMed on a real 256MB-heap device (Pixel 5) even with
+    // the debounce in place. Scoping it to "only while Search is actually being observed" means a
+    // sync burst elsewhere in the app no longer competes for heap with whatever screen is active.
     private val cachedGenericObjects =
         netBoxObjectDao
             .observeAllObjects()
@@ -254,32 +266,36 @@ constructor(
                         val tag = objectJson.assetTagState()
                         val searchFields = objectJson.createChoiceSearchFields()
                         IndexedGenericObject(
-                            entity = entity,
+                            endpointPath = entity.endpointPath,
+                            id = entity.id,
+                            display = entity.display,
+                            secondaryLine = entity.secondaryLine,
                             objectJson = objectJson,
                             searchFields = searchFields,
                             assetTag = tag,
-                            normalizedSearchText = buildString {
-                                    append(entity.display)
-                                    append('\n')
-                                    append(entity.secondaryLine.orEmpty())
-                                    searchFields.values.forEach { value ->
+                            normalizedSearchText =
+                                buildString {
+                                        append(entity.display)
                                         append('\n')
-                                        append(value)
+                                        append(entity.secondaryLine.orEmpty())
+                                        searchFields.values.forEach { value ->
+                                            append('\n')
+                                            append(value)
+                                        }
                                     }
-                                }
                                     .lowercase(),
                         )
                     }
                 }
             }
-            .stateIn(searchScope, SharingStarted.Eagerly, emptyList())
+            .stateIn(searchScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val cachedDevices =
         deviceDao
             .observeAll()
             .debounce(300)
             .map { devices -> devices.map(::indexDevice) }
-            .stateIn(searchScope, SharingStarted.Eagerly, emptyList())
+            .stateIn(searchScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /**
      * Instant, offline-capable read - the primary result source, not scoped to
@@ -305,18 +321,15 @@ constructor(
                         rows
                             .asSequence()
                             .filter { indexed ->
-                                (endpointPath == null ||
-                                    indexed.entity.endpointPath == endpointPath) &&
-                                    endpointMatchesType(indexed.entity.endpointPath) &&
+                                (endpointPath == null || indexed.endpointPath == endpointPath) &&
+                                    endpointMatchesType(indexed.endpointPath) &&
                                     indexed.matches(cacheCandidateQuery, parsedQuery)
                             }
                             .take(limitPerSource)
                             .map { indexed ->
-                                indexed.entity.toSearchHit(
+                                indexed.toSearchHit(
                                     queryText = queryText,
                                     parsedQuery = parsedQuery,
-                                    cachedFields = indexed.searchFields,
-                                    cachedAssetTag = indexed.assetTag,
                                 )
                             }
                             .toList()
@@ -329,7 +342,7 @@ constructor(
                     val cachedInterfaces =
                         if (networkSearchEnabled) {
                             cachedGenericObjects.map { rows ->
-                                rows.filter { it.entity.endpointPath == INTERFACES_ENDPOINT_PATH }
+                                rows.filter { it.endpointPath == INTERFACES_ENDPOINT_PATH }
                             }
                         } else {
                             flowOf(emptyList())
@@ -360,10 +373,10 @@ constructor(
                         ) {
                             rows
                                 .filter { indexed ->
-                                    indexed.entity.endpointPath == DEVICE_TYPES_ENDPOINT_PATH &&
+                                    indexed.endpointPath == DEVICE_TYPES_ENDPOINT_PATH &&
                                         indexed.matches(cacheCandidateQuery, parsedQuery)
                                 }
-                                .associate { it.entity.id to it.entity.display }
+                                .associate { it.id to it.display }
                         } else {
                             emptyMap()
                         }
@@ -410,7 +423,7 @@ constructor(
                                                     indexed.objectJson,
                                                     emptyMap(),
                                                 )
-                                                ?.let { indexed.entity.id to it.deviceId }
+                                                ?.let { indexed.id to it.deviceId }
                                         }
                                         .toMap()
                                 val matchingDevices =
@@ -420,7 +433,7 @@ constructor(
                                         }
                                         .mapNotNull { indexed ->
                                             networkDeviceMatch(
-                                                indexed.entity.endpointPath,
+                                                indexed.endpointPath,
                                                 indexed.objectJson,
                                                 interfaceDeviceIds,
                                             )
@@ -490,23 +503,17 @@ constructor(
         }
     }
 
-    private fun NetBoxObjectEntity.toSearchHit(
+    private fun IndexedGenericObject.toSearchHit(
         queryText: String? = null,
         parsedQuery: ParsedGlobalSearchQuery = parseGlobalSearchQuery(queryText.orEmpty()),
-        cachedFields: Map<String, String>? = null,
-        cachedAssetTag: AssetTagState? = null,
-    ): SearchHit {
-        val objectJson =
-            if (cachedFields == null && cachedAssetTag == null) decodeObject(json) else null
-        val searchFields = cachedFields ?: objectJson?.createChoiceSearchFields().orEmpty()
-        val assetTag = cachedAssetTag ?: objectJson?.assetTagState()
-        return SearchHit(
+    ): SearchHit =
+        SearchHit(
             endpointPath = endpointPath,
             id = id,
             display = display,
             secondaryLine = secondaryLine,
-            assetTag = assetTag?.value,
-            hasAssetTagField = assetTag?.hasField == true,
+            assetTag = assetTag.value,
+            hasAssetTagField = assetTag.hasField,
             status =
                 searchFields.entries
                     .firstOrNull { (key, _) -> searchFieldKeyMatches("status", key) }
@@ -519,7 +526,6 @@ constructor(
                             choiceSearchHint(display, id.toString(), searchFields, query)
                         },
         )
-    }
 
     private fun DeviceEntity.toSearchHit(
         secondaryLine: String? = siteName ?: statusLabel,
@@ -629,10 +635,11 @@ constructor(
             }
             ?.takeIf(String::isNotBlank)
 
-    private fun decodeObject(raw: String): JsonObject? = runCatching {
-        json.decodeFromString(JsonObject.serializer(), raw)
-    }
-        .getOrNull()
+    private fun decodeObject(raw: String): JsonObject? =
+        runCatching {
+                json.decodeFromString(JsonObject.serializer(), raw)
+            }
+            .getOrNull()
 
     companion object {
         const val DEVICES_ENDPOINT_PATH = NetBoxRef.DEVICES_ENDPOINT_PATH

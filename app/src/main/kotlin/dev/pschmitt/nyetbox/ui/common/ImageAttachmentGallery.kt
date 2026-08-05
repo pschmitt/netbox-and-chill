@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
-import java.io.File
 
 private val AttachmentTileWidth = 176.dp
 private val AttachmentTileHeight = 140.dp
@@ -30,13 +29,12 @@ private val AttachmentTileHeight = 140.dp
 @Composable
 fun ImageAttachmentGallery(
     attachments: List<ImageAttachmentEntity>,
-    localImageFile: (url: String, filename: String) -> File?,
     onImageClick: (items: List<ImageViewerItem>, index: Int) -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     onAttachmentLongPress: (ImageAttachmentEntity) -> Unit = {},
 ) {
-    val viewerItems = attachments.map { it.toImageViewerItem(localImageFile) }
+    val viewerItems = attachments.map { it.toImageViewerItem() }
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         NetBoxSectionHeader(
             Icons.Default.UploadFile,
@@ -61,8 +59,6 @@ fun ImageAttachmentGallery(
                 RemoteThumbnail(
                     imageUrl = attachment.imageUrl,
                     contentDescription = attachment.displayName(),
-                    localFile =
-                        attachment.imageUrl?.let { localImageFile(it, attachment.fileName()) },
                     modifier =
                         Modifier.width(AttachmentTileWidth)
                             .height(AttachmentTileHeight)
@@ -83,9 +79,7 @@ fun ImageAttachmentGallery(
     }
 }
 
-fun ImageAttachmentEntity.toImageViewerItem(
-    localImageFile: (url: String, filename: String) -> File?
-): ImageViewerItem {
+fun ImageAttachmentEntity.toImageViewerItem(): ImageViewerItem {
     val title = displayName()
     val metadata = buildList {
         if (!description.isNullOrBlank()) add("Description" to description)
@@ -98,20 +92,10 @@ fun ImageAttachmentEntity.toImageViewerItem(
             ?.let { add("Last updated" to formatNetBoxDateTime(it)) }
     }
     val url = imageUrl.orEmpty()
-    return ImageViewerItem(
-        url = url,
-        title = title,
-        metadata = metadata,
-        localFile = imageUrl?.let { localImageFile(it, fileName()) },
-    )
+    return ImageViewerItem(url = url, title = title, metadata = metadata)
 }
 
 fun ImageAttachmentEntity.displayName(): String =
     name?.takeIf { it.isNotBlank() }
         ?: display?.takeIf { it.isNotBlank() }
         ?: "Image attachment #$id"
-
-private fun ImageAttachmentEntity.fileName(): String =
-    name?.takeIf { it.isNotBlank() }
-        ?: display?.takeIf { it.isNotBlank() }
-        ?: "image-attachment-$id"

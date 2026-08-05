@@ -6198,3 +6198,44 @@ size corrections in that same entry's history.
 **How to apply:** N/A, existing recipe.
 
 Status: **done**, 2026-08-04.
+
+## NBC-369: fix scroll jank on the device and device-type list views
+
+The device list and generic/device-type list screens (and several other image-showing rows and
+pickers) noticeably stuttered while scrolling. Root cause: `DeviceRow`/`ObjectRow` resolved the
+offline-cached thumbnail synchronously inside a `remember` block during composition
+(`FileDownloadRepository.persistentFile` - a filesystem stat, falling back to a full
+`listFiles()` directory scan on a cache miss), which ran on the main thread every time a new row
+scrolled into the `LazyColumn`'s viewport. Compared against jollyfin's `ItemPoster`, which does no
+filesystem I/O in its composable and just hands Coil the URL, letting Coil's own async pipeline
+resolve local-vs-remote off the main thread.
+
+- [x] Add `PersistentCacheFetcher`, a Coil `Fetcher.Factory<Uri>` that resolves NetBox media URLs
+  against the offline cache inside Coil's own pipeline (ahead of `OkHttpNetworkFetcherFactory`),
+  and wire it into `NetworkModule.provideImageLoader`.
+- [x] Simplify `RemoteThumbnail` to just take `imageUrl` for the common case (Coil resolves
+  local-vs-remote transparently); keep an optional `localFile` escape hatch for the rare
+  cache-only case.
+- [x] Remove the synchronous `remember { localImageFile(...) }` lookups from `DeviceListScreen`/
+  `GenericListScreen` (the two reported list views) and every other image-display call site that
+  had the same pattern: `ImageAttachmentGallery`, `GenericDetailMedia`/`GenericDetailRack`/
+  `GenericDetailFields`/`GenericDetailIdentity`, `DeviceDetailScreen`, `GenericCreateScreen`'s
+  choice picker, `DashboardScreen`, `GlobalSearchScreen`, `ObjectChangeDiffScreen` - deleting the
+  now-unused `localImageFile`/`ViewModel` plumbing behind each.
+- [x] Deliberately leave `TopologyScreen`/`TopologyViewModel` and `DocumentsSection` alone - both
+  intentionally show a thumbnail only when already cached, never triggering a fresh network fetch
+  (topology graphs can have hundreds of nodes; documents shouldn't auto-download for a preview
+  card), which is different from the list-row bug and preserved via `RemoteThumbnail`'s
+  `localFile` override.
+- [x] Verified remotely on rofl-13: `compileDebugKotlin`, `compileDebugAndroidTestKotlin`,
+  `compileDebugUnitTestKotlin`, `ktfmtCheck`, and `testDebugUnitTest` all pass.
+- [ ] Confirm smooth scrolling on a physical device (Zenfone 10/Mi Pad 4/Pixel 5).
+
+**Why:** user reported perceptible lag scrolling the device and device-type list views;
+comparison against jollyfin's Coil usage pointed at synchronous main-thread disk I/O per row.
+**How to apply:** any future image-display composable should pass a remote URL straight to
+`RemoteThumbnail`/`AsyncImage` and let Coil resolve caching - `localFile` overrides should stay
+reserved for cases that must never trigger a network fetch.
+
+Status: mostly done, 2026-08-05; refactor complete and verified remotely (build/lint/tests all
+green); on-device scroll verification still pending.

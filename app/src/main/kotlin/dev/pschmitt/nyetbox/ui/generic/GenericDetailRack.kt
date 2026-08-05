@@ -34,7 +34,6 @@ internal fun RackElevationOverview(
     front: List<RackElevationEntity>,
     rear: List<RackElevationEntity>,
     previews: Map<Int, RackDevicePreview>,
-    localImageFile: (String, String) -> java.io.File?,
     highlightDeviceId: Int? = null,
     onDeviceClick: (Int) -> Unit,
 ) {
@@ -55,22 +54,8 @@ internal fun RackElevationOverview(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            RackFaceOverview(
-                RackFace.FRONT,
-                front,
-                previews,
-                localImageFile,
-                highlightDeviceId,
-                onDeviceClick,
-            )
-            RackFaceOverview(
-                RackFace.REAR,
-                rear,
-                previews,
-                localImageFile,
-                highlightDeviceId,
-                onDeviceClick,
-            )
+            RackFaceOverview(RackFace.FRONT, front, previews, highlightDeviceId, onDeviceClick)
+            RackFaceOverview(RackFace.REAR, rear, previews, highlightDeviceId, onDeviceClick)
         }
         Spacer(Modifier.height(8.dp))
     }
@@ -81,7 +66,6 @@ private fun RackFaceOverview(
     face: RackFace,
     slots: List<RackElevationEntity>,
     previews: Map<Int, RackDevicePreview>,
-    localImageFile: (String, String) -> java.io.File?,
     highlightDeviceId: Int?,
     onDeviceClick: (Int) -> Unit,
 ) {
@@ -110,10 +94,6 @@ private fun RackFaceOverview(
                     val imageUrl =
                         if (face == RackFace.FRONT) preview?.frontUrl ?: preview?.rearUrl
                         else preview?.rearUrl ?: preview?.frontUrl
-                    val imageFilename =
-                        preview?.deviceTypeId?.let { typeId ->
-                            "device-type-$typeId-${face.apiValue}"
-                        }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.height(28.dp * block.slots.size).fillMaxWidth(),
@@ -158,12 +138,6 @@ private fun RackFaceOverview(
                                     RemoteThumbnail(
                                         imageUrl = imageUrl,
                                         contentDescription = firstSlot.deviceDisplay,
-                                        localFile =
-                                            imageUrl?.let { url ->
-                                                imageFilename?.let { filename ->
-                                                    localImageFile(url, filename)
-                                                }
-                                            },
                                         modifier = Modifier.size(44.dp),
                                         contentScale = ContentScale.Fit,
                                     )

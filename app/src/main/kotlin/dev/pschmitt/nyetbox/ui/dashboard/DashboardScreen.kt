@@ -437,7 +437,6 @@ fun DashboardScreen(
                                                             objectTypeAccents[
                                                                 visit.endpointPath.trim('/')],
                                                         ),
-                                                    localImageFile = viewModel::localImageFile,
                                                     onClick = {
                                                         onNavigateToReference(
                                                             visit.endpointPath,
@@ -484,7 +483,6 @@ fun DashboardScreen(
                                                             objectTypeAccents[path.trim('/')],
                                                         )
                                                     } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                                                localImageFile = viewModel::localImageFile,
                                             ) {
                                                 bookmarkTargets[bookmark.id]?.let { (path, id) ->
                                                     onNavigateToReference(path, id)
@@ -531,7 +529,6 @@ fun DashboardScreen(
                                                         }
                                                             ?: MaterialTheme.colorScheme
                                                                 .onSurfaceVariant,
-                                                    localImageFile = viewModel::localImageFile,
                                                     onClick = {
                                                         changeTargets[change.id]?.let { (path, id)
                                                             ->
@@ -908,13 +905,11 @@ private fun BookmarkRow(
     bookmark: BookmarkEntity,
     thumbnail: DashboardThumbnail?,
     typeColor: androidx.compose.ui.graphics.Color,
-    localImageFile: (DashboardThumbnail) -> java.io.File?,
     onClick: () -> Unit,
 ) {
     val hasTarget = bookmark.targetEndpointPath != null && bookmark.targetId != null
     val icon =
         bookmark.targetEndpointPath?.let { AppIcons.forEndpointPath(it) } ?: Icons.Default.Bookmark
-    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
         NyetboxListItem(
             leadingContent = {
@@ -926,7 +921,6 @@ private fun BookmarkRow(
                     RemoteThumbnail(
                         imageUrl = thumbnail.url,
                         contentDescription = bookmark.display,
-                        localFile = localFile,
                         modifier = Modifier.size(56.dp),
                         fallbackTint = typeColor,
                     )
@@ -944,10 +938,8 @@ private fun RecentVisitRow(
     visit: RecentVisitEntity,
     thumbnail: DashboardThumbnail?,
     typeColor: androidx.compose.ui.graphics.Color,
-    localImageFile: (DashboardThumbnail) -> java.io.File?,
     onClick: () -> Unit,
 ) {
-    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
         NyetboxListItem(
             leadingContent = {
@@ -963,7 +955,6 @@ private fun RecentVisitRow(
                     RemoteThumbnail(
                         imageUrl = thumbnail.url,
                         contentDescription = visit.display,
-                        localFile = localFile,
                         modifier = Modifier.size(56.dp),
                         fallbackTint = typeColor,
                     )
@@ -990,7 +981,6 @@ private fun ChangeRow(
     change: ObjectChangeEntity,
     thumbnail: DashboardThumbnail?,
     typeColor: androidx.compose.ui.graphics.Color,
-    localImageFile: (DashboardThumbnail) -> java.io.File?,
     onClick: () -> Unit,
     onDiffClick: () -> Unit,
 ) {
@@ -1002,7 +992,6 @@ private fun ChangeRow(
             "delete" -> Icons.Default.Delete
             else -> Icons.Default.History
         }
-    val localFile = remember(thumbnail) { thumbnail?.let(localImageFile) }
     NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
         NyetboxListItem(
             leadingContent = {
@@ -1014,7 +1003,6 @@ private fun ChangeRow(
                     RemoteThumbnail(
                         imageUrl = thumbnail.url,
                         contentDescription = change.objectRepr,
-                        localFile = localFile,
                         modifier = Modifier.size(56.dp),
                         fallbackTint = typeColor,
                     )

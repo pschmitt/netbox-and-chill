@@ -7,11 +7,9 @@ import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
-import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
-import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +27,6 @@ class DeviceListViewModel
 constructor(
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
-    private val fileDownloadRepository: FileDownloadRepository,
     settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
@@ -76,7 +73,4 @@ constructor(
     fun errorShown() {
         _errorMessage.value = null
     }
-
-    fun localImageFile(url: String, filename: String): File? =
-        fileDownloadRepository.persistentFile(url, filename)
 }

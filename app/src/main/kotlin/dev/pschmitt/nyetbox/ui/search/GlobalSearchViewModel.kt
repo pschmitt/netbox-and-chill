@@ -7,7 +7,6 @@ import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
-import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.RecentVisitRepository
@@ -20,7 +19,6 @@ import dev.pschmitt.nyetbox.data.repository.typeFilterSuggestions
 import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.ui.common.CacheFirstRefreshState
 import dev.pschmitt.nyetbox.ui.common.runCacheFirstRefresh
-import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,7 +39,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class SearchThumbnail(val url: String, val filename: String)
+data class SearchThumbnail(val url: String)
 
 internal fun shouldRefreshGlobalSearch(queryText: String, offlineMode: Boolean): Boolean =
     queryText.isNotBlank() && !offlineMode
@@ -60,7 +58,6 @@ constructor(
     private val searchRepository: GlobalSearchRepository,
     private val deviceRepository: DeviceRepository,
     private val genericObjectRepository: GenericObjectRepository,
-    private val fileDownloadRepository: FileDownloadRepository,
     directoryRepository: DirectoryRepository,
     private val settingsRepository: SettingsRepository,
     recentVisitRepository: RecentVisitRepository,
@@ -205,18 +202,11 @@ constructor(
     ): SearchThumbnail? =
         when (hit.endpointPath) {
             GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
-                deviceTypeFrontImagesById[hit.id]?.let { url ->
-                    SearchThumbnail(url, "device-type-${hit.id}-front")
-                }
+                deviceTypeFrontImagesById[hit.id]?.let { url -> SearchThumbnail(url) }
             GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
                 devicesById[hit.id]?.deviceTypeId?.let { deviceTypeId ->
-                    deviceTypeFrontImagesById[deviceTypeId]?.let { url ->
-                        SearchThumbnail(url, "device-type-$deviceTypeId-front")
-                    }
+                    deviceTypeFrontImagesById[deviceTypeId]?.let { url -> SearchThumbnail(url) }
                 }
             else -> null
         }
-
-    fun localImageFile(thumbnail: SearchThumbnail): File? =
-        fileDownloadRepository.persistentFile(thumbnail.url, thumbnail.filename)
 }

@@ -137,7 +137,6 @@ fun GenericCreateScreen(
                                 field = field,
                                 value = values[field.key].orEmpty(),
                                 options = options,
-                                localImageFile = viewModel::localImageFile,
                                 onValueChange = viewModel::setValue,
                             )
                             field.helpText
@@ -172,7 +171,6 @@ private fun CreateFieldInput(
     field: CreateFieldDefinition,
     value: String,
     options: List<CreateChoice>,
-    localImageFile: (String, String) -> java.io.File?,
     onValueChange: (String, String) -> Unit,
 ) {
     val label = if (field.required) "${field.label} *" else field.label
@@ -221,7 +219,7 @@ private fun CreateFieldInput(
         return
     }
     if (options.isNotEmpty() || field.referenceEndpointPath != null) {
-        CreateChoiceInput(field, value, options, localImageFile, onValueChange)
+        CreateChoiceInput(field, value, options, onValueChange)
         return
     }
     OutlinedTextField(
@@ -318,7 +316,6 @@ internal fun CreateChoiceInput(
     field: CreateFieldDefinition,
     value: String,
     options: List<CreateChoice>,
-    localImageFile: (String, String) -> java.io.File?,
     onValueChange: (String, String) -> Unit,
 ) {
     var expanded by remember(field.key) { mutableStateOf(false) }
@@ -423,7 +420,7 @@ internal fun CreateChoiceInput(
                                             )
                                         }
                                     },
-                                leadingContent = { CreateChoicePreview(option, localImageFile) },
+                                leadingContent = { CreateChoicePreview(option) },
                                 modifier =
                                     Modifier.clickable {
                                         onValueChange(field.key, option.value)
@@ -509,10 +506,7 @@ internal fun filterCreateChoices(
 }
 
 @Composable
-private fun CreateChoicePreview(
-    option: CreateChoice,
-    localImageFile: (String, String) -> java.io.File?,
-) {
+private fun CreateChoicePreview(option: CreateChoice) {
     val hasImages = !option.frontImageUrl.isNullOrBlank() || !option.rearImageUrl.isNullOrBlank()
     if (!hasImages) {
         Icon(Icons.Default.Link, contentDescription = null)
@@ -527,7 +521,6 @@ private fun CreateChoicePreview(
             RemoteThumbnail(
                 imageUrl = url,
                 contentDescription = "Front image",
-                localFile = localImageFile(url, "device-type-${option.value}-front"),
                 modifier = Modifier.size(34.dp),
                 contentScale = ContentScale.Crop,
             )
@@ -536,7 +529,6 @@ private fun CreateChoicePreview(
             RemoteThumbnail(
                 imageUrl = url,
                 contentDescription = "Rear image",
-                localFile = localImageFile(url, "device-type-${option.value}-rear"),
                 modifier = Modifier.size(34.dp),
                 contentScale = ContentScale.Crop,
             )

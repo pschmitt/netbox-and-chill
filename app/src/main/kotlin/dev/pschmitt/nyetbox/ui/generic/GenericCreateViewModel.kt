@@ -12,7 +12,6 @@ import dev.pschmitt.nyetbox.data.repository.CustomFieldDefinition
 import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceTypeRepository
-import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
@@ -41,7 +40,6 @@ constructor(
     private val customFieldRepository: CustomFieldRepository,
     private val deviceRepository: DeviceRepository,
     private val deviceTypeRepository: DeviceTypeRepository,
-    private val fileDownloadRepository: FileDownloadRepository,
     private val json: Json,
     private val settingsRepository: SettingsRepository,
     private val pendingEditRepository: PendingEditRepository,
@@ -200,12 +198,13 @@ constructor(
                                 label = objectEntity.display,
                                 frontImageUrl = images?.frontImageUrl,
                                 rearImageUrl = images?.rearImageUrl,
-                                searchFields = runCatching {
-                                        json.decodeFromString(
-                                            JsonObject.serializer(),
-                                            objectEntity.json,
-                                        )
-                                    }
+                                searchFields =
+                                    runCatching {
+                                            json.decodeFromString(
+                                                JsonObject.serializer(),
+                                                objectEntity.json,
+                                            )
+                                        }
                                         .getOrNull()
                                         ?.createChoiceSearchFields()
                                         .orEmpty(),
@@ -243,9 +242,6 @@ constructor(
         }
         _referenceOptions.value = options
     }
-
-    fun localImageFile(url: String, filename: String) =
-        fileDownloadRepository.persistentFile(url, filename)
 
     private fun initializeFields(definitions: List<CreateFieldDefinition>) {
         _fields.value = definitions

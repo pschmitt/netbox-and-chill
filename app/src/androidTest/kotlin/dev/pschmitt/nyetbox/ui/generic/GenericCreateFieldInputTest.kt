@@ -78,7 +78,6 @@ class GenericCreateFieldInputTest {
                         ),
                     value = "",
                     options = choices,
-                    localImageFile = { _, _ -> null },
                     onValueChange = { _, _ -> },
                 )
             }

@@ -11,7 +11,6 @@ import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
-import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
@@ -21,7 +20,6 @@ import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import dev.pschmitt.nyetbox.sync.shouldScheduleStartup
-import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,7 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-data class DashboardThumbnail(val url: String, val filename: String)
+data class DashboardThumbnail(val url: String)
 
 @HiltViewModel
 class DashboardViewModel
@@ -40,7 +38,6 @@ constructor(
     private val repository: DashboardRepository,
     private val deviceRepository: DeviceRepository,
     private val genericObjectRepository: GenericObjectRepository,
-    private val fileDownloadRepository: FileDownloadRepository,
     pendingEditRepository: PendingEditRepository,
     recentVisitRepository: RecentVisitRepository,
     private val settingsRepository: SettingsRepository,
@@ -189,18 +186,11 @@ constructor(
     ): DashboardThumbnail? =
         when (endpointPath) {
             GlobalSearchRepository.DEVICE_TYPES_ENDPOINT_PATH ->
-                deviceTypeFrontImagesById[id]?.let { url ->
-                    DashboardThumbnail(url, "device-type-$id-front")
-                }
+                deviceTypeFrontImagesById[id]?.let { url -> DashboardThumbnail(url) }
             GlobalSearchRepository.DEVICES_ENDPOINT_PATH ->
                 devicesById[id]?.deviceTypeId?.let { deviceTypeId ->
-                    deviceTypeFrontImagesById[deviceTypeId]?.let { url ->
-                        DashboardThumbnail(url, "device-type-$deviceTypeId-front")
-                    }
+                    deviceTypeFrontImagesById[deviceTypeId]?.let { url -> DashboardThumbnail(url) }
                 }
             else -> null
         }
-
-    fun localImageFile(thumbnail: DashboardThumbnail): File? =
-        fileDownloadRepository.persistentFile(thumbnail.url, thumbnail.filename)
 }
