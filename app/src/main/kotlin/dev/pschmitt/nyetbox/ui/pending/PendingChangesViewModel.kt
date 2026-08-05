@@ -73,9 +73,8 @@ constructor(
         _message.value = null
     }
 
-    private fun decode(raw: String): JsonObject =
-        runCatching {
-                json.decodeFromString(JsonObject.serializer(), raw)
-            }
-            .getOrDefault(JsonObject(emptyMap()))
+    private fun decode(raw: String): JsonObject = runCatching {
+        json.decodeFromString(JsonObject.serializer(), raw)
+    }
+        .getOrDefault(JsonObject(emptyMap()))
 }

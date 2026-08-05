@@ -268,26 +268,24 @@ constructor(
 
     private suspend fun lookupCurrentUser(
         credentials: NetBoxCredentials
-    ): Result<NetBoxUserIdentity> =
-        runCatching {
-                parseCurrentUser(api.getAuthenticationCheck())
-            }
-            .recoverCatching {
-                // NetBox 4.5 introduced authentication-check. Keep older instances usable by
-                // falling
-                // back to the v2 token-owner lookup when the endpoint is not available.
-                val tokenKey =
-                    tokenKey(credentials.token) ?: error("Token owner lookup is unavailable")
-                val tokenPage =
-                    api.listObjects(
-                        url = "api/users/tokens/",
-                        query = mapOf("key" to tokenKey, "limit" to "1"),
-                    )
-                val user =
-                    tokenPage.results.firstOrNull()?.get("user") as? JsonObject
-                        ?: error("The NetBox API did not return the token owner")
-                parseCurrentUser(user)
-            }
+    ): Result<NetBoxUserIdentity> = runCatching {
+        parseCurrentUser(api.getAuthenticationCheck())
+    }
+        .recoverCatching {
+            // NetBox 4.5 introduced authentication-check. Keep older instances usable by
+            // falling
+            // back to the v2 token-owner lookup when the endpoint is not available.
+            val tokenKey = tokenKey(credentials.token) ?: error("Token owner lookup is unavailable")
+            val tokenPage =
+                api.listObjects(
+                    url = "api/users/tokens/",
+                    query = mapOf("key" to tokenKey, "limit" to "1"),
+                )
+            val user =
+                tokenPage.results.firstOrNull()?.get("user") as? JsonObject
+                    ?: error("The NetBox API did not return the token owner")
+            parseCurrentUser(user)
+        }
 
     private fun parseCurrentUser(user: JsonObject): NetBoxUserIdentity {
         val username =
