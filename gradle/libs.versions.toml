@@ -33,7 +33,7 @@ ktfmt = "0.27.0"
 # Pinned below the latest (0.43.0) - that version bumps minCompileSdk to 37, which we don't want
 # to chase yet (see the compileSdk note in app/build.gradle.kts). 0.41.0 is the newest release
 # that still only requires compileSdk 36.
-markdown-renderer = "0.41.0"
+markdown-renderer = "0.43.0"
 okhttp = "5.4.0"
 retrofit = "3.0.0"
 retrofit-kotlinx-serialization-converter = "1.0.0"
