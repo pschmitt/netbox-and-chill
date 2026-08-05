@@ -2,7 +2,6 @@ package dev.pschmitt.nyetbox.image
 
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
-import androidx.core.graphics.scale
 import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.asImage
@@ -49,21 +48,23 @@ class LibavifImageDecoder(
             "libavif returned invalid AVIF dimensions ${info.width}x${info.height}"
         }
 
-        val decoded = createBitmap(info.width, info.height, Bitmap.Config.ARGB_8888)
+        // libavif scales directly into whatever size Bitmap it's given, rather than requiring one
+        // sized to the source image - compute the target size up front so a device-type stock
+        // photo decoded at, say, 3000x3000 for a 256x256 thumbnail never allocates the full-size
+        // buffer at all (that spare buffer alone can be 30-40MB, and RemoteThumbnail decodes
+        // several concurrently while scrolling a list).
+        val (outputWidth, outputHeight) = targetSize(info.width, info.height)
+        val decoded = createBitmap(outputWidth, outputHeight, Bitmap.Config.ARGB_8888)
         encodedBuffer.rewind()
         check(AvifDecoder.decode(encodedBuffer, encoded.size, decoded)) {
             "libavif could not decode the AVIF image"
         }
 
-        val (output, isSampled) = scaleToRequest(decoded, info.width, info.height)
-        DecodeResult(image = output.asImage(), isSampled = isSampled)
+        val isSampled = outputWidth != info.width || outputHeight != info.height
+        DecodeResult(image = decoded.asImage(), isSampled = isSampled)
     }
 
-    private fun scaleToRequest(
-        bitmap: Bitmap,
-        sourceWidth: Int,
-        sourceHeight: Int,
-    ): Pair<Bitmap, Boolean> {
+    private fun targetSize(sourceWidth: Int, sourceHeight: Int): Pair<Int, Int> {
         val (targetWidth, targetHeight) =
             DecodeUtils.computeDstSize(
                 srcWidth = sourceWidth,
@@ -85,13 +86,7 @@ class LibavifImageDecoder(
 
         val outputWidth = (sourceWidth * multiplier).roundToInt().coerceAtLeast(1)
         val outputHeight = (sourceHeight * multiplier).roundToInt().coerceAtLeast(1)
-        if (outputWidth == sourceWidth && outputHeight == sourceHeight) {
-            return bitmap to false
-        }
-
-        val scaled = bitmap.scale(outputWidth, outputHeight, true)
-        if (scaled !== bitmap) bitmap.recycle()
-        return scaled to true
+        return outputWidth to outputHeight
     }
 
     class Factory(private val sourceLock: Semaphore = decodeLock) : Decoder.Factory {
