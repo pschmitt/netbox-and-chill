@@ -42,8 +42,17 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
-fastlane/metadata
 fastlane/README.md
+
+# Locally-generated Play Store screenshots (`just screenshots`) stay untracked by default, but the
+# curated images under android/en-US/images/ are exactly what screenshots.yaml's open-pr job
+# commits into a review PR, so that subtree (and its parents) must stay un-ignored.
+fastlane/metadata/*
+!fastlane/metadata/android
+fastlane/metadata/android/*
+!fastlane/metadata/android/en-US
+fastlane/metadata/android/en-US/*
+!fastlane/metadata/android/en-US/images
 
 # dist output from justfile fetch recipes
 /dist/
