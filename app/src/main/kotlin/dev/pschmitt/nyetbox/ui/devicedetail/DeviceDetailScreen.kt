@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -817,51 +818,43 @@ fun DeviceDetailScreen(
                             }
                         } else {
                             val tab = visibleRelatedTabs[visibleSelectedTab - 1]
-                            item {
-                                if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
-                                    DeviceJournalEntries(
-                                        entries = journalEntries,
-                                        onEdit = {
-                                            journalEditorEntry = it
-                                            showJournalEditor = true
-                                        },
-                                    )
-                                } else if (
-                                    tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH
-                                ) {
-                                    DeviceConnectedDevices(
-                                        devices = connectedDevices,
-                                        deviceTypeImages = deviceTypeImages,
-                                        onDeviceClick = { deviceId ->
-                                            onReferenceClick(
-                                                NetBoxRef.DEVICES_ENDPOINT_PATH,
-                                                deviceId,
-                                                current.name,
-                                            )
-                                        },
-                                    )
-                                } else {
-                                    DeviceRelatedObjects(
-                                        tab = tab,
-                                        objects = selectedRelatedObjects,
-                                        interfaceIpAddresses = interfaceIpAddresses,
-                                        onObjectClick = { objectId ->
-                                            onReferenceClick(
-                                                tab.endpointPath,
-                                                objectId,
-                                                current.name,
-                                            )
-                                        },
-                                        onIpClick = { ipAddress ->
-                                            onReferenceClick(
-                                                "api/ipam/ip-addresses/",
-                                                ipAddress.id,
-                                                current.name,
-                                            )
-                                        },
-                                        onCopyValue = onCopyValue,
-                                    )
-                                }
+                            if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+                                deviceJournalEntriesItems(
+                                    entries = journalEntries,
+                                    onEdit = {
+                                        journalEditorEntry = it
+                                        showJournalEditor = true
+                                    },
+                                )
+                            } else if (tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH) {
+                                deviceConnectedDevicesItems(
+                                    devices = connectedDevices,
+                                    deviceTypeImages = deviceTypeImages,
+                                    onDeviceClick = { deviceId ->
+                                        onReferenceClick(
+                                            NetBoxRef.DEVICES_ENDPOINT_PATH,
+                                            deviceId,
+                                            current.name,
+                                        )
+                                    },
+                                )
+                            } else {
+                                deviceRelatedObjectsItems(
+                                    tab = tab,
+                                    objects = selectedRelatedObjects,
+                                    interfaceIpAddresses = interfaceIpAddresses,
+                                    onObjectClick = { objectId ->
+                                        onReferenceClick(tab.endpointPath, objectId, current.name)
+                                    },
+                                    onIpClick = { ipAddress ->
+                                        onReferenceClick(
+                                            "api/ipam/ip-addresses/",
+                                            ipAddress.id,
+                                            current.name,
+                                        )
+                                    },
+                                    onCopyValue = onCopyValue,
+                                )
                             }
                         }
                     }
@@ -1075,21 +1068,28 @@ private fun tabIcon(tab: DeviceRelatedTab) =
     else if (tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH) Icons.Default.Hub
     else AppIcons.forEndpointPath(tab.endpointPath)
 
-@Composable
-private fun DeviceConnectedDevices(
+/**
+ * Renders the "Connected devices" tab as virtualized [LazyListScope] items rather than an eagerly
+ * composed `forEach` - a device can have dozens of neighbors in a dense topology, and composing
+ * every row synchronously on every tab switch (instead of only the ones scrolled into view) is what
+ * made switching to this tab feel sluggish.
+ */
+private fun LazyListScope.deviceConnectedDevicesItems(
     devices: List<DeviceEntity>,
     deviceTypeImages: Map<Int, DeviceTypeEntity>,
     onDeviceClick: (Int) -> Unit,
 ) {
     if (devices.isEmpty()) {
-        Text(
-            "No connected devices in the cached topology.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(vertical = 16.dp),
-        )
+        item {
+            Text(
+                "No connected devices in the cached topology.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+        }
         return
     }
-    devices.forEach { connected ->
+    items(devices, key = { "connected-${it.id}" }) { connected ->
         val frontImage = connected.deviceTypeId?.let(deviceTypeImages::get)?.frontImageUrl
         NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
             NyetboxListItem(
@@ -1122,8 +1122,13 @@ private fun DeviceConnectedDevices(
     }
 }
 
-@Composable
-private fun DeviceRelatedObjects(
+/**
+ * Renders the Interfaces/Front ports/Rear ports/Power ports/... tabs as virtualized [LazyListScope]
+ * items rather than an eagerly composed `forEach`. A single device (a large switch, say) can have
+ * 48+ interfaces; composing all of them synchronously every time this tab is selected - rather than
+ * only the rows currently scrolled into view - is what made switching to these tabs feel sluggish.
+ */
+private fun LazyListScope.deviceRelatedObjectsItems(
     tab: DeviceRelatedTab,
     objects: List<dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity>,
     interfaceIpAddresses: Map<Int, List<InterfaceIpAddress>> = emptyMap(),
@@ -1132,14 +1137,16 @@ private fun DeviceRelatedObjects(
     onCopyValue: (String, String) -> Unit,
 ) {
     if (objects.isEmpty()) {
-        Text(
-            "No cached ${tab.label.lowercase()} for this device. Refresh while online to load them.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(vertical = 16.dp),
-        )
+        item {
+            Text(
+                "No cached ${tab.label.lowercase()} for this device. Refresh while online to load them.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+        }
         return
     }
-    objects.forEach { objectEntity ->
+    items(objects, key = { "related-${tab.endpointPath}-${it.id}" }) { objectEntity ->
         val ipAddresses =
             if (tab.endpointPath == INTERFACES_TAB_ENDPOINT_PATH) {
                 interfaceIpAddresses[objectEntity.id].orEmpty()
@@ -1216,45 +1223,50 @@ private fun DeviceRelatedObjects(
     }
 }
 
-@Composable
-private fun DeviceJournalEntries(
+/**
+ * Renders the "Journal" tab as virtualized [LazyListScope] items rather than an eagerly composed
+ * `forEach`, matching [deviceConnectedDevicesItems]/[deviceRelatedObjectsItems] above - items with
+ * many journal entries would otherwise pay the same synchronous-compose-everything cost on every
+ * tab switch.
+ */
+private fun LazyListScope.deviceJournalEntriesItems(
     entries: List<JournalEntryUi>,
     onEdit: (JournalEntryUi) -> Unit,
 ) {
     if (entries.isEmpty()) {
-        Text(
-            "No journal entries found for this device.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontStyle = FontStyle.Italic,
-            modifier = Modifier.padding(vertical = 16.dp),
-        )
+        item {
+            Text(
+                "No journal entries found for this device.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontStyle = FontStyle.Italic,
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+        }
         return
     }
-    Column {
-        entries.forEach { entry ->
-            val kindPresentation = journalKindPresentation(entry.kind)
-            Column(Modifier.padding(vertical = 6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        kindPresentation.option.icon,
-                        contentDescription = entry.kindLabel,
-                        tint = kindPresentation.foreground,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "${entry.kindLabel} · ${formatNetBoxDateTime(entry.created)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { onEdit(entry) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit journal entry")
-                    }
+    items(entries, key = { "device-journal-${it.id}" }) { entry ->
+        val kindPresentation = journalKindPresentation(entry.kind)
+        Column(Modifier.padding(vertical = 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    kindPresentation.option.icon,
+                    contentDescription = entry.kindLabel,
+                    tint = kindPresentation.foreground,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "${entry.kindLabel} · ${formatNetBoxDateTime(entry.created)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { onEdit(entry) }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit journal entry")
                 }
-                Spacer(Modifier.height(4.dp))
-                CommentCard(content = entry.comments, modifier = Modifier.fillMaxWidth())
             }
+            Spacer(Modifier.height(4.dp))
+            CommentCard(content = entry.comments, modifier = Modifier.fillMaxWidth())
         }
     }
 }

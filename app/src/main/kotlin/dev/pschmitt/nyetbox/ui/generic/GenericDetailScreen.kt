@@ -698,32 +698,40 @@ fun GenericDetailScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp),
                                 )
                             }
-                            if (visibleSelectedTab == 0) {
-                                LazyColumn(
-                                    modifier =
-                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                            visibleSelectedTab,
-                                            tabCount,
-                                        ) {
-                                            selectedTab = it
+                            // A single shared LazyColumn covers every tab (branching on
+                            // visibleSelectedTab inside its content builder) instead of one
+                            // separate LazyColumn per tab. Four separate LazyColumns - one per
+                            // if/else-if branch above - meant every tab switch tore down and
+                            // recomposed the whole list from scratch, including recomposing
+                            // GenericDetailIdentityCard fresh every time even though it's
+                            // identical across all four tabs. Mirrors the single-LazyColumn shape
+                            // DeviceDetailScreen already uses for its tabs.
+                            LazyColumn(
+                                modifier =
+                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
+                                        visibleSelectedTab,
+                                        tabCount,
+                                    ) {
+                                        selectedTab = it
+                                    },
+                                contentPadding = PaddingValues(16.dp),
+                            ) {
+                                item {
+                                    GenericDetailIdentityCard(
+                                        id = viewModel.route.id,
+                                        endpointPath = viewModel.route.endpointPath,
+                                        title = title,
+                                        preview = deviceTypePreview,
+                                        onPreviewClick = openDeviceTypePreview,
+                                        onPreviewLongPress = onDeviceTypePreviewLongPress,
+                                        statusField = statusField,
+                                        detailAccent = detailAccent,
+                                        onStatusLongPress = {
+                                            fieldActionLabel = statusField?.label
                                         },
-                                    contentPadding = PaddingValues(16.dp),
-                                ) {
-                                    item {
-                                        GenericDetailIdentityCard(
-                                            id = viewModel.route.id,
-                                            endpointPath = viewModel.route.endpointPath,
-                                            title = title,
-                                            preview = deviceTypePreview,
-                                            onPreviewClick = openDeviceTypePreview,
-                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
-                                            statusField = statusField,
-                                            detailAccent = detailAccent,
-                                            onStatusLongPress = {
-                                                fieldActionLabel = statusField?.label
-                                            },
-                                        )
-                                    }
+                                    )
+                                }
+                                if (visibleSelectedTab == 0) {
                                     item { Spacer(Modifier.height(8.dp)) }
                                     item {
                                         ImageAttachmentGallery(
@@ -818,33 +826,7 @@ fun GenericDetailScreen(
                                             onMatterPairingCode = { matterPairingCode = it },
                                         )
                                     }
-                                }
-                            } else if (viewModel.isRack && visibleSelectedTab == 1) {
-                                LazyColumn(
-                                    modifier =
-                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                            visibleSelectedTab,
-                                            tabCount,
-                                        ) {
-                                            selectedTab = it
-                                        },
-                                    contentPadding = PaddingValues(16.dp),
-                                ) {
-                                    item {
-                                        GenericDetailIdentityCard(
-                                            id = viewModel.route.id,
-                                            endpointPath = viewModel.route.endpointPath,
-                                            title = title,
-                                            preview = deviceTypePreview,
-                                            onPreviewClick = openDeviceTypePreview,
-                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
-                                            statusField = statusField,
-                                            detailAccent = detailAccent,
-                                            onStatusLongPress = {
-                                                fieldActionLabel = statusField?.label
-                                            },
-                                        )
-                                    }
+                                } else if (viewModel.isRack && visibleSelectedTab == 1) {
                                     item { Spacer(Modifier.height(8.dp)) }
                                     item {
                                         RackElevationOverview(
@@ -861,33 +843,7 @@ fun GenericDetailScreen(
                                             },
                                         )
                                     }
-                                }
-                            } else if (visibleSelectedTab == journalTabIndex) {
-                                LazyColumn(
-                                    modifier =
-                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                            visibleSelectedTab,
-                                            tabCount,
-                                        ) {
-                                            selectedTab = it
-                                        },
-                                    contentPadding = PaddingValues(16.dp),
-                                ) {
-                                    item {
-                                        GenericDetailIdentityCard(
-                                            id = viewModel.route.id,
-                                            endpointPath = viewModel.route.endpointPath,
-                                            title = title,
-                                            preview = deviceTypePreview,
-                                            onPreviewClick = openDeviceTypePreview,
-                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
-                                            statusField = statusField,
-                                            detailAccent = detailAccent,
-                                            onStatusLongPress = {
-                                                fieldActionLabel = statusField?.label
-                                            },
-                                        )
-                                    }
+                                } else if (visibleSelectedTab == journalTabIndex) {
                                     if (journalEntries.isEmpty()) {
                                         item {
                                             Text(
@@ -908,33 +864,7 @@ fun GenericDetailScreen(
                                             )
                                         }
                                     }
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier =
-                                        Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                            visibleSelectedTab,
-                                            tabCount,
-                                        ) {
-                                            selectedTab = it
-                                        },
-                                    contentPadding = PaddingValues(16.dp),
-                                ) {
-                                    item {
-                                        GenericDetailIdentityCard(
-                                            id = viewModel.route.id,
-                                            endpointPath = viewModel.route.endpointPath,
-                                            title = title,
-                                            preview = deviceTypePreview,
-                                            onPreviewClick = openDeviceTypePreview,
-                                            onPreviewLongPress = onDeviceTypePreviewLongPress,
-                                            statusField = statusField,
-                                            detailAccent = detailAccent,
-                                            onStatusLongPress = {
-                                                fieldActionLabel = statusField?.label
-                                            },
-                                        )
-                                    }
+                                } else {
                                     if (changelog.isEmpty()) {
                                         item {
                                             Text(

@@ -6428,3 +6428,86 @@ backoff criteria rather than relying on WorkManager's default, which is tuned fo
 multi-model sync.
 
 Status: **done**, 2026-08-05; verified remotely, merged to main.
+
+## NBC-374: fix sluggish tab switching on item detail views
+
+User report: "switching between the tabs on the item views is a bit sluggish" - referring to the
+tabbed detail screens (`GenericDetailScreen`/`DeviceDetailScreen`) showing Journal, Connected
+devices, Interfaces, Front/Rear ports, etc. as separate tabs. NBC-369 (above) fixed a related but
+distinct bug - synchronous main-thread disk I/O per row in `DeviceListScreen`/`GenericListScreen`
+during scroll - by routing thumbnail resolution through Coil's own async pipeline
+(`PersistentCacheFetcher`). This entry investigates whether tab switching hits the same root
+cause (image rows inside tab content doing sync I/O), a different image-loading gap NBC-369 didn't
+reach, or a completely separate cause (expensive recomposition, non-lazy layout, redundant
+re-fetch/re-decode on every tab switch).
+
+- [x] Read how tab content is composed/switched in `GenericDetailScreen.kt`/
+  `DeviceDetailScreen.kt` and the shared `ItemDetailTabs`/`itemTabSwipe` machinery.
+- [x] Checked tab-content composables (`DeviceConnectedDevices`, `DeviceRelatedObjects`,
+  `DeviceJournalEntries`, `RackElevationOverview`, `GenericDetailIdentityCard`) for the same
+  synchronous-I/O-in-composition pattern NBC-369 fixed - **not present**; `localImageFile`/
+  `persistentFile` sync-I/O calls were already fully removed from every detail-tab composable by
+  NBC-369, confirmed by grep. Ruled out "same root cause as NBC-369" as the hypothesis.
+- [x] Found the actual cause: **not image I/O, a non-lazy-layout anti-pattern**.
+  `DeviceDetailScreen.kt`'s "related tab" content (Interfaces, Front/Rear/Power/Console ports,
+  Power outlets, Module bays, Connected devices - `DEVICE_RELATED_TABS` in
+  `DeviceDetailViewModel.kt`) was rendered via `DeviceConnectedDevices`/`DeviceRelatedObjects`/
+  `DeviceJournalEntries`, three plain `@Composable` functions that did `list.forEach { ... }`
+  wrapped in a single `LazyColumn` `item { }` block (`DeviceDetailScreen.kt` ~line 820, pre-fix).
+  This meant every row for the selected tab was composed, measured, and laid out synchronously in
+  one frame every time that tab was selected, regardless of scroll position - no virtualization at
+  all, unlike a real `items()` call. For a device with many ports (e.g. the cached
+  `DGS-1100-24PV2`-class switch, 24+ interfaces) or many connected neighbors, switching to that
+  tab meant building dozens of `NyetboxCard`/`NyetboxListItem` rows in one synchronous burst -
+  directly explaining perceptible per-tab-switch jank on exactly the tabs a datacenter-inventory
+  app is full of.
+  - Separately, `GenericDetailScreen.kt`'s four tabs (Overview/Elevation/Journal/Changelog) were
+    each a **separate `LazyColumn`** mounted via an `if/else if/else` chain, each redundantly
+    recomposing `GenericDetailIdentityCard` from scratch and fully tearing down/rebuilding the
+    whole list (and its `LazyListState`) on every switch, instead of one shared `LazyColumn`
+    (`DeviceDetailScreen` already used this better shape for its own Overview/related tabs).
+- [x] Fix 1 (`DeviceDetailScreen.kt`): converted `DeviceConnectedDevices`/`DeviceRelatedObjects`/
+  `DeviceJournalEntries` from `@Composable` functions with an internal `forEach` into
+  `LazyListScope` extension functions (`deviceConnectedDevicesItems`/`deviceRelatedObjectsItems`/
+  `deviceJournalEntriesItems`) that call `items(list, key = { ... })` directly, called inline in
+  the existing `LazyColumn` instead of wrapped in one `item { }`. Rows are now virtualized like
+  every other list in the app.
+- [x] Fix 2 (`GenericDetailScreen.kt`): merged the four per-tab `LazyColumn`s into one shared
+  `LazyColumn` whose content branches on `visibleSelectedTab` inside a single `item {
+  GenericDetailIdentityCard(...) }` plus tab-specific `item`/`items` calls, matching
+  `DeviceDetailScreen`'s existing pattern. Deliberately left `RackElevationOverview`'s non-lazy
+  `Column`/`forEach` rendering alone - a rack elevation is a bounded-size (~42-48U) visual diagram
+  meant to be seen as a whole, the same reasoning NBC-369 used to leave `TopologyScreen` non-lazy.
+- [x] Checked for non-I/O causes beyond the above: `visibleFieldRows`/`detailOverviewFields`
+  derivation in `GenericDetailScreen.kt` is computed above the `Scaffold` content lambda, so a
+  `selectedTab` change alone doesn't force it to re-run (separate recomposition scope) - no fix
+  needed there.
+- [x] Verified remotely on rofl-13: `compileDebugKotlin compileDebugAndroidTestKotlin
+  compileDebugUnitTestKotlin testDebugUnitTest` and `ktfmtCheck` (`just lint`) both pass.
+- [x] No new pure logic was introduced (pure Compose layout/structure refactor - virtualizing
+  existing rows and merging LazyColumns), so no new unit tests were added, consistent with how
+  NBC-369 only added tests for its new `PersistentCacheFetcher` logic, not its composable changes.
+- [x] Deployed to all three physical devices (`just deploy-all`) and manually exercised on the
+  Zenfone 10: opened the "turris" router (`DeviceDetailScreen`, 14 interfaces) and switched
+  Overview -> Connected devices -> Interfaces -> Overview repeatedly - all render correctly with
+  real data (IPs/MACs per interface) with no crashes. Opened the "Samson SRK16" rack
+  (`GenericDetailScreen`) and switched Overview -> Elevation -> Changelog -> Overview - the shared
+  identity card and per-tab content all render correctly across the merged `LazyColumn`. No
+  frame-timing/profiling tool was available in this environment, so smoothness itself is judged by
+  the structural fix (virtualized rows instead of a synchronous full-list compose per switch) plus
+  functional confirmation, mirroring how NBC-369 was reasoned about before its own device
+  sanity-check.
+
+**Why:** user reported perceptible lag switching tabs on item detail screens; NBC-369's sync-I/O
+fix was already fully applied to every detail-tab composable, so the cause here was different -
+non-virtualized `forEach`-in-one-`item{}` rendering of potentially dozens of interface/port/device
+rows on `DeviceDetailScreen`'s related tabs, plus redundant per-tab `LazyColumn`/identity-card
+recomposition on `GenericDetailScreen`.
+**How to apply:** any list of a priori unbounded size rendered inside a `LazyColumn` must use
+`items(list, key = { ... })`, never `list.forEach { ... }` inside a single `item { }` - the latter
+defeats virtualization entirely, not just cosmetically wastes a `remember`. When several tabs
+share layout scaffolding (a header/identity card), prefer one shared `LazyColumn`/`LazyListScope`
+branching on the selected tab over one `LazyColumn` per tab.
+
+Status: **done**, 2026-08-05; verified remotely (compile + unit tests + ktfmtCheck) and manually
+exercised on the Zenfone 10 physical device; merged to main.
