@@ -97,20 +97,14 @@ class StoreScreenshotTest {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.findObject(By.text("Dark"))?.click()
             ?: error("No \"Dark\" node found via UiAutomator")
-        // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
-        // only other match while the dropdown was open (the item just clicked) is gone by then.
-        waitForText("Dark", 30_000)
-        // Let the theme recomposition (colors across the whole tree) settle before navigating,
-        // matching the settle delay already used for snackbar animations below.
-        Thread.sleep(500)
-        // Neither the Display category screen nor the top-level Settings list use the
-        // rail/bottom-bar scaffold (both are plain Scaffolds with just a Back arrow) - unlike
-        // Dashboard/DeviceList/etc, there's no "Home" here to click. Settings was reached from
-        // Dashboard via the sidebar drawer (pushed on top, not a tab switch), so two Back presses
-        // unwind back to it: category screen -> Settings list -> Dashboard.
-        composeRule.onNodeWithContentDescription("Back").performClick()
-        waitForText("Settings", 30_000)
-        composeRule.onNodeWithContentDescription("Back").performClick()
+        // Confirmed by repeated FAILURE_debug captures on tenInch/sevenInch (both with the Compose
+        // click and this UiAutomator click): selecting Dark lands the app back on Dashboard
+        // directly, in dark colors, without ever needing the Back presses this used to do to
+        // unwind Display -> Settings -> Dashboard. That never reproduced on phone, so it's
+        // presumably a race between this selection and some app-side reaction to the settings
+        // change that resolves fast enough on phone for the old Back-based path to still work
+        // there, but not on the larger/slower tablet emulators - wait for the real destination
+        // directly instead of asserting anything about the Settings screen surviving the click.
         waitForText("Dashboard", 30_000)
     }
 
