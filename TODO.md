@@ -6292,4 +6292,30 @@ added in `SyncStatusCardTest.kt` for the new pure `syncStatusHeadline`/`syncStat
 
 Status: **done**, 2026-08-05 - `just gradle rofl-13 compileDebugKotlin
 compileDebugAndroidTestKotlin compileDebugUnitTestKotlin testDebugUnitTest` and `just lint` both
-green on branch `feat/sync-progress-card`; not pushed/merged, left for review.
+green; merged to main.
+
+## NBC-371: restyle the dashboard "Search NetBox" affordance to match ModernSearchField
+
+The dashboard's `GlobalSearchCard` (`ui/dashboard/DashboardScreen.kt`) still uses the pre-
+`ModernSearchField` look: an `ElevatedCard` tinted `primaryContainer` with a `titleLarge` headline.
+It's a navigation affordance (tap -> `GlobalSearchScreen`), not an inline field, so it was never
+swept up by the earlier "adopt the modern pill search style everywhere" pass
+(`ui/common/ModernSearchField.kt`) - it now looks visually inconsistent/dated next to every actual
+search field in the app.
+
+- [x] Restyle `GlobalSearchCard` to read as the same pill/tonal-surface search affordance as
+  `ModernSearchField` - generously rounded shape, `surfaceContainerHighest`-style tonal color
+  instead of `primaryContainer`, leading search icon - while remaining a single tap-to-navigate
+  target (keep long-press-to-reorder and the reorder-mode hide button working).
+- [x] Verify `just gradle rofl-13 compileDebugKotlin compileDebugAndroidTestKotlin
+  compileDebugUnitTestKotlin testDebugUnitTest` and `just lint` pass.
+- [x] Visually confirm on a physical device via `adb screencap`.
+
+**Why:** user asked to make the dashboard search button look more modern / Material You-native.
+**How to apply:** reuse the same `MaterialTheme.colorScheme.*` tonal primitives `ModernSearchField`
+already established rather than inventing a new visual style.
+
+Status: **done**, 2026-08-05, verified via `just gradle rofl-13
+compileDebugKotlin compileDebugAndroidTestKotlin compileDebugUnitTestKotlin testDebugUnitTest`
+(pass), `just lint` (pass, ktfmtCheck clean), and a screenshot of the dashboard on the Zenfone 10
+after `just deploy-all` confirming the pill/tonal-surface look.

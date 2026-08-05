@@ -49,7 +49,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -858,11 +857,12 @@ private fun GlobalSearchCard(
     onHide: () -> Unit,
 ) {
     val wiggle = rememberReorderWiggle(reorderMode)
-    ElevatedCard(
-        colors =
-            androidx.compose.material3.CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ),
+    // Same pill shape + tonal-surface treatment as ModernSearchField
+    // (ui/common/ModernSearchField.kt), so this navigation affordance reads as the same "modern
+    // search" visual language as every actual search field in the app.
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier =
             Modifier.fillMaxWidth()
                 .testTag("e2e-search-card")
@@ -873,18 +873,18 @@ private fun GlobalSearchCard(
             colors =
                 ListItemDefaults.colors(
                     containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    headlineColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    supportingColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    headlineColor = MaterialTheme.colorScheme.onSurface,
+                    supportingColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             leadingContent = {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             },
             headlineContent = {
-                Text("Search NetBox", style = MaterialTheme.typography.titleLarge)
+                Text("Search NetBox", style = MaterialTheme.typography.titleMedium)
             },
             supportingContent = { Text("Find devices, IPs, sites, racks, and more") },
             trailingContent = {
@@ -893,7 +893,7 @@ private fun GlobalSearchCard(
                         Icon(
                             Icons.Default.VisibilityOff,
                             contentDescription = "Hide Search NetBox",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
