@@ -16,6 +16,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import org.junit.ClassRule
 import org.junit.Rule
 import org.junit.Test
@@ -94,8 +95,13 @@ class StoreScreenshotTest {
         // touch dispatch isn't actually reaching this DropdownMenu item, consistently, regardless
         // of timing. Use UiAutomator's real system-level touch dispatch instead, which does not
         // go through Compose's semantics-tree coordinate math at all.
+        // waitForText above only confirms "Dark" exists in Compose's own semantics tree - a raw
+        // UiDevice.findObject() call reads the accessibility tree instead, which lags slightly
+        // behind and can still come back empty right at this point (seen once as a flake:
+        // IllegalStateException from the error() below). device.wait() polls the accessibility
+        // tree itself until the node actually shows up there too.
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        device.findObject(By.text("Dark"))?.click()
+        device.wait(Until.findObject(By.text("Dark")), 10_000)?.click()
             ?: error("No \"Dark\" node found via UiAutomator")
         // Confirmed by repeated FAILURE_debug captures on tenInch/sevenInch (both with the Compose
         // click and this UiAutomator click): selecting Dark lands the app back on Dashboard
