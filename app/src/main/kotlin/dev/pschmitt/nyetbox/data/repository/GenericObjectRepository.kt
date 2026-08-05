@@ -179,6 +179,15 @@ constructor(
         total
     }
 
+    /** The incremental-sync watermark for this endpoint - see [NetBoxObjectDao.maxLastUpdated]. */
+    suspend fun lastUpdatedWatermark(endpointPath: String): String? =
+        dao.maxLastUpdated(endpointPath)
+
+    /** See [NetBoxObjectDao.pruneStale]. Call only after a full sync of this endpoint succeeds. */
+    suspend fun pruneStale(endpointPath: String, cutoff: Long) {
+        dao.pruneStale(endpointPath, cutoff)
+    }
+
     suspend fun cachedCount(endpointPath: String): Int = dao.count(endpointPath)
 
     suspend fun cachedObjects(endpointPath: String): List<NetBoxObjectEntity> =
@@ -261,6 +270,7 @@ constructor(
             secondaryLine = secondaryLine,
             json = json.encodeToString(JsonObject.serializer(), this),
             syncedAt = System.currentTimeMillis(),
+            lastUpdated = jsonString("last_updated"),
         )
     }
 }

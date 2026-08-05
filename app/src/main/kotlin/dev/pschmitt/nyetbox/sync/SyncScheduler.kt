@@ -8,6 +8,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
+import androidx.work.workDataOf
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -34,11 +35,19 @@ constructor(
         )
     }
 
-    fun syncNow() {
+    /**
+     * @param forceFullSync Skips incremental (`last_updated`-filtered) fetching for this run and
+     *   fully re-fetches every endpoint instead. Only the explicit Settings "Sync now" button
+     *   should pass `true` - the many other callers of this function (pull-to-refresh, post-CRUD
+     *   refreshes, gesture shortcuts) are incidental refreshes that should stay incremental, or
+     *   forcing a full pass from all of them would defeat the point of incremental sync.
+     */
+    fun syncNow(forceFullSync: Boolean = false) {
         val request =
             OneTimeWorkRequestBuilder<SyncWorker>()
                 .setConstraints(syncConstraints())
                 .setSyncBackoffCriteria()
+                .setInputData(workDataOf(KEY_FORCE_FULL_SYNC to forceFullSync))
                 .build()
         workManager.enqueueUniqueWork(ONE_TIME_WORK_NAME, ExistingWorkPolicy.KEEP, request)
     }
@@ -106,6 +115,9 @@ constructor(
         const val STARTUP_WORK_NAME = "netbox-startup-sync"
 
         const val STARTUP_SYNC_DELAY_SECONDS = 10L
+
+        // Not private: SyncWorker reads this same key back out of its inputData.
+        const val KEY_FORCE_FULL_SYNC = "force_full_sync"
 
         private const val SYNC_RETRY_BACKOFF_MINUTES = 1L
     }

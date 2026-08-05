@@ -56,4 +56,10 @@ interface DeviceDao {
     @Query("DELETE FROM devices") suspend fun clear()
 
     @Query("SELECT COUNT(*) FROM devices") suspend fun count(): Int
+
+    /** The incremental-sync watermark - see [dev.pschmitt.nyetbox.data.db.NetBoxObjectDao.maxLastUpdated]. */
+    @Query("SELECT MAX(lastUpdated) FROM devices") suspend fun maxLastUpdated(): String?
+
+    /** See [dev.pschmitt.nyetbox.data.db.NetBoxObjectDao.pruneStale]. */
+    @Query("DELETE FROM devices WHERE syncedAt < :cutoff") suspend fun pruneStale(cutoff: Long)
 }

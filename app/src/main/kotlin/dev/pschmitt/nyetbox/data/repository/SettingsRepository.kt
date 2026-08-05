@@ -260,6 +260,13 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     private val _syncOnAppLaunch = MutableStateFlow(prefs.getBoolean(KEY_SYNC_ON_APP_LAUNCH, true))
     val syncOnAppLaunch: StateFlow<Boolean> = _syncOnAppLaunch.asStateFlow()
 
+    // Conservative by default: a small home-lab NetBox instance may only run a handful of
+    // application-server workers, so syncing too many endpoints at once can saturate it rather
+    // than actually finishing sooner.
+    private val _syncConcurrency =
+        MutableStateFlow(prefs.getInt(KEY_SYNC_CONCURRENCY, DEFAULT_SYNC_CONCURRENCY))
+    val syncConcurrency: StateFlow<Int> = _syncConcurrency.asStateFlow()
+
     private val _changeNotificationsEnabled =
         MutableStateFlow(prefs.getBoolean(KEY_CHANGE_NOTIFICATIONS_ENABLED, false))
     val changeNotificationsEnabled: StateFlow<Boolean> = _changeNotificationsEnabled.asStateFlow()
@@ -278,6 +285,19 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             )
         private set(value) {
             prefs.edit().putInt(serverScopedKey(KEY_CHANGE_NOTIFICATION_CURSOR), value).apply()
+        }
+
+    /**
+     * When this server profile's cache last completed a full (non-incremental) sync pass, used to
+     * decide when the next periodic sync should force one to catch server-side deletions that an
+     * incremental, `last_updated`-filtered sync can't see. Internal sync bookkeeping, not a user
+     * setting - not part of the portable settings backup, which already excludes the cache
+     * database this value describes.
+     */
+    var lastFullSyncAt: Long
+        get() = prefs.getLong(serverScopedKey(KEY_LAST_FULL_SYNC_AT), 0L)
+        set(value) {
+            prefs.edit().putLong(serverScopedKey(KEY_LAST_FULL_SYNC_AT), value).apply()
         }
 
     private val _gestureActions = MutableStateFlow(loadGestureActions())
@@ -388,6 +408,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun setSyncOnAppLaunch(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SYNC_ON_APP_LAUNCH, enabled).apply()
         _syncOnAppLaunch.value = enabled
+    }
+
+    fun setSyncConcurrency(concurrency: Int) {
+        val clamped = concurrency.coerceIn(1, 8)
+        prefs.edit().putInt(KEY_SYNC_CONCURRENCY, clamped).apply()
+        _syncConcurrency.value = clamped
     }
 
     fun setChangeNotificationsEnabled(enabled: Boolean) {
@@ -838,6 +864,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         _syncOnlyOnWifi.value = false
         _syncWhileRoaming.value = true
         _syncOnAppLaunch.value = true
+        _syncConcurrency.value = DEFAULT_SYNC_CONCURRENCY
         _scheduledBackupEnabled.value = false
         _scheduledBackupFrequency.value = BackupFrequency.Weekly
         _scheduledBackupFolderUri.value = null
@@ -866,6 +893,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         setSyncOnlyOnWifi(settings.syncOnlyOnWifi)
         setSyncWhileRoaming(settings.syncWhileRoaming)
         setSyncOnAppLaunch(settings.syncOnAppLaunch)
+        setSyncConcurrency(settings.syncConcurrency)
         setChangeNotificationsEnabled(settings.changeNotificationsEnabled)
         settings.changeNotificationFilters.forEach { key ->
             ChangeNotificationFilter.fromStorage(key)?.let { setChangeNotificationFilter(it, true) }
@@ -1249,6 +1277,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"
         const val KEY_SYNC_WHILE_ROAMING = "sync_while_roaming"
         const val KEY_SYNC_ON_APP_LAUNCH = "sync_on_app_launch"
+        const val KEY_SYNC_CONCURRENCY = "sync_concurrency"
+        const val DEFAULT_SYNC_CONCURRENCY = 3
+        const val KEY_LAST_FULL_SYNC_AT = "last_full_sync_at"
         const val KEY_CHANGE_NOTIFICATIONS_ENABLED = "change_notifications_enabled"
         const val KEY_CHANGE_NOTIFICATION_FILTERS = "change_notification_filters"
         const val KEY_CHANGE_NOTIFICATION_CURSOR = "change_notification_cursor"

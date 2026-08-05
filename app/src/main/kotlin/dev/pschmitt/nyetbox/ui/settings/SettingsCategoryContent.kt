@@ -64,6 +64,7 @@ internal data class SettingsCategoryState(
     val syncOnlyOnWifi: Boolean,
     val syncWhileRoaming: Boolean,
     val syncOnAppLaunch: Boolean,
+    val syncConcurrency: Int = 3,
     val changeNotificationsEnabled: Boolean,
     val changeNotificationFilters: Set<String>,
     val gestureActions: Map<GestureShortcut, GestureAction>,
@@ -104,6 +105,7 @@ internal data class SettingsCategoryActions(
     val onSetSyncOnlyOnWifi: (Boolean) -> Unit,
     val onSetSyncWhileRoaming: (Boolean) -> Unit,
     val onSetSyncOnAppLaunch: (Boolean) -> Unit,
+    val onSetSyncConcurrency: (Int) -> Unit = {},
     val onSetThemeMode: (ThemeMode) -> Unit,
     val onSetThemeAccent: (ThemeAccent) -> Unit,
     val onShowObjectTypeColors: () -> Unit,
@@ -446,11 +448,14 @@ private fun ConnectionSettingsContent(
     }
 }
 
+private val SYNC_CONCURRENCY_PRESETS = listOf(1, 2, 3, 4, 6, 8)
+
 @Composable
 private fun SyncSettingsContent(
     state: SettingsCategoryState,
     actions: SettingsCategoryActions,
 ) {
+    var concurrencyMenuExpanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         state.syncIssue?.let { issue ->
             SyncIssueCard(
@@ -507,6 +512,39 @@ private fun SyncSettingsContent(
                 headlineContent = { Text("Sync on app launch") },
                 supportingContent = {
                     Text("Refresh NetBox in the background when the app starts")
+                },
+            )
+            SettingsListItem(
+                modifier = Modifier.clickable { concurrencyMenuExpanded = true },
+                leadingContent = { Icon(Icons.Default.Speed, contentDescription = null) },
+                headlineContent = { Text("Sync concurrency") },
+                supportingContent = {
+                    Text(
+                        "${state.syncConcurrency} endpoint(s) at once - higher finishes sync " +
+                            "faster but may overload a small self-hosted NetBox instance"
+                    )
+                },
+                trailingContent = {
+                    Box {
+                        Icon(Icons.Default.ExpandMore, contentDescription = null)
+                        DropdownMenu(
+                            expanded = concurrencyMenuExpanded,
+                            onDismissRequest = { concurrencyMenuExpanded = false },
+                        ) {
+                            SYNC_CONCURRENCY_PRESETS.forEach { concurrency ->
+                                DropdownMenuItem(
+                                    text = { Text(concurrency.toString()) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Speed, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        actions.onSetSyncConcurrency(concurrency)
+                                        concurrencyMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
                 },
             )
         }

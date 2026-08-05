@@ -43,6 +43,7 @@ data class SettingsBackupSettings(
     val syncOnlyOnWifi: Boolean = false,
     val syncWhileRoaming: Boolean = true,
     val syncOnAppLaunch: Boolean = true,
+    val syncConcurrency: Int = 3,
     val changeNotificationsEnabled: Boolean = false,
     val changeNotificationFilters: Set<String> = emptySet(),
     val gestureActions: Map<String, String> = emptyMap(),
@@ -182,6 +183,7 @@ constructor(
                     syncOnlyOnWifi = settingsRepository.syncOnlyOnWifi.value,
                     syncWhileRoaming = settingsRepository.syncWhileRoaming.value,
                     syncOnAppLaunch = settingsRepository.syncOnAppLaunch.value,
+                    syncConcurrency = settingsRepository.syncConcurrency.value,
                     changeNotificationsEnabled =
                         settingsRepository.changeNotificationsEnabled.value,
                     changeNotificationFilters = settingsRepository.changeNotificationFilters.value,

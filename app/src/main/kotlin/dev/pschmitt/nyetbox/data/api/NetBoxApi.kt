@@ -14,6 +14,8 @@ interface NetBoxApi {
         @Query("limit") limit: Int = 50,
         @Query("offset") offset: Int = 0,
         @Query("q") search: String? = null,
+        /** Incremental-sync filter - only devices changed at or after this ISO-8601 timestamp. */
+        @Query("last_updated__gte") lastUpdatedGte: String? = null,
     ): PagedResponseDto<DeviceDto>
 
     @GET("api/dcim/devices/{id}/") suspend fun getDevice(@Path("id") id: Int): DeviceDto

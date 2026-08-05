@@ -148,6 +148,8 @@ fun SettingsCategoryScreen(
         viewModel.settingsRepository.syncWhileRoaming.collectAsStateWithLifecycle()
     val syncOnAppLaunch by
         viewModel.settingsRepository.syncOnAppLaunch.collectAsStateWithLifecycle()
+    val syncConcurrency by
+        viewModel.settingsRepository.syncConcurrency.collectAsStateWithLifecycle()
     val changeNotificationsEnabled by
         viewModel.settingsRepository.changeNotificationsEnabled.collectAsStateWithLifecycle()
     val changeNotificationFilters by
@@ -478,6 +480,7 @@ fun SettingsCategoryScreen(
                         syncOnlyOnWifi = syncOnlyOnWifi,
                         syncWhileRoaming = syncWhileRoaming,
                         syncOnAppLaunch = syncOnAppLaunch,
+                        syncConcurrency = syncConcurrency,
                         changeNotificationsEnabled = changeNotificationsEnabled,
                         changeNotificationFilters = changeNotificationFilters,
                         gestureActions = gestureActions,
@@ -539,6 +542,7 @@ fun SettingsCategoryScreen(
                         onSetSyncOnlyOnWifi = viewModel::setSyncOnlyOnWifi,
                         onSetSyncWhileRoaming = viewModel::setSyncWhileRoaming,
                         onSetSyncOnAppLaunch = viewModel::setSyncOnAppLaunch,
+                        onSetSyncConcurrency = viewModel.settingsRepository::setSyncConcurrency,
                         onSetThemeMode = viewModel.settingsRepository::setThemeMode,
                         onSetThemeAccent = viewModel.settingsRepository::setThemeAccent,
                         onShowObjectTypeColors = { objectTypeColorsDialogVisible = true },

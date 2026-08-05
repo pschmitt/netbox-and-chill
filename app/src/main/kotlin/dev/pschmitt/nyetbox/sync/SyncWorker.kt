@@ -48,6 +48,7 @@ constructor(
         }
         return offlineSyncRepository
             .syncAll(
+                forceFullSync = inputData.getBoolean(SyncScheduler.KEY_FORCE_FULL_SYNC, false),
                 onProgress = { progress ->
                     // Published to SyncStatusRepository the same moment it goes to the system
                     // notification (NBC-370), so SyncStatusCard renders the same step/message/item

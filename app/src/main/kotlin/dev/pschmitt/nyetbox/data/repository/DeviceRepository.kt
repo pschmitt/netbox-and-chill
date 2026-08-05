@@ -64,20 +64,37 @@ class DeviceRepository @Inject constructor(private val api: NetBoxApi, private v
             .getOrNull()
     }
 
-    /** Full paginated sync of every device NetBox knows about. */
-    suspend fun syncAll(pageSize: Int = 200): Result<Int> = runCatching {
-        var offset = 0
-        var total = 0
-        while (true) {
-            val page = api.listDevices(limit = pageSize, offset = offset)
-            if (page.results.isEmpty()) break
-            dao.upsertAll(page.results.map { it.toEntity() })
-            total += page.results.size
-            offset += pageSize
-            if (page.next == null) break
+    /**
+     * Full (or, with [lastUpdatedGte], incremental) paginated sync of every device NetBox knows
+     * about.
+     */
+    suspend fun syncAll(pageSize: Int = 200, lastUpdatedGte: String? = null): Result<Int> =
+        runCatching {
+            var offset = 0
+            var total = 0
+            while (true) {
+                val page =
+                    api.listDevices(
+                        limit = pageSize,
+                        offset = offset,
+                        lastUpdatedGte = lastUpdatedGte,
+                    )
+                if (page.results.isEmpty()) break
+                dao.upsertAll(page.results.map { it.toEntity() })
+                total += page.results.size
+                offset += pageSize
+                if (page.next == null) break
+            }
+            Timber.i("Synced %d devices", total)
+            total
         }
-        Timber.i("Synced %d devices", total)
-        total
+
+    /** The incremental-sync watermark - see [dev.pschmitt.nyetbox.data.db.NetBoxObjectDao.maxLastUpdated]. */
+    suspend fun lastUpdatedWatermark(): String? = dao.maxLastUpdated()
+
+    /** See [dev.pschmitt.nyetbox.data.db.NetBoxObjectDao.pruneStale]. */
+    suspend fun pruneStale(cutoff: Long) {
+        dao.pruneStale(cutoff)
     }
 
     suspend fun cachedDeviceCount(): Int = dao.count()

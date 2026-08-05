@@ -3,6 +3,27 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-377: parallelize sync and add incremental (`last_updated`) fetching
+
+Full syncs fetched every NetBox model, rack elevation, device-type, and attachment sequentially,
+and always re-fetched every object from scratch even when nothing had changed. Overlap the
+independent work (bounded, user-tunable, conservative by default) and skip re-fetching unchanged
+objects via NetBox's own `last_updated` field, falling back to a periodic full pass so
+server-side deletions still get reconciled.
+
+- [x] Bounded-concurrency helper applied to the per-model, device-type, rack-elevation, and
+      attachment-download sync loops; new "Sync concurrency" setting (default 3, presets 1-8) in
+      Settings > Sync policy.
+- [x] `last_updated__gte`-filtered incremental sync for both generic objects and devices, with a
+      per-endpoint watermark and a fallback to a full fetch if the filter isn't supported.
+- [x] Periodic full-reconciliation pass (24h, or forced from the Settings "Sync now" button) that
+      prunes objects the server no longer has, without pruning endpoints that only partially
+      synced.
+- [ ] Verify remote compilation, instrumentation tests, and debug installation on Zenfone 10, Mi
+      Pad 4, and Pixel 5.
+
+Status: **in progress**, 2026-08-05.
+
 ## NBC-357: link device-type photos back to their device type
 
 The front/rear device-type photos shown in the device overview should offer a compact action to

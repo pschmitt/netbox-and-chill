@@ -16,4 +16,6 @@ data class NetBoxObjectEntity(
     val secondaryLine: String?,
     val json: String,
     val syncedAt: Long,
+    /** NetBox's own `last_updated` field, used as an incremental-sync watermark. */
+    val lastUpdated: String? = null,
 )

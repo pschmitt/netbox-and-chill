@@ -29,14 +29,14 @@ val appLinkHost =
 val configuredVersionCode =
     providers
         .gradleProperty("versionCode")
-        .orElse("10")
+        .orElse("11")
         .map { value ->
             value.toIntOrNull()?.takeIf { it > 0 }
                 ?: error("versionCode must be a positive integer")
         }
         .get()
 val configuredVersionName =
-    providers.gradleProperty("versionName").orElse("1.3.2").get().also { name ->
+    providers.gradleProperty("versionName").orElse("1.4.0").get().also { name ->
         require(name.isNotBlank()) { "versionName must not be blank" }
     }
 
