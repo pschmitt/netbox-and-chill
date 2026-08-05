@@ -21,7 +21,10 @@ jobs:
   e2e:
     name: Disposable NetBox + Android emulator
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    # 50m wasn't enough for a cold software-only boot (no KVM, see below) plus the full 12-test
+    # suite: the previous run got through 11/12 tests and was still going when the job itself got
+    # cancelled at the timeout.
+    timeout-minutes: 90
     env:
       E2E_TOKEN: nbt_CiE2eKey001X.0123456789abcdef0123456789abcdef01234567
       NETBOX_COMPOSE_FILE: ci/netbox/docker-compose.yml

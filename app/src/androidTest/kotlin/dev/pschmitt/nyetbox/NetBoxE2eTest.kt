@@ -29,6 +29,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class NetBoxE2eTest {
 
+    @get:Rule val anrDismissRule = AnrDismissRule()
     @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
 
     private val arguments
