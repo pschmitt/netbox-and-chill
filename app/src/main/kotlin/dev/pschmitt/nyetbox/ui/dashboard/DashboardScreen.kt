@@ -182,7 +182,8 @@ fun DashboardScreen(
     // 20s was too eager for a real first sync (richer NetBox instances, slower connections): the
     // Play Store screenshot captures were catching this firing before the sync actually finished,
     // revealing a still-loading dashboard - a real user would hit the same thing. This is a safety
-    // net for the genuinely-stuck case, not the expected happy path, so it can afford to be patient.
+    // net for the genuinely-stuck case, not the expected happy path, so it can afford to be
+    // patient.
     var initialSyncTimedOut by remember { mutableStateOf(false) }
     LaunchedEffect(showInitialSyncOverlay) {
         if (showInitialSyncOverlay) {

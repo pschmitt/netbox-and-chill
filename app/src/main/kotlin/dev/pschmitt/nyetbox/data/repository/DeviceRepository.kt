@@ -89,7 +89,10 @@ class DeviceRepository @Inject constructor(private val api: NetBoxApi, private v
             total
         }
 
-    /** The incremental-sync watermark - see [dev.pschmitt.nyetbox.data.db.NetBoxObjectDao.maxLastUpdated]. */
+    /**
+     * The incremental-sync watermark - see
+     * [dev.pschmitt.nyetbox.data.db.NetBoxObjectDao.maxLastUpdated].
+     */
     suspend fun lastUpdatedWatermark(): String? = dao.maxLastUpdated()
 
     /** See [dev.pschmitt.nyetbox.data.db.NetBoxObjectDao.pruneStale]. */

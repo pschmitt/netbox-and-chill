@@ -100,10 +100,9 @@ constructor(
     suspend fun syncAll(
         forceFullSync: Boolean = false,
         onProgress: (SyncProgress) -> Unit = {},
-    ): Result<OfflineSyncSummary> =
-        cacheDatabaseManager.withActiveServer {
-            syncAllLocked(forceFullSync, onProgress)
-        }
+    ): Result<OfflineSyncSummary> = cacheDatabaseManager.withActiveServer {
+        syncAllLocked(forceFullSync, onProgress)
+    }
 
     private suspend fun syncAllLocked(
         forceFullSync: Boolean = false,
@@ -148,11 +147,10 @@ constructor(
 
             reportProgress("Syncing devices…")
             val (deviceResult, deviceFetchWasFull) = syncDevicesIncrementally(isFullSyncPass)
-            val devices =
-                deviceResult.getOrElse {
-                    recordFailure("Device sync", it)
-                    0
-                }
+            val devices = deviceResult.getOrElse {
+                recordFailure("Device sync", it)
+                0
+            }
             if (deviceResult.isSuccess && deviceFetchWasFull) {
                 deviceRepository.pruneStale(passStartedAt)
             }
@@ -290,12 +288,14 @@ constructor(
 
     /**
      * Fetches only devices changed since the last watermark, unless [isFullSyncPass] or there's no
-     * watermark yet (never synced before). Falls back to one full, unfiltered fetch if the
-     * filtered attempt fails - a small number of NetBox deployments/proxies may not support
+     * watermark yet (never synced before). Falls back to one full, unfiltered fetch if the filtered
+     * attempt fails - a small number of NetBox deployments/proxies may not support
      * `last_updated__gte`. Returns whether the fetch that actually succeeded was a full one, i.e.
      * whether it's safe to prune devices this cache still has that the server no longer does.
      */
-    private suspend fun syncDevicesIncrementally(isFullSyncPass: Boolean): Pair<Result<Int>, Boolean> {
+    private suspend fun syncDevicesIncrementally(
+        isFullSyncPass: Boolean
+    ): Pair<Result<Int>, Boolean> {
         val watermark = if (isFullSyncPass) null else deviceRepository.lastUpdatedWatermark()
         var result = deviceRepository.syncAll(lastUpdatedGte = watermark)
         var wasFullFetch = watermark == null
@@ -324,18 +324,20 @@ constructor(
     }
 
     /**
-     * Runs [action] over every item with at most [concurrency] running at once. The endpoints
-     * this is used for (NetBox models, device types, rack elevations, attachment downloads) are
+     * Runs [action] over every item with at most [concurrency] running at once. The endpoints this
+     * is used for (NetBox models, device types, rack elevations, attachment downloads) are
      * otherwise unrelated to each other, so overlapping their network round-trips is a meaningful
      * speedup - bounded so a small self-hosted NetBox instance isn't hit with more concurrent
      * requests than it can handle. Concurrent Room writes from within [action] are safe (Room's
      * WAL-backed connection serializes them), so no extra locking is needed there.
      */
-    private suspend fun <T> Iterable<T>.syncConcurrently(concurrency: Int, action: suspend (T) -> Unit) =
-        coroutineScope {
-            val semaphore = Semaphore(concurrency.coerceAtLeast(1))
-            map { item -> async { semaphore.withPermit { action(item) } } }.awaitAll()
-        }
+    private suspend fun <T> Iterable<T>.syncConcurrently(
+        concurrency: Int,
+        action: suspend (T) -> Unit,
+    ) = coroutineScope {
+        val semaphore = Semaphore(concurrency.coerceAtLeast(1))
+        map { item -> async { semaphore.withPermit { action(item) } } }.awaitAll()
+    }
 
     private suspend fun syncAttachments(
         concurrency: Int,

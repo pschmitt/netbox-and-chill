@@ -96,9 +96,9 @@ interface NetBoxObjectDao {
 
     /**
      * Removes rows for this endpoint not touched by the full sync pass that started at [cutoff] -
-     * i.e. objects the server no longer has. Only call this after a full (unfiltered) sync of
-     * this endpoint has just completed successfully; every row it touched was re-stamped with a
-     * fresh syncedAt, so anything older is stale.
+     * i.e. objects the server no longer has. Only call this after a full (unfiltered) sync of this
+     * endpoint has just completed successfully; every row it touched was re-stamped with a fresh
+     * syncedAt, so anything older is stale.
      */
     @Query("DELETE FROM netbox_objects WHERE endpointPath = :endpointPath AND syncedAt < :cutoff")
     suspend fun pruneStale(endpointPath: String, cutoff: Long)

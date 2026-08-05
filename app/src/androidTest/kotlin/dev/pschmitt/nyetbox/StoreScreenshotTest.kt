@@ -24,9 +24,8 @@ import tools.fastlane.screengrab.locale.LocaleTestRule
  * disposable NetBox instance (`ci/netbox/docker-compose.yml`) seeded with a small realistic-
  * looking demo rack (`ci/netbox/seed_screenshots.py`), reusing the same
  * onboarding/dashboard/device-detail/topology/search/settings journey as [NetBoxE2eSmokeTest]
- * (shared plumbing lives in [NetBoxJourneyTest]).
- * Never point this test at a real NetBox instance - the screenshots it produces show whatever
- * inventory data the connected instance has.
+ * (shared plumbing lives in [NetBoxJourneyTest]). Never point this test at a real NetBox instance -
+ * the screenshots it produces show whatever inventory data the connected instance has.
  */
 @RunWith(AndroidJUnit4::class)
 class StoreScreenshotTest : NetBoxJourneyTest() {

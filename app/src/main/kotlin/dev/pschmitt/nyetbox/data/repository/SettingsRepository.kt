@@ -291,8 +291,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
      * When this server profile's cache last completed a full (non-incremental) sync pass, used to
      * decide when the next periodic sync should force one to catch server-side deletions that an
      * incremental, `last_updated`-filtered sync can't see. Internal sync bookkeeping, not a user
-     * setting - not part of the portable settings backup, which already excludes the cache
-     * database this value describes.
+     * setting - not part of the portable settings backup, which already excludes the cache database
+     * this value describes.
      */
     var lastFullSyncAt: Long
         get() = prefs.getLong(serverScopedKey(KEY_LAST_FULL_SYNC_AT), 0L)

@@ -6,13 +6,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
-import dev.pschmitt.nyetbox.data.db.NewsItemEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
+import dev.pschmitt.nyetbox.data.db.NewsItemEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
-import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
+import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository

@@ -52,7 +52,9 @@ fun ObjectTypeBadge(
 
 /** The same singularized type label used by search when the directory has not loaded yet. */
 fun objectTypeLabel(modelLabel: String?, endpointPath: String): String {
-    modelLabel?.takeIf(String::isNotBlank)?.let { return singularizeLabel(it) }
+    modelLabel?.takeIf(String::isNotBlank)?.let {
+        return singularizeLabel(it)
+    }
     val modelKey = endpointPath.trim('/').split('/').lastOrNull().orEmpty()
     return modelKey.takeIf(String::isNotBlank)?.let(Humanize::label)?.let(::singularizeLabel)
         ?: "Object"

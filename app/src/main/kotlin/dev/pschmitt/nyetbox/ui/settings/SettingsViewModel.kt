@@ -134,8 +134,8 @@ constructor(
     /**
      * The one deliberate exception to incremental sync: a user explicitly tapping "Sync now" is
      * asking for a genuinely current, fully-reconciled cache (including catching server-side
-     * deletions an incremental sync can't see), not the fast incidental refresh every other
-     * caller of syncNow() wants.
+     * deletions an incremental sync can't see), not the fast incidental refresh every other caller
+     * of syncNow() wants.
      */
     fun syncNow() {
         if (settingsRepository.offlineMode.value) return

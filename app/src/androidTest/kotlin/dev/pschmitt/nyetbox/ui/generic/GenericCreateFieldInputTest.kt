@@ -36,7 +36,8 @@ class GenericCreateFieldInputTest {
         // of how the tap is dispatched. Invoke the semantics OnClick action directly instead,
         // which calls our clickable{} lambda without going through touch dispatch/arbitration at
         // all - this is what "the field's body has a working click affordance" actually means here.
-        composeRule.onNodeWithTag("create-choice-field-manufacturer")
+        composeRule
+            .onNodeWithTag("create-choice-field-manufacturer")
             .performSemanticsAction(SemanticsActions.OnClick)
 
         composeRule.onNodeWithText("Search Manufacturer").assertExists()
@@ -56,7 +57,8 @@ class GenericCreateFieldInputTest {
         setMultiChoiceContent()
 
         // See choiceFieldBodyOpensPicker's comment - same readOnly-field-body-click issue.
-        composeRule.onNodeWithTag("create-multi-choice-field-tags")
+        composeRule
+            .onNodeWithTag("create-multi-choice-field-tags")
             .performSemanticsAction(SemanticsActions.OnClick)
 
         composeRule.onNodeWithText("Clear all").assertExists()

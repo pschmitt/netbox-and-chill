@@ -55,7 +55,7 @@ constructor(
                     // progress instead of a generic spinner.
                     syncNotifier.notifySyncProgress(progress)
                     syncStatusRepository.publishProgress(progress)
-                }
+                },
             )
             .fold(
                 onSuccess = {
