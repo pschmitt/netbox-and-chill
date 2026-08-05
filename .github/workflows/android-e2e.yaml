@@ -53,7 +53,7 @@ jobs:
 
       # Build before the emulator starts, not while it's running: compiling concurrently with a
       # booted emulator starves it of CPU, which has previously made the device drop off adb
-      # entirely partway through a run (see the Play Store screenshots workflow, which hit this
+      # entirely partway through a run (see the Screenshots workflow, which hit this
       # same failure mode first). installDebug below then only needs to install the already-built
       # APK, and connectedDebugAndroidTest only needs an up-to-date check, not a real compile.
       - name: Build the debug and androidTest APKs

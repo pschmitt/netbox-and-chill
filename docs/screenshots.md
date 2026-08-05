@@ -58,7 +58,7 @@ just screenshots
 
 Phone output lands in `fastlane/metadata/android/en-US/images/phoneScreenshots/`.
 
-For the tablet layout, manually dispatch the `Play Store screenshots` GitHub Actions workflow.
+For the tablet layout, manually dispatch the `Screenshots` GitHub Actions workflow.
 It reuses the maintained `reactivecircus/android-emulator-runner` action, the plugin-enabled
 disposable fixture, and the same `StoreScreenshotTest` journey. Download the resulting artifact;
 the images are written to `fastlane/metadata/android/en-US/images/tenInchScreenshots/` so they
@@ -144,7 +144,7 @@ capture fails and the test diagnostics should be inspected rather than publishin
   screen you're leaving" rule documented in the code comments.
 - More locales: add entries to `locales(...)` in `fastlane/Screengrabfile` - screengrab switches
   the device locale for each one via `LocaleTestRule`, which is already wired into the test.
-- Tablet screenshot buckets: the manual `Play Store screenshots` workflow uses a tablet AVD and
+- Tablet screenshot buckets: the manual `Screenshots` workflow uses a tablet AVD and
   the Play Console `tenInchScreenshots` bucket.
 - Uploading is intentionally an explicit `just screenshots-upload` step after reviewing the
   generated images.

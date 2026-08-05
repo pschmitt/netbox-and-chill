@@ -60,7 +60,7 @@ Managing apps declaratively with [declaroid](https://github.com/pschmitt/declaro
 
 ## Screenshots
 
-These are the same phone screenshots the `Play Store screenshots` GitHub Actions workflow
+These are the same phone screenshots the `Screenshots` GitHub Actions workflow
 generates for the store listing (see `app/src/androidTest/kotlin/dev/pschmitt/nyetbox/StoreScreenshotTest.kt`),
 captured from a disposable local NetBox fixture containing only synthetic CI E2E records - no
 production inventory, hostnames, tokens, or identifiers are shown. Running that workflow with
