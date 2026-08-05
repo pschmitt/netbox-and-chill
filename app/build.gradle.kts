@@ -42,8 +42,8 @@ val configuredVersionName =
 
 android {
     namespace = "dev.pschmitt.nyetbox"
-    compileSdk = 36
-    buildToolsVersion = "36.1.0"
+    compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     lint {
         // Keep the known legacy findings visible without blocking CI; new findings still fail
