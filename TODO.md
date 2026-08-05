@@ -6120,10 +6120,16 @@ leaking real inventory data into a public store listing.
 - [x] Verify the upload target with `gpc apps list` rather than relying on `gpc doctor`
 - [x] Add a manual GitHub Actions tablet capture job using the existing
       `reactivecircus/android-emulator-runner` and the disposable plugin-enabled fixture
-- [ ] Run the manual workflow and review the generated tablet screenshots before uploading them
+- [x] Run the manual workflow and review the generated tablet screenshots before uploading them
 - [x] Upload the flattened app icon and verify it in the Play Console listing
+- [x] Also capture the same screenshots in dark mode
+- [x] Add a phone screenshot lane to the CI workflow (currently local-only via `just screenshots`)
+- [x] Add a 7" tablet screenshot lane to the CI workflow (no capture path exists yet for this
+      bucket; `sevenInchScreenshots` is only a placeholder in `just screenshots-upload`)
+- [x] Optionally have the CI workflow open a PR with the updated screenshots, instead of only
+      uploading a build artifact for manual download/review
 
-Status: **mostly done**, 2026-08-04. `just screenshots` builds and runs an isolated NetBox 4.5
+Status: **done**, 2026-08-05. `just screenshots` builds and runs an isolated NetBox 4.5
 fixture with `netbox-topology-views` and `netbox-documents`, seeds a realistic demo rack with a
 four-node topology and named document, drives a local hardware-accelerated emulator, and runs a
 remote debug + androidTest build with `fastlane screengrab`; the fixture is always torn down.
@@ -6133,7 +6139,21 @@ race in the detail screen's own per-device fetch. `03_topology` waits for the se
 three-connection graph, and `04_search` fails rather than silently accepting an empty state.
 The tablet capture now lives in the manual `Play Store screenshots` GitHub Actions workflow,
 reusing the repository's maintained Android emulator runner instead of custom remote SSH/AVD
-plumbing. The tablet bucket still needs one manual run and review.
+plumbing. The CI workflow now runs a phone/7in/10in matrix (pixel_2/Nexus 7/medium_tablet), each
+lane capturing both light and dark variants of all five screenshots from one instrumentation run
+(the test switches "Color scheme" through the real Settings UI, then repeats the journey with a
+"_dark" suffix), plus an optional `open_pr` input that commits the refreshed screenshots to a PR
+instead of only uploading a build artifact. Getting there took several real, screenshot-confirmed
+bugs, not just test flakiness: KVM acceleration (GitHub-hosted runners don't grant it by default),
+building before the emulator starts instead of while it's running, a
+`POST_NOTIFICATIONS`/manifest-permission grant at install time, a real navigation bug in
+`NetBoxResponsiveScaffold` where the rail's top item ("Home") was laid out underneath the
+`TopAppBar` on tablet widths, "Display" sitting below the fold in the Settings list, Compose's own
+synthetic click consistently failing to land on the theme dropdown's "Dark" item (fixed with a
+real UiAutomator touch instead), selecting Dark navigating back to Dashboard directly on
+slower/larger emulators, and a live system ANR dialog once landing inside an actual captured
+screenshot (now guarded against before every capture). Full matrix (phone/7in/10in x light/dark)
+verified green end to end, including inspecting the real output images.
 
 
 ## NBC-366: color object-type icons in color settings
