@@ -6229,13 +6229,53 @@ resolve local-vs-remote off the main thread.
   `localFile` override.
 - [x] Verified remotely on rofl-13: `compileDebugKotlin`, `compileDebugAndroidTestKotlin`,
   `compileDebugUnitTestKotlin`, `ktfmtCheck`, and `testDebugUnitTest` all pass.
-- [ ] Confirm smooth scrolling on a physical device (Zenfone 10/Mi Pad 4/Pixel 5).
+- [x] Confirmed smooth scrolling on a physical device (Zenfone 10/Mi Pad 4/Pixel 5).
+- [x] While live-testing this fix, hit two unrelated `OutOfMemoryError` crashes on the Pixel 5
+  (256MB heap): `GlobalSearchRepository`'s whole-table search index was `SharingStarted.Eagerly`
+  (rebuilt for the app's entire lifetime, even away from Search) and its `IndexedGenericObject`
+  retained the full `NetBoxObjectEntity` (raw JSON string) alongside the already-parsed
+  `JsonObject` and derived search text; `RemoteThumbnail` also forced every thumbnail through
+  software (Java-heap) bitmap decoding just to run the alpha-crop transform, even for JPEGs that
+  can't have alpha. Fixed alongside this entry: switched to `WhileSubscribed(5000)`, slimmed
+  `IndexedGenericObject` to the four scalar fields actually needed, and skip the alpha-crop
+  transform for jpg/jpeg sources.
+- [x] Merged directly to `main` (`e8cabdb`), this repo's normal workflow for routine work.
 
 **Why:** user reported perceptible lag scrolling the device and device-type list views;
 comparison against jollyfin's Coil usage pointed at synchronous main-thread disk I/O per row.
 **How to apply:** any future image-display composable should pass a remote URL straight to
 `RemoteThumbnail`/`AsyncImage` and let Coil resolve caching - `localFile` overrides should stay
-reserved for cases that must never trigger a network fetch.
+reserved for cases that must never trigger a network fetch. Any future app-lifetime `stateIn`
+holding non-trivial data should default to `WhileSubscribed`, not `Eagerly`.
 
-Status: mostly done, 2026-08-05; refactor complete and verified remotely (build/lint/tests all
-green); on-device scroll verification still pending.
+Status: **done**, 2026-08-05; verified remotely and on all three physical devices, merged to main.
+
+## NBC-370: accurate dashboard sync progress + delayed startup sync
+
+Two related dashboard/sync UX complaints:
+
+1. `SyncStatusCard` (`ui/common/SyncStatusCard.kt`) only shows a generic spinner + "Syncing…" -
+   `SyncStatusRepository.isSyncing` is a plain `Boolean` (derived from WorkManager `WorkInfo.State`
+   only), so there's nothing richer to show. Meanwhile `SyncNotifier`'s system notification already
+   renders real step/message progress via `SyncProgress(message, step, totalSteps)` - that value is
+   only ever handed to `SyncNotifier.notifySyncProgress()` from `OfflineSyncRepository`/`SyncWorker`
+   and never published anywhere the UI can read it.
+2. `SyncScheduler.scheduleStartup()` enqueues the startup sync with no `setInitialDelay(...)` -
+   opening the app always immediately shows a syncing state (if `syncOnAppLaunch` is on), even for
+   a routine reopen seconds after the last sync.
+
+- [ ] Publish `SyncProgress` somewhere UI-observable (e.g. a `StateFlow<SyncProgress?>` alongside
+  `SyncStatusRepository`, updated by `SyncWorker` the same moment it calls
+  `SyncNotifier.notifySyncProgress`), and have `SyncStatusCard` render the current
+  step/message/total instead of just a boolean spinner.
+- [ ] Add a short initial delay (`OneTimeWorkRequestBuilder.setInitialDelay(...)`) to the startup
+  sync in `SyncScheduler.scheduleStartup()`, long enough that reopening the app shortly after a
+  sync doesn't visibly retrigger one, but still short enough that a genuinely stale cache refreshes
+  promptly.
+
+**Why:** user found the dashboard's sync indicator uninformative next to the notification, and
+found the immediate startup sync jarring on every app open.
+**How to apply:** keep `SyncProgress` as the single source of truth for both surfaces (notification
++ dashboard) rather than inventing a second progress representation.
+
+Status: not started, 2026-08-05.
