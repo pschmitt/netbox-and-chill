@@ -6319,3 +6319,53 @@ Status: **done**, 2026-08-05, verified via `just gradle rofl-13
 compileDebugKotlin compileDebugAndroidTestKotlin compileDebugUnitTestKotlin testDebugUnitTest`
 (pass), `just lint` (pass, ktfmtCheck clean), and a screenshot of the dashboard on the Zenfone 10
 after `just deploy-all` confirming the pill/tonal-surface look.
+
+## NBC-372: teach the per-list search bars the global-search `key:value` syntax
+
+`DeviceListScreen`/`DeviceListViewModel` and `GenericListScreen`/`GenericListViewModel` each have
+their own `ModernSearchField`, but the typed text is passed straight through to
+`DeviceRepository.observeDevices(query)`/`GenericObjectRepository.observeObjects(endpointPath,
+query, filterKey, filterValue)`, which only do a Room `LIKE` substring match against a fixed column
+list (`DeviceDao.search`) or `display` (`NetBoxObjectDao.search`) - no `key:value` structured
+parsing at all, unlike NBC-13's Global Search (`GlobalSearchRepository.parseGlobalSearchQuery`).
+
+- [x] Promote the pieces of `GlobalSearchRepository.kt` needed outside that class to top-level
+  (module-internal) functions instead of duplicating them: `DeviceEntity.createSearchFields()` (was
+  a private class member with no dependency on the class), and a new
+  `Map<String, String>.matchesFilters(filters)` helper (replacing the previously-unused private
+  `Map<String, String>.matches(filter)`), reused by `IndexedGenericObject.matches`/
+  `IndexedDevice.matches` too instead of their own duplicated inline filter loops.
+- [x] `DeviceRepository.observeDevices(query)`: parse the query with `parseGlobalSearchQuery`, run
+  the free-text part through the existing `DeviceDao.search`/`observeAll` Room query, then filter
+  the result in-memory against `objectFilters` using the promoted `createSearchFields()`/
+  `matchesFilters()` helpers.
+- [x] `GenericObjectRepository.observeObjects(...)`: same shape - free text still hits
+  `NetBoxObjectDao.search`/`observeAll`, then `objectFilters` are matched in-memory by decoding each
+  cached row's raw `json` and reusing `JsonObject.createChoiceSearchFields()` (already used by
+  Global Search) - kept as a small top-level `NetBoxObjectEntity.matchesSearchFilters(...)`
+  extension alongside the existing `matchesRelation(...)` one, not merged with the unrelated
+  route-level `filterKey`/`filterValue` relation filter (`Route.GenericList`'s single fixed filter
+  is a different, pre-existing concern - applied after the new query filter, unchanged).
+- [x] `type:`/`tpe:` handling: **no-op inside these list screens.** `ParsedGlobalSearchQuery.
+  objectFilters` already excludes the `type` key (Global Search itself only uses it to scope which
+  *endpoint* to search across models) - since a per-list screen is already scoped to one model
+  (just devices, or just one generic endpoint), a `type:` token typed there has nothing left to
+  scope and is silently ignored rather than erroring or being treated as a literal field match.
+- [x] Update `DeviceListScreen`'s `DeviceRow` and `GenericListScreen`'s `ObjectRow` to highlight
+  `parseGlobalSearchQuery(query).networkQuery` (free text + filter *values*, keys stripped) instead
+  of the raw typed query - mirrors `GlobalSearchScreen`'s `highlightQuery` derivation, so typing
+  `status:active` highlights "active" in the row instead of the literal string "status:active".
+- [x] Unit test coverage for the new filter-matching behavior (`DeviceRepositoryTest.kt`,
+  `GenericObjectRepositoryTest.kt`), following the existing `FakeModelDao`-style fake-DAO pattern
+  used in `DirectoryRepositoryTest.kt`.
+- [x] Verified remotely: `just gradle rofl-13 compileDebugKotlin compileDebugAndroidTestKotlin
+  compileDebugUnitTestKotlin testDebugUnitTest` and `just lint` both pass.
+
+**Why:** user asked for the per-object-type list screens' search bars to support the same
+`key:value` filter syntax Global Search already has, instead of reinventing parsing for each list.
+**How to apply:** any future per-model list search should keep going through
+`parseGlobalSearchQuery`/`ParsedGlobalSearchQuery`/`SearchQueryFilter` rather than adding another
+ad hoc filter syntax.
+
+Status: **done**, 2026-08-05; verified remotely (compile/lint/unit tests all green), merged to
+main.

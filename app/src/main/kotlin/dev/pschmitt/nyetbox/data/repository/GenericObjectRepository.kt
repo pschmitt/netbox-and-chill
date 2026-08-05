@@ -82,17 +82,38 @@ constructor(
     private val syncIssueReporter: SyncIssueReporter,
 ) {
 
+    /**
+     * Understands the same `key:value` structured filter syntax as NBC-13's Global Search
+     * (`parseGlobalSearchQuery`) - e.g. `status:active site:hq` narrows to objects whose `status`
+     * field contains "active" and whose `site` field contains "hq", plus free-text against the
+     * existing [NetBoxObjectDao.search] `display` match. The `type:`/`tpe:` collection-scoping
+     * token is a no-op here (excluded from `ParsedGlobalSearchQuery.objectFilters` already) - this
+     * list is already scoped to one endpoint, so there is nothing left for it to select. Free text
+     * still goes through Room's `LIKE` query; structured filters are applied in-memory afterwards
+     * by decoding each row's cached `json` and reusing [createChoiceSearchFields] - the same
+     * field-flattening Global Search uses for arbitrary NetBox objects - since `LIKE` can't express
+     * field-scoped matching. This is a separate concern from [filterKey]/[filterValue], the
+     * route-level single fixed relation filter (`Route.GenericList`) applied last, unchanged.
+     */
     fun observeObjects(
         endpointPath: String,
         query: String,
         filterKey: String? = null,
         filterValue: Int? = null,
     ): Flow<List<NetBoxObjectEntity>> {
+        val parsed = parseGlobalSearchQuery(query)
         val source =
-            (if (query.isBlank()) dao.observeAll(endpointPath) else dao.search(endpointPath, query))
+            (if (parsed.freeText.isBlank()) dao.observeAll(endpointPath)
+                else dao.search(endpointPath, parsed.freeText))
                 .map { objects -> objects.sortedWith(naturalDisplayComparator) }
-        if (filterKey == null || filterValue == null) return source
-        return source.map { objects ->
+        val filtered =
+            if (parsed.objectFilters.isEmpty()) source
+            else
+                source.map { objects ->
+                    objects.filter { it.matchesSearchFilters(json, parsed.objectFilters) }
+                }
+        if (filterKey == null || filterValue == null) return filtered
+        return filtered.map { objects ->
             objects.filter { it.matchesRelation(json, filterKey, filterValue) }
         }
     }
@@ -501,6 +522,17 @@ internal fun buildCreateBody(
         }
     }
     return Result.success(JsonObject(body))
+}
+
+/** NBC-372: matches this cached object's decoded `json` against structured `key:value` filters. */
+private fun NetBoxObjectEntity.matchesSearchFilters(
+    parser: Json,
+    filters: List<SearchQueryFilter>,
+): Boolean {
+    val objectJson =
+        runCatching { parser.decodeFromString(JsonObject.serializer(), json) }.getOrNull()
+            ?: return false
+    return objectJson.createChoiceSearchFields().matchesFilters(filters)
 }
 
 private fun NetBoxObjectEntity.matchesRelation(

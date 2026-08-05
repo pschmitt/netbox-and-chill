@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
+import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
 import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.ModernSearchField
@@ -61,6 +62,9 @@ fun DeviceListScreen(
     val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
     val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    // Free text + filter *values* only, keys stripped - so typing `status:active` highlights
+    // "active" in the row instead of the literal "status:active" (mirrors GlobalSearchScreen).
+    val highlightQuery = remember(query) { parseGlobalSearchQuery(query).networkQuery }
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -148,7 +152,7 @@ fun DeviceListScreen(
                                     frontImageUrl =
                                         deviceTypeImages[device.deviceTypeId]?.frontImageUrl,
                                     fallbackTint = rowColor,
-                                    query = query,
+                                    highlightQuery = highlightQuery,
                                     onClick = { onDeviceClick(device.id) },
                                 )
                             }
@@ -171,7 +175,7 @@ private fun DeviceRow(
     device: DeviceEntity,
     frontImageUrl: String?,
     fallbackTint: androidx.compose.ui.graphics.Color,
-    query: String,
+    highlightQuery: String,
     onClick: () -> Unit,
 ) {
     Card(
@@ -200,7 +204,7 @@ private fun DeviceRow(
                 ) {
                     SearchHighlightedText(
                         value = device.name,
-                        query = query,
+                        query = highlightQuery,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 2,
                         modifier = Modifier.weight(1f),
@@ -217,7 +221,7 @@ private fun DeviceRow(
                 if (subtitle.isNotBlank()) {
                     SearchHighlightedText(
                         value = subtitle,
-                        query = query,
+                        query = highlightQuery,
                         style =
                             MaterialTheme.typography.bodyMedium.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -232,12 +236,12 @@ private fun DeviceRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     device.assetTag?.takeIf(String::isNotBlank)?.let {
-                        AssetTagBadge(it, highlightQuery = query)
+                        AssetTagBadge(it, highlightQuery = highlightQuery)
                     } ?: MissingAssetTagBadge()
                     StatusChip(
                         label = device.statusLabel,
                         value = device.statusValue,
-                        highlightQuery = query,
+                        highlightQuery = highlightQuery,
                     )
                 }
             }

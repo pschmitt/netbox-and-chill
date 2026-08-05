@@ -7,6 +7,7 @@ import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import timber.log.Timber
 
 /**
@@ -15,8 +16,25 @@ import timber.log.Timber
 @Singleton
 class DeviceRepository @Inject constructor(private val api: NetBoxApi, private val dao: DeviceDao) {
 
-    fun observeDevices(query: String): Flow<List<DeviceEntity>> =
-        if (query.isBlank()) dao.observeAll() else dao.search(query)
+    /**
+     * Understands the same `key:value` structured filter syntax as NBC-13's Global Search
+     * (`parseGlobalSearchQuery`) - e.g. `status:active site:hq router` narrows to devices whose
+     * `status` field contains "active" and whose `site` field contains "hq", plus free-text
+     * "router" against the existing [DeviceDao.search] columns. The `type:`/`tpe:`
+     * collection-scoping token is a no-op here (excluded from
+     * [dev.pschmitt.nyetbox.data.repository.ParsedGlobalSearchQuery.objectFilters] already) - this
+     * list is already scoped to devices, so there is nothing left for it to select. Free text still
+     * goes through Room's `LIKE` query (cheap, indexed columns); structured filters are applied
+     * in-memory afterwards since they need field-scoped matching `LIKE` can't express.
+     */
+    fun observeDevices(query: String): Flow<List<DeviceEntity>> {
+        val parsed = parseGlobalSearchQuery(query)
+        val base = if (parsed.freeText.isBlank()) dao.observeAll() else dao.search(parsed.freeText)
+        if (parsed.objectFilters.isEmpty()) return base
+        return base.map { devices ->
+            devices.filter { it.createSearchFields().matchesFilters(parsed.objectFilters) }
+        }
+    }
 
     fun observeDevice(id: Int): Flow<DeviceEntity?> = dao.observeById(id)
 

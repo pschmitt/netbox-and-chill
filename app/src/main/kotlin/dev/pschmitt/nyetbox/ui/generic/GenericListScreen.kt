@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
+import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
 import dev.pschmitt.nyetbox.data.schema.assetTagStateFromRawJson
 import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
 import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
@@ -60,6 +61,9 @@ fun GenericListScreen(
     val objects by viewModel.objects.collectAsStateWithLifecycle()
     val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    // Free text + filter *values* only, keys stripped - so typing `status:active` highlights
+    // "active" in the row instead of the literal "status:active" (mirrors GlobalSearchScreen).
+    val highlightQuery = remember(query) { parseGlobalSearchQuery(query).networkQuery }
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -144,7 +148,7 @@ fun GenericListScreen(
                                     obj = obj,
                                     icon = rowIcon,
                                     iconTint = rowColor,
-                                    query = query,
+                                    highlightQuery = highlightQuery,
                                     onClick = { onObjectClick(obj.id) },
                                 )
                             }
@@ -167,7 +171,7 @@ private fun ObjectRow(
     obj: NetBoxObjectEntity,
     icon: ImageVector,
     iconTint: androidx.compose.ui.graphics.Color,
-    query: String,
+    highlightQuery: String,
     onClick: () -> Unit,
 ) {
     val assetTag = remember(obj.json) { assetTagStateFromRawJson(obj.json) }
@@ -215,7 +219,7 @@ private fun ObjectRow(
                 ) {
                     SearchHighlightedText(
                         value = obj.display,
-                        query = query,
+                        query = highlightQuery,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 2,
                         modifier = Modifier.weight(1f),
@@ -230,7 +234,7 @@ private fun ObjectRow(
                 obj.secondaryLine?.takeIf(String::isNotBlank)?.let {
                     SearchHighlightedText(
                         value = it,
-                        query = query,
+                        query = highlightQuery,
                         style =
                             MaterialTheme.typography.bodyMedium.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -241,7 +245,7 @@ private fun ObjectRow(
                 if (assetTag.value != null || assetTag.hasField) {
                     Row(Modifier.padding(top = 8.dp)) {
                         if (assetTag.value != null) {
-                            AssetTagBadge(assetTag.value, highlightQuery = query)
+                            AssetTagBadge(assetTag.value, highlightQuery = highlightQuery)
                         } else {
                             MissingAssetTagBadge()
                         }

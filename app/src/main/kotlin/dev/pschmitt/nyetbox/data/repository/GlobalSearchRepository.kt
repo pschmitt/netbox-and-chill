@@ -211,12 +211,7 @@ constructor(
             ) {
                 return false
             }
-            return objectFilters.all { filter ->
-                searchFields.entries.any { (key, value) ->
-                    searchFieldKeyMatches(filter.key, key) &&
-                        value.contains(filter.value, ignoreCase = true)
-                }
-            }
+            return searchFields.matchesFilters(objectFilters)
         }
     }
 
@@ -230,12 +225,7 @@ constructor(
             if (candidate.isNotBlank() && !normalizedSearchText.contains(normalizedCandidate)) {
                 return false
             }
-            return query.objectFilters.all { filter ->
-                searchFields.entries.any { (key, value) ->
-                    searchFieldKeyMatches(filter.key, key) &&
-                        value.contains(filter.value, ignoreCase = true)
-                }
-            }
+            return searchFields.matchesFilters(query.objectFilters)
         }
     }
 
@@ -593,30 +583,6 @@ constructor(
         )
     }
 
-    private fun DeviceEntity.createSearchFields(): Map<String, String> =
-        mapOf(
-                "name" to name,
-                "status" to statusLabel,
-                "site" to siteName,
-                "rack" to rackName,
-                "role" to roleName,
-                "manufacturer" to manufacturerName,
-                "device_type" to deviceTypeModel,
-                "model" to deviceTypeModel,
-                "serial" to serial,
-                "asset_tag" to assetTag,
-                "primary_ip" to primaryIp,
-                "comments" to comments,
-            )
-            .filterValues { !it.isNullOrBlank() }
-            .mapValues { it.value!! }
-
-    private fun Map<String, String>.matches(filter: SearchQueryFilter): Boolean =
-        entries.any { (key, value) ->
-            searchFieldKeyMatches(filter.key, key) &&
-                value.contains(filter.value, ignoreCase = true)
-        }
-
     private fun structuredSearchHint(
         fields: Map<String, String>,
         query: ParsedGlobalSearchQuery,
@@ -665,6 +631,45 @@ constructor(
             )
     }
 }
+
+/**
+ * Flattened field/value pairs (e.g. `"name" to "Router 1"`, `"site" to "HQ"`) that NBC-13's Global
+ * Search matches `key:value` filters against. Promoted out of [GlobalSearchRepository] (it never
+ * touched instance state) so the per-list-screen search bars (NBC-372's `DeviceRepository`) can
+ * reuse the exact same field mapping instead of duplicating it.
+ */
+internal fun DeviceEntity.createSearchFields(): Map<String, String> =
+    mapOf(
+            "name" to name,
+            "status" to statusLabel,
+            "site" to siteName,
+            "rack" to rackName,
+            "role" to roleName,
+            "manufacturer" to manufacturerName,
+            "device_type" to deviceTypeModel,
+            "model" to deviceTypeModel,
+            "serial" to serial,
+            "asset_tag" to assetTag,
+            "primary_ip" to primaryIp,
+            "comments" to comments,
+        )
+        .filterValues { !it.isNullOrBlank() }
+        .mapValues { it.value!! }
+
+/**
+ * True when every filter in [filters] matches some field in this field/value
+ * map - [searchFieldKeyMatches] resolves aliasing between a filter's key (e.g. `ip`) and the actual
+ * field key (e.g. `primary_ip`). Shared by [GlobalSearchRepository]'s in-memory indexes and
+ * NBC-372's per-list-screen `key:value` filtering (`DeviceRepository`/`GenericObjectRepository`) so
+ * there is exactly one place this matching rule lives.
+ */
+internal fun Map<String, String>.matchesFilters(filters: List<SearchQueryFilter>): Boolean =
+    filters.all { filter ->
+        entries.any { (key, value) ->
+            searchFieldKeyMatches(filter.key, key) &&
+                value.contains(filter.value, ignoreCase = true)
+        }
+    }
 
 internal fun searchFieldKeyMatches(filterKey: String, fieldKey: String): Boolean {
     val filter = normalizeSearchFieldKey(filterKey)

@@ -1,5 +1,18 @@
 package dev.pschmitt.nyetbox.data.repository
 
+import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
+import dev.pschmitt.nyetbox.data.api.dto.PagedResponseDto
+import dev.pschmitt.nyetbox.data.db.NetBoxObjectDao
+import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
+import dev.pschmitt.nyetbox.sync.SyncIssueReporter
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -30,4 +43,189 @@ class GenericObjectRepositoryTest {
 
         assertEquals(listOf("Gi1/0", "Gi1/0/1"), sorted)
     }
+
+    // NBC-372: GenericListScreen's search bar now understands the same `key:value` structured
+    // filter syntax as NBC-13's Global Search.
+
+    private val endpointPath = "api/dcim/sites/"
+
+    @Test
+    fun `structured filter matches a decoded JSON field, not just display`() = runTest {
+        val dao =
+            InMemoryNetBoxObjectDao(
+                listOf(
+                    siteObject(id = 1, name = "Site Alpha", description = "Primary datacenter"),
+                    siteObject(id = 2, name = "Site Beta", description = "Secondary datacenter"),
+                )
+            )
+        val repository = repository(dao)
+
+        val result = repository.observeObjects(endpointPath, "description:primary").first()
+
+        assertEquals(listOf(1), result.map { it.id })
+    }
+
+    @Test
+    fun `a lone type filter is a no-op since the list is already scoped to one endpoint`() =
+        runTest {
+            val dao =
+                InMemoryNetBoxObjectDao(
+                    listOf(
+                        siteObject(id = 1, name = "Site Alpha", description = "Primary"),
+                        siteObject(id = 2, name = "Site Beta", description = "Secondary"),
+                    )
+                )
+            val repository = repository(dao)
+
+            val withTypeFilter = repository.observeObjects(endpointPath, "type:sites").first()
+            val withoutQuery = repository.observeObjects(endpointPath, "").first()
+
+            assertEquals(withoutQuery.map { it.id }, withTypeFilter.map { it.id })
+            assertEquals(listOf(1, 2), withTypeFilter.map { it.id })
+        }
+
+    @Test
+    fun `structured filter composes with the pre-existing route-level relation filter`() = runTest {
+        val dao =
+            InMemoryNetBoxObjectDao(
+                listOf(
+                    siteObject(id = 1, name = "Rack A1", description = "Primary", tenantId = 9),
+                    siteObject(
+                        id = 2,
+                        name = "Rack A2",
+                        description = "Primary",
+                        tenantId = 10,
+                    ),
+                )
+            )
+        val repository = repository(dao)
+
+        val result =
+            repository
+                .observeObjects(
+                    endpointPath,
+                    "description:primary",
+                    filterKey = "tenant",
+                    filterValue = 9,
+                )
+                .first()
+
+        assertEquals(listOf(1), result.map { it.id })
+    }
+
+    private fun repository(dao: NetBoxObjectDao) =
+        GenericObjectRepository(FakeGenericNetBoxApi(), dao, Json, SyncIssueReporter())
+
+    private fun siteObject(
+        id: Int,
+        name: String,
+        description: String,
+        tenantId: Int? = null,
+    ): NetBoxObjectEntity {
+        val fields =
+            buildMap<String, JsonElement> {
+                put("id", JsonPrimitive(id))
+                put("name", JsonPrimitive(name))
+                put("description", JsonPrimitive(description))
+                if (tenantId != null) {
+                    put(
+                        "tenant",
+                        JsonObject(
+                            mapOf(
+                                "id" to JsonPrimitive(tenantId),
+                                "name" to JsonPrimitive("Tenant $tenantId"),
+                            )
+                        ),
+                    )
+                }
+            }
+        return NetBoxObjectEntity(
+            endpointPath = endpointPath,
+            id = id,
+            display = name,
+            secondaryLine = null,
+            json = Json.encodeToString(JsonObject.serializer(), JsonObject(fields)),
+            syncedAt = 0,
+        )
+    }
+}
+
+/**
+ * In-memory approximation of `NetBoxObjectDao.observeAll`/`search` (same `display`-only `LIKE`
+ * behavior), so [GenericObjectRepository.observeObjects]'s free-text + structured-filter split can
+ * be exercised without a real Room database.
+ */
+private class InMemoryNetBoxObjectDao(private val objects: List<NetBoxObjectEntity>) :
+    NetBoxObjectDao {
+    override fun observeAll(endpointPath: String): Flow<List<NetBoxObjectEntity>> =
+        flowOf(objects.filter { it.endpointPath == endpointPath })
+
+    override fun search(endpointPath: String, query: String): Flow<List<NetBoxObjectEntity>> =
+        flowOf(
+            objects.filter {
+                it.endpointPath == endpointPath && it.display.contains(query, ignoreCase = true)
+            }
+        )
+
+    override fun searchAllInEndpoint(
+        endpointPath: String,
+        query: String,
+        limit: Int,
+    ): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
+
+    override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
+        flowOf(objects.firstOrNull { it.endpointPath == endpointPath && it.id == id })
+
+    override fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> = flowOf(objects)
+
+    override suspend fun getById(endpointPath: String, id: Int): NetBoxObjectEntity? =
+        objects.firstOrNull {
+            it.endpointPath == endpointPath && it.id == id
+        }
+
+    override suspend fun getAll(endpointPath: String): List<NetBoxObjectEntity> = objects.filter {
+        it.endpointPath == endpointPath
+    }
+
+    override fun searchAll(query: String, limit: Int): Flow<List<NetBoxObjectEntity>> =
+        flowOf(emptyList())
+
+    override suspend fun upsertAll(objects: List<NetBoxObjectEntity>) = error("unused")
+
+    override suspend fun upsert(obj: NetBoxObjectEntity) = error("unused")
+
+    override suspend fun delete(endpointPath: String, id: Int) = error("unused")
+
+    override suspend fun count(endpointPath: String): Int = objects.count {
+        it.endpointPath == endpointPath
+    }
+
+    override suspend fun countAll(): Int = objects.size
+
+    override suspend fun getAll(): List<NetBoxObjectEntity> = objects
+}
+
+private class FakeGenericNetBoxApi : GenericNetBoxApi {
+    override suspend fun getAuthenticationCheck(): JsonObject = error("unused")
+
+    override suspend fun getApiRoot(): Map<String, String> = error("unused")
+
+    override suspend fun getUrlMap(url: String): Map<String, String> = error("unused")
+
+    override suspend fun listObjects(
+        url: String,
+        query: Map<String, String>,
+    ): PagedResponseDto<JsonObject> = error("unused")
+
+    override suspend fun getObject(url: String): JsonObject = error("unused")
+
+    override suspend fun getObjectOptions(url: String): JsonObject = error("unused")
+
+    override suspend fun patchObject(url: String, body: JsonObject): JsonObject = error("unused")
+
+    override suspend fun createObject(url: String, body: JsonObject): JsonObject = error("unused")
+
+    override suspend fun deleteObject(url: String) = error("unused")
+
+    override suspend fun getJournalEntryOptions(): JsonObject = error("unused")
 }
