@@ -8,9 +8,11 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.printToLog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.pschmitt.nyetbox.sync.SyncNotifier
@@ -113,6 +115,10 @@ class NetBoxE2eTest {
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Search NetBox", timeoutMillis = 30_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
+        // Diagnostic: this click has hung with zero further logcat activity across many CI
+        // configurations (KVM on/off, extra RAM/cores, longer timeouts). Dump the tree immediately
+        // after the click, before any wait, to see what actually rendered.
+        runCatching { composeRule.onRoot().printToLog("E2E_TREE_AFTER_SEARCH_CLICK") }
         waitForTag("e2e-global-search", timeoutMillis = 60_000)
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("CI E2E Device")
         waitForText("CI E2E Device", timeoutMillis = 30_000)
