@@ -2,8 +2,10 @@ package dev.pschmitt.nyetbox.ui.dashboard
 
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,8 +77,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -184,6 +184,7 @@ fun DashboardScreen(
         }
     }
 
+    Box(Modifier.fillMaxSize()) {
     NetBoxResponsiveScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -546,8 +547,9 @@ fun DashboardScreen(
         }
     }
 
-    if (showInitialSyncOverlay && !initialSyncTimedOut) {
-        InitialSyncOverlay()
+        if (showInitialSyncOverlay && !initialSyncTimedOut) {
+            InitialSyncOverlay()
+        }
     }
 
     if (showDashboardVisibilityDialog) {
@@ -654,13 +656,26 @@ private fun DashboardSectionHeader(
 
 @Composable
 private fun InitialSyncOverlay() {
-    Dialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+    // Deliberately a same-window Compose overlay, not a Dialog: a Dialog owns a separate Android
+    // Window, which does not play well with activityRule.scenario.recreate() in NetBoxE2eTest -
+    // confirmed via CI, where that combination left the activity stuck "PAUSED" instead of
+    // reaching DESTROYED and cascaded into unrelated test failures later in the same run.
+    Box(
+        modifier =
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+                // A Box with only a background modifier is invisible to hit-testing - this no-op
+                // click is what actually absorbs touches so nothing behind is reachable.
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) {},
+        contentAlignment = Alignment.Center,
     ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
             modifier = Modifier.testTag("e2e-initial-sync-overlay"),
         ) {
             Column(
