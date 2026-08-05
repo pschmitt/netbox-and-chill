@@ -186,10 +186,32 @@ jobs:
             find "$dir" -mindepth 1 -type d -exec rm -rf {} +
           done
 
+      # README.md's screenshot gallery uses the phone bucket's light-mode captures under stable
+      # filenames, so those don't drift into a second, separately-maintained set of screenshots -
+      # see the "Screenshots" section there. screengrab always appends a timestamp to each capture
+      # (e.g. 01_dashboard_1785918416650.png), so match on the numeric prefix rather than an exact
+      # name; that pattern also naturally excludes each "_dark" variant, whose next characters
+      # after the number prefix are "dark_<timestamp>", not digits.
+      - name: Sync README screenshots from the phone bucket
+        run: |
+          src="fastlane/metadata/android/en-US/images/phoneScreenshots"
+          declare -A readme_images=(
+            [01_dashboard]="docs/images/readme-dashboard.png"
+            [02_device_detail]="docs/images/readme-device-detail.png"
+            [03_topology]="docs/images/readme-topology.png"
+            [04_search]="docs/images/readme-search.png"
+            [05_settings]="docs/images/readme-settings.png"
+          )
+          for prefix in "${!readme_images[@]}"; do
+            match="$(find "$src" -iname "${prefix}_[0-9]*.png" | head -n1)"
+            test -n "$match" || { echo "No capture found for $prefix" >&2; exit 1; }
+            cp "$match" "${readme_images[$prefix]}"
+          done
+
       - name: Check for changes
         id: diff
         run: |
-          git add fastlane/metadata/android/en-US/images
+          git add fastlane/metadata/android/en-US/images docs/images
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -205,6 +227,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git commit -m "chore: update Play Store screenshots (phone, 7in, 10in tablet)"
+          git commit -m "chore: update Play Store and README screenshots (phone, 7in, 10in tablet)"
           git push origin "$branch"
-          gh pr create --title "Update Play Store screenshots" --body "Automated screenshot refresh from the \`Play Store screenshots\` workflow (run ${{ github.run_id }}). Review the images before merging." --head "$branch" --base "${{ github.ref_name }}"
+          gh pr create --title "Update Play Store and README screenshots" --body "Automated screenshot refresh from the \`Play Store screenshots\` workflow (run ${{ github.run_id }}), including README.md's gallery (phone bucket, light mode). Review the images before merging." --head "$branch" --base "${{ github.ref_name }}"

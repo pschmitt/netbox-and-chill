@@ -60,14 +60,18 @@ Managing apps declaratively with [declaroid](https://github.com/pschmitt/declaro
 
 ## Screenshots
 
-These screenshots were captured from a disposable local NetBox fixture containing only synthetic
-CI E2E records. No production inventory, hostnames, tokens, or identifiers are shown.
+These are the same phone screenshots the `Play Store screenshots` GitHub Actions workflow
+generates for the store listing (see `app/src/androidTest/kotlin/dev/pschmitt/nyetbox/StoreScreenshotTest.kt`),
+captured from a disposable local NetBox fixture containing only synthetic CI E2E records - no
+production inventory, hostnames, tokens, or identifiers are shown. Running that workflow with
+`open_pr` refreshes the files below in place, so this section never drifts from what the store
+listing actually looks like.
 
 <p>
   <img src="docs/images/readme-dashboard.png" alt="Dashboard with statistics and recent changes" width="180">
   <img src="docs/images/readme-device-detail.png" alt="Device detail page with status, cache, and media sections" width="180">
+  <img src="docs/images/readme-topology.png" alt="Network topology graph" width="180">
   <img src="docs/images/readme-search.png" alt="Global search with recently visited items" width="180">
-  <img src="docs/images/readme-scanner.png" alt="QR and barcode scanner" width="180">
   <img src="docs/images/readme-settings.png" alt="Settings categories" width="180">
 </p>
 
