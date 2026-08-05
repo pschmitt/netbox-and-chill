@@ -125,6 +125,7 @@ class NetBoxE2eTest {
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
+        waitForTag("e2e-offline-toggle", timeoutMillis = 30_000)
         composeRule.onNodeWithTag("e2e-offline-toggle").performClick()
         waitForTag("e2e-device-list-entry", timeoutMillis = 30_000)
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
