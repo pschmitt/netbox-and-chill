@@ -188,7 +188,8 @@ class NetBoxE2eTest {
             click()
             val landed = runCatching {
                 waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis)
-            }.isSuccess
+            }
+                .isSuccess
             if (landed) return
             check(attempt < maxAttempts - 1) {
                 "Never reached tag '$destinationTag' after $maxAttempts clicks"
