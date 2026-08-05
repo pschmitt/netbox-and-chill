@@ -93,6 +93,7 @@ class StoreScreenshotTest {
         // stopped animating.
         Thread.sleep(300)
         composeRule.onNodeWithText("Dark").performClick()
+        captureE2eScreenshot("DEBUG_immediately_after_dark_click")
         // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
         // only other match while the dropdown was open (the item just clicked) is gone by then.
         waitForText("Dark", 30_000)
