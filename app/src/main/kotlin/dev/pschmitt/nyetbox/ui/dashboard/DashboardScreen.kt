@@ -70,6 +70,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -178,17 +179,29 @@ fun DashboardScreen(
     // Last-resort escape hatch: if the overlay's own conditions (see
     // DashboardViewModel.showInitialSyncOverlay) somehow never resolve - e.g. a sync stays
     // RUNNING without ever reaching a terminal state - don't trap the user behind it forever.
+    // 20s was too eager for a real first sync (richer NetBox instances, slower connections): the
+    // Play Store screenshot captures were catching this firing before the sync actually finished,
+    // revealing a still-loading dashboard - a real user would hit the same thing. This is a safety
+    // net for the genuinely-stuck case, not the expected happy path, so it can afford to be patient.
     var initialSyncTimedOut by remember { mutableStateOf(false) }
     LaunchedEffect(showInitialSyncOverlay) {
         if (showInitialSyncOverlay) {
             initialSyncTimedOut = false
-            delay(20_000)
+            delay(45_000)
             initialSyncTimedOut = true
         }
     }
 
     Box(Modifier.fillMaxSize()) {
         NetBoxResponsiveScaffold(
+            // Blur the real dashboard behind the initial-sync overlay instead of leaving it
+            // sharp underneath a dark scrim - each section's own "nothing cached yet" empty
+            // state was clearly visible through the scrim, mid-load, reading as broken rather
+            // than loading. A blurred backdrop reads as "this is loading" regardless of what
+            // state any individual section happens to be in at that moment.
+            modifier =
+                if (showInitialSyncOverlay && !initialSyncTimedOut) Modifier.blur(16.dp)
+                else Modifier,
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
