@@ -153,7 +153,10 @@ fun Sidebar(
 
     ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
         Column(Modifier.fillMaxHeight()) {
-            LazyColumn(state = sidebarListState, modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                state = sidebarListState,
+                modifier = Modifier.weight(1f).testTag("e2e-sidebar-list"),
+            ) {
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
