@@ -48,6 +48,14 @@ jobs:
           echo "$seed_result"
           echo "E2E_DEVICE_ID=$(python3 -c 'import json, sys; print(json.loads(sys.argv[1])["device"])' "$seed_result")" >> "$GITHUB_ENV"
 
+      # Build before the emulator starts, not while it's running: compiling concurrently with a
+      # booted emulator starves it of CPU, which has previously made the device drop off adb
+      # entirely partway through a run (see the Play Store screenshots workflow, which hit this
+      # same failure mode first). installDebug below then only needs to install the already-built
+      # APK, and connectedDebugAndroidTest only needs an up-to-date check, not a real compile.
+      - name: Build the debug and androidTest APKs
+        run: ./gradlew assembleDebug assembleDebugAndroidTest --stacktrace
+
       # GitHub-hosted runners ship /dev/kvm but don't grant the job user access to it, so the
       # emulator silently falls back to software-only emulation: boot takes ~15+ minutes and the
       # device tends to drop offline once Gradle contends for CPU. This grants real KVM access.
@@ -86,6 +94,14 @@ jobs:
       - name: Capture emulator diagnostics
         if: ${{ failure() }}
         run: |
+          {
+            echo "--- adb devices ---"
+            timeout 10s adb devices -l
+            echo "--- host memory ---"
+            free -h
+            echo "--- host disk ---"
+            df -h
+          } > e2e-host-diagnostics.txt 2>&1 || true
           timeout 60s adb logcat -d > e2e-logcat.txt || true
           timeout 20s adb exec-out screencap -p > e2e-screenshot.png || true
 
@@ -106,6 +122,7 @@ jobs:
           name: android-e2e-artifacts-${{ github.run_id }}
           if-no-files-found: warn
           path: |
+            e2e-host-diagnostics.txt
             e2e-logcat.txt
             e2e-screenshot.png
             e2e-screenshots/
