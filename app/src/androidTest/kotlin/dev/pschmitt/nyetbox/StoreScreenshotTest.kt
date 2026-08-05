@@ -86,8 +86,13 @@ class StoreScreenshotTest {
         // shown up once already.
         composeRule.onNodeWithText("Color scheme").performScrollTo().performClick()
         waitForText("Dark", 30_000)
+        // The DEBUG_after_dark_click capture from an earlier run showed the dropdown still fully
+        // open with all three options after this click "landed": Material3's DropdownMenu has an
+        // expand transition, and the click fired before it settled, missing the item entirely.
+        // waitForText above only confirms "Dark" exists in the tree, not that the popup has
+        // stopped animating.
+        Thread.sleep(300)
         composeRule.onNodeWithText("Dark").performClick()
-        captureE2eScreenshot("DEBUG_after_dark_click")
         // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
         // only other match while the dropdown was open (the item just clicked) is gone by then.
         waitForText("Dark", 30_000)
