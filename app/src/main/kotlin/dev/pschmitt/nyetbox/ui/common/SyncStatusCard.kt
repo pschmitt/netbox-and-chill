@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.pschmitt.nyetbox.sync.SyncProgress
+import dev.pschmitt.nyetbox.sync.notificationSubText
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -27,12 +29,17 @@ import java.util.concurrent.TimeUnit
  * A persistent, low-key "when did this last sync" indicator for the dashboard - shown in place of
  * [SyncIssueCard] whenever there is no active issue to report (see
  * DashboardScreen.shouldShowSyncStatus), so the two never compete for the same slot.
+ *
+ * While syncing, renders the same step/message/item-count detail as [SyncNotifier]'s system
+ * notification (NBC-370) via [syncProgress], instead of a generic spinner + "Syncing…" - falls back
+ * to that generic text only for the brief window before the first [SyncProgress] arrives.
  */
 @Composable
 fun SyncStatusCard(
     lastSuccessfulSyncAt: Long?,
     isSyncing: Boolean,
     modifier: Modifier = Modifier,
+    syncProgress: SyncProgress? = null,
     nowMillis: Long = System.currentTimeMillis(),
 ) {
     NyetboxCard(modifier = modifier.fillMaxWidth()) {
@@ -53,11 +60,11 @@ fun SyncStatusCard(
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(
-                    if (isSyncing) "Syncing…" else "Synced",
+                    syncStatusHeadline(isSyncing, syncProgress),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    formatRelativeSyncTime(lastSuccessfulSyncAt, nowMillis),
+                    syncStatusSubText(isSyncing, syncProgress, lastSuccessfulSyncAt, nowMillis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -65,6 +72,30 @@ fun SyncStatusCard(
         }
     }
 }
+
+/** The card's headline: the current sync step's message while syncing, else "Synced". */
+internal fun syncStatusHeadline(isSyncing: Boolean, syncProgress: SyncProgress?): String =
+    when {
+        !isSyncing -> "Synced"
+        syncProgress != null -> syncProgress.message
+        else -> "Syncing…"
+    }
+
+/**
+ * The card's secondary line: the same "Step X of Y · N of M items" detail shown in the system
+ * notification (see [notificationSubText]) while syncing, else the usual last-synced timestamp.
+ */
+internal fun syncStatusSubText(
+    isSyncing: Boolean,
+    syncProgress: SyncProgress?,
+    lastSuccessfulSyncAt: Long?,
+    nowMillis: Long,
+): String =
+    if (isSyncing && syncProgress != null) {
+        syncProgress.notificationSubText()
+    } else {
+        formatRelativeSyncTime(lastSuccessfulSyncAt, nowMillis)
+    }
 
 internal fun formatRelativeSyncTime(lastSuccessfulSyncAt: Long?, nowMillis: Long): String {
     if (lastSuccessfulSyncAt == null) return "Never synced yet"

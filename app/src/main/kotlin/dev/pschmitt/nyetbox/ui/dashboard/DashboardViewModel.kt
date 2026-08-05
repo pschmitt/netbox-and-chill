@@ -17,6 +17,7 @@ import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
 import dev.pschmitt.nyetbox.data.repository.RecentVisitRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.schema.frontImageUrlFromRawJson
+import dev.pschmitt.nyetbox.sync.SyncProgress
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import dev.pschmitt.nyetbox.sync.shouldScheduleStartup
@@ -58,6 +59,12 @@ constructor(
             SharingStarted.WhileSubscribed(5000),
             false,
         )
+
+    // Richer step/message/item-count detail for the currently running sync (NBC-370), rendered by
+    // SyncStatusCard instead of a generic spinner. SyncStatusRepository already holds this as its
+    // own StateFlow, so re-exposing it here just gives DashboardScreen the same collection shape
+    // as every other piece of dashboard state.
+    val syncProgress: StateFlow<SyncProgress?> = syncStatusRepository.syncProgress
 
     // Blocks the dashboard behind a full-screen "setting up" overlay for a profile that has never
     // completed a sync, instead of letting every section flash its "nothing cached yet" empty

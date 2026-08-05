@@ -144,6 +144,7 @@ fun DashboardScreen(
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
     val lastSuccessfulSyncAt by viewModel.lastSuccessfulSyncAt.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val showInitialSyncOverlay by viewModel.showInitialSyncOverlay.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
@@ -275,6 +276,7 @@ fun DashboardScreen(
                             SyncStatusCard(
                                 lastSuccessfulSyncAt = lastSuccessfulSyncAt,
                                 isSyncing = isRefreshing,
+                                syncProgress = syncProgress,
                             )
                             Spacer(Modifier.height(16.dp))
                         }

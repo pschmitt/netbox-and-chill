@@ -48,7 +48,13 @@ constructor(
             return
         }
         val request =
-            OneTimeWorkRequestBuilder<SyncWorker>().setConstraints(syncConstraints()).build()
+            OneTimeWorkRequestBuilder<SyncWorker>()
+                .setConstraints(syncConstraints())
+                // A short grace period (NBC-370) so a quick reopen of the app shortly after the
+                // last sync doesn't visibly retrigger a syncing state on every launch - only a
+                // genuinely stale cache survives long enough to still see this fire.
+                .setInitialDelay(STARTUP_SYNC_DELAY_SECONDS, TimeUnit.SECONDS)
+                .build()
         workManager.enqueueUniqueWork(STARTUP_WORK_NAME, ExistingWorkPolicy.KEEP, request)
     }
 
@@ -83,6 +89,8 @@ constructor(
         const val PERIODIC_WORK_NAME = "netbox-periodic-sync"
         const val ONE_TIME_WORK_NAME = "netbox-manual-sync"
         const val STARTUP_WORK_NAME = "netbox-startup-sync"
+
+        const val STARTUP_SYNC_DELAY_SECONDS = 10L
     }
 }
 

@@ -5,6 +5,9 @@ import androidx.work.WorkManager
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
@@ -36,4 +39,19 @@ class SyncStatusRepository @Inject constructor(private val workManager: WorkMana
         workManager.getWorkInfosForUniqueWorkFlow(SyncScheduler.ONE_TIME_WORK_NAME).map { infos ->
             infos.firstOrNull()?.state
         }
+
+    private val _syncProgress = MutableStateFlow<SyncProgress?>(null)
+
+    /**
+     * The most recent [SyncProgress] reported by whichever sync is currently running (NBC-370) -
+     * mirrors exactly what [SyncNotifier]'s system notification shows, so [SyncWorker] publishes
+     * here the same moment it hands a [SyncProgress] to `SyncNotifier.notifySyncProgress`. Reset to
+     * `null` once a sync attempt finishes (success, failure, or a retry backoff) so a stale step
+     * doesn't linger into the next run.
+     */
+    val syncProgress: StateFlow<SyncProgress?> = _syncProgress.asStateFlow()
+
+    fun publishProgress(progress: SyncProgress?) {
+        _syncProgress.value = progress
+    }
 }

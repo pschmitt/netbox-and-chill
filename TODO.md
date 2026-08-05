@@ -6264,11 +6264,11 @@ Two related dashboard/sync UX complaints:
    opening the app always immediately shows a syncing state (if `syncOnAppLaunch` is on), even for
    a routine reopen seconds after the last sync.
 
-- [ ] Publish `SyncProgress` somewhere UI-observable (e.g. a `StateFlow<SyncProgress?>` alongside
+- [x] Publish `SyncProgress` somewhere UI-observable (e.g. a `StateFlow<SyncProgress?>` alongside
   `SyncStatusRepository`, updated by `SyncWorker` the same moment it calls
   `SyncNotifier.notifySyncProgress`), and have `SyncStatusCard` render the current
   step/message/total instead of just a boolean spinner.
-- [ ] Add a short initial delay (`OneTimeWorkRequestBuilder.setInitialDelay(...)`) to the startup
+- [x] Add a short initial delay (`OneTimeWorkRequestBuilder.setInitialDelay(...)`) to the startup
   sync in `SyncScheduler.scheduleStartup()`, long enough that reopening the app shortly after a
   sync doesn't visibly retrigger one, but still short enough that a genuinely stale cache refreshes
   promptly.
@@ -6278,4 +6278,18 @@ found the immediate startup sync jarring on every app open.
 **How to apply:** keep `SyncProgress` as the single source of truth for both surfaces (notification
 + dashboard) rather than inventing a second progress representation.
 
-Status: not started, 2026-08-05.
+**Implementation:** `SyncStatusRepository` now holds a `MutableStateFlow<SyncProgress?>`
+(`syncProgress`, via `publishProgress()`); `SyncWorker` publishes to it in the same `onProgress`
+lambda it hands to `OfflineSyncRepository.syncAll()` (which already calls
+`SyncNotifier.notifySyncProgress`), and clears it back to `null` on success/retry/failure so no
+stale step lingers into the next run. `DashboardViewModel.syncProgress` re-exposes it and
+`DashboardScreen` passes it to `SyncStatusCard`, which now renders `syncStatusHeadline()` (current
+step message, or "Synced"/"Syncing…" as fallbacks) and `syncStatusSubText()` (reuses
+`SyncProgress.notificationSubText()` for the "Step X of Y · N of M items" line, matching the system
+notification) instead of a static "Syncing…" string. `SyncScheduler.scheduleStartup()` now adds a
+10s `setInitialDelay` (`STARTUP_SYNC_DELAY_SECONDS`) to the startup `OneTimeWorkRequest`. Unit tests
+added in `SyncStatusCardTest.kt` for the new pure `syncStatusHeadline`/`syncStatusSubText` helpers.
+
+Status: **done**, 2026-08-05 - `just gradle rofl-13 compileDebugKotlin
+compileDebugAndroidTestKotlin compileDebugUnitTestKotlin testDebugUnitTest` and `just lint` both
+green on branch `feat/sync-progress-card`; not pushed/merged, left for review.

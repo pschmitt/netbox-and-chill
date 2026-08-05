@@ -18,6 +18,7 @@ constructor(
     private val offlineSyncRepository: OfflineSyncRepository,
     private val settingsRepository: SettingsRepository,
     private val syncNotifier: SyncNotifier,
+    private val syncStatusRepository: SyncStatusRepository,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (!settingsRepository.isConfigured) return Result.success()
@@ -46,9 +47,18 @@ constructor(
             syncNotifier.notifySyncStarted()
         }
         return offlineSyncRepository
-            .syncAll(onProgress = syncNotifier::notifySyncProgress)
+            .syncAll(
+                onProgress = { progress ->
+                    // Published to SyncStatusRepository the same moment it goes to the system
+                    // notification (NBC-370), so SyncStatusCard renders the same step/message/item
+                    // progress instead of a generic spinner.
+                    syncNotifier.notifySyncProgress(progress)
+                    syncStatusRepository.publishProgress(progress)
+                }
+            )
             .fold(
                 onSuccess = {
+                    syncStatusRepository.publishProgress(null)
                     syncNotifier.notifySyncSucceeded(it.reconciliation)
                     Result.success()
                 },
@@ -58,6 +68,7 @@ constructor(
                     // surfacing a Notification (NBC-23), rather than retrying silently forever.
                     // A PeriodicWorkRequest's attempt count resets on its next period regardless,
                     // so this only bounds retries *within* one run, not across runs.
+                    syncStatusRepository.publishProgress(null)
                     if (runAttemptCount < MAX_RETRY_ATTEMPTS) {
                         syncNotifier.notifySyncRetry(runAttemptCount + 1)
                         Result.retry()
