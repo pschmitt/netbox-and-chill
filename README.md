@@ -36,6 +36,15 @@ adjust the APK filter regex/prerelease settings, or grab the specific APK from t
 
 [obtainium-link]: https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22dev.pschmitt.nyetbox%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fpschmitt%2Fnyetbox%22%2C%22author%22%3A%22pschmitt%22%2C%22name%22%3A%22Nyetbox%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22app-.%2A-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22trackOnly%5C%22%3Afalse%7D%22%7D
 
+Managing apps declaratively with [declaroid](https://github.com/pschmitt/declaroid) instead? Add:
+
+```yaml
+- name: Nyetbox
+  pkg: dev.pschmitt.nyetbox
+  store: github
+  repo: pschmitt/nyetbox
+```
+
 ## Features
 
 - Native Material 3 UI (dynamic color on Android 12+), offline-first: the device inventory is
