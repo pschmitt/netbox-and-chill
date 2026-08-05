@@ -113,16 +113,9 @@ class NetBoxE2eTest {
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Search NetBox", timeoutMillis = 30_000)
         // waitForText above only confirms the node exists somewhere in the tree, not that it's
-        // actually reachable - a diagnostic tree dump caught the initial-sync overlay (see
-        // DashboardScreen.InitialSyncOverlay) still present here, its invisible full-screen
-        // no-op-clickable Box silently absorbing the click meant for the search card below and
-        // leaving nothing to ever navigate to e2e-global-search. A later, unrelated sync
-        // (background/periodic, not the onboarding one already waited out above) can retrigger
-        // the same overlay long after the app is otherwise fully usable. Wait it out again, right
-        // before the click that would otherwise be swallowed by it.
-        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
-        composeRule.onNodeWithTag("e2e-search-card").performClick()
-        waitForTag("e2e-global-search", timeoutMillis = 60_000)
+        // actually reachable - see clickUntilTagAppears's doc for why a single wait-then-click
+        // isn't reliable here.
+        clickUntilTagAppears(clickTag = "e2e-search-card", destinationTag = "e2e-global-search")
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("CI E2E Device")
         waitForText("CI E2E Device", timeoutMillis = 30_000)
         captureE2eScreenshot("04-global-search")
@@ -161,6 +154,34 @@ class NetBoxE2eTest {
     private fun waitForTagAbsent(tag: String, timeoutMillis: Long) {
         composeRule.waitUntil(timeoutMillis) {
             composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    // The dashboard's initial-sync overlay (DashboardScreen.InitialSyncOverlay) can reappear
+    // briefly - a background sync tick (observed firing roughly every 10s throughout this test,
+    // well beyond the one that onboarding already waited out) retriggers it for its duration. Its
+    // invisible full-screen no-op-clickable Box absorbs any click while it's up, so waiting for its
+    // absence once immediately before a click isn't quite enough to rule out it reappearing in the
+    // instant between that check and the click actually landing. Retry the click itself instead of
+    // just the wait: if the destination tag hasn't shown up shortly after clicking, the overlay
+    // most likely ate that click - wait it out again and click again.
+    private fun clickUntilTagAppears(
+        clickTag: String,
+        destinationTag: String,
+        overlayTag: String = "e2e-initial-sync-overlay",
+        maxAttempts: Int = 5,
+        perAttemptTimeoutMillis: Long = 12_000,
+    ) {
+        repeat(maxAttempts) { attempt ->
+            waitForTagAbsent(overlayTag, timeoutMillis = 60_000)
+            composeRule.onNodeWithTag(clickTag).performClick()
+            val landed =
+                runCatching { waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis) }
+                    .isSuccess
+            if (landed) return
+            check(attempt < maxAttempts - 1) {
+                "Never reached tag '$destinationTag' after $maxAttempts clicks on '$clickTag'"
+            }
         }
     }
 }
