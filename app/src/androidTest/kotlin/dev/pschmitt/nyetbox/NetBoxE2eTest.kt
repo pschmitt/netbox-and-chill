@@ -119,7 +119,7 @@ class NetBoxE2eTest {
             composeRule.activity.setIntent(
                 Intent(Intent.ACTION_MAIN)
                     .addCategory(Intent.CATEGORY_LAUNCHER)
-                    .setClassName(composeRule.activity, MainActivity::class.java)
+                    .setClass(composeRule.activity, MainActivity::class.java)
             )
         }
 
