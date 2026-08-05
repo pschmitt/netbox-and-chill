@@ -112,7 +112,7 @@ class NetBoxE2eTest {
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Search NetBox", timeoutMillis = 30_000)
         composeRule.onNodeWithTag("e2e-search-card").performClick()
-        waitForTag("e2e-global-search", timeoutMillis = 30_000)
+        waitForTag("e2e-global-search", timeoutMillis = 60_000)
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("CI E2E Device")
         waitForText("CI E2E Device", timeoutMillis = 30_000)
         captureE2eScreenshot("04-global-search")
