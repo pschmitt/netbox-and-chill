@@ -7,9 +7,11 @@ import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
+import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
+import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
@@ -39,6 +41,7 @@ constructor(
     private val repository: DashboardRepository,
     private val deviceRepository: DeviceRepository,
     private val genericObjectRepository: GenericObjectRepository,
+    directoryRepository: DirectoryRepository,
     pendingEditRepository: PendingEditRepository,
     recentVisitRepository: RecentVisitRepository,
     private val settingsRepository: SettingsRepository,
@@ -52,6 +55,12 @@ constructor(
     val dashboardSectionOrder = settingsRepository.dashboardSectionOrder
     val hiddenDashboardSections = settingsRepository.hiddenDashboardSections
     val objectTypeAccents = settingsRepository.objectTypeAccents
+
+    val modelsByEndpointPath: StateFlow<Map<String, NetBoxModelEntity>> =
+        directoryRepository
+            .observeAll()
+            .map { models -> models.associateBy { it.endpointPath } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(

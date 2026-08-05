@@ -90,12 +90,14 @@ import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.nyetbox.ui.common.NyetboxActionCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
+import dev.pschmitt.nyetbox.ui.common.ObjectTypeBadge
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SectionReorderState
 import dev.pschmitt.nyetbox.ui.common.SyncIssueCard
 import dev.pschmitt.nyetbox.ui.common.SyncStatusCard
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
+import dev.pschmitt.nyetbox.ui.common.objectTypeLabel
 import dev.pschmitt.nyetbox.ui.common.rememberReorderWiggle
 import dev.pschmitt.nyetbox.ui.common.rememberSectionReorderState
 import dev.pschmitt.nyetbox.ui.common.sectionDragOffset
@@ -138,6 +140,7 @@ fun DashboardScreen(
     val devicesById by viewModel.devicesById.collectAsStateWithLifecycle()
     val deviceTypeFrontImagesById by
         viewModel.deviceTypeFrontImagesById.collectAsStateWithLifecycle()
+    val modelsByEndpointPath by viewModel.modelsByEndpointPath.collectAsStateWithLifecycle()
     val conflictCount by viewModel.conflictCount.collectAsStateWithLifecycle()
     val pendingChangeCount by viewModel.pendingChangeCount.collectAsStateWithLifecycle()
     val offlineMode by viewModel.offlineMode.collectAsStateWithLifecycle()
@@ -432,6 +435,9 @@ fun DashboardScreen(
                                                 RecentVisitRow(
                                                     visit = visit,
                                                     thumbnail = thumbnail,
+                                                    modelLabel =
+                                                        modelsByEndpointPath[visit.endpointPath]
+                                                            ?.modelLabel,
                                                     typeColor =
                                                         MaterialTheme.colorScheme.detailAccentFor(
                                                             visit.endpointPath,
@@ -477,6 +483,10 @@ fun DashboardScreen(
                                             BookmarkRow(
                                                 bookmark = bookmark,
                                                 thumbnail = thumbnail,
+                                                modelLabel =
+                                                    bookmark.targetEndpointPath?.let {
+                                                        modelsByEndpointPath[it]?.modelLabel
+                                                    },
                                                 typeColor =
                                                     bookmark.targetEndpointPath?.let { path ->
                                                         MaterialTheme.colorScheme.detailAccentFor(
@@ -519,6 +529,10 @@ fun DashboardScreen(
                                                 ChangeRow(
                                                     change = change,
                                                     thumbnail = thumbnail,
+                                                    modelLabel =
+                                                        change.targetEndpointPath?.let {
+                                                            modelsByEndpointPath[it]?.modelLabel
+                                                        },
                                                     typeColor =
                                                         change.targetEndpointPath?.let { path ->
                                                             MaterialTheme.colorScheme
@@ -906,6 +920,7 @@ private fun GlobalSearchCard(
 private fun BookmarkRow(
     bookmark: BookmarkEntity,
     thumbnail: DashboardThumbnail?,
+    modelLabel: String?,
     typeColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
 ) {
@@ -929,7 +944,19 @@ private fun BookmarkRow(
                 }
             },
             headlineContent = { Text(bookmark.display) },
-            supportingContent = { Text(formatTimestamp(bookmark.created)) },
+            supportingContent = {
+                Column {
+                    bookmark.targetEndpointPath?.let { endpointPath ->
+                        ObjectTypeBadge(
+                            label = objectTypeLabel(modelLabel, endpointPath),
+                            icon = AppIcons.forEndpointPath(endpointPath),
+                            color = typeColor,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                    }
+                    Text(formatTimestamp(bookmark.created))
+                }
+            },
             modifier = Modifier.clickable(enabled = hasTarget, onClick = onClick),
         )
     }
@@ -939,6 +966,7 @@ private fun BookmarkRow(
 private fun RecentVisitRow(
     visit: RecentVisitEntity,
     thumbnail: DashboardThumbnail?,
+    modelLabel: String?,
     typeColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
 ) {
@@ -966,6 +994,12 @@ private fun RecentVisitRow(
             supportingContent = {
                 Column {
                     visit.secondaryLine?.takeIf(String::isNotBlank)?.let { Text(it) }
+                    ObjectTypeBadge(
+                        label = objectTypeLabel(modelLabel, visit.endpointPath),
+                        icon = AppIcons.forEndpointPath(visit.endpointPath),
+                        color = typeColor,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                     Text(
                         "Viewed ${formatTimestamp(java.time.Instant.ofEpochMilli(visit.visitedAt).toString())}",
                         style = MaterialTheme.typography.labelSmall,
@@ -982,6 +1016,7 @@ private fun RecentVisitRow(
 private fun ChangeRow(
     change: ObjectChangeEntity,
     thumbnail: DashboardThumbnail?,
+    modelLabel: String?,
     typeColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
     onDiffClick: () -> Unit,
@@ -1013,6 +1048,14 @@ private fun ChangeRow(
             headlineContent = { Text(change.objectRepr) },
             supportingContent = {
                 Column {
+                    change.targetEndpointPath?.let { endpointPath ->
+                        ObjectTypeBadge(
+                            label = objectTypeLabel(modelLabel, endpointPath),
+                            icon = AppIcons.forEndpointPath(endpointPath),
+                            color = typeColor,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                    }
                     Text("${change.actionLabel} by ${change.userDisplay}")
                     Text(
                         formatTimestamp(change.time),
