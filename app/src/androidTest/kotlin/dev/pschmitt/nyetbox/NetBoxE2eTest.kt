@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import dev.pschmitt.nyetbox.sync.SyncNotifier
 import org.junit.Rule
 import org.junit.Test
@@ -125,6 +126,14 @@ class NetBoxE2eTest {
         composeRule.onNodeWithTag("e2e-global-search").performTextInput("CI E2E Device")
         waitForText("CI E2E Device", timeoutMillis = 30_000)
         captureE2eScreenshot("04-global-search")
+        // performTextInput leaves the field focused, which raises the on-screen keyboard - never
+        // explicitly dismissed for the rest of this journey (StoreScreenshotTest already works
+        // around the same thing after its own search capture). A stuck IME session is a plausible
+        // contributor to this file's last remaining flake: teardown consistently hangs on
+        // "Activity never becomes requested state [DESTROYED]" right at test end, with the test
+        // body itself passing cleanly and nothing else left unaccounted for. A back-press with the
+        // IME visible only dismisses the keyboard (standard Android behavior), not the screen.
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
 
         // Go back through the same UI and turn on Offline mode from the navigation drawer. The
         // device list must remain available without any network refresh once this is enabled.
