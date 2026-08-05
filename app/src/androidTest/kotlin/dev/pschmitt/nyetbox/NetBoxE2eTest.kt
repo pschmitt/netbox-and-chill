@@ -100,8 +100,9 @@ class NetBoxE2eTest {
 
         // The startup WorkManager job must populate the typed device cache before this list is
         // usable. This also exercises the directory/sidebar discovery path used after onboarding.
-        composeRule.onNodeWithContentDescription("Open navigation").performClick()
-        waitForTag("e2e-device-list-entry", timeoutMillis = 60_000)
+        clickUntilTagAppears(destinationTag = "e2e-device-list-entry", perAttemptTimeoutMillis = 60_000) {
+            composeRule.onNodeWithContentDescription("Open navigation").performClick()
+        }
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
         waitForText("CI E2E Device", timeoutMillis = 180_000)
         composeRule.onNodeWithText("CI E2E Device", useUnmergedTree = true).performClick()
@@ -124,8 +125,9 @@ class NetBoxE2eTest {
         // device list must remain available without any network refresh once this is enabled.
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
-        composeRule.onNodeWithContentDescription("Open navigation").performClick()
-        waitForTag("e2e-offline-toggle", timeoutMillis = 30_000)
+        clickUntilTagAppears(destinationTag = "e2e-offline-toggle") {
+            composeRule.onNodeWithContentDescription("Open navigation").performClick()
+        }
         composeRule.onNodeWithTag("e2e-offline-toggle").performClick()
         waitForTag("e2e-device-list-entry", timeoutMillis = 30_000)
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
@@ -172,22 +174,28 @@ class NetBoxE2eTest {
     // just the wait: if the destination tag hasn't shown up shortly after clicking, the overlay
     // most likely ate that click - wait it out again and click again.
     private fun clickUntilTagAppears(
-        clickTag: String,
         destinationTag: String,
         overlayTag: String = "e2e-initial-sync-overlay",
         maxAttempts: Int = 5,
         perAttemptTimeoutMillis: Long = 12_000,
+        click: () -> Unit,
     ) {
         repeat(maxAttempts) { attempt ->
             waitForTagAbsent(overlayTag, timeoutMillis = 60_000)
-            composeRule.onNodeWithTag(clickTag).performClick()
+            click()
             val landed =
                 runCatching { waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis) }
                     .isSuccess
             if (landed) return
             check(attempt < maxAttempts - 1) {
-                "Never reached tag '$destinationTag' after $maxAttempts clicks on '$clickTag'"
+                "Never reached tag '$destinationTag' after $maxAttempts clicks"
             }
+        }
+    }
+
+    private fun clickUntilTagAppears(clickTag: String, destinationTag: String) {
+        clickUntilTagAppears(destinationTag = destinationTag) {
+            composeRule.onNodeWithTag(clickTag).performClick()
         }
     }
 }

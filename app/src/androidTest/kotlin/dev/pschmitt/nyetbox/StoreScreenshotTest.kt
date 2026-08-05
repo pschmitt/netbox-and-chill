@@ -122,8 +122,9 @@ class StoreScreenshotTest {
     private fun captureJourney(suffix: String) {
         captureScreenshot("01_dashboard$suffix")
 
-        composeRule.onNodeWithContentDescription("Open navigation").performClick()
-        waitForTag("e2e-device-list-entry", 60_000)
+        clickUntilTagAppears(destinationTag = "e2e-device-list-entry", perAttemptTimeoutMillis = 60_000) {
+            composeRule.onNodeWithContentDescription("Open navigation").performClick()
+        }
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
         waitForText("core-sw-01", 120_000)
         composeRule.onNodeWithText("core-sw-01", useUnmergedTree = true).performClick()
@@ -266,22 +267,28 @@ class StoreScreenshotTest {
     // the wait: if the destination tag hasn't shown up shortly after clicking, the overlay most
     // likely ate that click - wait it out again and click again.
     private fun clickUntilTagAppears(
-        clickTag: String,
         destinationTag: String,
         overlayTag: String = "e2e-initial-sync-overlay",
         maxAttempts: Int = 5,
         perAttemptTimeoutMillis: Long = 12_000,
+        click: () -> Unit,
     ) {
         repeat(maxAttempts) { attempt ->
             waitForTagAbsent(overlayTag, timeoutMillis = 60_000)
-            composeRule.onNodeWithTag(clickTag).performClick()
+            click()
             val landed =
                 runCatching { waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis) }
                     .isSuccess
             if (landed) return
             check(attempt < maxAttempts - 1) {
-                "Never reached tag '$destinationTag' after $maxAttempts clicks on '$clickTag'"
+                "Never reached tag '$destinationTag' after $maxAttempts clicks"
             }
+        }
+    }
+
+    private fun clickUntilTagAppears(clickTag: String, destinationTag: String) {
+        clickUntilTagAppears(destinationTag = destinationTag) {
+            composeRule.onNodeWithTag(clickTag).performClick()
         }
     }
 }
