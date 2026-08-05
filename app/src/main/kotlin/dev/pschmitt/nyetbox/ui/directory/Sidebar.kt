@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Hub
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
@@ -32,7 +31,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,6 +58,7 @@ import dev.pschmitt.nyetbox.R
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.repository.TopologyRepository
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
+import dev.pschmitt.nyetbox.ui.common.ModernSearchField
 import dev.pschmitt.nyetbox.ui.common.rememberReorderWiggle
 import dev.pschmitt.nyetbox.ui.common.rememberSectionReorderState
 import dev.pschmitt.nyetbox.ui.common.sectionDragOffset
@@ -197,12 +196,10 @@ fun Sidebar(
                     }
                 }
                 item {
-                    OutlinedTextField(
+                    ModernSearchField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        label = { Text("Search sections") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
+                        placeholder = "Search sections",
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     )
                     Spacer(Modifier.height(8.dp))

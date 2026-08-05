@@ -48,8 +48,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -75,6 +73,7 @@ import dev.pschmitt.nyetbox.data.repository.SearchHit
 import dev.pschmitt.nyetbox.data.repository.ThemeAccent
 import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
 import dev.pschmitt.nyetbox.ui.common.BottomTab
+import dev.pschmitt.nyetbox.ui.common.ModernSearchField
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
@@ -143,35 +142,16 @@ fun GlobalSearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    TextField(
+                    ModernSearchField(
                         value = query,
                         onValueChange = viewModel::onQueryChange,
-                        placeholder = { Text(selectionPrompt ?: "Search all NetBox objects") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.onQueryChange("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                                }
-                            }
-                        },
-                        singleLine = true,
+                        placeholder = selectionPrompt ?: "Search all NetBox objects",
                         visualTransformation =
                             SearchQueryVisualTransformation(MaterialTheme.colorScheme.primary),
                         modifier =
                             Modifier.fillMaxWidth()
                                 .focusRequester(focusRequester)
                                 .testTag("e2e-global-search"),
-                        shape = RoundedCornerShape(28.dp),
-                        colors =
-                            TextFieldDefaults.colors(
-                                focusedContainerColor =
-                                    MaterialTheme.colorScheme.surfaceContainerHighest,
-                                unfocusedContainerColor =
-                                    MaterialTheme.colorScheme.surfaceContainerHighest,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                            ),
                     )
                 },
                 navigationIcon = {

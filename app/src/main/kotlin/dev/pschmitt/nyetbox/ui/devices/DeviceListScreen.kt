@@ -8,9 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,8 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -39,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
+import dev.pschmitt.nyetbox.ui.common.ModernSearchField
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
@@ -93,11 +90,6 @@ fun DeviceListScreen(
                         Icon(Icons.Default.Menu, contentDescription = "Open navigation")
                     }
                 },
-                actions = {
-                    IconButton(onClick = onSearchClick) {
-                        Icon(Icons.Default.Search, contentDescription = "Search all NetBox objects")
-                    }
-                },
             )
         },
         bottomBar = {
@@ -119,33 +111,12 @@ fun DeviceListScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 Column(Modifier.fillMaxSize()) {
-                    TextField(
+                    ModernSearchField(
                         value = query,
                         onValueChange = viewModel::onQueryChange,
-                        placeholder = { Text("Search devices") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.onQueryChange("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                                }
-                            }
-                        },
-                        singleLine = true,
+                        placeholder = "Search devices",
                         modifier =
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors =
-                            TextFieldDefaults.colors(
-                                focusedContainerColor =
-                                    MaterialTheme.colorScheme.surfaceContainerHighest,
-                                unfocusedContainerColor =
-                                    MaterialTheme.colorScheme.surfaceContainerHighest,
-                                focusedIndicatorColor =
-                                    androidx.compose.ui.graphics.Color.Transparent,
-                                unfocusedIndicatorColor =
-                                    androidx.compose.ui.graphics.Color.Transparent,
-                            ),
                     )
                     if (devices.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
