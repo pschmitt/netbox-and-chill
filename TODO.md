@@ -19,10 +19,16 @@ server-side deletions still get reconciled.
 - [x] Periodic full-reconciliation pass (24h, or forced from the Settings "Sync now" button) that
       prunes objects the server no longer has, without pruning endpoints that only partially
       synced.
-- [ ] Verify remote compilation, instrumentation tests, and debug installation on Zenfone 10, Mi
+- [x] Verify remote compilation, instrumentation tests, and debug installation on Zenfone 10, Mi
       Pad 4, and Pixel 5.
 
-Status: **in progress**, 2026-08-05.
+Status: **done**, 2026-08-05 - remote compilation, instrumentation tests (Android E2E + Screenshots
+CI), and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5 passed. Verified on the Zenfone
+10 that the per-model sync loop runs concurrently (interleaved requests to different endpoints
+within milliseconds of each other) and that the second sync after upgrade uses
+`last_updated__gte` (confirmed via logcat against the real netbox.brkn.lol instance); the very
+first sync after upgrade is necessarily a full fetch since pre-existing cached rows have no
+`lastUpdated` watermark yet, which is expected. Tagged 1.4.0.
 
 ## NBC-357: link device-type photos back to their device type
 
