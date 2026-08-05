@@ -76,6 +76,7 @@ import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.ModernSearchField
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.nyetbox.ui.common.ObjectTypeBadge
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SearchHighlightedText
 import dev.pschmitt.nyetbox.ui.common.SearchQueryVisualTransformation
@@ -760,16 +761,6 @@ private fun searchStatusFor(hit: SearchHit, devicesById: Map<Int, DeviceEntity>)
         }
 
 private fun searchHitKey(hit: SearchHit): String = "${hit.endpointPath.trimEnd('/')}:${hit.id}"
-
-@Composable
-private fun ObjectTypeBadge(label: String, icon: ImageVector, color: Color) {
-    CompactSearchBadge(
-        label = label,
-        icon = icon,
-        containerColor = color.copy(alpha = 0.18f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-    )
-}
 
 @Composable
 private fun CompactSearchBadge(

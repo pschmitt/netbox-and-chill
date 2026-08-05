@@ -6511,3 +6511,15 @@ branching on the selected tab over one `LazyColumn` per tab.
 
 Status: **done**, 2026-08-05; verified remotely (compile + unit tests + ktfmtCheck) and manually
 exercised on the Zenfone 10 physical device; merged to main.
+
+## NBC-376: show item type badges on dashboard rows
+
+The home screen's Recently viewed, Bookmarks, and Recent changes rows should identify the NetBox
+object type with the same compact icon-and-label badge already used by global search.
+
+- [x] Reuse the global-search badge presentation and cached directory labels on dashboard rows.
+- [x] Keep rows without a resolved target navigable/rendered without a misleading badge.
+- [x] Verify formatting, compilation, unit tests, and lint remotely.
+
+Status: **done**, 2026-08-05; verified with remote compilation, unit tests, ktfmtCheck, and debug
+installation on the Zenfone 10, Mi Pad 4, and Pixel 5.
