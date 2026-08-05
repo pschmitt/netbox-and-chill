@@ -34,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -435,54 +436,6 @@ fun GenericDetailScreen(
                                 expanded = actionMenuExpanded,
                                 onDismissRequest = { actionMenuExpanded = false },
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text("Refresh") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Refresh, contentDescription = null)
-                                    },
-                                    enabled = !isRefreshing,
-                                    onClick = {
-                                        viewModel.refresh(showConfirmation = true)
-                                        actionMenuExpanded = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Upload media") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.UploadFile, contentDescription = null)
-                                    },
-                                    enabled = !isRefreshing,
-                                    onClick = {
-                                        showMediaUpload = true
-                                        mediaUploadInitialKind = null
-                                        actionMenuExpanded = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Add journal entry") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.History, contentDescription = null)
-                                    },
-                                    enabled = !isRefreshing,
-                                    onClick = {
-                                        journalEditorEntry = null
-                                        showJournalEditor = true
-                                        actionMenuExpanded = false
-                                    },
-                                )
-                                if (viewModel.isPrintableDevice) {
-                                    DropdownMenuItem(
-                                        text = { Text("Add component") },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.Cable, contentDescription = null)
-                                        },
-                                        enabled = !isRefreshing,
-                                        onClick = {
-                                            onAddComponent()
-                                            actionMenuExpanded = false
-                                        },
-                                    )
-                                }
                                 if (viewModel.isPrintableDevice) {
                                     DropdownMenuItem(
                                         text = { Text("Print label") },
@@ -536,6 +489,45 @@ fun GenericDetailScreen(
                                         },
                                     )
                                 }
+                                webUrl?.let { url ->
+                                    DropdownMenuItem(
+                                        text = { Text("Share") },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Share, contentDescription = null)
+                                        },
+                                        onClick = {
+                                            context.startActivity(shareIntent(url))
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Open in browser") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.OpenInBrowser,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, url.toUri())
+                                            )
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Sync") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Refresh, contentDescription = null)
+                                    },
+                                    enabled = !isRefreshing,
+                                    onClick = {
+                                        viewModel.refresh(showConfirmation = true)
+                                        actionMenuExpanded = false
+                                    },
+                                )
                                 if (editableFields.isNotEmpty()) {
                                     DropdownMenuItem(
                                         text = { Text("Edit") },
@@ -544,6 +536,59 @@ fun GenericDetailScreen(
                                         },
                                         onClick = {
                                             viewModel.startEditing()
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
+                                if (viewModel.isPrintableDevice) {
+                                    DropdownMenuItem(
+                                        text = { Text("Add component") },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Cable, contentDescription = null)
+                                        },
+                                        enabled = !isRefreshing,
+                                        onClick = {
+                                            onAddComponent()
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Upload media") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.UploadFile, contentDescription = null)
+                                    },
+                                    enabled = !isRefreshing,
+                                    onClick = {
+                                        showMediaUpload = true
+                                        mediaUploadInitialKind = null
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Add journal entry") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.History, contentDescription = null)
+                                    },
+                                    enabled = !isRefreshing,
+                                    onClick = {
+                                        journalEditorEntry = null
+                                        showJournalEditor = true
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                                HorizontalDivider()
+                                if (hiddenFieldsForObject.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text("Show hidden fields") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Visibility,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            showHiddenFields = true
                                             actionMenuExpanded = false
                                         },
                                     )
@@ -563,48 +608,6 @@ fun GenericDetailScreen(
                                         actionMenuExpanded = false
                                     },
                                 )
-                                webUrl?.let { url ->
-                                    DropdownMenuItem(
-                                        text = { Text("Open in browser") },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.OpenInBrowser,
-                                                contentDescription = null,
-                                            )
-                                        },
-                                        onClick = {
-                                            context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, url.toUri())
-                                            )
-                                            actionMenuExpanded = false
-                                        },
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Share") },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.Share, contentDescription = null)
-                                        },
-                                        onClick = {
-                                            context.startActivity(shareIntent(url))
-                                            actionMenuExpanded = false
-                                        },
-                                    )
-                                }
-                                if (hiddenFieldsForObject.isNotEmpty()) {
-                                    DropdownMenuItem(
-                                        text = { Text("Show hidden fields") },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.Visibility,
-                                                contentDescription = null,
-                                            )
-                                        },
-                                        onClick = {
-                                            showHiddenFields = true
-                                            actionMenuExpanded = false
-                                        },
-                                    )
-                                }
                             }
                         }
                     }

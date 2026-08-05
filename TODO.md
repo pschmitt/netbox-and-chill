@@ -6369,3 +6369,30 @@ ad hoc filter syntax.
 
 Status: **done**, 2026-08-05; verified remotely (compile/lint/unit tests all green), merged to
 main.
+
+## NBC-373: relabel and reorder the item-view overflow menu
+
+`GenericDetailScreen`'s overflow menu ("More actions") had "Refresh" (which actually triggers a
+sync, same as the dashboard's) and no logical grouping of its items.
+
+- [x] Renamed "Refresh" to "Sync" (same icon/action, just an accurate label).
+- [x] Reordered to: Print label*, Share, Open in browser, *(divider)*, Sync, Edit, Add component*,
+  Upload media, Add journal entry, *(divider)*, Show hidden fields*, Delete (items marked `*` are
+  conditional - printable-device-only, or shown only when applicable). Delete stays last.
+- [x] Added a divider after the share/open-in-browser group and another after the
+  edit/media/journal group, per the requested placement ("after open in browser and add journal
+  entry").
+- [x] Verified remotely: `compileDebugKotlin`, `compileDebugAndroidTestKotlin`,
+  `compileDebugUnitTestKotlin`, `testDebugUnitTest` all pass.
+
+**Why:** user found "Refresh" mislabeled (it syncs, not just refreshes the view) and wanted the
+menu's items grouped more sensibly instead of insertion order.
+**How to apply:** the three conditional items (Print label, Add component, Show hidden fields)
+weren't explicitly placed by the user's requested order - placed by judgment near their closest
+semantic peers (Print label with Share/Open in browser as an "output" action; Add component near
+Edit as a structural-modification action; Show hidden fields right before Delete as a "meta" view
+toggle). `DeviceDetailScreen`'s separate overflow menu (device-specific, has its own item set) was
+deliberately left untouched - the user's exact item list (including "Upload media") only matches
+`GenericDetailScreen`'s menu.
+
+Status: **done**, 2026-08-05; verified remotely, not yet pushed.
