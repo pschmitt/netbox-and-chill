@@ -85,7 +85,9 @@ class StoreScreenshotTest {
         // scroll-into-view treatment is cheap insurance now that this exact failure mode has
         // shown up once already.
         composeRule.onNodeWithText("Color scheme").performScrollTo().performClick()
+        waitForText("Dark", 30_000)
         composeRule.onNodeWithText("Dark").performClick()
+        captureE2eScreenshot("DEBUG_after_dark_click")
         // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
         // only other match while the dropdown was open (the item just clicked) is gone by then.
         waitForText("Dark", 30_000)
