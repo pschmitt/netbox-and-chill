@@ -198,13 +198,12 @@ constructor(
                                 label = objectEntity.display,
                                 frontImageUrl = images?.frontImageUrl,
                                 rearImageUrl = images?.rearImageUrl,
-                                searchFields =
-                                    runCatching {
-                                            json.decodeFromString(
-                                                JsonObject.serializer(),
-                                                objectEntity.json,
-                                            )
-                                        }
+                                searchFields = runCatching {
+                                        json.decodeFromString(
+                                            JsonObject.serializer(),
+                                            objectEntity.json,
+                                        )
+                                    }
                                         .getOrNull()
                                         ?.createChoiceSearchFields()
                                         .orEmpty(),

@@ -44,10 +44,9 @@ fun isMediaUrl(text: String): Boolean =
  * uses - rather than a separately-synced lookup table that may not cover every object (see
  * DeviceTypeEntity, which is only populated for device types referenced by a synced Device).
  */
-fun frontImageUrlFromRawJson(raw: String): String? =
-    runCatching {
-            Json.parseToJsonElement(raw) as? JsonObject
-        }
-        .getOrNull()
-        ?.jsonString("front_image")
-        ?.takeIf { it.isNotBlank() && isMediaUrl(it) }
+fun frontImageUrlFromRawJson(raw: String): String? = runCatching {
+    Json.parseToJsonElement(raw) as? JsonObject
+}
+    .getOrNull()
+    ?.jsonString("front_image")
+    ?.takeIf { it.isNotBlank() && isMediaUrl(it) }

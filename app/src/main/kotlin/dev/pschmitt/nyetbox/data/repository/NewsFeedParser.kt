@@ -78,11 +78,8 @@ private fun String.decodeXmlEntities(): String =
             match.groupValues[1].toIntOrNull()?.toChar()?.toString() ?: match.value
         }
 
-private fun String.parseFeedDate(): Long =
-    runCatching {
-            ZonedDateTime.parse(this, DateTimeFormatter.RFC_1123_DATE_TIME)
-                .toInstant()
-                .toEpochMilli()
-        }
-        .recoverCatching { Instant.parse(this).toEpochMilli() }
-        .getOrDefault(0L)
+private fun String.parseFeedDate(): Long = runCatching {
+    ZonedDateTime.parse(this, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli()
+}
+    .recoverCatching { Instant.parse(this).toEpochMilli() }
+    .getOrDefault(0L)
