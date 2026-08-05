@@ -17,8 +17,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
 /**
- * The pill-shaped, filled search field style introduced in [dev.pschmitt.nyetbox.ui.search.GlobalSearchScreen] -
- * shared here so every search entry point (sidebar, list-view filters, global search) looks the same.
+ * The pill-shaped, filled search field style introduced in
+ * [dev.pschmitt.nyetbox.ui.search.GlobalSearchScreen] - shared here so every search entry point
+ * (sidebar, list-view filters, global search) looks the same.
  */
 @Composable
 fun ModernSearchField(
