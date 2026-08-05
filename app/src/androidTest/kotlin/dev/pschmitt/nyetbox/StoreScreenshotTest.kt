@@ -115,7 +115,7 @@ class StoreScreenshotTest {
     }
 
     private fun captureJourney(suffix: String) {
-        Screengrab.screenshot("01_dashboard$suffix")
+        captureScreenshot("01_dashboard$suffix")
 
         composeRule.onNodeWithContentDescription("Open navigation").performClick()
         waitForTag("e2e-device-list-entry", 60_000)
@@ -145,13 +145,13 @@ class StoreScreenshotTest {
         // finishes, and there are two snackbars in sequence, not one), so a fixed settle delay
         // covering Material3's default SnackbarDuration.Short is simpler and more reliable here.
         Thread.sleep(5_000)
-        Screengrab.screenshot("02_device_detail$suffix")
+        captureScreenshot("02_device_detail$suffix")
 
         composeRule.onNodeWithContentDescription("More actions").performClick()
         waitForText("Open topology", 30_000)
         composeRule.onNodeWithText("Open topology").performClick()
         waitForContentDescription("Topology graph with 4 nodes and 3 connections", 120_000)
-        Screengrab.screenshot("03_topology$suffix")
+        captureScreenshot("03_topology$suffix")
 
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForContentDescription("More actions", 30_000)
@@ -177,7 +177,7 @@ class StoreScreenshotTest {
         // in a previous composition. A missing result must fail the capture instead of silently
         // producing an empty store-listing asset.
         waitForTag("e2e-search-result", 60_000)
-        Screengrab.screenshot("04_search$suffix")
+        captureScreenshot("04_search$suffix")
 
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
@@ -186,7 +186,24 @@ class StoreScreenshotTest {
         waitForContentDescription("Settings", 30_000)
         composeRule.onNodeWithContentDescription("Settings").performClick()
         waitForText("Settings", 30_000)
-        Screengrab.screenshot("05_settings$suffix")
+        captureScreenshot("05_settings$suffix")
+    }
+
+    private fun captureScreenshot(name: String) {
+        // AnrDismissRule's background watcher only polls once a second, so a Screengrab capture
+        // can still land squarely on a transient ANR dialog between polls (confirmed: happened
+        // once, on tenInch's 05_settings_dark, in an otherwise fully green run) - block
+        // synchronously right before each capture instead of only relying on the watcher to have
+        // already caught up.
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val deadline = System.currentTimeMillis() + 15_000
+        while (
+            device.findObject(By.textContains("isn't responding")) != null &&
+                System.currentTimeMillis() < deadline
+        ) {
+            Thread.sleep(200)
+        }
+        Screengrab.screenshot(name)
     }
 
     private fun waitForText(text: String, timeoutMillis: Long) {
