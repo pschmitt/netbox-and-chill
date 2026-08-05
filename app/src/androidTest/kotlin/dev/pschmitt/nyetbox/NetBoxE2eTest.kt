@@ -160,6 +160,15 @@ class NetBoxE2eTest {
         waitForText("Showing cached data; network sync is paused", timeoutMillis = 30_000)
         waitForText("Search NetBox", timeoutMillis = 30_000)
         captureE2eScreenshot("05-offline-dashboard")
+        // Two consecutive runs failed only in teardown after this point - the test body itself
+        // passed both times (zero assertion failures), but ActivityScenarioRule.after() then hung
+        // on "Activity never becomes requested state [DESTROYED]". A same-window Compose overlay
+        // reasserting itself right as the test method returns (see clickUntilTagAppears's doc for
+        // why that keeps happening throughout this journey) is the most likely thing left in this
+        // file capable of interfering with a clean finish/destroy this late. Confirm it's gone one
+        // more time before returning, on the chance a tick fired between the last capture above and
+        // now.
+        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
     }
 
     private fun waitForText(text: String, timeoutMillis: Long) {
