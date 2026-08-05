@@ -77,11 +77,17 @@ jobs:
           cp app/build/outputs/apk/debug/app-x86_64-debug.apk dist/
           cp app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk dist/
 
-      # Deliberately NOT granting KVM access here - see android-e2e.yaml's equivalent comment.
-      # Every Android E2E run since KVM acceleration was enabled repo-wide (2026-08-04) has failed
-      # with the emulator going fully unresponsive mid-journey, and this workflow shares the same
-      # emulator action/runner image and has been failing identically. Software emulation is
-      # slower to boot but was the last known-stable configuration.
+      # GitHub-hosted runners ship /dev/kvm but don't grant the job user access to it, so the
+      # emulator silently falls back to software-only emulation and takes ~15+ minutes to boot.
+      # This grants real KVM access. (A controlled test in android-e2e.yaml ruled KVM out as the
+      # cause of the "device offline" flakiness both workflows have hit - see that file's
+      # comment - so it's not worth trading away for iteration speed here either.)
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Capture screenshots in a ${{ matrix.device_type }} emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
