@@ -202,5 +202,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.uiautomator)
+    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.fastlane.screengrab)
 }
