@@ -131,6 +131,11 @@ class NetBoxE2eTest {
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
         waitForText("CI E2E Device", timeoutMillis = 30_000)
 
+        // The device-list-entry click above lands here through the offline-mode path, which - like
+        // every other post-click transition in this journey - needs a beat before the bottom bar's
+        // own "Home" tab has actually composed. Every other click after a navigation-triggering
+        // action in this file waits for its target first; this one didn't.
+        waitForText("Home", timeoutMillis = 30_000)
         composeRule.onNodeWithText("Home").performClick()
         waitForText("Showing cached data; network sync is paused", timeoutMillis = 30_000)
         waitForText("Search NetBox", timeoutMillis = 30_000)
