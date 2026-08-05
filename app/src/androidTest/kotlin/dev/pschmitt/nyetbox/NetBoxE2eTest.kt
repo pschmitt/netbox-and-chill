@@ -101,6 +101,28 @@ class NetBoxE2eTest {
         composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Dashboard", timeoutMillis = 30_000)
 
+        // MainActivity.onNewIntent (called by both startActivity() round-trips above) calls
+        // setIntent(), which permanently changes what activity.getIntent() returns from the
+        // plain ACTION_MAIN/CATEGORY_LAUNCHER intent ActivityScenario originally launched this
+        // activity with to the deep-link/reconciliation intent. ActivityScenario compares
+        // getIntent() against its own recorded launch intent (via Intent.filterEquals) to decide
+        // whether a lifecycle callback is "for" the activity it's tracking - confirmed via CI
+        // logcat ("Activity lifecycle changed event received but ignored because the intent does
+        // not match") appearing for every PAUSED/STOPPED/DESTROYED transition from this point
+        // onward. The real activity destroys cleanly and quickly at actual test teardown, but
+        // ActivityScenario never recognizes it (having ignored every transition since), so its own
+        // internal wait in ActivityScenarioRule.after() times out and fails the test with "Activity
+        // never becomes requested state [DESTROYED]" - despite the journey above having already
+        // passed cleanly. Restore an intent that matches the original launch so ActivityScenario's
+        // tracking resumes.
+        composeRule.activity.runOnUiThread {
+            composeRule.activity.setIntent(
+                Intent(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_LAUNCHER)
+                    .setClassName(composeRule.activity, MainActivity::class.java)
+            )
+        }
+
         // The startup WorkManager job must populate the typed device cache before this list is
         // usable. This also exercises the directory/sidebar discovery path used after onboarding.
         clickUntilTagAppears(
@@ -128,11 +150,11 @@ class NetBoxE2eTest {
         captureE2eScreenshot("04-global-search")
         // performTextInput leaves the field focused, which raises the on-screen keyboard - never
         // explicitly dismissed for the rest of this journey (StoreScreenshotTest already works
-        // around the same thing after its own search capture). A stuck IME session is a plausible
-        // contributor to this file's last remaining flake: teardown consistently hangs on
-        // "Activity never becomes requested state [DESTROYED]" right at test end, with the test
-        // body itself passing cleanly and nothing else left unaccounted for. A back-press with the
-        // IME visible only dismisses the keyboard (standard Android behavior), not the screen.
+        // around the same thing after its own search capture). A back-press with the IME visible
+        // only dismisses the keyboard (standard Android behavior), not the screen. (The teardown
+        // "Activity never becomes requested state [DESTROYED]" flake this comment used to blame on
+        // a stuck IME session was confirmed via CI logcat to be unrelated - see the intent-restore
+        // comment above, after the deep-link/reconciliation round-trips.)
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
 
         // Go back through the same UI and turn on Offline mode from the navigation drawer. The

@@ -2,10 +2,13 @@ package dev.pschmitt.nyetbox.ui.generic
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import dev.pschmitt.nyetbox.data.repository.CreateChoice
 import dev.pschmitt.nyetbox.data.repository.CreateFieldDefinition
 import dev.pschmitt.nyetbox.data.repository.ThemeAccent
@@ -27,7 +30,14 @@ class GenericCreateFieldInputTest {
     fun choiceFieldBodyOpensPicker() {
         setChoiceContent()
 
-        composeRule.onNodeWithTag("create-choice-field-manufacturer").performClick()
+        // Compose's synthetic performClick() on the field's testTag never actually opens the
+        // sheet here (confirmed: choiceFieldTrailingIconOpensPicker below reaches the identical
+        // sheet via the trailing IconButton's own onClick and passes reliably) - the readOnly
+        // OutlinedTextField's own internal pointer input for focus/cursor handling consumes the
+        // synthetic touch before the outer Modifier.clickable{} on GenericCreateScreen.kt's
+        // CreateChoiceInput ever sees it. Dispatch a real system tap on the field's visible label
+        // instead, which isn't subject to Compose's own gesture arbitration.
+        clickByText("Manufacturer")
 
         composeRule.onNodeWithText("Search Manufacturer").assertExists()
     }
@@ -45,7 +55,8 @@ class GenericCreateFieldInputTest {
     fun multiChoiceFieldBodyOpensPicker() {
         setMultiChoiceContent()
 
-        composeRule.onNodeWithTag("create-multi-choice-field-tags").performClick()
+        // See choiceFieldBodyOpensPicker's comment - same readOnly-field-body-click issue.
+        clickByText("Tags")
 
         composeRule.onNodeWithText("Clear all").assertExists()
     }
@@ -54,9 +65,19 @@ class GenericCreateFieldInputTest {
     fun multiChoiceFieldTrailingIconOpensPicker() {
         setMultiChoiceContent()
 
-        composeRule.onNodeWithContentDescription("Choose tags").performClick()
+        // contentDescription is "Choose ${field.label}" (GenericCreateScreen.kt); field.label is
+        // "Tags" here, so the description is capitalized - this previously read "Choose tags"
+        // (lowercase), which never matched (onNodeWithContentDescription is case-sensitive) and
+        // failed every run.
+        composeRule.onNodeWithContentDescription("Choose Tags").performClick()
 
         composeRule.onNodeWithText("Clear all").assertExists()
+    }
+
+    private fun clickByText(text: String) {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        device.wait(Until.findObject(By.text(text)), 10_000)?.click()
+            ?: error("No \"$text\" node found via UiAutomator")
     }
 
     private fun setChoiceContent() {

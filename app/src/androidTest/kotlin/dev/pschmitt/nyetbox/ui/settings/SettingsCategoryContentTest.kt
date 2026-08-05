@@ -47,7 +47,10 @@ class SettingsCategoryContentTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Configure scanner camera").performClick()
+        // No node in CameraSettingsContent (SettingsCategoryContent.kt) ever had a "Configure
+        // scanner camera" contentDescription - every icon there is contentDescription = null. The
+        // dropdown opens via clicking the list item itself.
+        composeRule.onNodeWithText("Scanner default camera").performClick()
         composeRule.onNodeWithText("Front camera").performClick()
 
         assertEquals(ScannerLens.Front, updated)
