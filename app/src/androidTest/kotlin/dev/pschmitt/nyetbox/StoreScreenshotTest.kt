@@ -122,7 +122,10 @@ class StoreScreenshotTest {
     private fun captureJourney(suffix: String) {
         captureScreenshot("01_dashboard$suffix")
 
-        clickUntilTagAppears(destinationTag = "e2e-device-list-entry", perAttemptTimeoutMillis = 60_000) {
+        clickUntilTagAppears(
+            destinationTag = "e2e-device-list-entry",
+            perAttemptTimeoutMillis = 60_000,
+        ) {
             composeRule.onNodeWithContentDescription("Open navigation").performClick()
         }
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
@@ -276,9 +279,9 @@ class StoreScreenshotTest {
         repeat(maxAttempts) { attempt ->
             waitForTagAbsent(overlayTag, timeoutMillis = 60_000)
             click()
-            val landed =
-                runCatching { waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis) }
-                    .isSuccess
+            val landed = runCatching {
+                waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis)
+            }.isSuccess
             if (landed) return
             check(attempt < maxAttempts - 1) {
                 "Never reached tag '$destinationTag' after $maxAttempts clicks"

@@ -100,7 +100,10 @@ class NetBoxE2eTest {
 
         // The startup WorkManager job must populate the typed device cache before this list is
         // usable. This also exercises the directory/sidebar discovery path used after onboarding.
-        clickUntilTagAppears(destinationTag = "e2e-device-list-entry", perAttemptTimeoutMillis = 60_000) {
+        clickUntilTagAppears(
+            destinationTag = "e2e-device-list-entry",
+            perAttemptTimeoutMillis = 60_000,
+        ) {
             composeRule.onNodeWithContentDescription("Open navigation").performClick()
         }
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
@@ -183,9 +186,9 @@ class NetBoxE2eTest {
         repeat(maxAttempts) { attempt ->
             waitForTagAbsent(overlayTag, timeoutMillis = 60_000)
             click()
-            val landed =
-                runCatching { waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis) }
-                    .isSuccess
+            val landed = runCatching {
+                waitForTag(destinationTag, timeoutMillis = perAttemptTimeoutMillis)
+            }.isSuccess
             if (landed) return
             check(attempt < maxAttempts - 1) {
                 "Never reached tag '$destinationTag' after $maxAttempts clicks"
