@@ -72,6 +72,10 @@ class StoreScreenshotTest {
     }
 
     private fun switchToDarkModeAndReturnToDashboard() {
+        // "Color scheme" lives under the "Display" category, not directly on the top-level
+        // Settings list (see SettingsCategory.kt/SettingsCategoryContent.kt).
+        composeRule.onNodeWithText("Display").performClick()
+        waitForText("Color scheme", 30_000)
         composeRule.onNodeWithText("Color scheme").performClick()
         composeRule.onNodeWithText("Dark").performClick()
         // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
@@ -80,7 +84,14 @@ class StoreScreenshotTest {
         // Let the theme recomposition (colors across the whole tree) settle before navigating,
         // matching the settle delay already used for snackbar animations below.
         Thread.sleep(500)
-        composeRule.onNodeWithText("Home").assertIsDisplayed().performClick()
+        // Neither the Display category screen nor the top-level Settings list use the
+        // rail/bottom-bar scaffold (both are plain Scaffolds with just a Back arrow) - unlike
+        // Dashboard/DeviceList/etc, there's no "Home" here to click. Settings was reached from
+        // Dashboard via the sidebar drawer (pushed on top, not a tab switch), so two Back presses
+        // unwind back to it: category screen -> Settings list -> Dashboard.
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        waitForText("Settings", 30_000)
+        composeRule.onNodeWithContentDescription("Back").performClick()
         waitForText("Dashboard", 30_000)
     }
 
