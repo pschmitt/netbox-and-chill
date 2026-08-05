@@ -14,6 +14,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
 import org.junit.ClassRule
 import org.junit.Rule
 import org.junit.Test
@@ -86,14 +88,15 @@ class StoreScreenshotTest {
         // shown up once already.
         composeRule.onNodeWithText("Color scheme").performScrollTo().performClick()
         waitForText("Dark", 30_000)
-        // The DEBUG_after_dark_click capture from an earlier run showed the dropdown still fully
-        // open with all three options after this click "landed": Material3's DropdownMenu has an
-        // expand transition, and the click fired before it settled, missing the item entirely.
-        // waitForText above only confirms "Dark" exists in the tree, not that the popup has
-        // stopped animating.
-        Thread.sleep(300)
-        composeRule.onNodeWithText("Dark").performClick()
-        captureE2eScreenshot("DEBUG_immediately_after_dark_click")
+        // Two separate debug captures (with and without a settle delay first) both showed the
+        // dropdown still fully open, all three options visible, right after
+        // onNodeWithText("Dark").performClick() supposedly "landed" - Compose's own synthetic
+        // touch dispatch isn't actually reaching this DropdownMenu item, consistently, regardless
+        // of timing. Use UiAutomator's real system-level touch dispatch instead, which does not
+        // go through Compose's semantics-tree coordinate math at all.
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        device.findObject(By.text("Dark"))?.click()
+            ?: error("No \"Dark\" node found via UiAutomator")
         // The "Color scheme" row's own supportingContent updates to "Dark" once selected - the
         // only other match while the dropdown was open (the item just clicked) is gone by then.
         waitForText("Dark", 30_000)
