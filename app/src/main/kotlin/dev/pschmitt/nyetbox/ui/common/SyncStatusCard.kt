@@ -52,7 +52,10 @@ fun SyncStatusCard(
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text(if (isSyncing) "Syncing…" else "Synced", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (isSyncing) "Syncing…" else "Synced",
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Text(
                     formatRelativeSyncTime(lastSuccessfulSyncAt, nowMillis),
                     style = MaterialTheme.typography.bodySmall,

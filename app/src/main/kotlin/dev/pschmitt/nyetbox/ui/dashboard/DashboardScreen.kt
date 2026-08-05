@@ -107,8 +107,8 @@ import kotlinx.coroutines.delay
 internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
 
 /**
- * The status card and the issue card share one slot - never show a bland "Synced" line right
- * above (or below) the error explaining why it actually isn't.
+ * The status card and the issue card share one slot - never show a bland "Synced" line right above
+ * (or below) the error explaining why it actually isn't.
  */
 internal fun shouldShowSyncStatus(offlineMode: Boolean, hasSyncIssue: Boolean): Boolean =
     !offlineMode && !hasSyncIssue
@@ -185,323 +185,287 @@ fun DashboardScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-    NetBoxResponsiveScaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Dashboard, contentDescription = null)
-                        Text("Dashboard", modifier = Modifier.padding(start = 8.dp))
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Open navigation")
-                    }
-                },
-                actions = {
-                    if (dashboardReorderMode) {
-                        IconButton(onClick = { showDashboardVisibilityDialog = true }) {
-                            Icon(
-                                Icons.Default.Visibility,
-                                contentDescription = "Show or hide dashboard sections",
-                            )
+        NetBoxResponsiveScaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Dashboard, contentDescription = null)
+                            Text("Dashboard", modifier = Modifier.padding(start = 8.dp))
                         }
-                        IconButton(onClick = { dashboardReorderMode = false }) {
-                            Icon(
-                                Icons.Default.Done,
-                                contentDescription = "Finish organizing dashboard",
-                            )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = "Open navigation")
                         }
-                    }
-                },
-            )
-        },
-        bottomBar = {
-            NetBoxBottomBar(
-                selected = BottomTab.Dashboard,
-                onDashboardClick = {},
-                onSearchClick = onSearchClick,
-                onScanClick = onScanClick,
-                onAddClick = onAddClick,
-                onSettingsClick = onSettingsClick,
-            )
-        },
-    ) { padding ->
-        PullToRefreshBox(
-            // Sync has a global progress bar and Android notification; avoid the large circular
-            // indicator moving over the dashboard while that background work is running.
-            isRefreshing = false,
-            onRefresh = viewModel::refresh,
-            modifier = Modifier.padding(padding).fillMaxSize(),
-        ) {
-            val bookmarkTargets =
-                bookmarks
-                    .mapNotNull { bookmark ->
-                        val path = bookmark.targetEndpointPath
-                        val id = bookmark.targetId
-                        if (path != null && id != null) bookmark.id to (path to id) else null
-                    }
-                    .toMap()
-            val changeTargets =
-                changelog
-                    .mapNotNull { change ->
-                        val path = change.targetEndpointPath
-                        val id = change.targetId
-                        if (path != null && id != null) change.id to (path to id) else null
-                    }
-                    .toMap()
-
-            LazyColumn(
-                state = dashboardListState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                    },
+                    actions = {
+                        if (dashboardReorderMode) {
+                            IconButton(onClick = { showDashboardVisibilityDialog = true }) {
+                                Icon(
+                                    Icons.Default.Visibility,
+                                    contentDescription = "Show or hide dashboard sections",
+                                )
+                            }
+                            IconButton(onClick = { dashboardReorderMode = false }) {
+                                Icon(
+                                    Icons.Default.Done,
+                                    contentDescription = "Finish organizing dashboard",
+                                )
+                            }
+                        }
+                    },
+                )
+            },
+            bottomBar = {
+                NetBoxBottomBar(
+                    selected = BottomTab.Dashboard,
+                    onDashboardClick = {},
+                    onSearchClick = onSearchClick,
+                    onScanClick = onScanClick,
+                    onAddClick = onAddClick,
+                    onSettingsClick = onSettingsClick,
+                )
+            },
+        ) { padding ->
+            PullToRefreshBox(
+                // Sync has a global progress bar and Android notification; avoid the large circular
+                // indicator moving over the dashboard while that background work is running.
+                isRefreshing = false,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier.padding(padding).fillMaxSize(),
             ) {
-                if (shouldShowSyncIssue(offlineMode)) {
-                    syncIssue?.let { issue ->
+                val bookmarkTargets =
+                    bookmarks
+                        .mapNotNull { bookmark ->
+                            val path = bookmark.targetEndpointPath
+                            val id = bookmark.targetId
+                            if (path != null && id != null) bookmark.id to (path to id) else null
+                        }
+                        .toMap()
+                val changeTargets =
+                    changelog
+                        .mapNotNull { change ->
+                            val path = change.targetEndpointPath
+                            val id = change.targetId
+                            if (path != null && id != null) change.id to (path to id) else null
+                        }
+                        .toMap()
+
+                LazyColumn(
+                    state = dashboardListState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                ) {
+                    if (shouldShowSyncIssue(offlineMode)) {
+                        syncIssue?.let { issue ->
+                            item {
+                                SyncIssueCard(
+                                    issue,
+                                    onRetry = viewModel::retrySync,
+                                    isSyncing = isRefreshing,
+                                )
+                                Spacer(Modifier.height(16.dp))
+                            }
+                        }
+                    }
+                    if (shouldShowSyncStatus(offlineMode, hasSyncIssue = syncIssue != null)) {
                         item {
-                            SyncIssueCard(
-                                issue,
-                                onRetry = viewModel::retrySync,
+                            SyncStatusCard(
+                                lastSuccessfulSyncAt = lastSuccessfulSyncAt,
                                 isSyncing = isRefreshing,
                             )
                             Spacer(Modifier.height(16.dp))
                         }
                     }
-                }
-                if (shouldShowSyncStatus(offlineMode, hasSyncIssue = syncIssue != null)) {
-                    item {
-                        SyncStatusCard(
-                            lastSuccessfulSyncAt = lastSuccessfulSyncAt,
-                            isSyncing = isRefreshing,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                    }
-                }
-                if (offlineMode) {
-                    item {
-                        NyetboxActionCard(
-                            onClick = onPendingChangesClick,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                    if (offlineMode) {
+                        item {
+                            NyetboxActionCard(
+                                onClick = onPendingChangesClick,
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Icon(Icons.Default.CloudOff, contentDescription = null)
-                                Spacer(Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        "Offline mode",
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        "Showing cached data; network sync is paused",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Text(
-                                        lastSuccessfulSyncAt?.let { timestamp ->
-                                            "Last sync: ${formatNetBoxDateTime(java.time.Instant.ofEpochMilli(timestamp).toString())}"
-                                        } ?: "Last sync: not completed yet",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Text(
-                                        if (pendingChangeCount == 0) {
-                                            "No pending local changes"
-                                        } else {
-                                            "$pendingChangeCount pending change${if (pendingChangeCount == 1) "" else "s"} · Tap to review"
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                    }
-                }
-                if (conflictCount > 0) {
-                    item {
-                        NyetboxActionCard(
-                            onClick = onConflictsClick,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        "$conflictCount edit conflict${if (conflictCount == 1) "" else "s"}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        "Review local and server values",
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(24.dp))
-                    }
-                }
-                items(dashboardSections, key = { "dashboard-section-${it.key}" }) { section ->
-                    DashboardSectionContainer(
-                        section = section,
-                        reorderMode = dashboardReorderMode,
-                        order = dashboardOrder,
-                        listState = dashboardListState,
-                        reorderState = dashboardReorderState,
-                        onEnterReorder = { dashboardReorderMode = true },
-                        onHide = {
-                            viewModel.setDashboardSectionHidden(section.key, true)
-                            dashboardReorderMode = true
-                        },
-                        onOrderChanged = viewModel::setDashboardSectionOrder,
-                    ) {
-                        when (section) {
-                            DashboardSection.Stats -> {
-                                if (stats.isEmpty()) {
-                                    EmptyHint(isRefreshing, "No stats cached yet - pull to sync")
-                                } else {
-                                    StatsRow(stats, objectTypeAccents, onStatClick)
-                                }
-                            }
-                            DashboardSection.Search ->
-                                GlobalSearchCard(
-                                    onClick = onSearchClick,
-                                    reorderMode = dashboardReorderMode,
-                                    onLongPress = { dashboardReorderMode = true },
-                                    onHide = {
-                                        viewModel.setDashboardSectionHidden(section.key, true)
-                                        dashboardReorderMode = true
-                                    },
-                                )
-                            DashboardSection.News -> {
-                                if (news.isEmpty()) {
-                                    EmptyHint(isRefreshing, "No news cached yet - pull to sync")
-                                } else {
-                                    news.forEach { newsItem ->
-                                        NewsRow(newsItem) {
-                                            runCatching {
-                                                context.startActivity(
-                                                    Intent(
-                                                        Intent.ACTION_VIEW,
-                                                        newsItem.link.toUri(),
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            DashboardSection.RecentlyViewed -> {
-                                if (recentVisits.isEmpty()) {
-                                    // Recent visits are local history, not sync data. A running
-                                    // sync must not turn this honest empty state into a permanent
-                                    // "Loading…" message on a fresh install.
-                                    EmptyHint(false, "No recently viewed items yet")
-                                } else {
-                                    recentVisits
-                                        .let { visits ->
-                                            if (recentVisitsExpanded) visits
-                                            else visits.take(RECENT_VISITS_PREVIEW_LIMIT)
-                                        }
-                                        .forEach { visit ->
-                                            val thumbnail =
-                                                viewModel.thumbnailFor(
-                                                    visit.endpointPath,
-                                                    visit.id,
-                                                    devicesById,
-                                                    deviceTypeFrontImagesById,
-                                                )
-                                            RecentVisitRow(
-                                                visit = visit,
-                                                thumbnail = thumbnail,
-                                                typeColor =
-                                                    MaterialTheme.colorScheme.detailAccentFor(
-                                                        visit.endpointPath,
-                                                        objectTypeAccents[
-                                                            visit.endpointPath.trim('/')],
-                                                    ),
-                                                localImageFile = viewModel::localImageFile,
-                                                onClick = {
-                                                    onNavigateToReference(
-                                                        visit.endpointPath,
-                                                        visit.id,
-                                                    )
-                                                },
-                                            )
-                                        }
-                                    if (recentVisits.size > RECENT_VISITS_PREVIEW_LIMIT) {
-                                        ExpandSectionButton(
-                                            expanded = recentVisitsExpanded,
-                                            collapsedLabel =
-                                                "Show all ${recentVisits.size} recently viewed",
-                                            onClick = {
-                                                recentVisitsExpanded = !recentVisitsExpanded
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(Icons.Default.CloudOff, contentDescription = null)
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            "Offline mode",
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
+                                        Text(
+                                            "Showing cached data; network sync is paused",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Text(
+                                            lastSuccessfulSyncAt?.let { timestamp ->
+                                                "Last sync: ${formatNetBoxDateTime(java.time.Instant.ofEpochMilli(timestamp).toString())}"
+                                            } ?: "Last sync: not completed yet",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Text(
+                                            if (pendingChangeCount == 0) {
+                                                "No pending local changes"
+                                            } else {
+                                                "$pendingChangeCount pending change${if (pendingChangeCount == 1) "" else "s"} · Tap to review"
                                             },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
                                         )
                                     }
                                 }
                             }
-                            DashboardSection.Bookmarks -> {
-                                if (bookmarks.isEmpty()) {
-                                    EmptyHint(isRefreshing, "No bookmarks yet")
-                                } else {
-                                    bookmarks.forEach { bookmark ->
-                                        val thumbnail =
-                                            bookmark.targetEndpointPath?.let { path ->
-                                                bookmark.targetId?.let { id ->
-                                                    viewModel.thumbnailFor(
-                                                        path,
-                                                        id,
-                                                        devicesById,
-                                                        deviceTypeFrontImagesById,
+                            Spacer(Modifier.height(16.dp))
+                        }
+                    }
+                    if (conflictCount > 0) {
+                        item {
+                            NyetboxActionCard(
+                                onClick = onConflictsClick,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            "$conflictCount edit conflict${if (conflictCount == 1) "" else "s"}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
+                                        Text(
+                                            "Review local and server values",
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(24.dp))
+                        }
+                    }
+                    items(dashboardSections, key = { "dashboard-section-${it.key}" }) { section ->
+                        DashboardSectionContainer(
+                            section = section,
+                            reorderMode = dashboardReorderMode,
+                            order = dashboardOrder,
+                            listState = dashboardListState,
+                            reorderState = dashboardReorderState,
+                            onEnterReorder = { dashboardReorderMode = true },
+                            onHide = {
+                                viewModel.setDashboardSectionHidden(section.key, true)
+                                dashboardReorderMode = true
+                            },
+                            onOrderChanged = viewModel::setDashboardSectionOrder,
+                        ) {
+                            when (section) {
+                                DashboardSection.Stats -> {
+                                    if (stats.isEmpty()) {
+                                        EmptyHint(
+                                            isRefreshing,
+                                            "No stats cached yet - pull to sync",
+                                        )
+                                    } else {
+                                        StatsRow(stats, objectTypeAccents, onStatClick)
+                                    }
+                                }
+                                DashboardSection.Search ->
+                                    GlobalSearchCard(
+                                        onClick = onSearchClick,
+                                        reorderMode = dashboardReorderMode,
+                                        onLongPress = { dashboardReorderMode = true },
+                                        onHide = {
+                                            viewModel.setDashboardSectionHidden(section.key, true)
+                                            dashboardReorderMode = true
+                                        },
+                                    )
+                                DashboardSection.News -> {
+                                    if (news.isEmpty()) {
+                                        EmptyHint(isRefreshing, "No news cached yet - pull to sync")
+                                    } else {
+                                        news.forEach { newsItem ->
+                                            NewsRow(newsItem) {
+                                                runCatching {
+                                                    context.startActivity(
+                                                        Intent(
+                                                            Intent.ACTION_VIEW,
+                                                            newsItem.link.toUri(),
+                                                        )
                                                     )
                                                 }
-                                            }
-                                        BookmarkRow(
-                                            bookmark = bookmark,
-                                            thumbnail = thumbnail,
-                                            typeColor =
-                                                bookmark.targetEndpointPath?.let { path ->
-                                                    MaterialTheme.colorScheme.detailAccentFor(
-                                                        path,
-                                                        objectTypeAccents[path.trim('/')],
-                                                    )
-                                                } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                                            localImageFile = viewModel::localImageFile,
-                                        ) {
-                                            bookmarkTargets[bookmark.id]?.let { (path, id) ->
-                                                onNavigateToReference(path, id)
                                             }
                                         }
                                     }
                                 }
-                            }
-                            DashboardSection.RecentChanges -> {
-                                if (changelog.isEmpty()) {
-                                    EmptyHint(isRefreshing, "No changes cached yet - pull to sync")
-                                } else {
-                                    changelog
-                                        .let { changes ->
-                                            if (recentChangesExpanded) changes
-                                            else changes.take(RECENT_CHANGES_PREVIEW_LIMIT)
+                                DashboardSection.RecentlyViewed -> {
+                                    if (recentVisits.isEmpty()) {
+                                        // Recent visits are local history, not sync data. A running
+                                        // sync must not turn this honest empty state into a
+                                        // permanent
+                                        // "Loading…" message on a fresh install.
+                                        EmptyHint(false, "No recently viewed items yet")
+                                    } else {
+                                        recentVisits
+                                            .let { visits ->
+                                                if (recentVisitsExpanded) visits
+                                                else visits.take(RECENT_VISITS_PREVIEW_LIMIT)
+                                            }
+                                            .forEach { visit ->
+                                                val thumbnail =
+                                                    viewModel.thumbnailFor(
+                                                        visit.endpointPath,
+                                                        visit.id,
+                                                        devicesById,
+                                                        deviceTypeFrontImagesById,
+                                                    )
+                                                RecentVisitRow(
+                                                    visit = visit,
+                                                    thumbnail = thumbnail,
+                                                    typeColor =
+                                                        MaterialTheme.colorScheme.detailAccentFor(
+                                                            visit.endpointPath,
+                                                            objectTypeAccents[
+                                                                visit.endpointPath.trim('/')],
+                                                        ),
+                                                    localImageFile = viewModel::localImageFile,
+                                                    onClick = {
+                                                        onNavigateToReference(
+                                                            visit.endpointPath,
+                                                            visit.id,
+                                                        )
+                                                    },
+                                                )
+                                            }
+                                        if (recentVisits.size > RECENT_VISITS_PREVIEW_LIMIT) {
+                                            ExpandSectionButton(
+                                                expanded = recentVisitsExpanded,
+                                                collapsedLabel =
+                                                    "Show all ${recentVisits.size} recently viewed",
+                                                onClick = {
+                                                    recentVisitsExpanded = !recentVisitsExpanded
+                                                },
+                                            )
                                         }
-                                        .forEach { change ->
+                                    }
+                                }
+                                DashboardSection.Bookmarks -> {
+                                    if (bookmarks.isEmpty()) {
+                                        EmptyHint(isRefreshing, "No bookmarks yet")
+                                    } else {
+                                        bookmarks.forEach { bookmark ->
                                             val thumbnail =
-                                                change.targetEndpointPath?.let { path ->
-                                                    change.targetId?.let { id ->
+                                                bookmark.targetEndpointPath?.let { path ->
+                                                    bookmark.targetId?.let { id ->
                                                         viewModel.thumbnailFor(
                                                             path,
                                                             id,
@@ -510,33 +474,83 @@ fun DashboardScreen(
                                                         )
                                                     }
                                                 }
-                                            ChangeRow(
-                                                change = change,
+                                            BookmarkRow(
+                                                bookmark = bookmark,
                                                 thumbnail = thumbnail,
                                                 typeColor =
-                                                    change.targetEndpointPath?.let { path ->
+                                                    bookmark.targetEndpointPath?.let { path ->
                                                         MaterialTheme.colorScheme.detailAccentFor(
                                                             path,
                                                             objectTypeAccents[path.trim('/')],
                                                         )
                                                     } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                                                 localImageFile = viewModel::localImageFile,
-                                                onClick = {
-                                                    changeTargets[change.id]?.let { (path, id) ->
-                                                        onNavigateToReference(path, id)
+                                            ) {
+                                                bookmarkTargets[bookmark.id]?.let { (path, id) ->
+                                                    onNavigateToReference(path, id)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                DashboardSection.RecentChanges -> {
+                                    if (changelog.isEmpty()) {
+                                        EmptyHint(
+                                            isRefreshing,
+                                            "No changes cached yet - pull to sync",
+                                        )
+                                    } else {
+                                        changelog
+                                            .let { changes ->
+                                                if (recentChangesExpanded) changes
+                                                else changes.take(RECENT_CHANGES_PREVIEW_LIMIT)
+                                            }
+                                            .forEach { change ->
+                                                val thumbnail =
+                                                    change.targetEndpointPath?.let { path ->
+                                                        change.targetId?.let { id ->
+                                                            viewModel.thumbnailFor(
+                                                                path,
+                                                                id,
+                                                                devicesById,
+                                                                deviceTypeFrontImagesById,
+                                                            )
+                                                        }
                                                     }
+                                                ChangeRow(
+                                                    change = change,
+                                                    thumbnail = thumbnail,
+                                                    typeColor =
+                                                        change.targetEndpointPath?.let { path ->
+                                                            MaterialTheme.colorScheme
+                                                                .detailAccentFor(
+                                                                    path,
+                                                                    objectTypeAccents[
+                                                                        path.trim('/')],
+                                                                )
+                                                        }
+                                                            ?: MaterialTheme.colorScheme
+                                                                .onSurfaceVariant,
+                                                    localImageFile = viewModel::localImageFile,
+                                                    onClick = {
+                                                        changeTargets[change.id]?.let { (path, id)
+                                                            ->
+                                                            onNavigateToReference(path, id)
+                                                        }
+                                                    },
+                                                    onDiffClick = { onChangeDiffClick(change.id) },
+                                                )
+                                            }
+                                        if (changelog.size > RECENT_CHANGES_PREVIEW_LIMIT) {
+                                            ExpandSectionButton(
+                                                expanded = recentChangesExpanded,
+                                                collapsedLabel =
+                                                    "Show all ${changelog.size} changes",
+                                                onClick = {
+                                                    recentChangesExpanded = !recentChangesExpanded
                                                 },
-                                                onDiffClick = { onChangeDiffClick(change.id) },
                                             )
                                         }
-                                    if (changelog.size > RECENT_CHANGES_PREVIEW_LIMIT) {
-                                        ExpandSectionButton(
-                                            expanded = recentChangesExpanded,
-                                            collapsedLabel = "Show all ${changelog.size} changes",
-                                            onClick = {
-                                                recentChangesExpanded = !recentChangesExpanded
-                                            },
-                                        )
                                     }
                                 }
                             }
@@ -545,7 +559,6 @@ fun DashboardScreen(
                 }
             }
         }
-    }
 
         if (showInitialSyncOverlay && !initialSyncTimedOut) {
             InitialSyncOverlay()
