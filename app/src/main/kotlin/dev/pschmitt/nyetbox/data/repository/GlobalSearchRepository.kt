@@ -25,6 +25,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -167,6 +168,7 @@ fun recentVisitsToSearchHits(visits: List<RecentVisitEntity>): List<SearchHit> =
  * "search". What *does* work, also confirmed live: NetBox's per-model list endpoints accept a
  * free-text `?q=<term>` filter - used here as the refresh mechanism.
  */
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 @Singleton
 class GlobalSearchRepository
 @Inject
@@ -235,9 +237,17 @@ constructor(
      * cache after sync and never makes a network request.
      */
     private val searchScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // A full sync upserts each model's cache in ~200-row pages (see GenericObjectRepository /
+    // OfflineSyncRepository.syncAll), and each page upsert invalidates this whole-table Room flow.
+    // Without debouncing, this rebuilds the entire (potentially thousands-of-rows) search index
+    // from scratch on every single page of every model during that burst - reparsing JSON and
+    // recursively walking every nested field each time - which was severe enough to OOM on a
+    // 256MB-heap device. Debouncing coalesces a sync burst into one rebuild after it settles.
     private val cachedGenericObjects =
         netBoxObjectDao
             .observeAllObjects()
+            .debounce(300)
             .map { objects ->
                 objects.mapNotNull { entity ->
                     decodeObject(entity.json)?.let { objectJson ->
@@ -267,6 +277,7 @@ constructor(
     private val cachedDevices =
         deviceDao
             .observeAll()
+            .debounce(300)
             .map { devices -> devices.map(::indexDevice) }
             .stateIn(searchScope, SharingStarted.Eagerly, emptyList())
 
