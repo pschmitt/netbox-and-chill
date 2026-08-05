@@ -25,50 +25,6 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.camera:camera-camera2 than 1.5.1 is available: 1.6.1"
-        errorLine1="androidx-camera = &quot;1.5.1&quot;"
-        errorLine2="                  ~~~~~~~">
-        <location
-            file="gradle/libs.versions.toml"
-            line="4"
-            column="19"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.camera:camera-core than 1.5.1 is available: 1.6.1"
-        errorLine1="androidx-camera = &quot;1.5.1&quot;"
-        errorLine2="                  ~~~~~~~">
-        <location
-            file="gradle/libs.versions.toml"
-            line="4"
-            column="19"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.camera:camera-lifecycle than 1.5.1 is available: 1.6.1"
-        errorLine1="androidx-camera = &quot;1.5.1&quot;"
-        errorLine2="                  ~~~~~~~">
-        <location
-            file="gradle/libs.versions.toml"
-            line="4"
-            column="19"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.camera:camera-view than 1.5.1 is available: 1.6.1"
-        errorLine1="androidx-camera = &quot;1.5.1&quot;"
-        errorLine2="                  ~~~~~~~">
-        <location
-            file="gradle/libs.versions.toml"
-            line="4"
-            column="19"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
         message="A newer version of androidx.core:core than 1.18.0 is available: 1.19.0"
         errorLine1="androidx-core = &quot;1.18.0&quot;"
         errorLine2="                ~~~~~~~~">
