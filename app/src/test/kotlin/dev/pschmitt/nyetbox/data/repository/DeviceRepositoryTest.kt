@@ -169,6 +169,10 @@ private class FakeDeviceDao(private val devices: List<DeviceEntity>) : DeviceDao
     override suspend fun clear() = error("unused")
 
     override suspend fun count(): Int = devices.size
+
+    override suspend fun maxLastUpdated(): String? = error("unused")
+
+    override suspend fun pruneStale(cutoff: Long) = error("unused")
 }
 
 private class FakeNetBoxApi : NetBoxApi {
@@ -176,6 +180,7 @@ private class FakeNetBoxApi : NetBoxApi {
         limit: Int,
         offset: Int,
         search: String?,
+        lastUpdatedGte: String?,
     ): PagedResponseDto<DeviceDto> = error("unused")
 
     override suspend fun getDevice(id: Int): DeviceDto = error("unused")

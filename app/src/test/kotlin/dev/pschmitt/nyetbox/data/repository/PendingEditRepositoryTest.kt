@@ -479,4 +479,8 @@ internal class FakeNetBoxObjectDao : NetBoxObjectDao {
         listOfNotNull(last).filter { it.endpointPath == endpointPath }
 
     override suspend fun getAll(): List<NetBoxObjectEntity> = listOfNotNull(last)
+
+    override suspend fun maxLastUpdated(endpointPath: String): String? = null
+
+    override suspend fun pruneStale(endpointPath: String, cutoff: Long) = Unit
 }

@@ -203,6 +203,10 @@ private class InMemoryNetBoxObjectDao(private val objects: List<NetBoxObjectEnti
     override suspend fun countAll(): Int = objects.size
 
     override suspend fun getAll(): List<NetBoxObjectEntity> = objects
+
+    override suspend fun maxLastUpdated(endpointPath: String): String? = error("unused")
+
+    override suspend fun pruneStale(endpointPath: String, cutoff: Long) = error("unused")
 }
 
 private class FakeGenericNetBoxApi : GenericNetBoxApi {
