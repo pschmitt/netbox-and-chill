@@ -3,6 +3,7 @@ package dev.pschmitt.nyetbox.ui.devicedetail
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -68,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
+import dev.pschmitt.nyetbox.data.repository.CachedDocument
 import dev.pschmitt.nyetbox.data.repository.DeleteSubmission
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
@@ -75,9 +77,7 @@ import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.CollapsibleCommentCard
 import dev.pschmitt.nyetbox.ui.common.CommentCard
 import dev.pschmitt.nyetbox.ui.common.DetailTrailingActions
-import dev.pschmitt.nyetbox.ui.common.DocumentsSection
 import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
-import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
 import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
 import dev.pschmitt.nyetbox.ui.common.ImageViewerMetadataLink
@@ -87,6 +87,7 @@ import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTopBar
 import dev.pschmitt.nyetbox.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
+import dev.pschmitt.nyetbox.ui.common.MediaCarousel
 import dev.pschmitt.nyetbox.ui.common.MediaUploadDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadKind
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
@@ -103,6 +104,7 @@ import dev.pschmitt.nyetbox.ui.common.fileViewIntent
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.shareIntent
+import dev.pschmitt.nyetbox.ui.common.toDocumentViewerItem
 import dev.pschmitt.nyetbox.ui.common.toImageViewerItem
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
 import dev.pschmitt.nyetbox.ui.generic.FieldRow
@@ -206,6 +208,7 @@ fun DeviceDetailScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showMediaUpload by remember { mutableStateOf(false) }
     var mediaUploadInitialKind by remember { mutableStateOf<MediaUploadKind?>(null) }
+    var mediaUploadInitialUri by remember { mutableStateOf<Uri?>(null) }
     var imageAttachmentAction by remember { mutableStateOf<ImageAttachmentEntity?>(null) }
     var imageAttachmentToEdit by remember { mutableStateOf<ImageAttachmentEntity?>(null) }
     var showJournalEditor by remember { mutableStateOf(false) }
@@ -224,7 +227,16 @@ fun DeviceDetailScreen(
         deviceTypePhotoItems(deviceType, device?.manufacturerName, manufacturerId)
     val imageAttachmentViewerItems =
         imageAttachments.map { it.toImageViewerItem(sourceLabel = "Image attachment") }
-    val allImageViewerItems = deviceTypeViewerItems + imageAttachmentViewerItems
+    val documentViewerItems: Map<CachedDocument, ImageViewerItem> =
+        documents
+            .mapNotNull { document ->
+                val localFile =
+                    document.documentUrl?.let { viewModel.localAttachmentFile(it, document.filename) }
+                document.toDocumentViewerItem(localFile)?.let { document to it }
+            }
+            .toMap()
+    val allImageViewerItems =
+        deviceTypeViewerItems + imageAttachmentViewerItems + documentViewerItems.values
 
     fun openImageViewer(item: ImageViewerItem) {
         val existingIndex = allImageViewerItems.indexOfFirst { it.url == item.url }
@@ -533,7 +545,11 @@ fun DeviceDetailScreen(
                                                 contentDescription = deviceTypePreview.title,
                                                 modifier =
                                                     Modifier.size(64.dp).clickable {
-                                                        imageViewer = deviceTypeViewerItems to 0
+                                                        imageViewer =
+                                                            allImageViewerItems to
+                                                                allImageViewerItems.indexOf(
+                                                                    deviceTypePreview
+                                                                )
                                                     },
                                                 contentScale = ContentScale.Fit,
                                             )
@@ -608,46 +624,44 @@ fun DeviceDetailScreen(
                         }
                         if (visibleSelectedTab == 0) {
                             item {
-                                ImageAttachmentGallery(
+                                MediaCarousel(
                                     attachments = imageAttachments,
-                                    onImageClick = { _, index ->
+                                    documents = documents,
+                                    onImageClick = { index ->
                                         imageViewer =
                                             allImageViewerItems to
                                                 (deviceTypeViewerItems.size + index)
                                     },
-                                    onAdd = {
-                                        mediaUploadInitialKind = MediaUploadKind.ImageAttachment
-                                        showMediaUpload = true
-                                    },
-                                    onAttachmentLongPress = { imageAttachmentAction = it },
-                                )
-                            }
-                            if (documentPluginAvailable)
-                                item {
-                                    DocumentsSection(
-                                        documents = documents,
-                                        onOpenDocument = { document ->
-                                            document.documentUrl?.let { url ->
+                                    onDocumentClick = { document ->
+                                        documentViewerItems[document]?.let { item ->
+                                            imageViewer = allImageViewerItems to allImageViewerItems.indexOf(item)
+                                        }
+                                            ?: document.documentUrl?.let { url ->
                                                 viewModel.downloadAttachment(url, document.filename)
                                             }
-                                                ?: document.externalUrl?.let { url ->
-                                                    context.startActivity(
-                                                        Intent(Intent.ACTION_VIEW, url.toUri())
-                                                    )
-                                                }
-                                        },
-                                        onAddDocument = {
-                                            mediaUploadInitialKind = MediaUploadKind.Document
-                                            showMediaUpload = true
-                                        },
-                                        localFileFor = { document ->
-                                            document.documentUrl?.let {
-                                                viewModel.localAttachmentFile(it, document.filename)
+                                            ?: document.externalUrl?.let { url ->
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, url.toUri())
+                                                )
                                             }
-                                        },
-                                        onDeleteDocument = viewModel::deleteDocument,
-                                    )
-                                }
+                                    },
+                                    onAddMedia = { uri, defaultKind ->
+                                        mediaUploadInitialKind = defaultKind
+                                        mediaUploadInitialUri = uri
+                                        showMediaUpload = true
+                                    },
+                                    supportsImageAttachments = true,
+                                    supportsDocuments = documentPluginAvailable,
+                                    onAttachmentLongPress = { imageAttachmentAction = it },
+                                    localFileFor = { document ->
+                                        document.documentUrl?.let {
+                                            viewModel.localAttachmentFile(it, document.filename)
+                                        }
+                                    },
+                                    onDeleteDocument =
+                                        if (documentPluginAvailable) viewModel::deleteDocument else null,
+                                )
+                            }
                             val hasVisibleDetails =
                                 listOf(
                                         "site" to current.siteName,
@@ -1000,6 +1014,16 @@ fun DeviceDetailScreen(
                     onReferenceClick(link.endpointPath, link.id, link.breadcrumb)
                 }
             },
+            onOpenExternally = { item ->
+                documentViewerItems.entries.firstOrNull { it.value == item }?.key?.let { document ->
+                    document.documentUrl?.let { url ->
+                        viewModel.downloadAttachment(url, document.filename)
+                    }
+                        ?: document.externalUrl?.let { url ->
+                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                        }
+                }
+            },
         )
     }
     matterPairingCode?.let { code ->
@@ -1062,15 +1086,20 @@ fun DeviceDetailScreen(
                 showMediaUpload = false
                 imageAttachmentToEdit = null
                 mediaUploadInitialKind = null
+                mediaUploadInitialUri = null
             },
             onUploaded = {
                 showMediaUpload = false
                 imageAttachmentToEdit = null
                 mediaUploadInitialKind = null
+                mediaUploadInitialUri = null
                 viewModel.refresh(showConfirmation = false)
             },
             initialKind = mediaUploadInitialKind,
+            initialUri = mediaUploadInitialUri,
             imageAttachmentId = imageAttachmentToEdit?.id,
+            supportsImageAttachments = true,
+            supportsDocuments = documentPluginAvailable,
         )
     }
     if (showJournalEditor) {

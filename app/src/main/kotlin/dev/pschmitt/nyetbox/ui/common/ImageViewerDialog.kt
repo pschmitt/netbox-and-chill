@@ -1,7 +1,9 @@
 package dev.pschmitt.nyetbox.ui.common
 
+import android.graphics.Bitmap
 import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -21,13 +23,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Badge
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Badge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -44,6 +49,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -59,8 +65,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import java.io.File
 import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * One image shown in [ImageViewerDialog] - the URL to load, a title, and an optional list of
@@ -75,6 +84,12 @@ data class ImageViewerItem(
     val sourceLabel: String? = null,
     val metadataLinks: List<ImageViewerMetadataLink> = emptyList(),
     val canEdit: Boolean = false,
+    /**
+     * When set, this item is a local PDF document rather than a remote image - only its first
+     * page is rendered (see [renderPdfPage]), with [ImageViewerDialog.onOpenExternally] offered
+     * for reading the rest of a multi-page document.
+     */
+    val pdfFile: File? = null,
 )
 
 data class ImageViewerMetadataLink(
@@ -106,6 +121,7 @@ fun ImageViewerDialog(
     onDismiss: () -> Unit,
     onMetadataLinkClick: (ImageViewerMetadataLink) -> Unit = {},
     onEdit: ((ImageViewerItem) -> Unit)? = null,
+    onOpenExternally: ((ImageViewerItem) -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
     val pagerState =
@@ -199,6 +215,7 @@ fun ImageViewerDialog(
                     item = items[pagerState.currentPage.coerceIn(0, items.lastIndex)],
                     onMetadataLinkClick = onMetadataLinkClick,
                     onEdit = onEdit,
+                    onOpenExternally = onOpenExternally,
                 )
             }
             if (items.size > 1) {
@@ -291,20 +308,49 @@ private fun ZoomableImagePage(item: ImageViewerItem, onZoomChanged: (Boolean) ->
                         onZoomChanged(scale > MIN_SCALE)
                     },
                 )
-            }
+            },
+        contentAlignment = Alignment.Center,
     ) {
-        AsyncImage(
-            model = item.url,
-            contentDescription = item.title,
-            modifier =
-                Modifier.fillMaxSize().graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                },
-            contentScale = ContentScale.Fit,
-        )
+        val zoomModifier =
+            Modifier.fillMaxSize().graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = offset.x
+                translationY = offset.y
+            }
+        val pdfFile = item.pdfFile
+        if (pdfFile != null) {
+            val pageBitmap by
+                produceState<Bitmap?>(initialValue = null, pdfFile) {
+                    value =
+                        withContext(Dispatchers.IO) {
+                            renderPdfPage(
+                                pdfFile,
+                                pdfFile.name,
+                                url = null,
+                                maxWidth = 2000,
+                                maxHeight = 2600,
+                            )
+                        }
+                }
+            when (val bitmap = pageBitmap) {
+                null -> CircularProgressIndicator(color = Color.White)
+                else ->
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = item.title,
+                        modifier = zoomModifier,
+                        contentScale = ContentScale.Fit,
+                    )
+            }
+        } else {
+            AsyncImage(
+                model = item.url,
+                contentDescription = item.title,
+                modifier = zoomModifier,
+                contentScale = ContentScale.Fit,
+            )
+        }
     }
 }
 
@@ -363,6 +409,7 @@ private fun ImageMetadataPanel(
     item: ImageViewerItem,
     onMetadataLinkClick: (ImageViewerMetadataLink) -> Unit,
     onEdit: ((ImageViewerItem) -> Unit)?,
+    onOpenExternally: ((ImageViewerItem) -> Unit)?,
 ) {
     Column(
         modifier =
@@ -377,6 +424,15 @@ private fun ImageMetadataPanel(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
+            if (item.pdfFile != null && onOpenExternally != null) {
+                IconButton(onClick = { onOpenExternally(item) }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "Open externally",
+                        tint = Color.White,
+                    )
+                }
+            }
             if (item.canEdit && onEdit != null) {
                 IconButton(onClick = { onEdit(item) }) {
                     Icon(Icons.Default.Edit, contentDescription = "Edit image", tint = Color.White)

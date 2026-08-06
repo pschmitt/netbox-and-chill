@@ -58,6 +58,8 @@ fun MediaUploadDialog(
     initialUri: Uri? = null,
     initialFilename: String? = null,
     initialMimeType: String? = null,
+    supportsImageAttachments: Boolean = true,
+    supportsDocuments: Boolean = false,
     viewModel: MediaUploadViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -87,10 +89,9 @@ fun MediaUploadDialog(
                 else context.contentResolver.getType(uri)
             }
         }
-    var captureUri by remember { mutableStateOf<Uri?>(null) }
     var documentTypeValue by remember { mutableStateOf<String?>(null) }
     var documentTypeMenuExpanded by remember { mutableStateOf(false) }
-    var deviceTypeKindMenuExpanded by remember { mutableStateOf(false) }
+    var kindMenuExpanded by remember { mutableStateOf(false) }
 
     fun setSelected(uri: Uri) {
         selectedUri = uri
@@ -103,32 +104,7 @@ fun MediaUploadDialog(
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let(::setSelected)
         }
-    val cameraLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { captured ->
-            val uri = captureUri
-            if (captured && uri != null) setSelected(uri) else if (!captured) captureUri = null
-        }
-    val permissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                val uri = createCaptureUri(context)
-                captureUri = uri
-                cameraLauncher.launch(uri)
-            }
-        }
-
-    fun takePhoto() {
-        if (
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                PackageManager.PERMISSION_GRANTED
-        ) {
-            val uri = createCaptureUri(context)
-            captureUri = uri
-            cameraLauncher.launch(uri)
-        } else {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
+    val takePhoto = rememberCameraCaptureLauncher(onCaptured = ::setSelected)
 
     LaunchedEffect(state.message) { if (state.message != null) selectedUri = null }
 
@@ -137,6 +113,19 @@ fun MediaUploadDialog(
         kind == MediaUploadKind.DeviceTypeFront || kind == MediaUploadKind.DeviceTypeRear
     val isReplacingImage = kind == MediaUploadKind.ImageAttachment && imageAttachmentId != null
     val canTakePhoto = !isDocument
+    val kindOptions: List<MediaUploadKind> =
+        when {
+            imageAttachmentId != null -> emptyList()
+            endpointPath == "api/dcim/device-types/" ->
+                listOf(
+                    MediaUploadKind.ImageAttachment,
+                    MediaUploadKind.DeviceTypeFront,
+                    MediaUploadKind.DeviceTypeRear,
+                )
+            supportsImageAttachments && supportsDocuments ->
+                listOf(MediaUploadKind.ImageAttachment, MediaUploadKind.Document)
+            else -> emptyList()
+        }
     val canUpload =
         selectedUri != null && !state.isUploading && (!isDocument || documentTypeValue != null)
     val dialogTitle =
@@ -172,40 +161,35 @@ fun MediaUploadDialog(
                     dialogDescription,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (!isDocument && endpointPath == "api/dcim/device-types/") {
-                    // Anchor the popup to the face button rather than to the dialog's scrolling
+                if (kindOptions.size > 1) {
+                    // Anchor the popup to the kind button rather than to the dialog's scrolling
                     // column. This keeps it directly below the trigger on phones and tablets.
                     Box(Modifier.fillMaxWidth()) {
                         OutlinedButton(
-                            onClick = { deviceTypeKindMenuExpanded = true },
+                            onClick = { kindMenuExpanded = true },
                             enabled = !state.isUploading,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Default.Image, contentDescription = null)
+                            Icon(kindIcon(kind), contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                             Text(kind.label)
                         }
                         DropdownMenu(
-                            expanded = deviceTypeKindMenuExpanded,
-                            onDismissRequest = { deviceTypeKindMenuExpanded = false },
+                            expanded = kindMenuExpanded,
+                            onDismissRequest = { kindMenuExpanded = false },
                         ) {
-                            listOf(
-                                    MediaUploadKind.ImageAttachment,
-                                    MediaUploadKind.DeviceTypeFront,
-                                    MediaUploadKind.DeviceTypeRear,
+                            kindOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option.label) },
+                                    onClick = {
+                                        kind = option
+                                        kindMenuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(kindIcon(option), contentDescription = null)
+                                    },
                                 )
-                                .forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option.label) },
-                                        onClick = {
-                                            kind = option
-                                            deviceTypeKindMenuExpanded = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(Icons.Default.Image, contentDescription = null)
-                                        },
-                                    )
-                                }
+                            }
                         }
                     }
                 }
@@ -249,7 +233,7 @@ fun MediaUploadDialog(
                     }
                     if (canTakePhoto) {
                         OutlinedButton(
-                            onClick = ::takePhoto,
+                            onClick = takePhoto,
                             enabled = !state.isUploading,
                             modifier = Modifier.weight(1f),
                         ) {
@@ -312,6 +296,46 @@ fun MediaUploadDialog(
             }
         },
     )
+}
+
+private fun kindIcon(kind: MediaUploadKind) =
+    if (kind == MediaUploadKind.Document) Icons.Default.Description else Icons.Default.Image
+
+/**
+ * Camera-capture flow (permission check, capture [Uri], [ActivityResultContracts.TakePicture]
+ * launcher) shared by [MediaUploadDialog]'s own "Take photo" button and [MediaCarousel]'s merged
+ * "Add" chooser. Returns a trigger function: call it to request the permission if needed and
+ * launch the camera, invoking [onCaptured] with the resulting file's [Uri] once a photo is taken.
+ */
+@Composable
+internal fun rememberCameraCaptureLauncher(onCaptured: (Uri) -> Unit): () -> Unit {
+    val context = LocalContext.current
+    var captureUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { captured ->
+            val uri = captureUri
+            if (captured && uri != null) onCaptured(uri) else if (!captured) captureUri = null
+        }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                val uri = createCaptureUri(context)
+                captureUri = uri
+                cameraLauncher.launch(uri)
+            }
+        }
+    return {
+        if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            val uri = createCaptureUri(context)
+            captureUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 }
 
 private fun createCaptureUri(context: Context): Uri {

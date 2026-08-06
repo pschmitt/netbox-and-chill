@@ -3,6 +3,63 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-403: merge "Add image"/"Add document" into one Add action; fix device-picture viewer scope
+
+Follow-up to NBC-401. The Media carousel still had two separate add buttons, each hardcoding a
+NetBox upload kind up front. Merge them into one "Add media" action with just two choices (take a
+photo / upload a file); the NetBox upload kind (image attachment vs document) is now inferred
+from what was actually picked and overridable in the confirmation dialog. Also: tapping a device's
+own front/rear stock photo opened a viewer scoped to just that device-type photo instead of the
+same combined image+document list the carousel uses.
+
+- [x] Extracted `rememberCameraCaptureLauncher` (permission check + capture `Uri` + camera
+      launcher) out of `MediaUploadDialog.kt` so both it and the new chooser share one
+      implementation.
+- [x] `MediaCarousel.kt`: one "Add media" button opens a `DropdownMenu` (Take photo / Upload
+      file); default NetBox kind is inferred via `isSharedImage(...)` and `supportsImageAttachments`/
+      `supportsDocuments`, then handed to the caller as `onAddMedia(uri, defaultKind)`.
+- [x] `MediaUploadDialog.kt`: generalized the device-type-only kind dropdown into a
+      `kindOptions`-driven one that also offers an Image attachment/Document switch (when both
+      are supported and not replacing a specific attachment) - the override the user asked for.
+- [x] `DeviceDetailScreen.kt`/`GenericDetailScreen.kt`: wired the new `onAddMedia` callback and
+      `supportsImageAttachments`/`supportsDocuments` passthrough to both `MediaCarousel` and
+      `MediaUploadDialog`.
+- [x] Fixed the device-type photo thumbnail click in both screens to open the same combined
+      viewer item list (device photos + image attachments + documents) as the carousel, instead
+      of a photos-only list.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual/behavioral check - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
+## NBC-401: merge image attachments + documents into one M3 carousel widget
+
+The item/device detail screen showed two separate cards back-to-back: `ImageAttachmentGallery`
+(a plain `LazyRow` of image thumbnails) and `DocumentsSection` (a list of document rows with
+small preview tiles). Experiment: merge them into a single "Media" widget using Material 3's
+carousel component (multi-browse/hero style), and extend the full-screen `ImageViewerDialog`
+so tapping a PDF tile opens it in-app (first page, zoomable) instead of only ever handing off
+to an external app.
+
+- [x] New `ui/common/PdfPreview.kt`: extracted, size-parameterized `renderPdfPage`/`looksLikePdf`
+      (generalized from `DocumentsSection.kt`'s private helpers).
+- [x] New `ui/common/MediaCarousel.kt` (replaces `ImageAttachmentGallery.kt` +
+      `DocumentsSection.kt`): `HorizontalMultiBrowseCarousel` mixing image + document tiles,
+      `CachedDocument.toDocumentViewerItem()` for PDF-backed tiles.
+- [x] `ImageViewerDialog.kt`: `ImageViewerItem.pdfFile`, PDF-page rendering branch in
+      `ZoomableImagePage`, `onOpenExternally` action in the metadata panel.
+- [x] Wire `DeviceDetailScreen.kt` and `GenericDetailScreen.kt` call sites to the merged widget
+      and combined image+PDF viewer item list.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual check (carousel layout, image/PDF/doc tap behavior, empty states) -
+      pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+visual/behavioral verification on-device still pending the user.
+
 ## NBC-402: remove the compile-time NetBox host from Android App Links
 
 The app should support URLs from any configured NetBox instance without embedding a particular
