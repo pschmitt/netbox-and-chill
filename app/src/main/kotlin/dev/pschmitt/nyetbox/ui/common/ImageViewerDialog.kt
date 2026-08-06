@@ -3,6 +3,7 @@ package dev.pschmitt.nyetbox.ui.common
 import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -11,18 +12,15 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -32,7 +30,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Badge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,11 +73,16 @@ data class ImageViewerItem(
     val title: String,
     val metadata: List<Pair<String, String>> = emptyList(),
     val sourceLabel: String? = null,
-    val relatedLink: ImageViewerRelatedLink? = null,
+    val metadataLinks: List<ImageViewerMetadataLink> = emptyList(),
     val canEdit: Boolean = false,
 )
 
-data class ImageViewerRelatedLink(val label: String, val id: Int)
+data class ImageViewerMetadataLink(
+    val label: String,
+    val endpointPath: String,
+    val id: Int,
+    val breadcrumb: String,
+)
 
 private val DismissThreshold = 120.dp
 private const val MIN_SCALE = 1f
@@ -102,7 +104,7 @@ fun ImageViewerDialog(
     items: List<ImageViewerItem>,
     initialIndex: Int,
     onDismiss: () -> Unit,
-    onRelatedLinkClick: (ImageViewerRelatedLink) -> Unit = {},
+    onMetadataLinkClick: (ImageViewerMetadataLink) -> Unit = {},
     onEdit: ((ImageViewerItem) -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
@@ -195,7 +197,7 @@ fun ImageViewerDialog(
                 }
                 ImageMetadataPanel(
                     item = items[pagerState.currentPage.coerceIn(0, items.lastIndex)],
-                    onRelatedLinkClick = onRelatedLinkClick,
+                    onMetadataLinkClick = onMetadataLinkClick,
                     onEdit = onEdit,
                 )
             }
@@ -359,7 +361,7 @@ private suspend fun PointerInputScope.detectZoomPan(
 @Composable
 private fun ImageMetadataPanel(
     item: ImageViewerItem,
-    onRelatedLinkClick: (ImageViewerRelatedLink) -> Unit,
+    onMetadataLinkClick: (ImageViewerMetadataLink) -> Unit,
     onEdit: ((ImageViewerItem) -> Unit)?,
 ) {
     Column(
@@ -384,11 +386,25 @@ private fun ImageMetadataPanel(
         if (item.metadata.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
             item.metadata.forEach { (label, value) ->
-                Text(
-                    "$label: $value",
-                    color = Color.White.copy(alpha = 0.85f),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                val metadataLink = item.metadataLinks.firstOrNull { it.label == label }
+                Row {
+                    Text(
+                        "$label: ",
+                        color = Color.White.copy(alpha = 0.85f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        value,
+                        color =
+                            if (metadataLink != null) MaterialTheme.colorScheme.primary
+                            else Color.White.copy(alpha = 0.85f),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier =
+                            metadataLink?.let { link ->
+                                Modifier.clickable { onMetadataLinkClick(link) }
+                            } ?: Modifier,
+                    )
+                }
             }
         }
         item.sourceLabel?.let { sourceLabel ->
@@ -398,16 +414,6 @@ private fun ImageMetadataPanel(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Text(sourceLabel)
-            }
-        }
-        item.relatedLink?.let { link ->
-            TextButton(
-                onClick = { onRelatedLinkClick(link) },
-                contentPadding = PaddingValues(0.dp),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
-                Spacer(Modifier.width(6.dp))
-                Text(link.label)
             }
         }
     }

@@ -80,7 +80,7 @@ import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
 import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
 import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
-import dev.pschmitt.nyetbox.ui.common.ImageViewerRelatedLink
+import dev.pschmitt.nyetbox.ui.common.ImageViewerMetadataLink
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTab
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTabLayout
 import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
@@ -220,7 +220,8 @@ fun DeviceDetailScreen(
         visibleDeviceCustomFieldRows(customFieldRows, hiddenFieldKeys, showHiddenFields)
     val detailAccent =
         MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/", objectTypeAccent)
-    val deviceTypeViewerItems = deviceTypePhotoItems(deviceType)
+    val deviceTypeViewerItems =
+        deviceTypePhotoItems(deviceType, device?.manufacturerName, manufacturerId)
     val imageAttachmentViewerItems =
         imageAttachments.map { it.toImageViewerItem(sourceLabel = "Image attachment") }
     val allImageViewerItems = deviceTypeViewerItems + imageAttachmentViewerItems
@@ -991,9 +992,13 @@ fun DeviceDetailScreen(
             items = items,
             initialIndex = index,
             onDismiss = { imageViewer = null },
-            onRelatedLinkClick = { link ->
+            onMetadataLinkClick = { link ->
                 imageViewer = null
-                onDeviceTypeClick(link.id, device?.name ?: "Device type")
+                if (link.endpointPath == "api/dcim/device-types/") {
+                    onDeviceTypeClick(link.id, link.breadcrumb)
+                } else {
+                    onReferenceClick(link.endpointPath, link.id, link.breadcrumb)
+                }
             },
         )
     }
@@ -1395,7 +1400,11 @@ private fun LazyListScope.deviceJournalEntriesItems(
 }
 
 /** Device-type stock photos for the overview preview and its front/rear viewer pager. */
-private fun deviceTypePhotoItems(deviceType: DeviceTypeEntity?): List<ImageViewerItem> {
+private fun deviceTypePhotoItems(
+    deviceType: DeviceTypeEntity?,
+    manufacturerName: String?,
+    manufacturerId: Int?,
+): List<ImageViewerItem> {
     val front = deviceType?.frontImageUrl
     val rear = deviceType?.rearImageUrl
     val id = deviceType?.id ?: return emptyList()
@@ -1407,9 +1416,9 @@ private fun deviceTypePhotoItems(deviceType: DeviceTypeEntity?): List<ImageViewe
                 ImageViewerItem(
                     url = it,
                     title = "Front of $model",
-                    metadata = deviceTypeImageMetadata(deviceType, "Front"),
+                    metadata = deviceTypeImageMetadata(deviceType, "Front", manufacturerName),
                     sourceLabel = "Device type image",
-                    relatedLink = ImageViewerRelatedLink("Open device type", id),
+                    metadataLinks = deviceTypeImageMetadataLinks(model, manufacturerName, id, manufacturerId),
                 )
             },
         rear
@@ -1418,9 +1427,9 @@ private fun deviceTypePhotoItems(deviceType: DeviceTypeEntity?): List<ImageViewe
                 ImageViewerItem(
                     url = it,
                     title = "Rear of $model",
-                    metadata = deviceTypeImageMetadata(deviceType, "Rear"),
+                    metadata = deviceTypeImageMetadata(deviceType, "Rear", manufacturerName),
                     sourceLabel = "Device type image",
-                    relatedLink = ImageViewerRelatedLink("Open device type", id),
+                    metadataLinks = deviceTypeImageMetadataLinks(model, manufacturerName, id, manufacturerId),
                 )
             },
     )
@@ -1429,9 +1438,39 @@ private fun deviceTypePhotoItems(deviceType: DeviceTypeEntity?): List<ImageViewe
 private fun deviceTypeImageMetadata(
     deviceType: DeviceTypeEntity,
     view: String,
+    manufacturerName: String?,
 ): List<Pair<String, String>> = buildList {
-    deviceType.model?.takeIf { it.isNotBlank() }?.let { add("Model" to it) }
+    manufacturerName?.takeIf { it.isNotBlank() }?.let { add("Manufacturer" to it) }
+    deviceType.model?.takeIf { it.isNotBlank() }?.let { add("Device type" to it) }
     add("View" to view)
+}
+
+private fun deviceTypeImageMetadataLinks(
+    model: String,
+    manufacturerName: String?,
+    deviceTypeId: Int,
+    manufacturerId: Int?,
+): List<ImageViewerMetadataLink> = buildList {
+    manufacturerName?.takeIf { it.isNotBlank() }?.let { name ->
+        manufacturerId?.let { id ->
+            add(
+                ImageViewerMetadataLink(
+                    label = "Manufacturer",
+                    endpointPath = "api/dcim/manufacturers/",
+                    id = id,
+                    breadcrumb = name,
+                )
+            )
+        }
+    }
+    add(
+        ImageViewerMetadataLink(
+            label = "Device type",
+            endpointPath = "api/dcim/device-types/",
+            id = deviceTypeId,
+            breadcrumb = model,
+        )
+    )
 }
 
 /** Pull the useful network identity into interface list subtitles when NetBox includes it. */

@@ -7182,6 +7182,19 @@ specialized rows and custom-field groups with their existing behavior.
 Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
 deployment to all attached physical devices.
 
+## NBC-398: keep image-viewer metadata compact and actionable
+
+The device image viewer should keep its metadata panel stable while still allowing users to open
+the manufacturer or device type represented by a device-type photo.
+
+- [x] Replace the separate `Open device type` action with inline clickable Manufacturer and Device type
+  metadata values.
+- [x] Verify remotely with `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite on
+  rofl-13, then deploy the debug build to all three attached devices with `just deploy-all debug`.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
+deployment to all attached physical devices.
+
 ## NBC-397: unify device image viewer sources
 
 The dedicated device view's image viewer should let users swipe through all relevant device images
