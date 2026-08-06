@@ -97,7 +97,9 @@ fun ItemDetailTabLayout(
         }
         LazyColumn(
             modifier =
-                Modifier.fillMaxWidth().weight(1f).itemTabSwipe(selectedTab, tabCount, onTabSelected),
+                Modifier.fillMaxWidth()
+                    .weight(1f)
+                    .itemTabSwipe(selectedTab, tabCount, onTabSelected),
             contentPadding = PaddingValues(16.dp),
             content = content,
         )

@@ -556,9 +556,9 @@ private fun FieldRow.isKeyDetailsField(): Boolean =
  * marker-walking idiom [visibleFieldRows] already uses:
  * - Before the `"Custom fields"` [FieldRow.Section] marker (native/top-level fields), consecutive
  *   [FieldRow.PlainText], [FieldRow.Reference], [FieldRow.Markdown], and [FieldRow.Metadata] rows
- *   - the generic shape of site, role, serial, device type, comments, and audit fields - cluster
- *   into one titled [KEY_DETAILS_CARD_TITLE] card. This is type-driven, not name-driven, so it
- *   stays generic across every NetBox object type.
+ *     - the generic shape of site, role, serial, device type, comments, and audit fields - cluster
+ *       into one titled [KEY_DETAILS_CARD_TITLE] card. This is type-driven, not name-driven, so it
+ *       stays generic across every NetBox object type.
  * - Consecutive [FieldRow.Count] rows cluster into one titled [KEY_LINKED_ITEMS_CARD_TITLE] card.
  *   These are reverse-related collections such as a site's circuits, devices, racks, and virtual
  *   machines, and remain individually clickable to open the cached filtered list.
@@ -753,8 +753,8 @@ private fun Modifier.clusterInteraction(
  * Renders a single row's content stacked inside a shared cluster card ([FieldRowCluster.Grouped]),
  * with no card of its own - only [FieldRow.Reference] and [FieldRow.ExternalLink] carry a
  * card-level click action standalone (see [fieldRow]'s `detailCard` calls), so those need an
- * explicit click handler re-attached here; every other type either has no click
- * action or already embeds its own (e.g. [FieldRow.FileAttachment]'s download row).
+ * explicit click handler re-attached here; every other type either has no click action or already
+ * embeds its own (e.g. [FieldRow.FileAttachment]'s download row).
  */
 @Composable
 private fun ClusteredFieldRow(

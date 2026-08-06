@@ -85,9 +85,9 @@ data class ImageViewerItem(
     val metadataLinks: List<ImageViewerMetadataLink> = emptyList(),
     val canEdit: Boolean = false,
     /**
-     * When set, this item is a local PDF document rather than a remote image - only its first
-     * page is rendered (see [renderPdfPage]), with [ImageViewerDialog.onOpenExternally] offered
-     * for reading the rest of a multi-page document.
+     * When set, this item is a local PDF document rather than a remote image - only its first page
+     * is rendered (see [renderPdfPage]), with [ImageViewerDialog.onOpenExternally] offered for
+     * reading the rest of a multi-page document.
      */
     val pdfFile: File? = null,
 )

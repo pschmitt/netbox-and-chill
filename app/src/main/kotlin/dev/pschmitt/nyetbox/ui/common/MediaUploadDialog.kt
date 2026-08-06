@@ -304,8 +304,8 @@ private fun kindIcon(kind: MediaUploadKind) =
 /**
  * Camera-capture flow (permission check, capture [Uri], [ActivityResultContracts.TakePicture]
  * launcher) shared by [MediaUploadDialog]'s own "Take photo" button and [MediaCarousel]'s merged
- * "Add" chooser. Returns a trigger function: call it to request the permission if needed and
- * launch the camera, invoking [onCaptured] with the resulting file's [Uri] once a photo is taken.
+ * "Add" chooser. Returns a trigger function: call it to request the permission if needed and launch
+ * the camera, invoking [onCaptured] with the resulting file's [Uri] once a photo is taken.
  */
 @Composable
 internal fun rememberCameraCaptureLauncher(onCaptured: (Uri) -> Unit): () -> Unit {

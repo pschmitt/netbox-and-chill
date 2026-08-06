@@ -16,9 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
@@ -45,7 +43,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -76,9 +73,9 @@ import dev.pschmitt.nyetbox.ui.common.CommentCard
 import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
+import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTab
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTabLayout
-import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTopBar
 import dev.pschmitt.nyetbox.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
@@ -213,7 +210,9 @@ fun GenericDetailScreen(
         documents
             .mapNotNull { document ->
                 val localFile =
-                    document.documentUrl?.let { viewModel.localAttachmentFile(it, document.filename) }
+                    document.documentUrl?.let {
+                        viewModel.localAttachmentFile(it, document.filename)
+                    }
                 document.toDocumentViewerItem(localFile)?.let { document to it }
             }
             .toMap()
@@ -754,190 +753,140 @@ fun GenericDetailScreen(
                             onTabSelected = { selectedTab = it },
                             tabCount = tabCount,
                         ) {
-                                item {
-                                    GenericDetailIdentityCard(
-                                        id = viewModel.route.id,
-                                        endpointPath = viewModel.route.endpointPath,
-                                        title = title,
-                                        preview = deviceTypePreview,
-                                        onPreviewClick = openDeviceTypePreview,
-                                        onPreviewLongPress = onDeviceTypePreviewLongPress,
-                                        statusField = statusField,
-                                        detailAccent = detailAccent,
-                                        onStatusLongPress = {
-                                            fieldActionLabel = statusField?.label
-                                        },
-                                    )
-                                }
-                                if (visibleSelectedTab == 0) {
-                                    item { Spacer(Modifier.height(8.dp)) }
-                                    val showDocuments = documentPluginAvailable && supportsDocuments
-                                    if (supportsImageAttachments || showDocuments)
-                                        item {
-                                            MediaCarousel(
-                                                attachments =
-                                                    if (supportsImageAttachments) imageAttachments
-                                                    else emptyList(),
-                                                documents = if (showDocuments) documents else emptyList(),
-                                                onImageClick = { index ->
-                                                    imageViewer = mediaViewerItems to index
-                                                },
-                                                onDocumentClick = { document ->
-                                                    documentViewerItems[document]?.let { item ->
-                                                        imageViewer =
-                                                            mediaViewerItems to
-                                                                mediaViewerItems.indexOf(item)
-                                                    }
-                                                        ?: document.documentUrl?.let { url ->
-                                                            viewModel.downloadAttachment(
-                                                                url,
-                                                                document.filename,
-                                                            )
-                                                        }
-                                                        ?: document.externalUrl?.let { url ->
-                                                            context.startActivity(
-                                                                Intent(
-                                                                    Intent.ACTION_VIEW,
-                                                                    url.toUri(),
-                                                                )
-                                                            )
-                                                        }
-                                                },
-                                                onAddMedia = { uri, defaultKind ->
-                                                    mediaUploadInitialKind = defaultKind
-                                                    mediaUploadInitialUri = uri
-                                                    showMediaUpload = true
-                                                },
-                                                supportsImageAttachments = supportsImageAttachments,
-                                                supportsDocuments = showDocuments,
-                                                onAttachmentLongPress = {
-                                                    imageAttachmentAction = it
-                                                },
-                                                localFileFor = { document ->
-                                                    document.documentUrl?.let {
-                                                        viewModel.localAttachmentFile(
-                                                            it,
+                            item {
+                                GenericDetailIdentityCard(
+                                    id = viewModel.route.id,
+                                    endpointPath = viewModel.route.endpointPath,
+                                    title = title,
+                                    preview = deviceTypePreview,
+                                    onPreviewClick = openDeviceTypePreview,
+                                    onPreviewLongPress = onDeviceTypePreviewLongPress,
+                                    statusField = statusField,
+                                    detailAccent = detailAccent,
+                                    onStatusLongPress = { fieldActionLabel = statusField?.label },
+                                )
+                            }
+                            if (visibleSelectedTab == 0) {
+                                item { Spacer(Modifier.height(8.dp)) }
+                                val showDocuments = documentPluginAvailable && supportsDocuments
+                                if (supportsImageAttachments || showDocuments)
+                                    item {
+                                        MediaCarousel(
+                                            attachments =
+                                                if (supportsImageAttachments) imageAttachments
+                                                else emptyList(),
+                                            documents =
+                                                if (showDocuments) documents else emptyList(),
+                                            onImageClick = { index ->
+                                                imageViewer = mediaViewerItems to index
+                                            },
+                                            onDocumentClick = { document ->
+                                                documentViewerItems[document]?.let { item ->
+                                                    imageViewer =
+                                                        mediaViewerItems to
+                                                            mediaViewerItems.indexOf(item)
+                                                }
+                                                    ?: document.documentUrl?.let { url ->
+                                                        viewModel.downloadAttachment(
+                                                            url,
                                                             document.filename,
                                                         )
                                                     }
-                                                },
-                                                onDeleteDocument =
-                                                    if (showDocuments) viewModel::deleteDocument
-                                                    else null,
-                                            )
-                                        }
-                                    fieldRows(
-                                        detailOverviewFields,
-                                        onNavigateToReference = { endpointPath, id ->
-                                            onNavigateToReference(
-                                                endpointPath,
-                                                id,
-                                                title ?: modelLabel,
-                                            )
-                                        },
-                                        viewModel::showRelatedItems,
-                                        onOpenUrl = { url ->
-                                            context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, url.toUri())
-                                            )
-                                        },
-                                        netboxBaseUrl = netboxBaseUrl,
-                                        onDownloadAttachment = viewModel::downloadAttachment,
-                                        onImageClick = { imageViewer = listOf(it) to 0 },
-                                        isDownloading = isDownloading,
-                                        onCopyValue = onCopyValue,
-                                        onFieldLongPress = { fieldActionLabel = it },
-                                        onMatterPairingCode = { matterPairingCode = it },
-                                    )
-                                } else if (viewModel.isRack && visibleSelectedTab == 1) {
-                                    item { Spacer(Modifier.height(8.dp)) }
-                                    item {
-                                        DiagramViewToggle(
-                                            showSvg = showRackElevationSvg,
-                                            onToggle = { toSvg ->
-                                                showRackElevationSvg = toSvg
-                                                if (toSvg) {
-                                                    viewModel.loadRackElevationSvg(RackFace.FRONT)
-                                                    viewModel.loadRackElevationSvg(RackFace.REAR)
+                                                    ?: document.externalUrl?.let { url ->
+                                                        context.startActivity(
+                                                            Intent(
+                                                                Intent.ACTION_VIEW,
+                                                                url.toUri(),
+                                                            )
+                                                        )
+                                                    }
+                                            },
+                                            onAddMedia = { uri, defaultKind ->
+                                                mediaUploadInitialKind = defaultKind
+                                                mediaUploadInitialUri = uri
+                                                showMediaUpload = true
+                                            },
+                                            supportsImageAttachments = supportsImageAttachments,
+                                            supportsDocuments = showDocuments,
+                                            onAttachmentLongPress = { imageAttachmentAction = it },
+                                            localFileFor = { document ->
+                                                document.documentUrl?.let {
+                                                    viewModel.localAttachmentFile(
+                                                        it,
+                                                        document.filename,
+                                                    )
                                                 }
                                             },
-                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                            onDeleteDocument =
+                                                if (showDocuments) viewModel::deleteDocument
+                                                else null,
                                         )
                                     }
-                                    item { Spacer(Modifier.height(8.dp)) }
-                                    if (showRackElevationSvg) {
-                                        item {
-                                            Column(
-                                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                                            ) {
-                                                Text(
-                                                    "Front",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                                )
-                                                SvgDiagramView(
-                                                    svg = rackElevationSvg[RackFace.FRONT],
-                                                    baseUrl = netboxBaseUrl.orEmpty(),
-                                                    onNavigate = { endpointPath, id ->
-                                                        onNavigateToReference(
-                                                            endpointPath,
-                                                            id,
-                                                            title ?: modelLabel,
-                                                        )
-                                                    },
-                                                )
-                                                Text(
-                                                    "Rear",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                                )
-                                                SvgDiagramView(
-                                                    svg = rackElevationSvg[RackFace.REAR],
-                                                    baseUrl = netboxBaseUrl.orEmpty(),
-                                                    onNavigate = { endpointPath, id ->
-                                                        onNavigateToReference(
-                                                            endpointPath,
-                                                            id,
-                                                            title ?: modelLabel,
-                                                        )
-                                                    },
-                                                )
+                                fieldRows(
+                                    detailOverviewFields,
+                                    onNavigateToReference = { endpointPath, id ->
+                                        onNavigateToReference(
+                                            endpointPath,
+                                            id,
+                                            title ?: modelLabel,
+                                        )
+                                    },
+                                    viewModel::showRelatedItems,
+                                    onOpenUrl = { url ->
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, url.toUri())
+                                        )
+                                    },
+                                    netboxBaseUrl = netboxBaseUrl,
+                                    onDownloadAttachment = viewModel::downloadAttachment,
+                                    onImageClick = { imageViewer = listOf(it) to 0 },
+                                    isDownloading = isDownloading,
+                                    onCopyValue = onCopyValue,
+                                    onFieldLongPress = { fieldActionLabel = it },
+                                    onMatterPairingCode = { matterPairingCode = it },
+                                )
+                            } else if (viewModel.isRack && visibleSelectedTab == 1) {
+                                item { Spacer(Modifier.height(8.dp)) }
+                                item {
+                                    DiagramViewToggle(
+                                        showSvg = showRackElevationSvg,
+                                        onToggle = { toSvg ->
+                                            showRackElevationSvg = toSvg
+                                            if (toSvg) {
+                                                viewModel.loadRackElevationSvg(RackFace.FRONT)
+                                                viewModel.loadRackElevationSvg(RackFace.REAR)
                                             }
-                                        }
-                                    } else {
-                                        item {
-                                            RackElevationOverview(
-                                                front = frontElevation,
-                                                rear = rearElevation,
-                                                previews = rackDevicePreviews,
-                                                highlightDeviceId = highlightDeviceId,
-                                                onDeviceClick = { id ->
+                                        },
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    )
+                                }
+                                item { Spacer(Modifier.height(8.dp)) }
+                                if (showRackElevationSvg) {
+                                    item {
+                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            Text(
+                                                "Front",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                            )
+                                            SvgDiagramView(
+                                                svg = rackElevationSvg[RackFace.FRONT],
+                                                baseUrl = netboxBaseUrl.orEmpty(),
+                                                onNavigate = { endpointPath, id ->
                                                     onNavigateToReference(
-                                                        "api/dcim/devices/",
+                                                        endpointPath,
                                                         id,
                                                         title ?: modelLabel,
                                                     )
                                                 },
                                             )
-                                        }
-                                    }
-                                } else if (visibleSelectedTab == traceTabIndex) {
-                                    item { Spacer(Modifier.height(8.dp)) }
-                                    item {
-                                        DiagramViewToggle(
-                                            showSvg = showTraceSvg,
-                                            onToggle = { toSvg ->
-                                                showTraceSvg = toSvg
-                                                if (toSvg) viewModel.loadCableTraceSvg()
-                                            },
-                                            modifier = Modifier.padding(horizontal = 16.dp),
-                                        )
-                                    }
-                                    item { Spacer(Modifier.height(8.dp)) }
-                                    if (showTraceSvg) {
-                                        item {
+                                            Text(
+                                                "Rear",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                            )
                                             SvgDiagramView(
-                                                svg = traceSvg,
+                                                svg = rackElevationSvg[RackFace.REAR],
                                                 baseUrl = netboxBaseUrl.orEmpty(),
                                                 onNavigate = { endpointPath, id ->
                                                     onNavigateToReference(
@@ -948,69 +897,114 @@ fun GenericDetailScreen(
                                                 },
                                             )
                                         }
-                                    } else if (traceSegments.isEmpty()) {
-                                        item {
-                                            Text(
-                                                "No cable path to trace.",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontStyle = FontStyle.Italic,
-                                                modifier = Modifier.padding(vertical = 16.dp),
-                                            )
-                                        }
-                                    } else {
-                                        items(traceSegments, key = { it.index }) { segment ->
-                                            CableTraceSegmentCard(
-                                                segment = segment,
-                                                onNavigate = { endpointPath, id ->
-                                                    onNavigateToReference(
-                                                        endpointPath,
-                                                        id,
-                                                        title ?: modelLabel,
-                                                    )
-                                                },
-                                            )
-                                        }
-                                    }
-                                } else if (visibleSelectedTab == journalTabIndex) {
-                                    if (journalEntries.isEmpty()) {
-                                        item {
-                                            Text(
-                                                "No journal entries found for this item.",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontStyle = FontStyle.Italic,
-                                                modifier = Modifier.padding(vertical = 16.dp),
-                                            )
-                                        }
-                                    } else {
-                                        items(journalEntries, key = { it.id }) { entry ->
-                                            JournalEntryItem(
-                                                entry,
-                                                onEdit = {
-                                                    journalEditorEntry = entry
-                                                    showJournalEditor = true
-                                                },
-                                            )
-                                        }
                                     }
                                 } else {
-                                    if (changelog.isEmpty()) {
-                                        item {
-                                            Text(
-                                                "No changelog entries found for this item.",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontStyle = FontStyle.Italic,
-                                                modifier = Modifier.padding(vertical = 16.dp),
-                                            )
-                                        }
-                                    } else {
-                                        items(changelog, key = { it.id }) { change ->
-                                            GenericDetailChangelogRow(
-                                                change = change,
-                                                onClick = { onChangeDiffClick(change.id) },
-                                            )
-                                        }
+                                    item {
+                                        RackElevationOverview(
+                                            front = frontElevation,
+                                            rear = rearElevation,
+                                            previews = rackDevicePreviews,
+                                            highlightDeviceId = highlightDeviceId,
+                                            onDeviceClick = { id ->
+                                                onNavigateToReference(
+                                                    "api/dcim/devices/",
+                                                    id,
+                                                    title ?: modelLabel,
+                                                )
+                                            },
+                                        )
                                     }
                                 }
+                            } else if (visibleSelectedTab == traceTabIndex) {
+                                item { Spacer(Modifier.height(8.dp)) }
+                                item {
+                                    DiagramViewToggle(
+                                        showSvg = showTraceSvg,
+                                        onToggle = { toSvg ->
+                                            showTraceSvg = toSvg
+                                            if (toSvg) viewModel.loadCableTraceSvg()
+                                        },
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    )
+                                }
+                                item { Spacer(Modifier.height(8.dp)) }
+                                if (showTraceSvg) {
+                                    item {
+                                        SvgDiagramView(
+                                            svg = traceSvg,
+                                            baseUrl = netboxBaseUrl.orEmpty(),
+                                            onNavigate = { endpointPath, id ->
+                                                onNavigateToReference(
+                                                    endpointPath,
+                                                    id,
+                                                    title ?: modelLabel,
+                                                )
+                                            },
+                                        )
+                                    }
+                                } else if (traceSegments.isEmpty()) {
+                                    item {
+                                        Text(
+                                            "No cable path to trace.",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontStyle = FontStyle.Italic,
+                                            modifier = Modifier.padding(vertical = 16.dp),
+                                        )
+                                    }
+                                } else {
+                                    items(traceSegments, key = { it.index }) { segment ->
+                                        CableTraceSegmentCard(
+                                            segment = segment,
+                                            onNavigate = { endpointPath, id ->
+                                                onNavigateToReference(
+                                                    endpointPath,
+                                                    id,
+                                                    title ?: modelLabel,
+                                                )
+                                            },
+                                        )
+                                    }
+                                }
+                            } else if (visibleSelectedTab == journalTabIndex) {
+                                if (journalEntries.isEmpty()) {
+                                    item {
+                                        Text(
+                                            "No journal entries found for this item.",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontStyle = FontStyle.Italic,
+                                            modifier = Modifier.padding(vertical = 16.dp),
+                                        )
+                                    }
+                                } else {
+                                    items(journalEntries, key = { it.id }) { entry ->
+                                        JournalEntryItem(
+                                            entry,
+                                            onEdit = {
+                                                journalEditorEntry = entry
+                                                showJournalEditor = true
+                                            },
+                                        )
+                                    }
+                                }
+                            } else {
+                                if (changelog.isEmpty()) {
+                                    item {
+                                        Text(
+                                            "No changelog entries found for this item.",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontStyle = FontStyle.Italic,
+                                            modifier = Modifier.padding(vertical = 16.dp),
+                                        )
+                                    }
+                                } else {
+                                    items(changelog, key = { it.id }) { change ->
+                                        GenericDetailChangelogRow(
+                                            change = change,
+                                            onClick = { onChangeDiffClick(change.id) },
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1115,14 +1109,17 @@ fun GenericDetailScreen(
                 }
             },
             onOpenExternally = { item ->
-                documentViewerItems.entries.firstOrNull { it.value == item }?.key?.let { document ->
-                    document.documentUrl?.let { url ->
-                        viewModel.downloadAttachment(url, document.filename)
-                    }
-                        ?: document.externalUrl?.let { url ->
-                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                documentViewerItems.entries
+                    .firstOrNull { it.value == item }
+                    ?.key
+                    ?.let { document ->
+                        document.documentUrl?.let { url ->
+                            viewModel.downloadAttachment(url, document.filename)
                         }
-                }
+                            ?: document.externalUrl?.let { url ->
+                                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                            }
+                    }
             },
         )
     }
