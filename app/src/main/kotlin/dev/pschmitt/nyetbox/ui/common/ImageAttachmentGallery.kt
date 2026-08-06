@@ -35,47 +35,49 @@ fun ImageAttachmentGallery(
     onAttachmentLongPress: (ImageAttachmentEntity) -> Unit = {},
 ) {
     val viewerItems = attachments.map { it.toImageViewerItem() }
-    Column(modifier = modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        NetBoxSectionHeader(
-            Icons.Default.UploadFile,
-            "Image attachments",
-            trailingContent = {
-                if (attachments.isNotEmpty()) {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ) {
-                        Text(attachments.size.toString())
-                    }
+    NyetboxSectionCard(
+        title = "Image attachments",
+        icon = Icons.Default.UploadFile,
+        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
+        trailingContent = {
+            if (attachments.isNotEmpty()) {
+                Badge(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ) {
+                    Text(attachments.size.toString())
                 }
-            },
-        )
-        LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { index, attachment
-                ->
-                RemoteThumbnail(
-                    imageUrl = attachment.imageUrl,
-                    contentDescription = attachment.displayName(),
-                    modifier =
-                        Modifier.width(AttachmentTileWidth)
-                            .height(AttachmentTileHeight)
-                            .combinedClickable(
-                                onClick = { onImageClick(viewerItems, index) },
-                                onLongClick = { onAttachmentLongPress(attachment) },
-                            ),
-                    contentScale = ContentScale.Crop,
-                )
             }
+        },
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp)) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { index, attachment
+                    ->
+                    RemoteThumbnail(
+                        imageUrl = attachment.imageUrl,
+                        contentDescription = attachment.displayName(),
+                        modifier =
+                            Modifier.width(AttachmentTileWidth)
+                                .height(AttachmentTileHeight)
+                                .combinedClickable(
+                                    onClick = { onImageClick(viewerItems, index) },
+                                    onLongClick = { onAttachmentLongPress(attachment) },
+                                ),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+            }
+            MediaAddButton(
+                label = "Add image",
+                onClick = onAdd,
+                icon = Icons.Default.UploadFile,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
-        MediaAddButton(
-            label = "Add image",
-            onClick = onAdd,
-            icon = Icons.Default.UploadFile,
-            modifier = Modifier.padding(top = 8.dp),
-        )
     }
 }
 

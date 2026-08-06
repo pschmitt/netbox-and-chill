@@ -72,6 +72,7 @@ fun NyetboxSectionCard(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     accentColor: Color = MaterialTheme.colorScheme.primary,
+    trailingContent: (@Composable (() -> Unit))? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     NyetboxCard(modifier = modifier) {
@@ -86,7 +87,10 @@ fun NyetboxSectionCard(
                 modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     title,
                     style = MaterialTheme.typography.titleMedium,
@@ -100,6 +104,7 @@ fun NyetboxSectionCard(
                     )
                 }
             }
+            trailingContent?.invoke()
         }
         content()
     }

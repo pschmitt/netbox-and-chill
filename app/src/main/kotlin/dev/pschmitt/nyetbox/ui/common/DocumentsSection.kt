@@ -67,27 +67,28 @@ fun DocumentsSection(
         androidx.compose.runtime.remember {
             androidx.compose.runtime.mutableStateOf<CachedDocument?>(null)
         }
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        NetBoxSectionHeader(
-            Icons.Default.Description,
-            "Documents",
-            trailingContent = {
-                if (documents.isNotEmpty()) {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ) {
-                        Text(documents.size.toString())
-                    }
+    NyetboxSectionCard(
+        title = "Documents",
+        icon = Icons.Default.Description,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        trailingContent = {
+            if (documents.isNotEmpty()) {
+                Badge(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ) {
+                    Text(documents.size.toString())
                 }
-            },
-        )
+            }
+        },
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
         if (documents.isNotEmpty()) {
             documents.forEach { document ->
                 val canOpen =
                     !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
                 val localFile = localFileFor?.invoke(document)
-                NyetboxCard(
+                NyetboxListItem(
                     modifier =
                         Modifier.fillMaxWidth()
                             .padding(vertical = 4.dp)
@@ -97,26 +98,23 @@ fun DocumentsSection(
                                     if (onDeleteDocument != null) {
                                         { actionDocument = document }
                                     } else null,
-                            )
-                ) {
-                    NyetboxListItem(
-                        headlineContent = { Text(document.name) },
-                        supportingContent = {
-                            Column {
-                                document.documentType?.let { type -> DocumentTypeBadge(type) }
-                                if (localFile?.isFile == true) {
-                                    CachedDocumentBadge()
-                                }
+                            ),
+                    headlineContent = { Text(document.name) },
+                    supportingContent = {
+                        Column {
+                            document.documentType?.let { type -> DocumentTypeBadge(type) }
+                            if (localFile?.isFile == true) {
+                                CachedDocumentBadge()
                             }
-                        },
-                        leadingContent = {
-                            DocumentPreview(
-                                document = document,
-                                localFile = localFile,
-                            )
-                        },
-                    )
-                }
+                        }
+                    },
+                    leadingContent = {
+                        DocumentPreview(
+                            document = document,
+                            localFile = localFile,
+                        )
+                    },
+                )
             }
         }
         onAddDocument?.let { onAdd ->
@@ -126,6 +124,7 @@ fun DocumentsSection(
                 icon = Icons.Default.UploadFile,
                 modifier = Modifier.padding(top = 6.dp),
             )
+        }
         }
     }
     actionDocument?.let { document ->

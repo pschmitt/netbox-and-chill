@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
@@ -496,12 +495,6 @@ private fun LinkedItemContent(row: FieldRow.Count) {
             modifier = Modifier.weight(1f),
         )
         Badge { Text(row.value) }
-        Spacer(Modifier.width(8.dp))
-        Icon(
-            Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = "Show ${row.label.lowercase()}",
-            tint = MaterialTheme.colorScheme.primary,
-        )
     }
 }
 
@@ -796,7 +789,11 @@ private fun ClusteredFieldRow(
             }
             else -> null
         }
-    Column(Modifier.fillMaxWidth().clusterInteraction(onClick) { onFieldLongPress(row.label) }) {
+    Column(
+        Modifier.fillMaxWidth()
+            .clusterInteraction(onClick) { onFieldLongPress(row.label) }
+            .padding(vertical = 4.dp)
+    ) {
         when (row) {
             is FieldRow.PlainText ->
                 PlainTextContent(row, onCopyValue, onFieldLongPress, onMatterPairingCode)

@@ -7208,3 +7208,19 @@ their independent ViewModels and device-only tabs/actions.
 
 Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, the
 repository lint recipe, deployment to all attached physical devices, and post-install launch checks.
+
+## NBC-396: polish detail-card rows and media sections
+
+Polish the shared item-detail cards after the initial rollout: remove the redundant trailing arrow
+from linked-item count rows, increase row padding inside grouped cards, and present image attachments
+and documents as shared cards while preserving their existing counts and actions.
+
+- [x] Remove the redundant linked-item row arrow; keep the endpoint icon and count badge.
+- [x] Increase vertical padding for rows inside grouped detail cards.
+- [x] Wrap image attachments and documents in shared section cards on generic and device detail
+  views; keep document rows inside the parent card rather than nesting cards.
+- [x] Verify remotely with `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite on
+  rofl-13, then deploy the debug build to all three attached devices with `just deploy-all debug`.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
+deployment to all attached physical devices.
