@@ -368,7 +368,7 @@ fun DeviceDetailScreen(
                                         Icon(Icons.Default.Share, contentDescription = null)
                                     },
                                     onClick = {
-                                        context.startActivity(shareIntent(url))
+                                        context.startActivity(shareIntent(context, url))
                                         actionMenuExpanded = false
                                     },
                                 )

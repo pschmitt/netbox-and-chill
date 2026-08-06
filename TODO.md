@@ -7349,3 +7349,15 @@ mode here, and for the read-only Overview in a parallel NBC-391 effort.
 
 Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and live
 on a physical device, including the post-feedback refinement.
+
+## NBC-400: keep outgoing item shares in the Android chooser
+
+The item-view overflow Share action must open Android's share menu instead of allowing Nyetbox's
+incoming `ACTION_SEND` handler to reopen the same item view for its own URL.
+
+- [x] Exclude Nyetbox's activity from the outgoing URL chooser while keeping incoming sharing
+  available.
+- [x] Verify remotely and deploy the debug build to all attached devices.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
+deployment to all attached physical devices.
