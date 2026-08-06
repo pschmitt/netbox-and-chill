@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -100,6 +103,34 @@ fun NyetboxSectionCard(
         }
         content()
     }
+}
+
+/** The shared Details card used by generic and specialized read-only item views. */
+@Composable
+fun NyetboxDetailsCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    NyetboxSectionCard(
+        title = "Details",
+        icon = Icons.Default.Info,
+        modifier = modifier,
+        content = content,
+    )
+}
+
+/** The shared card for reverse-related collections such as a site's devices and racks. */
+@Composable
+fun NyetboxLinkedItemsCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    NyetboxSectionCard(
+        title = "Linked items",
+        icon = Icons.Default.Link,
+        modifier = modifier,
+        content = content,
+    )
 }
 
 /** A list row that blends into [NyetboxCard] instead of adding another opaque surface. */

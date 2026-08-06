@@ -7158,3 +7158,53 @@ action.
 
 Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, deployment
 to all attached physical devices, and live first-sync progress on the Zenfone 10.
+
+## NBC-394: group generic item fields into a titled Details card
+
+Generic read-only item views currently render native fields as a series of individual cards, with
+the page's generic `Details` heading providing the only grouping. Add a compact, consistently titled
+card across object types for the ordinary native fields users use to identify and understand an item
+(for example site, role, serial, device type, comments, and NetBox audit timestamps), while leaving
+specialized rows and custom-field groups with their existing behavior.
+
+- [x] Use the short, generic `Details` title and an informational icon for the shared card.
+- [x] Group plain text, references, comments, and NetBox timestamps before the `Custom fields`
+  section into that card; keep specialized rows such as tags, images, and attachments separate.
+- [x] Group reverse-related count rows (for example a site's circuits, devices, racks, and virtual
+  machines) into a clickable `Linked items` card with endpoint-specific icons and count badges.
+- [x] Remove the now-redundant page-level `Details` heading from `GenericDetailScreen`.
+- [x] Add renderer tests covering a lone field, the mixed native field run, comments/audit
+  timestamps, and linked-item count grouping.
+- [x] Verified remotely with `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite on
+  rofl-13, then deployed the debug build to all three attached development devices with
+  `just deploy-all debug`.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
+deployment to all attached physical devices.
+
+## NBC-395: share the generic and specialized item-detail screen architecture
+
+`GenericDetailScreen` and the dedicated `DeviceDetailScreen` are separate Compose screens rather
+than subclasses, but they currently duplicate substantial orchestration: transparent detail app bars,
+loading/offline states, pull-to-refresh, tab strips, swipe handling, lazy-list layout, and common
+field/card interactions. The screens should share a compositional detail framework while retaining
+their independent ViewModels and device-only tabs/actions.
+
+- [x] Extract a shared item-detail scaffold/body primitive for the common app bar, snackbar host,
+  tab strip, swipe handling, and lazy-list shell; keep each screen's cache/loading branch explicit
+  until the state models can be unified without weakening offline-first behavior.
+- [x] Keep identity, Overview, related-tab, changelog, and edit-mode content screen-owned through
+  explicit scaffold/tab-list content slots and screen-specific top-bar actions; do not make the
+  two ViewModels inherit from one another just to share UI plumbing.
+- [x] Move the shared Details and Linked items cards plus the shared detail app-bar primitive into
+  reusable UI components; keep device-only navigation (rack position, device type, primary IP) as
+  injected actions rather than duplicating card infrastructure.
+- [x] Migrate `GenericDetailScreen` and `DeviceDetailScreen` incrementally with behavior-preserving
+  checkpoints, then remove obsolete duplicated helpers/imports.
+- [x] Add focused tests for the generic field/card transforms and perform post-install launch checks
+  for the debug build on all three attached devices.
+- [x] Run remote compile/tests and lint, deploy to all attached devices, and confirm successful app
+  launch on the Zenfone 10, Mi Pad 4, and Pixel 5.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, the
+repository lint recipe, deployment to all attached physical devices, and post-install launch checks.

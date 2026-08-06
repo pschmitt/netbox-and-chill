@@ -9,11 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Check
@@ -45,14 +43,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,7 +77,9 @@ import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
 import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTab
-import dev.pschmitt.nyetbox.ui.common.ItemDetailTabs
+import dev.pschmitt.nyetbox.ui.common.ItemDetailTabLayout
+import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
+import dev.pschmitt.nyetbox.ui.common.ItemDetailTopBar
 import dev.pschmitt.nyetbox.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadDialog
@@ -97,7 +93,6 @@ import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.fileViewIntent
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
-import dev.pschmitt.nyetbox.ui.common.itemTabSwipe
 import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.objectTypeLabel
 import dev.pschmitt.nyetbox.ui.common.shareIntent
@@ -376,17 +371,14 @@ fun GenericDetailScreen(
         viewModel.fileOpened()
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ItemDetailScaffold(
+        snackbarHostState = snackbarHostState,
         topBar = {
-            TopAppBar(
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent,
-                        navigationIconContentColor = detailAccent,
-                        actionIconContentColor = detailAccent,
-                    ),
+            ItemDetailTopBar(
+                detailAccent = detailAccent,
+                onBack = onBack,
+                isEditing = isEditing,
+                onCancelEditing = viewModel::cancelEditing,
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -408,15 +400,6 @@ fun GenericDetailScreen(
                                 )
                             }
                         }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = if (isEditing) viewModel::cancelEditing else onBack) {
-                        Icon(
-                            if (isEditing) Icons.Default.Close
-                            else Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = if (isEditing) "Cancel" else "Back",
-                        )
                     }
                 },
                 actions = {
@@ -750,37 +733,12 @@ fun GenericDetailScreen(
                         }
                         val journalTabIndex = tabs.indexOfFirst { it.label == "Journal" }
                         val traceTabIndex = tabs.indexOfFirst { it.label == "Trace" }
-                        Column(Modifier.fillMaxSize()) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 2.dp,
-                            ) {
-                                ItemDetailTabs(
-                                    tabs = tabs,
-                                    selectedTab = visibleSelectedTab,
-                                    onTabSelected = { selectedTab = it },
-                                    modifier = Modifier.padding(horizontal = 8.dp),
-                                )
-                            }
-                            // A single shared LazyColumn covers every tab (branching on
-                            // visibleSelectedTab inside its content builder) instead of one
-                            // separate LazyColumn per tab. Four separate LazyColumns - one per
-                            // if/else-if branch above - meant every tab switch tore down and
-                            // recomposed the whole list from scratch, including recomposing
-                            // GenericDetailIdentityCard fresh every time even though it's
-                            // identical across all four tabs. Mirrors the single-LazyColumn shape
-                            // DeviceDetailScreen already uses for its tabs.
-                            LazyColumn(
-                                modifier =
-                                    Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                        visibleSelectedTab,
-                                        tabCount,
-                                    ) {
-                                        selectedTab = it
-                                    },
-                                contentPadding = PaddingValues(16.dp),
-                            ) {
+                        ItemDetailTabLayout(
+                            tabs = tabs,
+                            selectedTab = visibleSelectedTab,
+                            onTabSelected = { selectedTab = it },
+                            tabCount = tabCount,
+                        ) {
                                 item {
                                     GenericDetailIdentityCard(
                                         id = viewModel.route.id,
@@ -851,24 +809,6 @@ fun GenericDetailScreen(
                                                 onDeleteDocument = viewModel::deleteDocument,
                                             )
                                         }
-                                    item {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(bottom = 6.dp),
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Description,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp),
-                                            )
-                                            Spacer(Modifier.width(8.dp))
-                                            Text(
-                                                "Details",
-                                                style = MaterialTheme.typography.titleLarge,
-                                            )
-                                        }
-                                    }
                                     fieldRows(
                                         detailOverviewFields,
                                         onNavigateToReference = { endpointPath, id ->
@@ -1054,7 +994,6 @@ fun GenericDetailScreen(
                                         }
                                     }
                                 }
-                            }
                         }
                     }
                 }

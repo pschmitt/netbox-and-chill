@@ -424,18 +424,102 @@ class GenericFieldRendererTest {
         val rows = listOf(site, manufacturer, assetTag)
 
         assertEquals(
-            listOf(FieldRowCluster.Grouped(label = null, rows = rows)),
+            listOf(FieldRowCluster.Grouped(label = KEY_DETAILS_CARD_TITLE, rows = rows)),
             clusterFieldRows(rows),
         )
     }
 
     @Test
-    fun `clusterFieldRows leaves a lone native PlainText or Reference field standalone`() {
-        // A single clusterable field with no clusterable neighbor renders exactly like today -
-        // wrapping it alone in an untitled card would look identical, so there's no cluster.
+    fun `clusterFieldRows puts a lone native field in the Details card`() {
         val rows = listOf(FieldRow.PlainText("Model", "PowerEdge R730"))
 
-        assertEquals(rows.map { FieldRowCluster.Standalone(it) }, clusterFieldRows(rows))
+        assertEquals(
+            listOf(FieldRowCluster.Grouped(KEY_DETAILS_CARD_TITLE, rows)),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows groups comments and audit timestamps with native fields`() {
+        val rows =
+            listOf(
+                FieldRow.Reference("Site", RefTarget("HQ", "api/dcim/sites/", 1)),
+                FieldRow.PlainText("Serial", "ABC-123"),
+                FieldRow.Markdown("Comments", "Installed in 2026"),
+                FieldRow.Metadata("Last Updated", "2026-08-06T12:00:00Z"),
+            )
+
+        assertEquals(
+            listOf(FieldRowCluster.Grouped(KEY_DETAILS_CARD_TITLE, rows)),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows groups reverse-related counts into the Linked items card`() {
+        val rows =
+            listOf(
+                FieldRow.PlainText("Name", "HQ"),
+                FieldRow.Count(
+                    "Circuits",
+                    "2",
+                    CountTarget("api/circuits/circuits/", "Circuits", "site", 17),
+                ),
+                FieldRow.Count(
+                    "Devices",
+                    "136",
+                    CountTarget("api/dcim/devices/", "Devices", "site", 17),
+                ),
+                FieldRow.Count(
+                    "Racks",
+                    "4",
+                    CountTarget("api/dcim/racks/", "Racks", "site", 17),
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRowCluster.Grouped(
+                    KEY_DETAILS_CARD_TITLE,
+                    listOf(FieldRow.PlainText("Name", "HQ")),
+                ),
+                FieldRowCluster.Grouped(
+                    KEY_LINKED_ITEMS_CARD_TITLE,
+                    rows.drop(1),
+                ),
+            ),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows keeps linked item counts separate from custom fields`() {
+        val rows =
+            listOf(
+                FieldRow.Count(
+                    "Virtual Machines",
+                    "5",
+                    CountTarget(
+                        "api/virtualization/virtual-machines/",
+                        "Virtual Machines",
+                        "site",
+                        17,
+                    ),
+                ),
+                FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
+                FieldRow.PlainText("Notes", "Ready"),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRowCluster.Grouped(KEY_LINKED_ITEMS_CARD_TITLE, listOf(rows.first())),
+                FieldRowCluster.Standalone(FieldRow.Section("Custom fields")),
+                FieldRowCluster.Standalone(FieldRow.CustomGroup("Other")),
+                FieldRowCluster.Standalone(FieldRow.PlainText("Notes", "Ready")),
+            ),
+            clusterFieldRows(rows),
+        )
     }
 
     @Test
@@ -449,10 +533,12 @@ class GenericFieldRendererTest {
 
         assertEquals(
             listOf(
-                FieldRowCluster.Grouped(label = null, rows = listOf(site, manufacturer)),
+                FieldRowCluster.Grouped(
+                    label = KEY_DETAILS_CARD_TITLE,
+                    rows = listOf(site, manufacturer),
+                ),
                 FieldRowCluster.Standalone(airflow),
-                // Only one clusterable row follows "Airflow" before the list ends - stays alone.
-                FieldRowCluster.Standalone(assetTag),
+                FieldRowCluster.Grouped(KEY_DETAILS_CARD_TITLE, listOf(assetTag)),
             ),
             clusterFieldRows(rows),
         )
@@ -485,7 +571,10 @@ class GenericFieldRendererTest {
 
         assertEquals(
             listOf(
-                FieldRowCluster.Grouped(label = null, rows = listOf(site, manufacturer)),
+                FieldRowCluster.Grouped(
+                    label = KEY_DETAILS_CARD_TITLE,
+                    rows = listOf(site, manufacturer),
+                ),
                 FieldRowCluster.Standalone(section),
                 FieldRowCluster.Grouped("Purchase info", listOf(vendor)),
             ),

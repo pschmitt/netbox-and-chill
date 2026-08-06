@@ -18,11 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Delete
@@ -47,13 +45,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,7 +57,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
@@ -89,12 +82,15 @@ import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
 import dev.pschmitt.nyetbox.ui.common.ImageViewerRelatedLink
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTab
-import dev.pschmitt.nyetbox.ui.common.ItemDetailTabs
+import dev.pschmitt.nyetbox.ui.common.ItemDetailTabLayout
+import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
+import dev.pschmitt.nyetbox.ui.common.ItemDetailTopBar
 import dev.pschmitt.nyetbox.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadKind
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxDetailsCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.PrintLabelDialog
 import dev.pschmitt.nyetbox.ui.common.PrintLabelRequest
@@ -105,7 +101,6 @@ import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.fileViewIntent
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
-import dev.pschmitt.nyetbox.ui.common.itemTabSwipe
 import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.shareIntent
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
@@ -292,17 +287,12 @@ fun DeviceDetailScreen(
         copiedMessage = "Copied $label"
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ItemDetailScaffold(
+        snackbarHostState = snackbarHostState,
         topBar = {
-            TopAppBar(
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent,
-                        navigationIconContentColor = detailAccent,
-                        actionIconContentColor = detailAccent,
-                    ),
+            ItemDetailTopBar(
+                detailAccent = detailAccent,
+                onBack = onBack,
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -315,11 +305,6 @@ fun DeviceDetailScreen(
                             maxLines = 1,
                             modifier = Modifier.padding(start = 8.dp),
                         )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -511,29 +496,12 @@ fun DeviceDetailScreen(
                     }
                     add(ItemDetailTab("Changelog", Icons.Default.Difference, changelog.size))
                 }
-                Column(Modifier.fillMaxSize()) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 2.dp,
-                    ) {
-                        ItemDetailTabs(
-                            tabs = tabs,
-                            selectedTab = visibleSelectedTab,
-                            onTabSelected = { selectedTab = it },
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                        )
-                    }
-                    LazyColumn(
-                        modifier =
-                            Modifier.fillMaxWidth().weight(1f).itemTabSwipe(
-                                visibleSelectedTab,
-                                tabCount,
-                            ) { tabIndex ->
-                                selectedTab = tabIndex
-                            },
-                        contentPadding = PaddingValues(16.dp),
-                    ) {
+                ItemDetailTabLayout(
+                    tabs = tabs,
+                    selectedTab = visibleSelectedTab,
+                    onTabSelected = { selectedTab = it },
+                    tabCount = tabCount,
+                ) {
                         item {
                             val deviceTypeViewerItems = deviceTypePhotoItems(deviceType)
                             val deviceTypePreview = deviceTypeViewerItems.firstOrNull { item ->
@@ -661,135 +629,254 @@ fun DeviceDetailScreen(
                                         onDeleteDocument = viewModel::deleteDocument,
                                     )
                                 }
-                            if (isFieldVisible("site"))
-                                detailField(
-                                    "Site",
-                                    current.siteName,
-                                    leadingIcon = AppIcons.forEndpointPath("api/dcim/sites/"),
-                                    onClick =
-                                        current.siteId?.let { id ->
-                                            {
-                                                onReferenceClick(
-                                                    "api/dcim/sites/",
-                                                    id,
-                                                    current.name,
-                                                )
-                                            }
-                                        },
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("rack"))
-                                detailField(
-                                    "Rack",
-                                    current.rackName,
-                                    leadingIcon = AppIcons.forEndpointPath("api/dcim/racks/"),
-                                    onClick =
-                                        current.rackId?.let { id ->
-                                            {
-                                                onReferenceClick(
-                                                    "api/dcim/racks/",
-                                                    id,
-                                                    current.name,
-                                                )
-                                            }
-                                        },
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("position"))
-                                detailField(
-                                    "Position",
-                                    current.position?.toString(),
-                                    onClick =
-                                        current.rackId?.let { rackId ->
-                                            {
-                                                onRackPositionClick(
-                                                    rackId,
-                                                    current.id,
-                                                    current.name,
-                                                )
-                                            }
-                                        },
-                                    openIcon = Icons.Default.Visibility,
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("role"))
-                                detailField(
-                                    "Role",
-                                    current.roleName,
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("manufacturer"))
-                                detailField(
-                                    "Manufacturer",
-                                    current.manufacturerName,
-                                    leadingIcon =
-                                        AppIcons.forEndpointPath("api/dcim/manufacturers/"),
-                                    onClick =
-                                        manufacturerId?.let { id ->
-                                            {
-                                                onReferenceClick(
-                                                    "api/dcim/manufacturers/",
-                                                    id,
-                                                    current.name,
-                                                )
-                                            }
-                                        },
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("device_type") && isFieldVisible("model"))
-                                detailField(
-                                    "Device type",
-                                    current.deviceTypeModel,
-                                    leadingIcon =
-                                        AppIcons.forEndpointPath("api/dcim/device-types/"),
-                                    onClick =
-                                        deviceType?.id?.let { id ->
-                                            { onDeviceTypeClick(id, current.name) }
-                                        },
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("serial"))
-                                detailField(
-                                    "Serial",
-                                    current.serial,
-                                    copyable = true,
-                                    onCopyValue = onCopyValue,
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("asset_tag"))
-                                detailField(
-                                    "Asset tag",
-                                    current.assetTag,
-                                    copyable = true,
-                                    onCopyValue = onCopyValue,
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("primary_ip"))
-                                detailField(
-                                    "Primary IP",
-                                    current.primaryIp,
-                                    leadingIcon =
-                                        AppIcons.forEndpointPath("api/ipam/ip-addresses/"),
-                                    copyable = true,
-                                    onCopyValue = onCopyValue,
-                                    onClick =
-                                        current.primaryIpId?.let { id ->
-                                            {
-                                                onReferenceClick(
-                                                    "api/ipam/ip-addresses/",
-                                                    id,
-                                                    current.name,
-                                                )
-                                            }
-                                        },
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
-                            if (isFieldVisible("comments"))
-                                detailMarkdownField(
-                                    "Comments",
-                                    current.comments,
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                )
+                            val hasVisibleDetails =
+                                listOf(
+                                        "site" to current.siteName,
+                                        "rack" to current.rackName,
+                                        "position" to current.position?.toString(),
+                                        "role" to current.roleName,
+                                        "manufacturer" to current.manufacturerName,
+                                        "serial" to current.serial,
+                                        "asset_tag" to current.assetTag,
+                                        "primary_ip" to current.primaryIp,
+                                        "comments" to current.comments,
+                                    )
+                                    .any { (key, value) ->
+                                        isFieldVisible(key) && !value.isNullOrBlank()
+                                    } ||
+                                (isFieldVisible("device_type") &&
+                                    isFieldVisible("model") &&
+                                    !current.deviceTypeModel.isNullOrBlank())
+                            if (hasVisibleDetails)
+                                item {
+                                    NyetboxDetailsCard(
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                    ) {
+                                        Column(Modifier.padding(horizontal = 12.dp)) {
+                                            current.siteName
+                                                ?.takeIf {
+                                                    isFieldVisible("site") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Site",
+                                                        value = value,
+                                                        leadingIcon =
+                                                            AppIcons.forEndpointPath(
+                                                                "api/dcim/sites/"
+                                                            ),
+                                                        onClick =
+                                                            current.siteId?.let { id ->
+                                                                {
+                                                                    onReferenceClick(
+                                                                        "api/dcim/sites/",
+                                                                        id,
+                                                                        current.name,
+                                                                    )
+                                                                }
+                                                            },
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.rackName
+                                                ?.takeIf {
+                                                    isFieldVisible("rack") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Rack",
+                                                        value = value,
+                                                        leadingIcon =
+                                                            AppIcons.forEndpointPath(
+                                                                "api/dcim/racks/"
+                                                            ),
+                                                        onClick =
+                                                            current.rackId?.let { id ->
+                                                                {
+                                                                    onReferenceClick(
+                                                                        "api/dcim/racks/",
+                                                                        id,
+                                                                        current.name,
+                                                                    )
+                                                                }
+                                                            },
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.position?.toString()
+                                                ?.takeIf {
+                                                    isFieldVisible("position") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Position",
+                                                        value = value,
+                                                        onClick =
+                                                            current.rackId?.let { rackId ->
+                                                                {
+                                                                    onRackPositionClick(
+                                                                        rackId,
+                                                                        current.id,
+                                                                        current.name,
+                                                                    )
+                                                                }
+                                                            },
+                                                        openIcon = Icons.Default.Visibility,
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.roleName
+                                                ?.takeIf { isFieldVisible("role") && it.isNotBlank() }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Role",
+                                                        value = value,
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.manufacturerName
+                                                ?.takeIf {
+                                                    isFieldVisible("manufacturer") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Manufacturer",
+                                                        value = value,
+                                                        leadingIcon =
+                                                            AppIcons.forEndpointPath(
+                                                                "api/dcim/manufacturers/"
+                                                            ),
+                                                        onClick =
+                                                            manufacturerId?.let { id ->
+                                                                {
+                                                                    onReferenceClick(
+                                                                        "api/dcim/manufacturers/",
+                                                                        id,
+                                                                        current.name,
+                                                                    )
+                                                                }
+                                                            },
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.deviceTypeModel
+                                                ?.takeIf {
+                                                    isFieldVisible("device_type") &&
+                                                        isFieldVisible("model") &&
+                                                        it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Device type",
+                                                        value = value,
+                                                        leadingIcon =
+                                                            AppIcons.forEndpointPath(
+                                                                "api/dcim/device-types/"
+                                                            ),
+                                                        onClick =
+                                                            deviceType?.id?.let { id ->
+                                                                { onDeviceTypeClick(id, current.name) }
+                                                            },
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.serial
+                                                ?.takeIf {
+                                                    isFieldVisible("serial") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Serial",
+                                                        value = value,
+                                                        copyable = true,
+                                                        onCopyValue = onCopyValue,
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.assetTag
+                                                ?.takeIf {
+                                                    isFieldVisible("asset_tag") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Asset tag",
+                                                        value = value,
+                                                        copyable = true,
+                                                        onCopyValue = onCopyValue,
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.primaryIp
+                                                ?.takeIf {
+                                                    isFieldVisible("primary_ip") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailFieldContent(
+                                                        label = "Primary IP",
+                                                        value = value,
+                                                        leadingIcon =
+                                                            AppIcons.forEndpointPath(
+                                                                "api/ipam/ip-addresses/"
+                                                            ),
+                                                        copyable = true,
+                                                        onCopyValue = onCopyValue,
+                                                        onClick =
+                                                            current.primaryIpId?.let { id ->
+                                                                {
+                                                                    onReferenceClick(
+                                                                        "api/ipam/ip-addresses/",
+                                                                        id,
+                                                                        current.name,
+                                                                    )
+                                                                }
+                                                            },
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                            current.comments
+                                                ?.takeIf {
+                                                    isFieldVisible("comments") && it.isNotBlank()
+                                                }
+                                                ?.let { value ->
+                                                    DetailMarkdownContent(
+                                                        label = "Comments",
+                                                        value = value,
+                                                        onFieldLongPress = {
+                                                            fieldActionLabel = it
+                                                        },
+                                                        modifier = Modifier.padding(vertical = 8.dp),
+                                                    )
+                                                }
+                                        }
+                                    }
+                                }
                             fieldRows(
                                 rows = visibleCustomFieldRows,
                                 onNavigateToReference = { endpointPath, id ->
@@ -876,7 +963,6 @@ fun DeviceDetailScreen(
                                 )
                             }
                         }
-                    }
                 }
             }
         }
@@ -1390,47 +1476,69 @@ private fun LazyListScope.detailField(
 ) {
     if (value.isNullOrBlank()) return
     item {
-        NyetboxCard(
-            modifier =
-                Modifier.padding(vertical = 4.dp)
-                    .combinedClickable(
-                        onClick = { onClick?.invoke() },
-                        onLongClick = { onFieldLongPress(label) },
-                    )
+        NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+            DetailFieldContent(
+                label = label,
+                value = value,
+                leadingIcon = leadingIcon,
+                copyable = copyable,
+                onCopyValue = onCopyValue,
+                onClick = onClick,
+                openIcon = openIcon,
+                onFieldLongPress = onFieldLongPress,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailFieldContent(
+    label: String,
+    value: String,
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    copyable: Boolean = false,
+    onCopyValue: (label: String, value: String) -> Unit = { _, _ -> },
+    onClick: (() -> Unit)? = null,
+    openIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.AutoMirrored.Filled.OpenInNew,
+    onFieldLongPress: (label: String) -> Unit = {},
+    modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+) {
+    Column(
+        modifier = modifier.combinedClickable(
+            onClick = { onClick?.invoke() },
+            onLongClick = { onFieldLongPress(label) },
+        )
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            leadingIcon?.let { icon ->
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    leadingIcon?.let { icon ->
-                        Icon(
-                            icon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(
-                        value,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    DetailTrailingActions(
-                        copyLabel = label.takeIf { copyable },
-                        onCopy = { onCopyValue(label, value) }.takeIf { copyable },
-                        openLabel = label.takeIf { onClick != null },
-                        onOpen = onClick,
-                        openIcon = openIcon,
-                    )
-                }
+                Spacer(Modifier.width(8.dp))
             }
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            DetailTrailingActions(
+                copyLabel = label.takeIf { copyable },
+                onCopy = { onCopyValue(label, value) }.takeIf { copyable },
+                openLabel = label.takeIf { onClick != null },
+                onOpen = onClick,
+                openIcon = openIcon,
+            )
         }
     }
 }
@@ -1443,22 +1551,30 @@ private fun LazyListScope.detailMarkdownField(
 ) {
     if (value.isNullOrBlank()) return
     item {
-        NyetboxCard(
-            modifier =
-                Modifier.padding(vertical = 4.dp)
-                    .combinedClickable(
-                        onClick = {},
-                        onLongClick = { onFieldLongPress(label) },
-                    )
-        ) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                CollapsibleCommentCard(content = value, modifier = Modifier.fillMaxWidth())
-            }
+        NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
+            DetailMarkdownContent(label, value, onFieldLongPress)
         }
+    }
+}
+
+@Composable
+private fun DetailMarkdownContent(
+    label: String,
+    value: String,
+    onFieldLongPress: (label: String) -> Unit = {},
+    modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+) {
+    Column(
+        modifier = modifier.combinedClickable(
+            onClick = {},
+            onLongClick = { onFieldLongPress(label) },
+        )
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        CollapsibleCommentCard(content = value, modifier = Modifier.fillMaxWidth())
     }
 }

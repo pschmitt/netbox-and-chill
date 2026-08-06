@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
@@ -23,10 +24,15 @@ import dev.pschmitt.nyetbox.ui.common.CollapsibleCommentCard
 import dev.pschmitt.nyetbox.ui.common.DetailTrailingActions
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxDetailsCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxLinkedItemsCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxSectionCard
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
+
+internal const val KEY_DETAILS_CARD_TITLE = "Details"
+internal const val KEY_LINKED_ITEMS_CARD_TITLE = "Linked items"
 
 internal fun visibleFieldRows(
     rows: List<FieldRow>,
@@ -144,27 +150,7 @@ internal fun LazyListScope.fieldRow(
         is FieldRow.Metadata ->
             item {
                 NyetboxCard(modifier = Modifier.padding(vertical = 4.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Default.AccessTime,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Column(modifier = Modifier.padding(start = 10.dp)) {
-                            Text(
-                                row.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                formatNetBoxDateTime(row.value),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
+                    MetadataContent(row, Modifier.padding(12.dp))
                 }
             }
         is FieldRow.PlainText ->
@@ -177,23 +163,7 @@ internal fun LazyListScope.fieldRow(
                 onClick = { onRelatedItems(row.target) },
                 onLongPress = { onFieldLongPress(row.label) },
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                ) {
-                    Text(
-                        row.label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Badge { Text(row.value) }
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        Icons.Default.FilterList,
-                        contentDescription = "Show ${row.label.lowercase()}",
-                    )
-                }
+                LinkedItemContent(row)
             }
         is FieldRow.Markdown ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
@@ -268,6 +238,31 @@ private fun PlainTextContent(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MetadataContent(row: FieldRow.Metadata, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Default.AccessTime,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(modifier = Modifier.padding(start = 10.dp)) {
+            Text(
+                row.label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                formatNetBoxDateTime(row.value),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }
@@ -482,6 +477,35 @@ private fun ExternalLinkContent(
 }
 
 @Composable
+private fun LinkedItemContent(row: FieldRow.Count) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+    ) {
+        Icon(
+            AppIcons.forEndpointPath(row.target.endpointPath),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            row.label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        Badge { Text(row.value) }
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = "Show ${row.label.lowercase()}",
+            tint = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
 private fun FileAttachmentContent(
     row: FieldRow.FileAttachment,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
@@ -518,8 +542,8 @@ private fun FileAttachmentContent(
  * that isn't part of a cluster stays a [FieldRowCluster.Standalone], rendered exactly like today
  * via [fieldRow]. [FieldRowCluster.Grouped] covers two distinct cases, both stacked inside one
  * shared card: a real NetBox custom-field group (`label` is the group name, shown as a card title
- * via [NyetboxSectionCard]), and a run of simple native/top-level fields (`label` is `null` - no
- * title, since the existing "Details" heading above the native-fields block already covers that).
+ * via [NyetboxSectionCard]), and a run of key native/top-level fields (`label` is
+ * [KEY_DETAILS_CARD_TITLE]).
  */
 internal sealed interface FieldRowCluster {
     data class Standalone(val row: FieldRow) : FieldRowCluster
@@ -527,21 +551,26 @@ internal sealed interface FieldRowCluster {
     data class Grouped(val label: String?, val rows: List<FieldRow>) : FieldRowCluster
 }
 
-/** Native/top-level field types plain and low-visual-weight enough to share an untitled card. */
-private fun FieldRow.isClusterableNativeField(): Boolean =
-    this is FieldRow.PlainText || this is FieldRow.Reference
+/** Native/top-level field types that belong in the titled key-details card. */
+private fun FieldRow.isKeyDetailsField(): Boolean =
+    this is FieldRow.PlainText ||
+        this is FieldRow.Reference ||
+        this is FieldRow.Markdown ||
+        this is FieldRow.Metadata
 
 /**
  * Clusters a flat [FieldRow] list (as produced by `buildFieldRows`) two ways, matching the
  * marker-walking idiom [visibleFieldRows] already uses:
- * - Before the `"Custom fields"` [FieldRow.Section] marker (native/top-level fields), a run of two
- *   or more consecutive [FieldRow.PlainText]/[FieldRow.Reference] rows - the shape "site",
- *   "manufacturer", "asset tag"-like fields already render as - clusters into one untitled card.
- *   This is type-driven, not name-driven, so it stays generic across every NetBox object type;
- *   every other native row type (`Markdown`, `Image`, `BooleanValue`, `Count`, `ReferenceList`,
- *   `TagList`, `ChipList`, `ExternalLink`, `FileAttachment`, `Metadata`) keeps its own distinct
- *   card, and a lone clusterable row with no clusterable neighbor also stays standalone (wrapping a
- *   single field in its own untitled card would look identical to today, so there's no point).
+ * - Before the `"Custom fields"` [FieldRow.Section] marker (native/top-level fields), consecutive
+ *   [FieldRow.PlainText], [FieldRow.Reference], [FieldRow.Markdown], and [FieldRow.Metadata] rows
+ *   - the generic shape of site, role, serial, device type, comments, and audit fields - cluster
+ *   into one titled [KEY_DETAILS_CARD_TITLE] card. This is type-driven, not name-driven, so it
+ *   stays generic across every NetBox object type.
+ * - Consecutive [FieldRow.Count] rows cluster into one titled [KEY_LINKED_ITEMS_CARD_TITLE] card.
+ *   These are reverse-related collections such as a site's circuits, devices, racks, and virtual
+ *   machines, and remain individually clickable to open the cached filtered list.
+ * - Other native row types (`Image`, `BooleanValue`, `ReferenceList`, `TagList`, `ChipList`,
+ *   `ExternalLink`, `FileAttachment`) keep their own distinct cards and break both runs.
  * - From the `"Custom fields"` [FieldRow.Section] marker onward, custom fields sharing a real,
  *   admin-defined NetBox custom-field group cluster into one shared, titled card. The synthetic
  *   [UNGROUPED_CUSTOM_FIELD_GROUP_LABEL] bucket - and the `"Custom fields"` [FieldRow.Section]
@@ -550,6 +579,7 @@ private fun FieldRow.isClusterableNativeField(): Boolean =
 internal fun clusterFieldRows(rows: List<FieldRow>): List<FieldRowCluster> = buildList {
     var sawCustomFieldsSection = false
     var pendingNativeRun: MutableList<FieldRow>? = null
+    var pendingLinkedItemsRun: MutableList<FieldRow>? = null
     var pendingGroupLabel: String? = null
     var pendingGroupRows: MutableList<FieldRow>? = null
 
@@ -557,11 +587,14 @@ internal fun clusterFieldRows(rows: List<FieldRow>): List<FieldRowCluster> = bui
         val run = pendingNativeRun
         pendingNativeRun = null
         if (run == null) return
-        if (run.size >= 2) {
-            add(FieldRowCluster.Grouped(label = null, rows = run))
-        } else {
-            run.forEach { add(FieldRowCluster.Standalone(it)) }
-        }
+        add(FieldRowCluster.Grouped(label = KEY_DETAILS_CARD_TITLE, rows = run))
+    }
+
+    fun flushLinkedItemsRun() {
+        val run = pendingLinkedItemsRun
+        pendingLinkedItemsRun = null
+        if (run == null) return
+        add(FieldRowCluster.Grouped(label = KEY_LINKED_ITEMS_CARD_TITLE, rows = run))
     }
 
     fun flushPendingGroup() {
@@ -581,15 +614,24 @@ internal fun clusterFieldRows(rows: List<FieldRow>): List<FieldRowCluster> = bui
             when {
                 row is FieldRow.Section -> {
                     flushNativeRun()
+                    flushLinkedItemsRun()
                     sawCustomFieldsSection = true
                     add(FieldRowCluster.Standalone(row))
                 }
-                row.isClusterableNativeField() -> {
+                row is FieldRow.Count -> {
+                    flushNativeRun()
+                    (pendingLinkedItemsRun
+                            ?: mutableListOf<FieldRow>().also { pendingLinkedItemsRun = it })
+                        .add(row)
+                }
+                row.isKeyDetailsField() -> {
+                    flushLinkedItemsRun()
                     (pendingNativeRun ?: mutableListOf<FieldRow>().also { pendingNativeRun = it })
                         .add(row)
                 }
                 else -> {
                     flushNativeRun()
+                    flushLinkedItemsRun()
                     add(FieldRowCluster.Standalone(row))
                 }
             }
@@ -617,12 +659,13 @@ internal fun clusterFieldRows(rows: List<FieldRow>): List<FieldRowCluster> = bui
         }
     }
     flushNativeRun()
+    flushLinkedItemsRun()
     flushPendingGroup()
 }
 
 /**
- * Renders a flat [FieldRow] list, clustering both real named custom-field groups and runs of simple
- * native fields into a shared card (via [clusterFieldRows]) while every other row renders exactly
+ * Renders a flat [FieldRow] list, clustering both real named custom-field groups and key native
+ * fields into titled shared cards (via [clusterFieldRows]) while every other row renders exactly
  * like [fieldRow] renders it standalone today.
  */
 internal fun LazyListScope.fieldRows(
@@ -661,6 +704,7 @@ internal fun LazyListScope.fieldRows(
                             ClusteredFieldRow(
                                 row = row,
                                 onNavigateToReference = onNavigateToReference,
+                                onRelatedItems = onRelatedItems,
                                 onOpenUrl = onOpenUrl,
                                 netboxBaseUrl = netboxBaseUrl,
                                 onDownloadAttachment = onDownloadAttachment,
@@ -676,12 +720,24 @@ internal fun LazyListScope.fieldRows(
                 val label = cluster.label
                 item {
                     if (label != null) {
-                        NyetboxSectionCard(
-                            title = label,
-                            icon = Icons.Outlined.Category,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            content = clusteredContent,
-                        )
+                        if (label == KEY_DETAILS_CARD_TITLE) {
+                            NyetboxDetailsCard(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                content = clusteredContent,
+                            )
+                        } else if (label == KEY_LINKED_ITEMS_CARD_TITLE) {
+                            NyetboxLinkedItemsCard(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                content = clusteredContent,
+                            )
+                        } else {
+                            NyetboxSectionCard(
+                                title = label,
+                                icon = Icons.Outlined.Category,
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                content = clusteredContent,
+                            )
+                        }
                     } else {
                         NyetboxCard(
                             modifier = Modifier.padding(vertical = 4.dp),
@@ -703,14 +759,15 @@ private fun Modifier.clusterInteraction(
 /**
  * Renders a single row's content stacked inside a shared cluster card ([FieldRowCluster.Grouped]),
  * with no card of its own - only [FieldRow.Reference] and [FieldRow.ExternalLink] carry a
- * card-level click action standalone (see [fieldRow]'s `detailCard` calls), so those are the only
- * two that need an explicit click handler re-attached here; every other type either has no click
+ * card-level click action standalone (see [fieldRow]'s `detailCard` calls), so those need an
+ * explicit click handler re-attached here; every other type either has no click
  * action or already embeds its own (e.g. [FieldRow.FileAttachment]'s download row).
  */
 @Composable
 private fun ClusteredFieldRow(
     row: FieldRow,
     onNavigateToReference: (String, Int) -> Unit,
+    onRelatedItems: (CountTarget) -> Unit,
     onOpenUrl: (String) -> Unit,
     netboxBaseUrl: String?,
     onDownloadAttachment: (url: String, filename: String) -> Unit,
@@ -734,6 +791,9 @@ private fun ClusteredFieldRow(
             is FieldRow.ExternalLink -> {
                 { onOpenUrl(row.url) }
             }
+            is FieldRow.Count -> {
+                { onRelatedItems(row.target) }
+            }
             else -> null
         }
     Column(Modifier.fillMaxWidth().clusterInteraction(onClick) { onFieldLongPress(row.label) }) {
@@ -741,6 +801,8 @@ private fun ClusteredFieldRow(
             is FieldRow.PlainText ->
                 PlainTextContent(row, onCopyValue, onFieldLongPress, onMatterPairingCode)
             is FieldRow.Markdown -> MarkdownContent(row, onFieldLongPress)
+            is FieldRow.Metadata -> MetadataContent(row)
+            is FieldRow.Count -> LinkedItemContent(row)
             is FieldRow.Reference ->
                 ReferenceContent(row, onNavigateToReference, onCopyValue, onFieldLongPress)
             is FieldRow.ChipList -> ChipListContent(row, onFieldLongPress)
@@ -752,8 +814,6 @@ private fun ClusteredFieldRow(
                 ReferenceListContent(row, onNavigateToReference, onFieldLongPress)
             is FieldRow.TagList -> TagListContent(row, onNavigateToReference, onFieldLongPress)
             is FieldRow.BooleanValue,
-            is FieldRow.Metadata,
-            is FieldRow.Count,
             is FieldRow.Section,
             is FieldRow.CustomGroup -> Unit // Never produced as a custom-field group member.
         }
