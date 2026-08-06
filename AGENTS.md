@@ -36,13 +36,34 @@ Repository instructions for AI coding agents working on Nyetbox.
   - `just build [variant] [host]` - build an APK remotely. `variant` is `debug` (default) or
     `release`. Release builds are signed with the persistent CI keystore, fetched from the rbw
     entry `"NetBox and Chill CI Signing Keystore"`.
-  - `just lint` - remote `ktfmtCheck` (mirrors `.github/workflows/lint.yaml`).
+  - `just lint` - remote `ktfmtCheck` (mirrors `.github/workflows/lint.yaml`). **Not fully
+    trustworthy**: on rofl-13/rofl-14, `ktfmtCheckMain`/`ktfmtFormatMain` report `NO-SOURCE` for
+    reasons still unclear, silently skipping the main sourceSet instead of actually checking it -
+    a passing `just lint` does not guarantee CI's `Lint` job will also pass.
   - `just test` - remote unit test suite.
   - `just fetch [variant] [host] [abi]` - scp the built APK split back to `./dist/`.
   - `just build-fetch [variant] [host]` - build + fetch in one step.
   - `just format` runs the standalone `ktfmt` CLI locally over tracked `.kt`/`.kts` files - fast,
     but treat it as advisory only (see the flake.nix comment on why there's no ktfmt pre-commit
-    hook); `just lint` is the authoritative check.
+    hook). It can also disagree with CI outright: the nixpkgs-packaged `ktfmt` binary version can
+    drift from the `com.ncorti.ktfmt.gradle`-resolved engine version CI actually uses, so it can
+    "fix" formatting that CI's version considers already correct (or vice versa).
+
+**CI is the sole authority on lint/format, full stop - not `just lint`, not `just format`, not
+local judgment.** Both of the above discrepancies were discovered the hard way: a change that
+passed `just lint` on rofl-13 still failed CI's `Lint` job after being pushed and tagged. If CI's
+`Lint` job fails or disagrees with what a local/remote check said:
+- Dispatch `.github/workflows/ktfmt-diff.yaml` (`gh workflow run ktfmt-diff.yaml`) - it runs the
+  real `ktfmtFormat` in the same environment CI's `ktfmtCheck` uses and uploads a `ktfmt.patch`
+  artifact (`gh run download <run-id> -n ktfmt-diff-patch`). Apply that patch (`git apply`) rather
+  than guessing or reformatting by hand.
+- Fix every lint/format violation CI reports before calling a change done, even in files the
+  current change didn't touch or author - don't scope a fix to "only the lines I changed" if CI
+  flags something adjacent. Never disable, skip, or baseline around a lint failure to make it go
+  away; fix the actual violation.
+- Never tag a release from a commit whose CI hasn't gone green. If a tag was already pushed and
+  CI on it fails, delete the tag (`git push origin :refs/tags/<tag>`) and recreate it once a
+  fixed commit is fully green on `main`.
 
 ## Physical test devices
 
