@@ -8,10 +8,18 @@ name: Lint
 # would change (see AGENTS.md's "Builds" section for why that beats trying to reproduce ktfmt's
 # verdict locally), and additionally tries to land that same fix automatically: pushed straight
 # onto a same-repo PR's branch (pre-merge, safe to amend in place), or opened as a new PR when the
-# failure came from a direct push (e.g. to main) with no PR to push into. A fork PR can't be pushed
-# to by GITHUB_TOKEN at all, so that case only gets the patch artifact.
+# failure came from a direct push to main with no PR to push into. A fork PR can't be pushed to by
+# GITHUB_TOKEN at all, so that case only gets the patch artifact.
 on:
   push:
+    # Scoped to main only - a push to any other branch that already has an open PR also fires
+    # `pull_request: synchronize` for the exact same commit, and without this filter both trigger
+    # a run: the `pull_request` one correctly pushes the fix onto the PR branch, but the `push` one
+    # (event_name != 'pull_request') would *also* run and open a redundant, confusingly-separate
+    # fix PR for a branch that already has one. Confirmed live: this happened on the first real
+    # test of this workflow.
+    branches:
+      - main
     paths:
       - '**.kt'
       - '**.kts'
