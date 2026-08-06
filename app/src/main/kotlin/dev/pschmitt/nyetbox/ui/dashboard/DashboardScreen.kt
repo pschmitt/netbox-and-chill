@@ -1,5 +1,7 @@
 package dev.pschmitt.nyetbox.ui.dashboard
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -61,7 +63,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,6 +78,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -85,6 +87,7 @@ import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.NewsItemEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
+import dev.pschmitt.nyetbox.data.repository.SyncIssue
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
@@ -94,8 +97,12 @@ import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.common.ObjectTypeBadge
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.SectionReorderState
+import dev.pschmitt.nyetbox.ui.common.SuppressiblePullToRefreshBox
 import dev.pschmitt.nyetbox.ui.common.SyncIssueCard
+import dev.pschmitt.nyetbox.ui.common.SyncIssueDetailsDialog
+import dev.pschmitt.nyetbox.ui.common.buildSyncIssueReport
 import dev.pschmitt.nyetbox.ui.common.SyncStatusCard
+import dev.pschmitt.nyetbox.ui.common.SyncStatusDetailsDialog
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.objectTypeLabel
@@ -151,6 +158,7 @@ fun DashboardScreen(
     val showInitialSyncOverlay by viewModel.showInitialSyncOverlay.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val syncIssue by viewModel.syncIssue.collectAsStateWithLifecycle()
+    val activeServer by viewModel.activeServer.collectAsStateWithLifecycle()
     val dashboardSavedOrder by viewModel.dashboardSectionOrder.collectAsStateWithLifecycle()
     val hiddenDashboardSections by viewModel.hiddenDashboardSections.collectAsStateWithLifecycle()
     val objectTypeAccents by viewModel.objectTypeAccents.collectAsStateWithLifecycle()
@@ -168,11 +176,22 @@ fun DashboardScreen(
     var showDashboardVisibilityDialog by remember { mutableStateOf(false) }
     var recentVisitsExpanded by remember { mutableStateOf(false) }
     var recentChangesExpanded by remember { mutableStateOf(false) }
+    var syncIssueDetails by remember { mutableStateOf<SyncIssue?>(null) }
+    var showSyncStatusDetails by remember { mutableStateOf(false) }
+    val cacheSummary by viewModel.cacheSummary.collectAsStateWithLifecycle()
+    var copiedMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.errorShown()
+        }
+    }
+
+    LaunchedEffect(copiedMessage) {
+        copiedMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            copiedMessage = null
         }
     }
 
@@ -246,7 +265,7 @@ fun DashboardScreen(
                 )
             },
         ) { padding ->
-            PullToRefreshBox(
+            SuppressiblePullToRefreshBox(
                 // Sync has a global progress bar and Android notification; avoid the large circular
                 // indicator moving over the dashboard while that background work is running.
                 isRefreshing = false,
@@ -282,6 +301,7 @@ fun DashboardScreen(
                                     issue,
                                     onRetry = viewModel::retrySync,
                                     isSyncing = isRefreshing,
+                                    onShowDetails = { syncIssueDetails = issue },
                                 )
                                 Spacer(Modifier.height(16.dp))
                             }
@@ -293,6 +313,10 @@ fun DashboardScreen(
                                 lastSuccessfulSyncAt = lastSuccessfulSyncAt,
                                 isSyncing = isRefreshing,
                                 syncProgress = syncProgress,
+                                onShowDetails = {
+                                    showSyncStatusDetails = true
+                                    viewModel.loadCacheSummary()
+                                },
                             )
                             Spacer(Modifier.height(16.dp))
                         }
@@ -598,6 +622,31 @@ fun DashboardScreen(
             onDismiss = { showDashboardVisibilityDialog = false },
         )
     }
+
+    syncIssueDetails?.let { issue ->
+        SyncIssueDetailsDialog(
+            issue = issue,
+            onDismiss = { syncIssueDetails = null },
+            onCopyLogs = {
+                val report = buildSyncIssueReport(issue, activeServer, offlineMode)
+                context
+                    .getSystemService<ClipboardManager>()
+                    ?.setPrimaryClip(ClipData.newPlainText("Sync issue", report))
+                syncIssueDetails = null
+                copiedMessage = "Sync issue details copied"
+            },
+        )
+    }
+
+    if (showSyncStatusDetails) {
+        SyncStatusDetailsDialog(
+            isSyncing = isRefreshing,
+            syncProgress = syncProgress,
+            lastSuccessfulSyncAt = lastSuccessfulSyncAt,
+            cacheSummary = cacheSummary,
+            onDismiss = { showSyncStatusDetails = false },
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -618,11 +667,11 @@ private fun DashboardSectionContainer(
             Modifier.fillMaxWidth()
                 .sectionDragOffset("dashboard-section-${section.key}", reorderState)
                 .sectionReorderGesture(
-                    enabled = reorderMode,
                     key = "dashboard-section-${section.key}",
                     order = order.map { "dashboard-section-$it" },
                     listState = listState,
                     state = reorderState,
+                    onDragStart = onEnterReorder,
                     onOrderChanged = { changed ->
                         onOrderChanged(changed.map { it.removePrefix("dashboard-section-") })
                     },

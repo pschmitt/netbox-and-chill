@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -37,6 +40,8 @@ import dev.pschmitt.nyetbox.scanner.NetBoxTarget
 import dev.pschmitt.nyetbox.sync.SyncNotifier
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.ui.common.CrashReportDialog
+import dev.pschmitt.nyetbox.ui.gestures.LocalActivePointerCount
+import dev.pschmitt.nyetbox.ui.gestures.trackActivePointerCount
 import dev.pschmitt.nyetbox.ui.gestures.withConfiguredGestures
 import dev.pschmitt.nyetbox.ui.navigation.MainNavigationDrawer
 import dev.pschmitt.nyetbox.ui.navigation.NetBoxNavHost
@@ -192,27 +197,34 @@ class MainActivity : FragmentActivity() {
                                     routeForGesture(action, target)?.let(navController::navigate)
                             }
                         }
-                    Box(Modifier.fillMaxSize().then(gestureModifier)) {
-                        NetBoxNavHost(
-                            navController = navController,
-                            startDestination = startDestination,
-                            onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
-                            setup = pendingSetup,
-                            onSetupImport = { setup -> pendingSetup = setup },
-                            onSetupConsumed = { pendingSetup = null },
-                            onSetupCompleted = {
-                                pendingSharedMedia?.let { sharedMedia ->
-                                    navController.navigate(
-                                        Route.SharedMedia(
-                                            uri = sharedMedia.uri,
-                                            mimeType = sharedMedia.mimeType,
-                                            filename = sharedMedia.filename,
+                    var activePointerCount by remember { mutableIntStateOf(0) }
+                    CompositionLocalProvider(LocalActivePointerCount provides activePointerCount) {
+                        Box(
+                            Modifier.fillMaxSize()
+                                .trackActivePointerCount { activePointerCount = it }
+                                .then(gestureModifier)
+                        ) {
+                            NetBoxNavHost(
+                                navController = navController,
+                                startDestination = startDestination,
+                                onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
+                                setup = pendingSetup,
+                                onSetupImport = { setup -> pendingSetup = setup },
+                                onSetupConsumed = { pendingSetup = null },
+                                onSetupCompleted = {
+                                    pendingSharedMedia?.let { sharedMedia ->
+                                        navController.navigate(
+                                            Route.SharedMedia(
+                                                uri = sharedMedia.uri,
+                                                mimeType = sharedMedia.mimeType,
+                                                filename = sharedMedia.filename,
+                                            )
                                         )
-                                    )
-                                    pendingSharedMedia = null
-                                }
-                            },
-                        )
+                                        pendingSharedMedia = null
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
                 pendingCrashReport?.let { report ->

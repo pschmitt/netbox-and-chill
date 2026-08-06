@@ -2,17 +2,20 @@ package dev.pschmitt.nyetbox.data.repository
 
 private const val MAX_SYNC_REASON_LENGTH = 140
 
+/** The distinct, per-item failure reasons behind a raw multi-line sync diagnostic message. */
+internal fun syncIssueReasons(message: String): List<String> =
+    message
+        .lineSequence()
+        .map { it.replace(Regex("\\s+"), " ").trim() }
+        .filter(String::isNotBlank)
+        .map(::extractSyncReason)
+        .distinct()
+        .toList()
+
 /** Turns verbose per-model sync diagnostics into one useful message for the UI. */
 internal fun summarizeSyncIssueMessage(message: String): String {
-    val lines =
-        message
-            .lineSequence()
-            .map { it.replace(Regex("\\s+"), " ").trim() }
-            .filter(String::isNotBlank)
-            .toList()
-    if (lines.isEmpty()) return "Sync failed."
-
-    val reasons = lines.map(::extractSyncReason).distinct()
+    val reasons = syncIssueReasons(message)
+    if (reasons.isEmpty()) return "Sync failed."
     if (reasons.all(::isCancellation)) return "Sync was cancelled."
 
     val primaryReason = reasons.first().trimEnd('.', ' ')

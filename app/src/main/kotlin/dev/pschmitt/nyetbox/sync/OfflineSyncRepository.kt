@@ -15,7 +15,11 @@ import dev.pschmitt.nyetbox.data.repository.RackElevationRepository
 import dev.pschmitt.nyetbox.data.repository.RackFace
 import dev.pschmitt.nyetbox.data.repository.ReconciliationSummary
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
+import dev.pschmitt.nyetbox.data.repository.SvgDiagramRepository
 import dev.pschmitt.nyetbox.data.repository.TopologyRepository
+import dev.pschmitt.nyetbox.data.repository.cableTraceStartTarget
+import dev.pschmitt.nyetbox.data.repository.cableTraceSvgCacheKey
+import dev.pschmitt.nyetbox.data.repository.rackElevationSvgCacheKey
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -28,6 +32,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import retrofit2.HttpException
 import timber.log.Timber
 
@@ -89,6 +95,7 @@ constructor(
     private val deviceTypeRepository: DeviceTypeRepository,
     private val imageAttachmentRepository: ImageAttachmentRepository,
     private val rackElevationRepository: RackElevationRepository,
+    private val svgDiagramRepository: SvgDiagramRepository,
     private val fileDownloadRepository: FileDownloadRepository,
     private val settingsRepository: SettingsRepository,
     private val pendingEditRepository: PendingEditRepository,
@@ -96,6 +103,7 @@ constructor(
     private val syncIssueReporter: SyncIssueReporter,
     private val cacheDatabaseManager: CacheDatabaseManager,
 ) {
+    private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun syncAll(
         forceFullSync: Boolean = false,
@@ -120,7 +128,7 @@ constructor(
         val failureCount = AtomicInteger(0)
         val retryableFailure = AtomicReference<Throwable?>(null)
         var step = 0
-        var totalSteps = 8 + if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0
+        var totalSteps = 8 + if (settingsRepository.syncAttachmentsToDisk.value) 2 else 0
 
         fun reportProgress(message: String): SyncProgress {
             step++
@@ -175,7 +183,7 @@ constructor(
             val topologyAvailable = models.any { it.appKey == TopologyRepository.PLUGIN_APP_KEY }
             totalSteps =
                 8 +
-                    (if (settingsRepository.syncAttachmentsToDisk.value) 1 else 0) +
+                    (if (settingsRepository.syncAttachmentsToDisk.value) 2 else 0) +
                     (if (topologyAvailable) 1 else 0)
 
             val modelsProgress = reportProgress("Syncing ${models.size} NetBox models…")
@@ -216,6 +224,39 @@ constructor(
                 }
                 rackElevationRepository.refresh(rack.id, RackFace.REAR).onFailure {
                     recordFailure("Rack ${rack.id} rear elevation", it)
+                }
+            }
+
+            // Same opt-in as the attachment download pass below - these SVG diagrams are the same
+            // kind of "extra, non-essential bytes" the user is choosing to pre-download for offline
+            // use, not core object data.
+            if (settingsRepository.syncAttachmentsToDisk.value) {
+                reportProgress("Syncing rack and cable diagrams…")
+                racks.syncConcurrently(concurrency) { rack ->
+                    for (face in listOf(RackFace.FRONT, RackFace.REAR)) {
+                        svgDiagramRepository
+                            .refresh(
+                                "api/dcim/racks/${rack.id}/elevation/?face=${face.apiValue}&render=svg",
+                                rackElevationSvgCacheKey(rack.id, face),
+                            )
+                            .onFailure { recordFailure("Rack ${rack.id} ${face.apiValue} SVG", it) }
+                    }
+                }
+                val cables = genericObjectRepository.cachedObjects("api/dcim/cables/")
+                cables.syncConcurrently(concurrency) { cable ->
+                    val cableJson =
+                        runCatching { json.decodeFromString(JsonObject.serializer(), cable.json) }
+                            .getOrNull()
+                    val target = cableJson?.let(::cableTraceStartTarget)
+                    if (target != null) {
+                        val (endpointPath, id) = target
+                        svgDiagramRepository
+                            .refresh(
+                                "$endpointPath$id/trace/?render=svg",
+                                cableTraceSvgCacheKey(endpointPath, id),
+                            )
+                            .onFailure { recordFailure("Cable ${cable.id} trace SVG", it) }
+                    }
                 }
             }
 

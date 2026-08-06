@@ -9,6 +9,7 @@ import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
+import dev.pschmitt.nyetbox.data.repository.CableTraceRepository
 import dev.pschmitt.nyetbox.data.repository.CachedDocument
 import dev.pschmitt.nyetbox.data.repository.CustomFieldRepository
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
@@ -28,6 +29,10 @@ import dev.pschmitt.nyetbox.data.repository.RackElevationRepository
 import dev.pschmitt.nyetbox.data.repository.RackFace
 import dev.pschmitt.nyetbox.data.repository.RecentVisitRepository
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
+import dev.pschmitt.nyetbox.data.repository.SvgDiagramRepository
+import dev.pschmitt.nyetbox.data.repository.cableTraceStartTarget
+import dev.pschmitt.nyetbox.data.repository.cableTraceSvgCacheKey
+import dev.pschmitt.nyetbox.data.repository.rackElevationSvgCacheKey
 import dev.pschmitt.nyetbox.data.repository.createChoiceSearchFields
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.nyetbox.data.repository.isDocumentsPluginModel
@@ -50,6 +55,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -92,11 +98,14 @@ constructor(
     private val pendingEditRepository: PendingEditRepository,
     private val recentVisitRepository: RecentVisitRepository,
     private val rackElevationRepository: RackElevationRepository,
+    private val cableTraceRepository: CableTraceRepository,
+    private val svgDiagramRepository: SvgDiagramRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
     private val json: Json,
     private val api: GenericNetBoxApi,
     private val directoryRepository: DirectoryRepository,
+    private val mediaUploadRepository: MediaUploadRepository,
 ) : ViewModel() {
 
     val route: Route.Generic = savedStateHandle.toRoute()
@@ -110,6 +119,17 @@ constructor(
         directoryRepository
             .observeCapability(::isDocumentsPluginModel)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    // Not every NetBox model accepts image attachments/documents (e.g. users.permission) - default
+    // to true (shown) until the one-shot OPTIONS-derived answer lands, so the widgets don't flash
+    // in and out for the common case where they are supported.
+    val supportsImageAttachments: StateFlow<Boolean> =
+        flow { emit(mediaUploadRepository.supportsImageAttachments(route.endpointPath)) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val supportsDocuments: StateFlow<Boolean> =
+        flow { emit(mediaUploadRepository.supportsDocuments(route.endpointPath)) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(
@@ -181,9 +201,12 @@ constructor(
             .observeFor(route.endpointPath, route.id)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val imageAttachments: StateFlow<List<ImageAttachmentEntity>> =
+    private val imageAttachmentObjectType: String? =
         runCatching { MediaUploadRepository.contentTypeForEndpoint(route.endpointPath) }
             .getOrNull()
+
+    val imageAttachments: StateFlow<List<ImageAttachmentEntity>> =
+        imageAttachmentObjectType
             ?.let { objectType -> imageAttachmentRepository.observeFor(objectType, route.id) }
             ?.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
             ?: flowOf<List<ImageAttachmentEntity>>(emptyList())
@@ -201,6 +224,15 @@ constructor(
 
     private val objectEntity =
         objectFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * Whether the local cache has been checked at least once - `objectEntity`'s `null` default
+     * means the same thing whether the first Room query just hasn't landed yet or the object
+     * genuinely isn't cached, and the UI needs to tell those apart so a briefly-loading item on a
+     * slower device doesn't flash a "not cached" message it's about to contradict.
+     */
+    val hasCheckedCache: StateFlow<Boolean> =
+        objectFlow.map { true }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val decodedObject: StateFlow<JsonObject?> =
         objectEntity
@@ -317,6 +349,72 @@ constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    val isCable: Boolean = route.endpointPath == NetBoxRef.CABLES_ENDPOINT_PATH
+
+    // The trace endpoint lives on a termination (interface, console port, ...), not the cable
+    // itself - resolved from the cable's own a_terminations/b_terminations once it's loaded.
+    private val traceStartTarget: StateFlow<Pair<String, Int>?> =
+        decodedObject
+            .map { it?.let(::cableTraceStartTarget) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val traceSegments: StateFlow<List<CableTraceSegment>> =
+        traceStartTarget
+            .flatMapLatest { target ->
+                target?.let { (endpointPath, id) -> cableTraceRepository.observe(endpointPath, id) }
+                    ?: flowOf(emptyList())
+            }
+            .map { entities -> entities.mapNotNull { parseCableTraceSegment(it.segmentIndex, it.json) } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private fun loadCableTrace() {
+        val (endpointPath, id) = traceStartTarget.value ?: return
+        viewModelScope.launch {
+            cableTraceRepository.refresh(endpointPath, id)
+            // Silently no-op on failure, same as the journal load below - the trace is a secondary
+            // tab, not core object data.
+        }
+    }
+
+    private val _rackElevationSvg = MutableStateFlow<Map<RackFace, String>>(emptyMap())
+    val rackElevationSvg: StateFlow<Map<RackFace, String>> = _rackElevationSvg.asStateFlow()
+
+    private val _traceSvg = MutableStateFlow<String?>(null)
+    val traceSvg: StateFlow<String?> = _traceSvg.asStateFlow()
+
+    /**
+     * Loads a rack elevation diagram on demand (the "switch to SVG" toggle), cache-first: shows
+     * whatever's already persisted (from a prior view, or [dev.pschmitt.nyetbox.sync.OfflineSyncRepository]'s
+     * prefetch) immediately, then refreshes it in the background.
+     */
+    fun loadRackElevationSvg(face: RackFace) {
+        val cacheKey = rackElevationSvgCacheKey(route.id, face)
+        viewModelScope.launch {
+            svgDiagramRepository.cachedContent(cacheKey)?.let { svg ->
+                _rackElevationSvg.update { it + (face to svg) }
+            }
+            svgDiagramRepository
+                .refresh(
+                    "${NetBoxRef.RACKS_ENDPOINT_PATH}${route.id}/elevation/" +
+                        "?face=${face.apiValue}&render=svg",
+                    cacheKey,
+                )
+                .onSuccess { svg -> _rackElevationSvg.update { it + (face to svg) } }
+        }
+    }
+
+    /** Same idea as [loadRackElevationSvg], for the cable trace tab. */
+    fun loadCableTraceSvg() {
+        val (endpointPath, id) = traceStartTarget.value ?: return
+        val cacheKey = cableTraceSvgCacheKey(endpointPath, id)
+        viewModelScope.launch {
+            svgDiagramRepository.cachedContent(cacheKey)?.let { _traceSvg.value = it }
+            svgDiagramRepository
+                .refresh("$endpointPath$id/trace/?render=svg", cacheKey)
+                .onSuccess { svg -> _traceSvg.value = svg }
+        }
+    }
+
     fun hideField(label: String) {
         settingsRepository.addHiddenField(hiddenFieldPreferenceKey(route.endpointPath, label))
     }
@@ -363,6 +461,12 @@ constructor(
             }
         }
         viewModelScope.launch { loadJournalEntries() }
+        viewModelScope.launch { loadImageAttachments() }
+        viewModelScope.launch {
+            traceStartTarget.filterNotNull().distinctUntilChanged().collect { (endpointPath, id) ->
+                cableTraceRepository.refresh(endpointPath, id)
+            }
+        }
     }
 
     fun refresh(showConfirmation: Boolean = false) {
@@ -373,6 +477,8 @@ constructor(
             }
             syncScheduler.syncNow()
             loadJournalEntries()
+            loadCableTrace()
+            loadImageAttachments()
         }
     }
 
@@ -381,6 +487,21 @@ constructor(
             journalEntryRepository.fetchJournalEntries(route.endpointPath, route.id)
             // Silently no-op on failure - the journal is a secondary panel, not core object data,
             // and content-type resolution can legitimately come up empty for unusual object types.
+        }
+    }
+
+    /**
+     * Unlike [documents] (which piggybacks on the Documents plugin's own generically-synced object
+     * list, filtered client-side by `assigned_object`), image attachments live in a dedicated table
+     * that background sync otherwise only populates for `dcim.device` - so a rack, site, or any
+     * other object type would never get its attachments cached without this per-object fetch on
+     * open/refresh.
+     */
+    private fun loadImageAttachments() {
+        val objectType = imageAttachmentObjectType ?: return
+        viewModelScope.launch {
+            imageAttachmentRepository.refresh(objectType, route.id)
+            // Silently no-op on failure, same rationale as loadJournalEntries above.
         }
     }
 

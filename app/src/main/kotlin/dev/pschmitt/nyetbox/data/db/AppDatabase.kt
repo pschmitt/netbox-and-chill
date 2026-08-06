@@ -19,8 +19,9 @@ import androidx.room.RoomDatabase
             RecentVisitEntity::class,
             RackElevationEntity::class,
             NewsItemEntity::class,
+            CableTraceEntity::class,
         ],
-    version = 16,
+    version = 17,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -49,4 +50,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun rackElevationDao(): RackElevationDao
 
     abstract fun newsDao(): NewsDao
+
+    abstract fun cableTraceDao(): CableTraceDao
 }

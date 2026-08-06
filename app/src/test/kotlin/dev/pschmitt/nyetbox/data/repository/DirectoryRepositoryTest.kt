@@ -142,6 +142,11 @@ private open class FakeDirectoryApi : GenericNetBoxApi {
 
     override suspend fun getObjectOptions(url: String): JsonObject = error("unused")
 
+    override suspend fun getJsonArray(url: String): kotlinx.serialization.json.JsonArray =
+        error("unused")
+
+    override suspend fun getSvg(url: String): okhttp3.ResponseBody = error("unused")
+
     override suspend fun patchObject(url: String, body: JsonObject): JsonObject = error("unused")
 
     override suspend fun createObject(url: String, body: JsonObject): JsonObject = error("unused")

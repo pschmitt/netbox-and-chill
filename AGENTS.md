@@ -82,9 +82,12 @@ passed `just lint` on rofl-13 still failed CI's `Lint` job after being pushed an
   `just px5-connect` always re-discovers it from `adb devices` rather than assuming a fixed one.
   `just px5-install <apk>`, `just px5-uninstall [pkg]`, `just px5-logcat [filter]`,
   `just deploy-px5 [variant]`.
-- **Deploy to all three in one step**: `just deploy-all [variant]` - the user's default ask is to
-  install onto whatever's connected "every chance you get" during active development, so prefer
-  this over a single-device deploy unless there's a reason to target just one.
+- **Always deploy to every attached adb device**, not just one: after landing a verified change
+  (compiled, tested, lint-checked remotely), run `just deploy-all [variant]` rather than a
+  single-device recipe. It builds, fetches, and installs on the Zenfone 10, Mi Pad 4, and Pixel 5 in
+  one step - install onto whatever's connected by default, not just whichever device happens to be
+  handy. Only target a single device (`just deploy-zenfone`/`deploy-mipad`/`deploy-px5`) when
+  there's a specific reason to, e.g. reproducing a device-specific bug.
 - Signature mismatch gotcha: if a device already has a build signed with a different key than the
   one you're installing, install fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Fix is
   `just zenfone-uninstall`/`just mipad-uninstall`/`just px5-uninstall` then install fresh - this
@@ -98,6 +101,16 @@ passed `just lint` on rofl-13 still failed CI's `Lint` job after being pushed an
 - NetBox API access via Retrofit + kotlinx.serialization, with a dynamic base-URL interceptor so
   the user's configured NetBox instance can change at runtime without rebuilding the Retrofit
   client (see `data/api/DynamicBaseUrlInterceptor.kt`).
+- **Before writing JSON-parsing code against a NetBox endpoint whose exact response shape you
+  don't already have confirmed in this repo, use the `netbox` skill to query the user's real
+  instance (`netbox.brkn.lol`) and look at the actual response first**, rather than relying on
+  NetBox's public docs/source on GitHub. This bit a real feature: the NBC-383 cable-trace tab was
+  implemented against field names (`termination`, `TracedCableSerializer`'s field list) pulled from
+  a web-fetched summary of NetBox's GitHub source, which turned out to be wrong for the live
+  instance's actual API version - the real field is `object`, not `termination` - and the bug
+  (`cableTraceStartTarget` silently returning null, tab showing "No cable path to trace" for every
+  cable) only surfaced once the user tested it for real. A few `curl -H "Authorization: Token ..."`
+  calls against the real API up front would have caught it before it ever compiled.
 - Offline cache via Room (`data/db`). `DeviceRepository` is cache-first: reads come from Room,
   writes/refreshes come from the API and upsert into Room.
 - **Offline-first is a hard requirement of this app, not a nice-to-have.** It must stay fully

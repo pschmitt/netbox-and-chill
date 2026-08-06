@@ -16,6 +16,7 @@ object NetBoxRef {
     const val IP_ADDRESSES_ENDPOINT_PATH = "api/ipam/ip-addresses/"
     const val RACKS_ENDPOINT_PATH = "api/dcim/racks/"
     const val SITES_ENDPOINT_PATH = "api/dcim/sites/"
+    const val CABLES_ENDPOINT_PATH = "api/dcim/cables/"
 
     /** "https://host/api/dcim/sites/3/" -> "api/dcim/sites/" (strips the trailing id segment). */
     fun endpointFromDetailUrl(detailUrl: String): String? {

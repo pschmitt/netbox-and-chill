@@ -1,5 +1,6 @@
 package dev.pschmitt.nyetbox.ui.common
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,10 +32,16 @@ fun SyncIssueCard(
     modifier: Modifier = Modifier,
     onRetry: (() -> Unit)? = null,
     isSyncing: Boolean = false,
+    onShowDetails: (() -> Unit)? = null,
 ) {
     var retryRequested by remember(issue.occurredAt) { mutableStateOf(false) }
     val retryActive = retryRequested || isSyncing
-    NyetboxCard(modifier = modifier.fillMaxWidth()) {
+    NyetboxCard(
+        modifier =
+            modifier.fillMaxWidth().let {
+                if (onShowDetails != null) it.clickable(onClick = onShowDetails) else it
+            }
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.Top,

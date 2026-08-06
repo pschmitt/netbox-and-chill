@@ -68,7 +68,7 @@ data class PrintSettings(
         )
 }
 
-data class SyncIssue(val message: String, val occurredAt: Long)
+data class SyncIssue(val message: String, val occurredAt: Long, val details: String)
 
 enum class BackupFrequency(val storageKey: String, val label: String, val intervalDays: Long) {
     Daily("daily", "Daily", 1),
@@ -526,13 +526,17 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     }
 
     fun recordSyncIssue(message: String) {
-        val issueMessage = summarizeSyncIssueMessage(message)
         val issue =
-            SyncIssue(issueMessage.take(MAX_SYNC_MESSAGE_LENGTH), System.currentTimeMillis())
+            SyncIssue(
+                message = summarizeSyncIssueMessage(message).take(MAX_SYNC_MESSAGE_LENGTH),
+                occurredAt = System.currentTimeMillis(),
+                details = message.take(MAX_SYNC_DETAILS_LENGTH),
+            )
         prefs
             .edit()
             .putString(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE), issue.message)
             .putLong(serverScopedKey(KEY_SYNC_ISSUE_TIME), issue.occurredAt)
+            .putString(serverScopedKey(KEY_SYNC_ISSUE_DETAILS), issue.details)
             .apply()
         _syncIssue.value = issue
     }
@@ -543,8 +547,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
                 .edit()
                 .remove(serverScopedKey(KEY_SYNC_ISSUE_MESSAGE))
                 .remove(serverScopedKey(KEY_SYNC_ISSUE_TIME))
+                .remove(serverScopedKey(KEY_SYNC_ISSUE_DETAILS))
         if (_activeServerId.value == LEGACY_SERVER_ID) {
-            editor.remove(KEY_SYNC_ISSUE_MESSAGE).remove(KEY_SYNC_ISSUE_TIME)
+            editor
+                .remove(KEY_SYNC_ISSUE_MESSAGE)
+                .remove(KEY_SYNC_ISSUE_TIME)
+                .remove(KEY_SYNC_ISSUE_DETAILS)
         }
         editor.apply()
         _syncIssue.value = null
@@ -1073,8 +1081,15 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
                     prefs.getLong(KEY_SYNC_ISSUE_TIME, 0L)
                 } else 0L,
             )
+        val details =
+            prefs.getString(serverScopedKey(KEY_SYNC_ISSUE_DETAILS), null)?.takeIf {
+                it.isNotBlank()
+            }
+                ?: if (_activeServerId.value == LEGACY_SERVER_ID) {
+                    prefs.getString(KEY_SYNC_ISSUE_DETAILS, null)?.takeIf { it.isNotBlank() }
+                } else null
         return if (message != null && occurredAt > 0L) {
-            SyncIssue(summarizeSyncIssueMessage(message), occurredAt)
+            SyncIssue(summarizeSyncIssueMessage(message), occurredAt, details ?: message)
         } else null
     }
 
@@ -1300,8 +1315,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_OFFLINE_MODE = "offline_mode"
         const val KEY_SYNC_ISSUE_MESSAGE = "sync_issue_message"
         const val KEY_SYNC_ISSUE_TIME = "sync_issue_time"
+        const val KEY_SYNC_ISSUE_DETAILS = "sync_issue_details"
         const val KEY_LAST_SUCCESSFUL_SYNC = "last_successful_sync"
         const val MAX_SYNC_MESSAGE_LENGTH = 1000
+        const val MAX_SYNC_DETAILS_LENGTH = 4000
         const val KEY_HIDDEN_FIELDS = "hidden_field_keys"
         const val KEY_SIDEBAR_APP_ORDER = "sidebar_app_order"
         const val KEY_SIDEBAR_MODEL_ORDERS = "sidebar_model_orders"

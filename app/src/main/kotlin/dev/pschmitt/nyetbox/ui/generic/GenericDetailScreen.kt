@@ -5,12 +5,16 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -19,11 +23,13 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Difference
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.UploadFile
@@ -34,6 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,7 +53,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,8 +73,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
 import dev.pschmitt.nyetbox.data.repository.DeleteSubmission
+import dev.pschmitt.nyetbox.data.repository.RackFace
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.nyetbox.ui.common.CommentCard
+import dev.pschmitt.nyetbox.ui.directory.AppIcons
 import dev.pschmitt.nyetbox.ui.common.DocumentsSection
 import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
 import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
@@ -80,8 +88,11 @@ import dev.pschmitt.nyetbox.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadKind
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.SvgDiagramView
 import dev.pschmitt.nyetbox.ui.common.PrintLabelDialog
 import dev.pschmitt.nyetbox.ui.common.PrintLabelRequest
+import dev.pschmitt.nyetbox.ui.common.SuppressiblePullToRefreshBox
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.fileViewIntent
@@ -108,6 +119,7 @@ fun GenericDetailScreen(
     viewModel: GenericDetailViewModel = hiltViewModel(),
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
+    val hasCheckedCache by viewModel.hasCheckedCache.collectAsStateWithLifecycle()
     val fields by viewModel.fields.collectAsStateWithLifecycle()
     val editableFields by viewModel.editableFields.collectAsStateWithLifecycle()
     val referenceOptions by viewModel.referenceOptions.collectAsStateWithLifecycle()
@@ -129,6 +141,8 @@ fun GenericDetailScreen(
     val documents by viewModel.documents.collectAsStateWithLifecycle()
     val documentDeleteResult by viewModel.documentDeleteResult.collectAsStateWithLifecycle()
     val documentPluginAvailable by viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
+    val supportsImageAttachments by viewModel.supportsImageAttachments.collectAsStateWithLifecycle()
+    val supportsDocuments by viewModel.supportsDocuments.collectAsStateWithLifecycle()
     val imageAttachments by viewModel.imageAttachments.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
     val hiddenFieldKeys by viewModel.hiddenFieldKeys.collectAsStateWithLifecycle()
@@ -136,6 +150,9 @@ fun GenericDetailScreen(
     val frontElevation by viewModel.frontElevation.collectAsStateWithLifecycle()
     val rearElevation by viewModel.rearElevation.collectAsStateWithLifecycle()
     val rackDevicePreviews by viewModel.rackDevicePreviews.collectAsStateWithLifecycle()
+    val traceSegments by viewModel.traceSegments.collectAsStateWithLifecycle()
+    val rackElevationSvg by viewModel.rackElevationSvg.collectAsStateWithLifecycle()
+    val traceSvg by viewModel.traceSvg.collectAsStateWithLifecycle()
     val relatedTarget by viewModel.relatedTarget.collectAsStateWithLifecycle()
     val relatedObjects by viewModel.relatedObjects.collectAsStateWithLifecycle()
     val relatedPreviewUrls by viewModel.relatedPreviewUrls.collectAsStateWithLifecycle()
@@ -158,6 +175,8 @@ fun GenericDetailScreen(
     var actionMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showHiddenFields by remember { mutableStateOf(false) }
+    var showRackElevationSvg by remember { mutableStateOf(false) }
+    var showTraceSvg by remember { mutableStateOf(false) }
     var fieldActionLabel by remember { mutableStateOf<String?>(null) }
     var pendingEdits by remember { mutableStateOf<Map<String, Pair<EditFieldKind, String>>?>(null) }
     var pendingEditFieldKey by remember { mutableStateOf<String?>(null) }
@@ -366,15 +385,22 @@ fun GenericDetailScreen(
                         actionIconContentColor = detailAccent,
                     ),
                 title = {
-                    Column {
-                        Text(modelLabel, maxLines = 1)
-                        if (viewModel.route.breadcrumb != null) {
-                            Text(
-                                "from ${viewModel.route.breadcrumb}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            AppIcons.forEndpointPath(viewModel.route.endpointPath),
+                            contentDescription = null,
+                            tint = detailAccent,
+                        )
+                        Column(modifier = Modifier.padding(start = 8.dp)) {
+                            Text(modelLabel, maxLines = 1)
+                            if (viewModel.route.breadcrumb != null) {
+                                Text(
+                                    "from ${viewModel.route.breadcrumb}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                     }
                 },
@@ -553,18 +579,25 @@ fun GenericDetailScreen(
                                         },
                                     )
                                 }
-                                DropdownMenuItem(
-                                    text = { Text("Upload media") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.UploadFile, contentDescription = null)
-                                    },
-                                    enabled = !isRefreshing,
-                                    onClick = {
-                                        showMediaUpload = true
-                                        mediaUploadInitialKind = null
-                                        actionMenuExpanded = false
-                                    },
-                                )
+                                if (supportsImageAttachments || (documentPluginAvailable && supportsDocuments)) {
+                                    DropdownMenuItem(
+                                        text = { Text("Upload media") },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.UploadFile,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        enabled = !isRefreshing,
+                                        onClick = {
+                                            showMediaUpload = true
+                                            mediaUploadInitialKind =
+                                                if (supportsImageAttachments) null
+                                                else MediaUploadKind.Document
+                                            actionMenuExpanded = false
+                                        },
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text("Add journal entry") },
                                     leadingIcon = {
@@ -631,7 +664,7 @@ fun GenericDetailScreen(
                 modifier = Modifier.padding(padding).fillMaxSize(),
             )
         } else {
-            PullToRefreshBox(
+            SuppressiblePullToRefreshBox(
                 // Sync has a global progress bar and Android notification; avoid the large
                 // circular indicator over the item while that background work is running.
                 isRefreshing = false,
@@ -641,24 +674,46 @@ fun GenericDetailScreen(
                 when {
                     title == null ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                if (isRefreshing) "Loading…"
-                                else "Not cached yet - connect and refresh",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            if (!hasCheckedCache) {
+                                CircularProgressIndicator()
+                            } else {
+                                Text(
+                                    if (isRefreshing) "Loading…"
+                                    else "Not cached yet - connect and refresh",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     else -> {
                         val hasJournal = journalEntries.isNotEmpty()
                         val tabCount =
-                            1 + (if (viewModel.isRack) 1 else 0) + (if (hasJournal) 1 else 0) + 1
+                            1 +
+                                (if (viewModel.isRack) 1 else 0) +
+                                (if (viewModel.isCable) 1 else 0) +
+                                (if (hasJournal) 1 else 0) +
+                                1
                         val visibleSelectedTab = selectedTab.coerceIn(0, tabCount - 1)
-                        LaunchedEffect(viewModel.isRack, hasJournal, changelog.size) {
+                        LaunchedEffect(
+                            viewModel.isRack,
+                            viewModel.isCable,
+                            hasJournal,
+                            changelog.size,
+                        ) {
                             selectedTab = visibleSelectedTab
                         }
                         val tabs = buildList {
                             add(ItemDetailTab("Overview", Icons.Default.Info))
                             if (viewModel.isRack) {
                                 add(ItemDetailTab("Elevation", Icons.Default.Storage))
+                            }
+                            if (viewModel.isCable) {
+                                add(
+                                    ItemDetailTab(
+                                        "Trace",
+                                        Icons.Default.Route,
+                                        traceSegments.size,
+                                    )
+                                )
                             }
                             if (hasJournal) {
                                 add(
@@ -685,6 +740,7 @@ fun GenericDetailScreen(
                             }
                         }
                         val journalTabIndex = tabs.indexOfFirst { it.label == "Journal" }
+                        val traceTabIndex = tabs.indexOfFirst { it.label == "Trace" }
                         Column(Modifier.fillMaxSize()) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
@@ -733,21 +789,24 @@ fun GenericDetailScreen(
                                 }
                                 if (visibleSelectedTab == 0) {
                                     item { Spacer(Modifier.height(8.dp)) }
-                                    item {
-                                        ImageAttachmentGallery(
-                                            attachments = imageAttachments,
-                                            onImageClick = { items, index ->
-                                                imageViewer = items to index
-                                            },
-                                            onAdd = {
-                                                mediaUploadInitialKind =
-                                                    MediaUploadKind.ImageAttachment
-                                                showMediaUpload = true
-                                            },
-                                            onAttachmentLongPress = { imageAttachmentAction = it },
-                                        )
-                                    }
-                                    if (documentPluginAvailable)
+                                    if (supportsImageAttachments)
+                                        item {
+                                            ImageAttachmentGallery(
+                                                attachments = imageAttachments,
+                                                onImageClick = { items, index ->
+                                                    imageViewer = items to index
+                                                },
+                                                onAdd = {
+                                                    mediaUploadInitialKind =
+                                                        MediaUploadKind.ImageAttachment
+                                                    showMediaUpload = true
+                                                },
+                                                onAttachmentLongPress = {
+                                                    imageAttachmentAction = it
+                                                },
+                                            )
+                                        }
+                                    if (documentPluginAvailable && supportsDocuments)
                                         item {
                                             DocumentsSection(
                                                 documents = documents,
@@ -829,19 +888,124 @@ fun GenericDetailScreen(
                                 } else if (viewModel.isRack && visibleSelectedTab == 1) {
                                     item { Spacer(Modifier.height(8.dp)) }
                                     item {
-                                        RackElevationOverview(
-                                            front = frontElevation,
-                                            rear = rearElevation,
-                                            previews = rackDevicePreviews,
-                                            highlightDeviceId = highlightDeviceId,
-                                            onDeviceClick = { id ->
-                                                onNavigateToReference(
-                                                    "api/dcim/devices/",
-                                                    id,
-                                                    title ?: modelLabel,
-                                                )
+                                        DiagramViewToggle(
+                                            showSvg = showRackElevationSvg,
+                                            onToggle = { toSvg ->
+                                                showRackElevationSvg = toSvg
+                                                if (toSvg) {
+                                                    viewModel.loadRackElevationSvg(RackFace.FRONT)
+                                                    viewModel.loadRackElevationSvg(RackFace.REAR)
+                                                }
                                             },
+                                            modifier = Modifier.padding(horizontal = 16.dp),
                                         )
+                                    }
+                                    item { Spacer(Modifier.height(8.dp)) }
+                                    if (showRackElevationSvg) {
+                                        item {
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Text(
+                                                    "Front",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                                )
+                                                SvgDiagramView(
+                                                    svg = rackElevationSvg[RackFace.FRONT],
+                                                    baseUrl = netboxBaseUrl.orEmpty(),
+                                                    onNavigate = { endpointPath, id ->
+                                                        onNavigateToReference(
+                                                            endpointPath,
+                                                            id,
+                                                            title ?: modelLabel,
+                                                        )
+                                                    },
+                                                )
+                                                Text(
+                                                    "Rear",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                                )
+                                                SvgDiagramView(
+                                                    svg = rackElevationSvg[RackFace.REAR],
+                                                    baseUrl = netboxBaseUrl.orEmpty(),
+                                                    onNavigate = { endpointPath, id ->
+                                                        onNavigateToReference(
+                                                            endpointPath,
+                                                            id,
+                                                            title ?: modelLabel,
+                                                        )
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        item {
+                                            RackElevationOverview(
+                                                front = frontElevation,
+                                                rear = rearElevation,
+                                                previews = rackDevicePreviews,
+                                                highlightDeviceId = highlightDeviceId,
+                                                onDeviceClick = { id ->
+                                                    onNavigateToReference(
+                                                        "api/dcim/devices/",
+                                                        id,
+                                                        title ?: modelLabel,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    }
+                                } else if (visibleSelectedTab == traceTabIndex) {
+                                    item { Spacer(Modifier.height(8.dp)) }
+                                    item {
+                                        DiagramViewToggle(
+                                            showSvg = showTraceSvg,
+                                            onToggle = { toSvg ->
+                                                showTraceSvg = toSvg
+                                                if (toSvg) viewModel.loadCableTraceSvg()
+                                            },
+                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                        )
+                                    }
+                                    item { Spacer(Modifier.height(8.dp)) }
+                                    if (showTraceSvg) {
+                                        item {
+                                            SvgDiagramView(
+                                                svg = traceSvg,
+                                                baseUrl = netboxBaseUrl.orEmpty(),
+                                                onNavigate = { endpointPath, id ->
+                                                    onNavigateToReference(
+                                                        endpointPath,
+                                                        id,
+                                                        title ?: modelLabel,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    } else if (traceSegments.isEmpty()) {
+                                        item {
+                                            Text(
+                                                "No cable path to trace.",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontStyle = FontStyle.Italic,
+                                                modifier = Modifier.padding(vertical = 16.dp),
+                                            )
+                                        }
+                                    } else {
+                                        items(traceSegments, key = { it.index }) { segment ->
+                                            CableTraceSegmentCard(
+                                                segment = segment,
+                                                onNavigate = { endpointPath, id ->
+                                                    onNavigateToReference(
+                                                        endpointPath,
+                                                        id,
+                                                        title ?: modelLabel,
+                                                    )
+                                                },
+                                            )
+                                        }
                                     }
                                 } else if (visibleSelectedTab == journalTabIndex) {
                                     if (journalEntries.isEmpty()) {
@@ -1122,6 +1286,134 @@ fun GenericDetailScreen(
             },
             onDismiss = viewModel::dismissRelatedItems,
         )
+    }
+}
+
+/** Switches an Elevation/Trace tab between its JSON-derived list and NetBox's own SVG rendering. */
+@Composable
+private fun DiagramViewToggle(
+    showSvg: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(
+            selected = !showSvg,
+            onClick = { onToggle(false) },
+            label = { Text("List") },
+            leadingIcon = {
+                Icon(
+                    Icons.AutoMirrored.Filled.ViewList,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            },
+        )
+        FilterChip(
+            selected = showSvg,
+            onClick = { onToggle(true) },
+            label = { Text("Diagram") },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Image,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun CableTraceSegmentCard(segment: CableTraceSegment, onNavigate: (String, Int) -> Unit) {
+    NyetboxCard {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            segment.nearEnds.forEach { node -> CableTraceNodeRow(node, onNavigate) }
+            CableTraceCableRow(segment.cable)
+            if (segment.farEnds.isEmpty()) {
+                Text(
+                    "Not connected further",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontStyle = FontStyle.Italic,
+                )
+            } else {
+                segment.farEnds.forEach { node -> CableTraceNodeRow(node, onNavigate) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CableTraceNodeRow(node: CableTraceNode, onNavigate: (String, Int) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 6.dp),
+    ) {
+        Icon(
+            AppIcons.forEndpointPath(node.target.endpointPath),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Column {
+            node.deviceTarget?.let { device ->
+                Text(
+                    device.display,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier =
+                        Modifier.clickable { onNavigate(device.endpointPath, device.id) },
+                )
+            }
+            Text(
+                node.portLabel,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier =
+                    Modifier.clickable { onNavigate(node.target.endpointPath, node.target.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CableTraceCableRow(cable: CableTraceCableInfo?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = 30.dp, top = 2.dp, bottom = 2.dp),
+    ) {
+        Icon(
+            Icons.Default.Cable,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        if (cable == null) {
+            Text(
+                "No cable",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontStyle = FontStyle.Italic,
+            )
+        } else {
+            cable.color
+                ?.let { hex -> runCatching { Color(android.graphics.Color.parseColor("#$hex")) } }
+                ?.getOrNull()
+                ?.let { swatch ->
+                    Box(Modifier.size(10.dp).background(swatch, CircleShape))
+                    Spacer(Modifier.width(6.dp))
+                }
+            Text(
+                buildString {
+                    append(cable.label)
+                    cable.statusLabel?.let { append(" · $it") }
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

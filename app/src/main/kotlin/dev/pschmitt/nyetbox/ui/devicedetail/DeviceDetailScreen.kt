@@ -43,6 +43,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +54,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -100,6 +100,7 @@ import dev.pschmitt.nyetbox.ui.common.PrintLabelDialog
 import dev.pschmitt.nyetbox.ui.common.PrintLabelRequest
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.StatusChip
+import dev.pschmitt.nyetbox.ui.common.SuppressiblePullToRefreshBox
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.fileViewIntent
@@ -142,6 +143,7 @@ fun DeviceDetailScreen(
     viewModel: DeviceDetailViewModel = hiltViewModel(),
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
+    val hasCheckedCache by viewModel.hasCheckedCache.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
@@ -300,7 +302,20 @@ fun DeviceDetailScreen(
                         navigationIconContentColor = detailAccent,
                         actionIconContentColor = detailAccent,
                     ),
-                title = { Text(device?.name ?: "Device", maxLines = 1) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            AppIcons.forEndpointPath(NetBoxRef.DEVICES_ENDPOINT_PATH),
+                            contentDescription = null,
+                            tint = detailAccent,
+                        )
+                        Text(
+                            device?.name ?: "Device",
+                            maxLines = 1,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -315,79 +330,6 @@ fun DeviceDetailScreen(
                             expanded = actionMenuExpanded,
                             onDismissRequest = { actionMenuExpanded = false },
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Refresh") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Refresh, contentDescription = null)
-                                },
-                                enabled = !isRefreshing,
-                                onClick = {
-                                    viewModel.refresh(showConfirmation = true)
-                                    actionMenuExpanded = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Add journal entry") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.History, contentDescription = null)
-                                },
-                                enabled = !isRefreshing,
-                                onClick = {
-                                    journalEditorEntry = null
-                                    showJournalEditor = true
-                                    actionMenuExpanded = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Add component") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Cable, contentDescription = null)
-                                },
-                                enabled = device != null && !isRefreshing,
-                                onClick = {
-                                    onAddComponent()
-                                    actionMenuExpanded = false
-                                },
-                            )
-                            if (topologyPluginAvailable) {
-                                DropdownMenuItem(
-                                    text = { Text("Open topology") },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Hub, contentDescription = null)
-                                    },
-                                    enabled = device != null,
-                                    onClick = {
-                                        onOpenTopology()
-                                        actionMenuExpanded = false
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text("Edit") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                },
-                                enabled = device != null,
-                                onClick = {
-                                    onEditClick()
-                                    actionMenuExpanded = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete") },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                                enabled = device != null && !isDeleting,
-                                onClick = {
-                                    showDeleteConfirmation = true
-                                    actionMenuExpanded = false
-                                },
-                            )
                             DropdownMenuItem(
                                 text = { Text("Print label") },
                                 leadingIcon = {
@@ -419,6 +361,16 @@ fun DeviceDetailScreen(
                             )
                             webUrl?.let { url ->
                                 DropdownMenuItem(
+                                    text = { Text("Share") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Share, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        context.startActivity(shareIntent(url))
+                                        actionMenuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
                                     text = { Text("Open in browser") },
                                     leadingIcon = {
                                         Icon(Icons.Default.OpenInBrowser, contentDescription = null)
@@ -430,17 +382,67 @@ fun DeviceDetailScreen(
                                         actionMenuExpanded = false
                                     },
                                 )
+                            }
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Sync") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Refresh, contentDescription = null)
+                                },
+                                enabled = !isRefreshing,
+                                onClick = {
+                                    viewModel.refresh(showConfirmation = true)
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, contentDescription = null)
+                                },
+                                enabled = device != null,
+                                onClick = {
+                                    onEditClick()
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add component") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Cable, contentDescription = null)
+                                },
+                                enabled = device != null && !isRefreshing,
+                                onClick = {
+                                    onAddComponent()
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            if (topologyPluginAvailable) {
                                 DropdownMenuItem(
-                                    text = { Text("Share") },
+                                    text = { Text("Open topology") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Share, contentDescription = null)
+                                        Icon(Icons.Default.Hub, contentDescription = null)
                                     },
+                                    enabled = device != null,
                                     onClick = {
-                                        context.startActivity(shareIntent(url))
+                                        onOpenTopology()
                                         actionMenuExpanded = false
                                     },
                                 )
                             }
+                            DropdownMenuItem(
+                                text = { Text("Add journal entry") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.History, contentDescription = null)
+                                },
+                                enabled = !isRefreshing,
+                                onClick = {
+                                    journalEditorEntry = null
+                                    showJournalEditor = true
+                                    actionMenuExpanded = false
+                                },
+                            )
+                            HorizontalDivider()
                             if (hiddenFieldsForDevice.isNotEmpty()) {
                                 DropdownMenuItem(
                                     text = { Text("Show hidden fields") },
@@ -453,6 +455,21 @@ fun DeviceDetailScreen(
                                     },
                                 )
                             }
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                enabled = device != null && !isDeleting,
+                                onClick = {
+                                    showDeleteConfirmation = true
+                                    actionMenuExpanded = false
+                                },
+                            )
                         }
                     }
                 },
@@ -460,7 +477,7 @@ fun DeviceDetailScreen(
         },
     ) { padding ->
         val current = device
-        PullToRefreshBox(
+        SuppressiblePullToRefreshBox(
             // Sync has a global progress bar and Android notification; avoid the large circular
             // indicator over the device while that background work is running.
             isRefreshing = false,
@@ -469,10 +486,14 @@ fun DeviceDetailScreen(
         ) {
             if (current == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (!hasCheckedCache) {
+                        CircularProgressIndicator()
+                    } else {
+                        Text(
+                            if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             } else {
                 val tabs = buildList {

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.BookmarkEntity
+import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import dev.pschmitt.nyetbox.data.db.DashboardStatEntity
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
@@ -13,6 +14,7 @@ import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.DashboardRepository
 import dev.pschmitt.nyetbox.data.repository.DeviceRepository
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
+import dev.pschmitt.nyetbox.data.repository.FileDownloadRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
@@ -23,6 +25,7 @@ import dev.pschmitt.nyetbox.sync.SyncProgress
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import dev.pschmitt.nyetbox.sync.shouldScheduleStartup
+import dev.pschmitt.nyetbox.ui.common.CacheSummary
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class DashboardThumbnail(val url: String)
 
@@ -47,10 +51,34 @@ constructor(
     private val settingsRepository: SettingsRepository,
     private val syncScheduler: SyncScheduler,
     syncStatusRepository: SyncStatusRepository,
+    private val cacheDatabaseManager: CacheDatabaseManager,
+    private val fileDownloadRepository: FileDownloadRepository,
 ) : ViewModel() {
+
+    private val _cacheSummary = MutableStateFlow<CacheSummary?>(null)
+    val cacheSummary: StateFlow<CacheSummary?> = _cacheSummary.asStateFlow()
+
+    fun loadCacheSummary() {
+        viewModelScope.launch {
+            val database = cacheDatabaseManager.activeDatabase.value
+            val stats = fileDownloadRepository.persistentStats()
+            _cacheSummary.value =
+                CacheSummary(
+                    deviceCount = deviceRepository.cachedDeviceCount(),
+                    objectCount = database.netBoxObjectDao().countAll(),
+                    imageCount =
+                        database.deviceTypeDao().getAll().count {
+                            it.frontImageUrl != null || it.rearImageUrl != null
+                        } + database.imageAttachmentDao().getAll().size,
+                    fileCount = stats.fileCount,
+                    bytes = stats.bytes,
+                )
+        }
+    }
 
     val offlineMode: StateFlow<Boolean> = settingsRepository.offlineMode
     val syncIssue = settingsRepository.syncIssue
+    val activeServer = settingsRepository.activeServer
     val lastSuccessfulSyncAt = settingsRepository.lastSuccessfulSyncAt
     val dashboardSectionOrder = settingsRepository.dashboardSectionOrder
     val hiddenDashboardSections = settingsRepository.hiddenDashboardSections

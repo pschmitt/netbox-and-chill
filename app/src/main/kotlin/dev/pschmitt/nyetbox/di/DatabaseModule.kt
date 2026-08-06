@@ -5,6 +5,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.pschmitt.nyetbox.data.db.BookmarkDao
+import dev.pschmitt.nyetbox.data.db.CableTraceDao
 import dev.pschmitt.nyetbox.data.db.CacheDatabaseManager
 import dev.pschmitt.nyetbox.data.db.CustomFieldDao
 import dev.pschmitt.nyetbox.data.db.DashboardStatDao
@@ -76,4 +77,8 @@ object DatabaseModule {
     @Provides
     fun provideNewsDao(manager: CacheDatabaseManager): NewsDao =
         DynamicDaoProxy.create(NewsDao::class.java, manager) { it.newsDao() }
+
+    @Provides
+    fun provideCableTraceDao(manager: CacheDatabaseManager): CableTraceDao =
+        DynamicDaoProxy.create(CableTraceDao::class.java, manager) { it.cableTraceDao() }
 }

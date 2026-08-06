@@ -6577,6 +6577,303 @@ object type with the same compact icon-and-label badge already used by global se
 Status: **done**, 2026-08-05; verified with remote compilation, unit tests, ktfmtCheck, and debug
 installation on the Zenfone 10, Mi Pad 4, and Pixel 5.
 
+## NBC-377: hide image/document upload widgets for item types that don't support them
+
+Not every NetBox model accepts image attachments or documents (e.g. `users.permission`), but the
+generic item detail screen always drew the image-attachment gallery and the "Upload media" action
+regardless of item type, and gated the documents section only on whether the Documents plugin is
+installed at all - not on whether the specific item type supports it.
+
+- [x] Infer per-item-type support from the API instead of hardcoding a model list: `MediaUploadRepository`
+  now resolves `object_type` `ChoiceField` choices via `OPTIONS api/extras/image-attachments/` (and
+  the discovered documents-plugin endpoint), mirroring how `JournalEntryRepository` already resolves
+  `assigned_object_type` for journal entries. Fails open (assumes supported) when the choices can't
+  be determined, so a transient/offline failure never hides a widget that should be shown.
+- [x] `GenericDetailViewModel` exposes `supportsImageAttachments`/`supportsDocuments` StateFlows;
+  `GenericDetailScreen` hides the image gallery, the documents section, and the "Upload media" menu
+  item accordingly.
+- [x] Verify formatting, compilation, unit tests, and lint remotely.
+
+Status: **done**, 2026-08-06; verified with remote compilation (`:app:compileDebugKotlin`), unit
+tests (`:app:testDebugUnitTest`), and `ktfmtCheck` on rofl-13. Not yet installed on a physical
+device.
+
+## NBC-378: carry over item-list header icons to the item detail view
+
+The item LIST screens show the object type's icon (`AppIcons.forEndpointPath(...)`) next to the
+title in the TopAppBar, but the corresponding item DETAIL/view screens showed only the plain text
+label - no icon - so e.g. opening a device type didn't carry over the device-type icon shown on its
+list page.
+
+- [x] `GenericDetailScreen`'s TopAppBar title now renders `AppIcons.forEndpointPath(viewModel.route.endpointPath)`
+  ahead of the label/breadcrumb column, matching `GenericListScreen`'s existing icon+label layout.
+- [x] `DeviceDetailScreen`'s TopAppBar title now renders the devices icon
+  (`AppIcons.forEndpointPath(NetBoxRef.DEVICES_ENDPOINT_PATH)`) ahead of the device name, since
+  Device is handled by its own screen rather than the generic one.
+- [x] Tint both header icons with the screen's existing per-item-type `detailAccent`
+  (`ColorScheme.detailAccentFor`) instead of the default icon color, so the header carries the same
+  accent already used for the rest of that detail screen's chrome (see NBC-379).
+- [x] Verify formatting, compilation, unit tests, and lint remotely.
+
+Status: **done**, 2026-08-06; verified with remote compilation (`:app:compileDebugKotlin`), unit
+tests (`:app:testDebugUnitTest`), and `ktfmtCheck` on rofl-13.
+
+## NBC-379: sidebar visual/interaction fixes (pin icon, accent colors, sticky offline toggle, broken reorder)
+
+A batch of related sidebar polish requested together: the per-model pin toggle still used a
+star/star-border icon inconsistent with the pin icon already used on the "Add item" picker, most
+sidebar icons weren't tinted with the same per-item-type accent color used on detail screens, the
+"Offline mode" toggle was the last item in the scrolling model list (easy to miss, needed a scroll),
+and long-press reordering of sidebar app sections had silently stopped working.
+
+- [x] Replace the pinned-model-row star/star-border icon with `Icons.Filled.PushPin`/
+  `Icons.Outlined.PushPin` inside the same circular tinted-background `Box` (`primaryContainer`/
+  `surfaceContainerHighest`) already used by `AddItemScreen.kt`'s `AddModelRow`, for a consistent
+  pin affordance across both screens.
+- [x] Tint the sidebar's "Devices" entry, per-model rows inside expanded app sections, and the
+  detail-screen header icon (NBC-378) with `visualColorForEndpointPath`/`detailAccentFor` - the same
+  deterministic per-object-type accent color already used by the pinned-items row, section headers,
+  and detail screens, so the accent is consistent everywhere an object-type icon appears.
+- [x] Move the "Offline mode" `ListItem` out of the sidebar's scrolling `LazyColumn` into a static
+  row between the divider and `SidebarFooter`, so it's always visible above the footer instead of
+  scrolling out of view. Simplified `NetBoxE2eTest`'s offline-mode toggle step accordingly (no
+  longer needs `performScrollToNode`).
+- [x] Root-caused and fixed the broken long-press section reorder: `Sidebar.kt`'s app-section row
+  stacked two independent gesture detectors on the *same* node - `combinedClickable(onLongClick =
+  ...)` (enter reorder mode) and a separate raw `pointerInput`-based `detectDragGesturesAfterLongPress`
+  (`sectionReorderGesture`, actually drag it) - which is exactly the pattern broken by a documented
+  Compose Foundation regression in the `combinedClickable` rewrite (long-click handling glitches
+  when another gesture detector shares the node). This repo bumped `androidx-compose` 1.11.3 ->
+  1.11.4 on 2026-08-05, the day after the reorder feature (NBC-195) was last verified working.
+  Fixed by removing the co-located `combinedClickable(onLongClick = ...)` entirely and folding
+  "enter reorder mode" into `sectionReorderGesture`'s own drag-start callback, so there's only ever
+  one gesture detector per node - a single continuous long-press-and-drag now both enters reorder
+  mode and moves the section, instead of requiring two separate long-presses. Applied the same fix
+  to `DashboardScreen.kt`'s section header, which used the identical dual-detector pattern.
+- [x] Verify formatting, compilation (`:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`),
+  unit tests, and lint remotely.
+- [ ] Install on a device and manually confirm: pin icon, sidebar/header icon colors, sticky offline
+  toggle, and long-press-drag section reordering all behave as expected.
+
+Status: in progress, 2026-08-06; remote compilation and unit tests pass. Root cause of the reorder
+regression is a plausible, evidence-backed diagnosis (matching Compose Foundation's documented
+`combinedClickable` long-click regression and the exact timing of this repo's 1.11.4 bump) rather
+than a reproduced-on-device confirmation - flag if long-press reorder still misbehaves after
+install.
+
+## NBC-380: bring the device-view overflow menu in line with the generic item view's
+
+NBC-373 reordered/relabeled `GenericDetailScreen`'s overflow menu but deliberately left
+`DeviceDetailScreen`'s separate menu untouched since its item set differs (has "Open topology", no
+"Upload media"). The device menu still said "Refresh" instead of "Sync", had no dividers, and its
+items were in raw insertion order instead of the generic menu's output/sync-edit/meta-delete
+grouping - inconsistent with every other detail screen.
+
+- [x] Reordered to mirror `GenericDetailScreen`'s grouping: Print label*, Share*, Open in browser*,
+  *(divider)*, Sync, Edit, Add component, Open topology* (device-specific, placed with the other
+  structural actions), Add journal entry, *(divider)*, Show hidden fields*, Delete (`*` = shown only
+  when applicable). Also flipped Share/Open in browser to match the generic menu's order (Share
+  first).
+- [x] Renamed "Refresh" to "Sync" (matches NBC-373's generic-menu label).
+- [x] Found and fixed the actual root cause of the "toast still says Refresh" report: the toast text
+  lives in a *shared* helper (`ui/common/RefreshToastState.kt` - `REFRESH_QUEUED_TOAST`,
+  `refreshCompletionToast()`) used by both `GenericDetailViewModel` and `DeviceDetailViewModel`, and
+  NBC-373 only relabeled the menu item text, not this shared toast - so both screens were still
+  saying "Refresh queued"/"Refresh complete"/"Refresh failed". Renamed to "Sync queued"/"Sync
+  complete"/"Sync failed", fixing the wording on both screens at once. Updated the toast's unit test
+  (`RefreshToastStateTest`) and two androidTest references (`StoreScreenshotTest`) accordingly.
+- [x] Checked the menu's Material 3 styling: both screens use the same unstyled/default
+  `Box { IconButton(MoreVert) { DropdownMenu { DropdownMenuItem(...) } } }` idiom with no custom
+  colors - correct out-of-the-box M3 usage. The only real deviation was structural (grouping/
+  dividers/wording), now fixed; no further styling change made.
+- [x] Verify formatting, compilation (`:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  `:app:compileDebugUnitTestKotlin`), and unit tests remotely.
+
+**Why:** user noticed the device page's menu wasn't reordered/relabeled along with NBC-373 and asked
+to make it consistent, plus flagged the toast still saying "Refresh".
+**How to apply:** any future overflow-menu item added to either detail screen should keep the
+output-actions / sync-edit-structural / meta-delete grouping and reuse `REFRESH_QUEUED_TOAST`/
+`refreshCompletionToast()` rather than a screen-local string, so a future rename only needs one edit.
+
+Status: **done**, 2026-08-06; verified remotely (compilation + unit tests) and installed on the
+Zenfone 10, Mi Pad 4, and Pixel 5.
+
+## NBC-381: cut the reorder-mode wiggle short instead of running it the whole time
+
+`rememberReorderWiggle` (shared by `Sidebar.kt` and `DashboardScreen.kt`) used a
+`rememberInfiniteTransition` that oscillated continuously for as long as reorder mode stayed
+active - which could be minutes if the user left the drawer open while rearranging things - reading
+as a nonstop jitter rather than the one-time "you just entered edit mode" cue it was meant to be.
+
+- [x] Replaced the infinite transition with an `Animatable` driven by a `LaunchedEffect(enabled)`:
+  on entering reorder mode it wiggles a few times (3 cycles, +-1.2 degrees, 140ms per step) and then
+  settles at 0 and stays there for the rest of the time reorder mode is active; leaving reorder mode
+  snaps straight back to 0.
+- [x] Verify compilation remotely.
+
+Status: **done**, 2026-08-06; verified with remote compilation (`:app:compileDebugKotlin`).
+
+## NBC-382: unpin button on the sidebar's pinned-items row in edit mode
+
+The sidebar's top "pinned items" list (above the app sections) had no way to unpin an item directly
+- the only way was to expand its actual app section and use the pin toggle there, which defeats the
+point of pinning something for quick access.
+
+- [x] Wrapped each pinned-item row in a `Row` and, when `reorderMode` is active, show a trailing
+  unpin button - same filled `PushPin`-in-a-circular-`primaryContainer`-background treatment already
+  used by the pin toggle inside expanded app sections and on `AddItemScreen`, for visual consistency.
+  Calls the same `viewModel.togglePinned(...)` used everywhere else.
+- [x] Verify compilation remotely.
+
+Status: **done**, 2026-08-06; verified with remote compilation (`:app:compileDebugKotlin`).
+
+## NBC-383: cable "Trace" tab (path trace, matching NetBox's web UI "Trace" button)
+
+NetBox's web UI lets you click "Trace" on a cable to walk the full physical path - every cable and
+patch-panel hop from one termination through to the far end. The app had no equivalent; viewing a
+cable only showed its own overview fields, no way to see what it's actually connected to end-to-end.
+
+- [x] Added a "Trace" tab to `GenericDetailScreen`, shown only for `api/dcim/cables/` items
+  (`GenericDetailViewModel.isCable`), following the same `tabs.indexOfFirst { label == ... }`
+  pattern as the Journal tab (not a hardcoded tab index, per the Elevation tab's known fragility).
+- [x] NetBox's trace endpoint lives on a *termination* (`api/dcim/interfaces/<id>/trace/`, or
+  console-port/power-port/front-port/rear-port equivalents), not the cable itself, and returns a
+  bare JSON array of `[nearEnds, cable, farEnds]` segments - not the usual paginated-list or
+  single-object shape. Added `GenericNetBoxApi.getJsonArray()` for this, and
+  `cableTraceStartTarget()` to resolve which termination to trace from off the cable's own
+  `a_terminations`/`b_terminations` JSON (falling back to B-side if A has none yet).
+- [x] Cache-first, offline-first like every other read path in this app (`RackElevationRepository`
+  is the closest existing precedent - also a non-standard NetBox visualization endpoint cached the
+  same way): new `CableTraceRepository`/`CableTraceEntity`/`CableTraceDao`/`cable_trace_segments`
+  table (`MIGRATION_16_17`, DB version 16 -> 17), reads come from a Room `Flow` first, `refresh()`
+  is a best-effort network call that silently no-ops on failure - reopening a cable's Trace tab
+  offline still shows whatever was last synced.
+- [x] Trace refresh triggers both on initial load (reactively, once the cable's terminations resolve
+  from cache or a fresh sync) and on manual "Sync", mirroring `loadJournalEntries()`.
+- [x] Every device *and* termination (interface/port) shown in the trace is independently tappable
+  and navigates via the same `onNavigateToReference`/`RefTarget` mechanism already used for
+  reference fields - no per-model-type branching, since NetBox's nested termination JSON already
+  carries its own `url` that `NetBoxRef.endpointFromDetailUrl()` resolves generically.
+- [x] Verify formatting, compilation (`:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  `:app:compileDebugUnitTestKotlin`), and unit tests remotely. Fixed 3 test fakes
+  (`FakeDirectoryApi`, `FakeGenericNetBoxApi`, `FakeApi`) broken by the new `getJsonArray` interface
+  method.
+
+**Why:** requested directly - "would love to have a trace for our cables, similar to what the web UI
+does... devices etc on the trace need to be clickable."
+**How to apply:** a follow-up task will add an optional NetBox-rendered SVG view (`?render=svg`)
+alongside this JSON-based one, prefetched during background sync rather than lazily, with embedded
+`<a href>` links rewritten from the public NetBox web URLs to in-app deep links (likely needs a
+WebView, not a static image loader, so link taps are interceptable).
+
+**Bugfix, 2026-08-06:** the user tested against their real instance (`netbox.brkn.lol`) immediately
+and hit "No cable path to trace" for every cable. Root cause: `cableTraceStartTarget()` read the
+termination out of `a_terminations[0]["termination"]`, a field name pulled from a web-fetched
+summary of NetBox's `CableTerminationSerializer` source - wrong for the live API, which nests it
+under `a_terminations[0]["object"]` (a `GenericObjectSerializer`-shaped `{object_type, object_id,
+object}` wrapper) instead. Confirmed via `curl` against the real instance and fixed; the rest of the
+trace-segment parsing (near/far end fields, cable `status`/`label`/`color`) matched the live response
+exactly on the first try. `AGENTS.md` now calls out using the `netbox` skill to check real API
+responses before writing parsing code, instead of trusting GitHub-source summaries.
+
+Status: **done**, 2026-08-06; verified with remote compilation and unit tests, installed on all
+three physical devices, and the termination-field bug fixed and confirmed against the live NetBox
+instance.
+
+## NBC-384: "Diagram" view (NetBox's own SVG rendering) for rack elevation and cable trace tabs
+
+Follow-up to NBC-383: NetBox's rack-elevation and cable-trace endpoints also render a full
+`image/svg+xml` diagram (`?render=svg`) - visually richer than the app's JSON-derived list/grid
+views, and it's what the web UI itself shows. Added as an alternative, not a replacement, since the
+JSON views' rows are more reliably tappable/scrollable on a phone.
+
+- [x] "List"/"Diagram" `FilterChip` toggle added to both the rack Elevation tab and the cable Trace
+  tab (`DiagramViewToggle`). Diagram mode lazily fetches the SVG (cache-first) the first time it's
+  selected, same pattern as everything else in this app.
+- [x] `GenericNetBoxApi.getSvg(): ResponseBody` - a raw, un-typed response, Retrofit's built-in
+  escape hatch for a body that isn't JSON, added alongside `getJsonArray` on the same interface
+  rather than a second Retrofit interface (no compelling reason to split it out the way
+  `MediaNetBoxApi` was, which was specifically about multipart complexity).
+- [x] New `SvgDiagramRepository`: fetches the raw SVG text and persists it via the existing
+  `FileDownloadRepository.writeToPersistent`/`persistentFile` (the same durable-artifact cache
+  `imageAttachmentRepository`/`deviceTypeRepository` already use), keyed by a logical cache key
+  (`rackElevationSvgCacheKey`/`cableTraceSvgCacheKey`) shared between the on-demand ViewModel loader
+  and the sync-time prefetcher below, rather than the literal fetch URL.
+- [x] **Prefetched during background sync**, not just lazily on screen view, per explicit request:
+  `OfflineSyncRepository.syncAllLocked()` gained a "Syncing rack and cable diagrams…" step right
+  after the existing rack-elevation JSON sync step, iterating the already-known, already-bounded
+  `cachedObjects("api/dcim/racks/")`/`cachedObjects("api/dcim/cables/")` lists (no extra paginated
+  fetch needed just to enumerate what to prefetch - `OfflineSyncRepository` already has both from
+  the generic-models sync step that runs earlier in the same pass). Gated behind the same
+  `syncAttachmentsToDisk` opt-in setting the attachment-download pass already uses, rather than a
+  new setting - same category of "extra, non-essential bytes the user chose to pre-download."
+- [x] **Rendered via a WebView** (`SvgDiagramView`, first WebView in this codebase - no SVG-decoding
+  library existed here before, and none was added; a WebView renders SVG natively with no extra
+  dependency). JavaScript stays disabled throughout; `<a>` taps reach
+  `WebViewClient.shouldOverrideUrlLoading` without it.
+- [x] **Every tap in the diagram navigates in-app** - simpler than literally rewriting the SVG's
+  `<a href>` attributes: `shouldOverrideUrlLoading` intercepts and blocks *every* navigation
+  attempt (`return true` unconditionally) and resolves the tapped URL through the existing
+  `NetBoxUrlParser.parse()` (already generic for any NetBox web URL shape, already used for
+  scanned/opened URLs elsewhere) - a resolvable link calls `onNavigate` instead of ever loading in
+  the WebView; an unresolvable one (confirmed against the live instance: empty rack slots link to a
+  relative `/dcim/devices/add/?...` create-form URL, not a detail page) is just a no-op tap. No XML
+  mutation of the SVG needed.
+- [x] Verify formatting, compilation (`:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  `:app:compileDebugUnitTestKotlin`), and unit tests remotely. Fixed the same 3 test fakes again for
+  the new `getSvg` interface method.
+
+**Why:** requested directly, immediately after NBC-383 shipped - "would nice to have a 'switch to
+svg' button on the rack view and the cable termination in their respective tabs. we could then also
+pre-fetch the svgs... we should patch them though as they link to the public urls (which might not
+work out of the box)... by prefetching i mean during sync."
+**How to apply:** confirmed against the live instance (`netbox.brkn.lol`) that rack-elevation SVG
+hrefs come in two shapes - absolute (`https://host/dcim/devices/15/`, occupied slots) and relative
+(`/dcim/devices/add/?...`, empty slots) - `loadDataWithBaseURL`'s `baseUrl` param must be the
+NetBox instance's real base URL (not null) for the relative ones to resolve before
+`shouldOverrideUrlLoading` ever sees them.
+
+Status: **done**, 2026-08-06; verified with remote compilation and unit tests. Not yet installed on
+a physical device or tested against the live instance - unlike NBC-383, this one wasn't hand-checked
+against a real SVG response by round-tripping it through the actual WebView/`NetBoxUrlParser`
+pairing, only by inspecting the raw SVG text via `curl`. Worth the user trying the "Diagram" toggle
+for real before considering this fully done.
+
+**Follow-up, 2026-08-06:** the user tried it and asked for the diagram to use more of the screen - a
+fixed 480dp height left most of the screen (especially on the Mi Pad 4 tablet) unused.
+`SvgDiagramView` now sizes itself to 75% of `LocalConfiguration.screenHeightDp` instead of a fixed
+height.
+
+**Follow-up, 2026-08-06 (round 2):** the "worth the user trying it for real" caveat above was
+right to flag - testing on the wired Zenfone 10 turned up three real bugs, all in `SvgDiagramView`:
+- **Tiny rendering.** NetBox's SVGs carry `width`/`height` on the root `<svg>` but no `viewBox`
+  (confirmed via `curl`: `<svg ... height="356" ... width="269">`), and the WebView was loading the
+  raw SVG as the top-level `image/svg+xml` document - with no page-declared viewport,
+  `useWideViewPort` fell back to assuming a ~980px desktop layout and shrank everything to fit.
+  Fixed by wrapping the SVG in a minimal HTML document with a real `<meta name="viewport">` and a
+  `viewBox` derived from the existing `width`/`height` attributes, loaded as `text/html` instead of
+  `image/svg+xml`. The SVG stays inlined directly in the body (not behind `<img src>`) so its
+  embedded `<a>` links remain live DOM nodes `shouldOverrideUrlLoading` can still intercept.
+- **Pinch-zoom stolen by the global two/three-finger gesture shortcuts.** The diagram sits inside a
+  scrollable Compose list, whose scroll gesture detector won arbitration over a pinch that started
+  on the WebView before `builtInZoomControls` ever saw the second pointer. Fixed with a
+  `setOnTouchListener` that calls `requestDisallowInterceptTouchEvent` - but only while
+  `event.pointerCount >= 2`; the first attempt at this fix disallowed it unconditionally, which
+  also silently broke ordinary single-finger scrolling past the diagram (caught immediately by the
+  user: "next to impossible to scroll when focussed on the svg image").
+- **Diagram sized independently of its own content.** The fixed 75%-screen-height box (previous
+  follow-up, above) was either taller than the rendered SVG (wasted space) or shorter (forcing the
+  SVG to scroll internally - which, since a WebView isn't a Compose nested-scroll participant, ate
+  every drag that started on the diagram and made the surrounding list impossible to scroll past
+  it). Replaced with `Modifier.aspectRatio()` derived from the SVG's own `width`/`height`, so the
+  WebView is exactly as tall as its content and there's no leftover internal scroll to fight over
+  in the common (unzoomed) case.
+- Also hid the WebView's scrollbar chrome (`isVerticalScrollBarEnabled`/`isHorizontalScrollBarEnabled
+  = false`) per direct request - visual only, scrolling/panning still works.
+- Verified on the wired Zenfone 10: diagram fills the width and is legible, pinch-zoom works without
+  breaking outer scroll, a single-finger swipe scrolls cleanly from the Front elevation straight
+  through to the Rear one.
+
 ## NBC-385: auto-trigger screenshot capture on a real tagged release
 
 `screenshots.yaml` was entirely manual (`workflow_dispatch` only). Direct user request (part of
@@ -6600,3 +6897,82 @@ schema.
 
 Status: **done**, 2026-08-06 - not yet verified by an actual tag push through the full pipeline;
 the next real release will be the first live test.
+
+## NBC-386: sync-time cable trace 404s from picking an untraceable termination
+
+Background sync's opt-in "Sync attachments to disk" pass (NBC-384) started surfacing `Sync failed:
+Cable 79 trace SVG: HTTP 404 (+6 other issues)` on a device with real cabling. The cable itself is
+fine (`fnuc usb-a-back-1 <-> TeSmart KVM`, a real USB passthrough link) - the 404 is NetBox's own:
+confirmed via `curl` against the live instance, `/api/dcim/rear-ports/<id>/trace/` and
+`/api/dcim/front-ports/<id>/trace/` both 404 unconditionally, regardless of the port's own cabling,
+while every other termination type (interface, console/power port, circuit termination, ...) traces
+fine. `cableTraceStartTarget()` (NBC-383) always picked the cable's first A-side termination with no
+regard for whether that termination type actually supports the trace endpoint - and on this
+instance, exactly 7 cables (all KVM/USB-hub passthrough links) have a front/rear port as that first
+termination, matching the "+6 other issues" count exactly.
+
+- [x] `cableTraceStartTarget()` now tries both the first A-side and first B-side termination and
+  picks whichever one isn't a `dcim.frontport`/`dcim.rearport`, preferring the A side when both
+  qualify; returns `null` (no trace attempted, no failure recorded) only if both sides are
+  passthrough ports - a legitimate "nothing to show," not a sync error.
+- [x] Added `CableTraceRepositoryTest` covering: normal a-side pick, rear-port a-side falling back to
+  an interface b-side (the real cable-79 shape), front-port a-side falling back to a console-port
+  b-side, and the both-sides-untraceable null case.
+- [x] Verified live: enabled "Sync attachments to disk" on the Zenfone 10 (same NetBox instance) and
+  forced a full sync - previously this exact toggle+sync combination reproduced the Cable 79 issue;
+  after the fix it completed with a clean "Synced" status and no cable-trace failures.
+
+Status: **done**, 2026-08-06; verified with remote compilation, unit tests, and a live sync on the
+Zenfone 10 against the same NetBox instance that originally surfaced the bug.
+
+## NBC-387: rack image attachments never synced; misleading "not cached" flash; sync status made opaque
+
+Three unrelated issues surfaced while testing NBC-383/384 on real devices:
+
+- **Rack (and every non-device object type) image attachments never appeared.** NetBox confirmed a
+  real attachment existed on the user's rack (`api/extras/image-attachments/`, one result for
+  `dcim.rack` id 1), but the app's gallery stayed empty. `ImageAttachmentRepository` is a dedicated
+  table only `OfflineSyncRepository.refreshAll("dcim.device")` and `DeviceDetailViewModel.refresh()`
+  ever populate - `GenericDetailViewModel` (racks, sites, everything else) only *observed* it, never
+  fetched. Unlike `documents` (which piggybacks on the Documents plugin's own generically-synced
+  object list), image attachments have no such free ride. Fixed by adding
+  `GenericDetailViewModel.loadImageAttachments()`, called on init and on manual refresh, mirroring
+  `DeviceDetailViewModel`'s existing per-object `imageAttachmentRepository.refresh(objectType, id)`
+  call.
+- **"Not cached yet - connect and refresh" flashed for a frame on slower devices** (seen on the
+  Pixel 5) before the real cached content loaded. `objectEntity`/`device`'s `null` initial value
+  means the same thing whether the first Room emission just hasn't landed yet or the object
+  genuinely isn't cached, and the UI couldn't tell those apart. Added `hasCheckedCache: StateFlow<Boolean>`
+  (mapping the underlying observe-flow to `true` on its first emission) to both
+  `GenericDetailViewModel` and `DeviceDetailViewModel`; the detail screens now show a plain spinner
+  while `!hasCheckedCache` instead of the "not cached" message.
+- **The Dashboard's Sync issue/Synced cards were dead ends.** Tapping either did nothing, so a sync
+  failure's "(+N other issues)" summary had no way to see the other issues, and there was no way to
+  copy anything for a bug report. Both cards are now tappable (`SyncIssueCard`/`SyncStatusCard`
+  gained an `onShowDetails` callback):
+  - `SyncIssueDetailsDialog` lists every distinct failure reason (`syncIssueReasons`, reusing the
+    same extraction logic `summarizeSyncIssueMessage` already used) and a "Copy logs" button.
+    `SyncIssue` gained a persisted `details` field (the raw pre-summarization text, capped at 4000
+    chars) alongside the existing summarized `message`, since the summary alone can't reconstruct
+    the full list after a restart. `buildSyncIssueReport()` builds a proper bug-report payload for
+    the copy button - app version, git revision, build date, active server, timestamp, offline-mode
+    state, and every reason - not just the one-line summary. Per direct follow-up request ("the more
+    info we can copy the better").
+  - `SyncStatusDetailsDialog` is the positive counterpart - current sync progress (or last-synced
+    time) plus the same cache figures Settings' "Cached data" card already computes
+    (device/object/image counts, downloaded files and size), loaded on demand via
+    `DashboardViewModel.loadCacheSummary()` rather than kept continuously up to date.
+- **Two-finger-down was firing both the global gesture shortcut and pull-to-refresh.**
+  `multiFingerSwipe()`'s "let a child gesture detector abort me" escape hatch only catches
+  detectors that consume via raw `PointerInputChange.consume()` (like `transformable`/pinch-zoom);
+  Material3's `PullToRefreshBox` is nested-scroll-based and has no concept of finger count at all,
+  so it fired regardless. Added `LocalActivePointerCount` (a purely observational pointer-count
+  tracker at the root, alongside the existing gesture modifier) and `SuppressiblePullToRefreshBox` (a
+  thin wrapper exposing `Modifier.pullToRefresh`'s `enabled` param, which `PullToRefreshBox` itself
+  doesn't forward) so pull-to-refresh is disabled while 2+ fingers are down. Verified live: a
+  single-finger pull-to-refresh still triggers a sync normally; a fresh two-finger swipe no longer
+  double-fires.
+
+Status: **done**, 2026-08-06; verified with remote compilation, unit tests, and live testing across
+the Zenfone 10, Mi Pad 4, and Pixel 5 (including the rack image attachment, the pull-to-refresh
+regression check, and the Sync-status dialog catching a real in-progress sync on the Zenfone 10).

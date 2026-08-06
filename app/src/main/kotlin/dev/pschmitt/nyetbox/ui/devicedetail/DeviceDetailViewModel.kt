@@ -233,6 +233,17 @@ constructor(
             .observeDevice(deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /**
+     * Whether the local cache has been checked at least once - see
+     * [dev.pschmitt.nyetbox.ui.generic.GenericDetailViewModel.hasCheckedCache] for why `device ==
+     * null` alone can't tell "still loading" apart from "genuinely not cached".
+     */
+    val hasCheckedCache: StateFlow<Boolean> =
+        deviceRepository
+            .observeDevice(deviceId)
+            .map { true }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     // device.url is the *API* url (e.g. https://host/api/dcim/devices/393/) - the actual web page
     // mirrors that path with the "/api" prefix dropped.
     val webUrl: StateFlow<String?> =

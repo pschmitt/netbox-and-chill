@@ -1,7 +1,9 @@
 package dev.pschmitt.nyetbox.data.api
 
 import dev.pschmitt.nyetbox.data.api.dto.PagedResponseDto
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.HTTP
@@ -53,4 +55,21 @@ interface GenericNetBoxApi {
      */
     @HTTP(method = "OPTIONS", path = "api/extras/journal-entries/", hasBody = false)
     suspend fun getJournalEntryOptions(): JsonObject
+
+    /**
+     * NetBox's cable-trace endpoints (e.g. `api/dcim/interfaces/<id>/trace/`) return a bare JSON
+     * array of `[nearEnds, cable, farEnds]` segments rather than the usual paginated-list or
+     * single-object envelope, so neither [listObjects] nor [getObject] fits - see
+     * [dev.pschmitt.nyetbox.data.repository.CableTraceRepository].
+     */
+    @GET suspend fun getJsonArray(@Url url: String): JsonArray
+
+    /**
+     * NetBox's rack-elevation and cable-trace endpoints also render an `image/svg+xml` diagram when
+     * called with `?render=svg` - a raw, un-typed body `ResponseBody` is Retrofit's built-in escape
+     * hatch for a response that isn't JSON, so it bypasses the kotlinx.serialization converter this
+     * interface's other methods go through. See
+     * [dev.pschmitt.nyetbox.data.repository.SvgDiagramRepository].
+     */
+    @GET suspend fun getSvg(@Url url: String): ResponseBody
 }

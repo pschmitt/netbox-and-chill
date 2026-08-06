@@ -264,3 +264,21 @@ val MIGRATION_15_16 =
             db.execSQL("ALTER TABLE `netbox_objects` ADD COLUMN `lastUpdated` TEXT")
         }
     }
+
+val MIGRATION_16_17 =
+    object : Migration(16, 17) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execCreateTable(
+                """
+                CREATE TABLE IF NOT EXISTS `cable_trace_segments` (
+                    `traceEndpointPath` TEXT NOT NULL,
+                    `traceObjectId` INTEGER NOT NULL,
+                    `segmentIndex` INTEGER NOT NULL,
+                    `json` TEXT NOT NULL,
+                    `syncedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`traceEndpointPath`, `traceObjectId`, `segmentIndex`)
+                )
+                """
+            )
+        }
+    }
