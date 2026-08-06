@@ -113,7 +113,7 @@ import dev.pschmitt.nyetbox.ui.generic.FieldRow
 import dev.pschmitt.nyetbox.ui.generic.GenericDetailChangelogRow
 import dev.pschmitt.nyetbox.ui.generic.JournalEntryUi
 import dev.pschmitt.nyetbox.ui.generic.actionValue
-import dev.pschmitt.nyetbox.ui.generic.fieldRow
+import dev.pschmitt.nyetbox.ui.generic.fieldRows
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.serialization.json.Json
@@ -790,27 +790,23 @@ fun DeviceDetailScreen(
                                     current.comments,
                                     onFieldLongPress = { fieldActionLabel = it },
                                 )
-                            visibleCustomFieldRows.forEach { row ->
-                                fieldRow(
-                                    row = row,
-                                    onNavigateToReference = { endpointPath, id ->
-                                        onReferenceClick(endpointPath, id, current.name)
-                                    },
-                                    onRelatedItems = {},
-                                    onOpenUrl = { url ->
-                                        context.startActivity(
-                                            Intent(Intent.ACTION_VIEW, url.toUri())
-                                        )
-                                    },
-                                    netboxBaseUrl = netboxBaseUrl,
-                                    onDownloadAttachment = viewModel::downloadAttachment,
-                                    onImageClick = { item -> imageViewer = listOf(item) to 0 },
-                                    isDownloading = isDownloading,
-                                    onCopyValue = onCopyValue,
-                                    onFieldLongPress = { fieldActionLabel = it },
-                                    onMatterPairingCode = { matterPairingCode = it },
-                                )
-                            }
+                            fieldRows(
+                                rows = visibleCustomFieldRows,
+                                onNavigateToReference = { endpointPath, id ->
+                                    onReferenceClick(endpointPath, id, current.name)
+                                },
+                                onRelatedItems = {},
+                                onOpenUrl = { url ->
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                                },
+                                netboxBaseUrl = netboxBaseUrl,
+                                onDownloadAttachment = viewModel::downloadAttachment,
+                                onImageClick = { item -> imageViewer = listOf(item) to 0 },
+                                isDownloading = isDownloading,
+                                onCopyValue = onCopyValue,
+                                onFieldLongPress = { fieldActionLabel = it },
+                                onMatterPairingCode = { matterPairingCode = it },
+                            )
                             item {
                                 Spacer(Modifier.height(24.dp))
                                 Text(

@@ -351,6 +351,194 @@ class GenericFieldRendererTest {
     }
 
     @Test
+    fun `clusterFieldRows groups a real custom-field group's members into one cluster`() {
+        val rows =
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Purchase info"),
+                FieldRow.PlainText("Vendor", "Acme"),
+                FieldRow.PlainText("Purchase date", "2026-01-01"),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRowCluster.Standalone(FieldRow.Section("Custom fields")),
+                FieldRowCluster.Grouped(
+                    "Purchase info",
+                    listOf(
+                        FieldRow.PlainText("Vendor", "Acme"),
+                        FieldRow.PlainText("Purchase date", "2026-01-01"),
+                    ),
+                ),
+            ),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows keeps the synthetic Other bucket standalone alongside a real group`() {
+        val rows =
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Purchase info"),
+                FieldRow.PlainText("Vendor", "Acme"),
+                FieldRow.CustomGroup("Other"),
+                FieldRow.PlainText("Notes", "Ready"),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRowCluster.Standalone(FieldRow.Section("Custom fields")),
+                FieldRowCluster.Grouped(
+                    "Purchase info",
+                    listOf(FieldRow.PlainText("Vendor", "Acme")),
+                ),
+                FieldRowCluster.Standalone(FieldRow.CustomGroup("Other")),
+                FieldRowCluster.Standalone(FieldRow.PlainText("Notes", "Ready")),
+            ),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows never clusters the synthetic Other bucket on its own`() {
+        val rows =
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
+                FieldRow.PlainText("Asset Owner", "NetOps"),
+                FieldRow.PlainText("Notes", "Ready"),
+            )
+
+        // No real group present - behaves identically to today: every row stands alone, the
+        // "Other" heading included, with no spurious card wrapping it.
+        assertEquals(rows.map { FieldRowCluster.Standalone(it) }, clusterFieldRows(rows))
+    }
+
+    @Test
+    fun `clusterFieldRows clusters a run of native PlainText and Reference fields`() {
+        val site = FieldRow.Reference("Site", RefTarget("HQ", "api/dcim/sites/", 1))
+        val manufacturer =
+            FieldRow.Reference("Manufacturer", RefTarget("Acme", "api/dcim/manufacturers/", 2))
+        val assetTag = FieldRow.PlainText("Asset tag", "EYO-0001", copyable = true)
+        val rows = listOf(site, manufacturer, assetTag)
+
+        assertEquals(
+            listOf(FieldRowCluster.Grouped(label = null, rows = rows)),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows leaves a lone native PlainText or Reference field standalone`() {
+        // A single clusterable field with no clusterable neighbor renders exactly like today -
+        // wrapping it alone in an untitled card would look identical, so there's no cluster.
+        val rows = listOf(FieldRow.PlainText("Model", "PowerEdge R730"))
+
+        assertEquals(rows.map { FieldRowCluster.Standalone(it) }, clusterFieldRows(rows))
+    }
+
+    @Test
+    fun `clusterFieldRows breaks a native run at non-clusterable row types`() {
+        val site = FieldRow.Reference("Site", RefTarget("HQ", "api/dcim/sites/", 1))
+        val manufacturer =
+            FieldRow.Reference("Manufacturer", RefTarget("Acme", "api/dcim/manufacturers/", 2))
+        val airflow = FieldRow.BooleanValue("Airflow", true)
+        val assetTag = FieldRow.PlainText("Asset tag", "EYO-0001")
+        val rows = listOf(site, manufacturer, airflow, assetTag)
+
+        assertEquals(
+            listOf(
+                FieldRowCluster.Grouped(label = null, rows = listOf(site, manufacturer)),
+                FieldRowCluster.Standalone(airflow),
+                // Only one clusterable row follows "Airflow" before the list ends - stays alone.
+                FieldRowCluster.Standalone(assetTag),
+            ),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows never clusters native fields once past the Custom fields section`() {
+        val rows =
+            listOf(
+                FieldRow.Section("Custom fields"),
+                FieldRow.CustomGroup("Other"),
+                FieldRow.PlainText("Asset Owner", "NetOps"),
+                FieldRow.PlainText("Notes", "Ready"),
+            )
+
+        // These two PlainText rows are custom fields in the synthetic "Other" bucket, not native
+        // fields - the type-driven native clustering rule only applies before the Section marker.
+        assertEquals(rows.map { FieldRowCluster.Standalone(it) }, clusterFieldRows(rows))
+    }
+
+    @Test
+    fun `clusterFieldRows combines native field clustering with a real custom-field group`() {
+        val site = FieldRow.Reference("Site", RefTarget("HQ", "api/dcim/sites/", 1))
+        val manufacturer =
+            FieldRow.Reference("Manufacturer", RefTarget("Acme", "api/dcim/manufacturers/", 2))
+        val section = FieldRow.Section("Custom fields")
+        val group = FieldRow.CustomGroup("Purchase info")
+        val vendor = FieldRow.PlainText("Vendor", "Acme")
+        val rows = listOf(site, manufacturer, section, group, vendor)
+
+        assertEquals(
+            listOf(
+                FieldRowCluster.Grouped(label = null, rows = listOf(site, manufacturer)),
+                FieldRowCluster.Standalone(section),
+                FieldRowCluster.Grouped("Purchase info", listOf(vendor)),
+            ),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
+    fun `clusterFieldRows combines with buildFieldRows for a real NetBox custom-field group`() {
+        val rows =
+            buildFieldRows(
+                parse(
+                    """{"custom_fields":{"purchase_store":"[Store](https://store.example)","purchase_date":"2026-01-01","asset_owner":"NetOps"}}"""
+                ),
+                listOf(
+                    CustomFieldDefinition(
+                        "purchase_store",
+                        "markdown",
+                        "Store",
+                        "Purchase info",
+                        20,
+                    ),
+                    CustomFieldDefinition(
+                        "purchase_date",
+                        "text",
+                        "Purchase date",
+                        "Purchase info",
+                        10,
+                    ),
+                    // No definition for "asset_owner" - defaults through renderField like any
+                    // other undeclared custom field, landing in the synthetic "Other" bucket as a
+                    // plain text row rather than Markdown.
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                FieldRowCluster.Standalone(FieldRow.Section("Custom fields")),
+                FieldRowCluster.Grouped(
+                    "Purchase info",
+                    listOf(
+                        FieldRow.Markdown("Purchase date", "2026-01-01"),
+                        FieldRow.Markdown("Store", "[Store](https://store.example)"),
+                    ),
+                ),
+                FieldRowCluster.Standalone(FieldRow.CustomGroup("Other")),
+                FieldRowCluster.Standalone(FieldRow.PlainText("Asset Owner", "NetOps")),
+            ),
+            clusterFieldRows(rows),
+        )
+    }
+
+    @Test
     fun `skips null and blank fields`() {
         val rows = buildFieldRows(parse("""{"comments":null,"description":""}"""))
         assertTrue(rows.isEmpty())

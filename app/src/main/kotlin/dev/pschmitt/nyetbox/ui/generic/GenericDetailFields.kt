@@ -23,6 +23,7 @@ import dev.pschmitt.nyetbox.ui.common.CollapsibleCommentCard
 import dev.pschmitt.nyetbox.ui.common.DetailTrailingActions
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxSectionCard
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
@@ -168,80 +169,9 @@ internal fun LazyListScope.fieldRow(
             }
         is FieldRow.PlainText ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            row.value,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (row.copyable) {
-                            DetailTrailingActions(
-                                copyLabel = row.label,
-                                onCopy = { onCopyValue(row.label, row.value) },
-                            )
-                        }
-                        if (row.matterPairingCode) {
-                            IconButton(
-                                onClick = { onMatterPairingCode(row.value) },
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.QrCodeScanner,
-                                    contentDescription = "Show Matter pairing QR code",
-                                )
-                            }
-                        }
-                    }
-                }
+                PlainTextContent(row, onCopyValue, onFieldLongPress, onMatterPairingCode)
             }
-        is FieldRow.BooleanValue ->
-            item {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color =
-                        if (row.value) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow,
-                    tonalElevation = 1.dp,
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .combinedClickable(
-                                onClick = {},
-                                onLongClick = { onFieldLongPress(row.label) },
-                            ),
-                ) {
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            if (row.value) Icons.Default.CheckCircle else Icons.Default.Close,
-                            contentDescription = if (row.value) "Enabled" else "Disabled",
-                            tint =
-                                if (row.value) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp),
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            FieldLabel(row.label) { onFieldLongPress(row.label) }
-                            Text(
-                                if (row.value) "Enabled" else "Disabled",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color =
-                                    if (row.value) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
-                }
-            }
+        is FieldRow.BooleanValue -> item { BooleanValueSurfaceContent(row, onFieldLongPress) }
         is FieldRow.Count ->
             detailCard(
                 onClick = { onRelatedItems(row.target) },
@@ -267,191 +197,565 @@ internal fun LazyListScope.fieldRow(
             }
         is FieldRow.Markdown ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    CollapsibleCommentCard(
-                        content = row.content,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                MarkdownContent(row, onFieldLongPress)
             }
         is FieldRow.Reference ->
             detailCard(
                 onClick = { onNavigateToReference(row.target.endpointPath, row.target.id) },
                 onLongPress = { onFieldLongPress(row.label) },
             ) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            AppIcons.forEndpointPath(row.target.endpointPath),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            row.target.display,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        DetailTrailingActions(
-                            copyLabel = row.label.takeIf { row.copyable },
-                            onCopy =
-                                { onCopyValue(row.label, row.target.display) }.takeIf {
-                                    row.copyable
-                                },
-                            openLabel = row.label,
-                            onOpen = {
-                                onNavigateToReference(row.target.endpointPath, row.target.id)
-                            },
-                        )
-                    }
-                }
+                ReferenceContent(row, onNavigateToReference, onCopyValue, onFieldLongPress)
             }
         is FieldRow.Image ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    RemoteThumbnail(
-                        imageUrl = row.url,
-                        contentDescription = row.label,
-                        modifier =
-                            Modifier.fillMaxWidth().height(160.dp).padding(top = 4.dp).clickable {
-                                onImageClick(ImageViewerItem(url = row.url, title = row.label))
-                            },
-                        contentScale = ContentScale.Fit,
-                    )
-                }
+                ImageFieldContent(row, onImageClick, onFieldLongPress)
             }
         is FieldRow.ReferenceList ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    row.targets.forEach { target ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier =
-                                Modifier.clickable {
-                                        onNavigateToReference(target.endpointPath, target.id)
-                                    }
-                                    .padding(vertical = 2.dp),
-                        ) {
-                            Icon(
-                                AppIcons.forEndpointPath(target.endpointPath),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                target.display,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                }
+                ReferenceListContent(row, onNavigateToReference, onFieldLongPress)
             }
         is FieldRow.TagList ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Label,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(top = 6.dp),
-                    ) {
-                        row.targets.forEach { target ->
-                            AssistChip(
-                                onClick = { onNavigateToReference(target.endpointPath, target.id) },
-                                label = { Text(target.display) },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.Label,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                },
-                            )
-                        }
-                    }
-                }
+                TagListContent(row, onNavigateToReference, onFieldLongPress)
             }
         is FieldRow.ChipList ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Text(row.values.joinToString(", "), style = MaterialTheme.typography.bodyLarge)
-                }
+                ChipListContent(row, onFieldLongPress)
             }
         is FieldRow.ExternalLink ->
             detailCard(
                 onClick = { onOpenUrl(row.url) },
                 onLongPress = { onFieldLongPress(row.label) },
             ) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            shortenDisplayedUrl(row.url, netboxBaseUrl),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
+                ExternalLinkContent(row, netboxBaseUrl, onFieldLongPress)
             }
         is FieldRow.FileAttachment ->
             detailCard(onLongPress = { onFieldLongPress(row.label) }) {
-                Column(Modifier.padding(vertical = 6.dp)) {
-                    FieldLabel(row.label) { onFieldLongPress(row.label) }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier =
-                            Modifier.fillMaxWidth().clickable(enabled = !isDownloading) {
-                                onDownloadAttachment(row.url, row.filename)
-                            },
-                    ) {
-                        Icon(Icons.Default.Description, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            row.filename,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
+                FileAttachmentContent(row, onDownloadAttachment, isDownloading, onFieldLongPress)
+            }
+    }
+}
+
+@Composable
+private fun PlainTextContent(
+    row: FieldRow.PlainText,
+    onCopyValue: (label: String, value: String) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
+    onMatterPairingCode: (String) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                row.value,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            if (row.copyable) {
+                DetailTrailingActions(
+                    copyLabel = row.label,
+                    onCopy = { onCopyValue(row.label, row.value) },
+                )
+            }
+            if (row.matterPairingCode) {
+                IconButton(
+                    onClick = { onMatterPairingCode(row.value) },
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        Icons.Default.QrCodeScanner,
+                        contentDescription = "Show Matter pairing QR code",
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BooleanValueSurfaceContent(
+    row: FieldRow.BooleanValue,
+    onFieldLongPress: (label: String) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color =
+            if (row.value) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 1.dp,
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .combinedClickable(onClick = {}, onLongClick = { onFieldLongPress(row.label) }),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                if (row.value) Icons.Default.CheckCircle else Icons.Default.Close,
+                contentDescription = if (row.value) "Enabled" else "Disabled",
+                tint =
+                    if (row.value) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column {
+                FieldLabel(row.label) { onFieldLongPress(row.label) }
+                Text(
+                    if (row.value) "Enabled" else "Disabled",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color =
+                        if (row.value) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MarkdownContent(row: FieldRow.Markdown, onFieldLongPress: (label: String) -> Unit) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        CollapsibleCommentCard(content = row.content, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun ReferenceContent(
+    row: FieldRow.Reference,
+    onNavigateToReference: (String, Int) -> Unit,
+    onCopyValue: (label: String, value: String) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Icon(
+                AppIcons.forEndpointPath(row.target.endpointPath),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                row.target.display,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            DetailTrailingActions(
+                copyLabel = row.label.takeIf { row.copyable },
+                onCopy = { onCopyValue(row.label, row.target.display) }.takeIf { row.copyable },
+                openLabel = row.label,
+                onOpen = { onNavigateToReference(row.target.endpointPath, row.target.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImageFieldContent(
+    row: FieldRow.Image,
+    onImageClick: (ImageViewerItem) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        RemoteThumbnail(
+            imageUrl = row.url,
+            contentDescription = row.label,
+            modifier =
+                Modifier.fillMaxWidth().height(160.dp).padding(top = 4.dp).clickable {
+                    onImageClick(ImageViewerItem(url = row.url, title = row.label))
+                },
+            contentScale = ContentScale.Fit,
+        )
+    }
+}
+
+@Composable
+private fun ReferenceListContent(
+    row: FieldRow.ReferenceList,
+    onNavigateToReference: (String, Int) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        row.targets.forEach { target ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier.clickable { onNavigateToReference(target.endpointPath, target.id) }
+                        .padding(vertical = 2.dp),
+            ) {
+                Icon(
+                    AppIcons.forEndpointPath(target.endpointPath),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    target.display,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagListContent(
+    row: FieldRow.TagList,
+    onNavigateToReference: (String, Int) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.AutoMirrored.Filled.Label,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            FieldLabel(row.label) { onFieldLongPress(row.label) }
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(top = 6.dp),
+        ) {
+            row.targets.forEach { target ->
+                AssistChip(
+                    onClick = { onNavigateToReference(target.endpointPath, target.id) },
+                    label = { Text(target.display) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Label,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
                         )
-                        if (isDownloading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipListContent(row: FieldRow.ChipList, onFieldLongPress: (label: String) -> Unit) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        Text(row.values.joinToString(", "), style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun ExternalLinkContent(
+    row: FieldRow.ExternalLink,
+    netboxBaseUrl: String?,
+    onFieldLongPress: (label: String) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                shortenDisplayedUrl(row.url, netboxBaseUrl),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FileAttachmentContent(
+    row: FieldRow.FileAttachment,
+    onDownloadAttachment: (url: String, filename: String) -> Unit,
+    isDownloading: Boolean,
+    onFieldLongPress: (label: String) -> Unit,
+) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        FieldLabel(row.label) { onFieldLongPress(row.label) }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier =
+                Modifier.fillMaxWidth().clickable(enabled = !isDownloading) {
+                    onDownloadAttachment(row.url, row.filename)
+                },
+        ) {
+            Icon(Icons.Default.Description, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                row.filename,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            if (isDownloading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(Icons.Default.Download, contentDescription = "Download and open")
+            }
+        }
+    }
+}
+
+/**
+ * A cluster of consecutive [FieldRow]s from the Overview list - see [clusterFieldRows]. Every row
+ * that isn't part of a cluster stays a [FieldRowCluster.Standalone], rendered exactly like today
+ * via [fieldRow]. [FieldRowCluster.Grouped] covers two distinct cases, both stacked inside one
+ * shared card: a real NetBox custom-field group (`label` is the group name, shown as a card title
+ * via [NyetboxSectionCard]), and a run of simple native/top-level fields (`label` is `null` - no
+ * title, since the existing "Details" heading above the native-fields block already covers that).
+ */
+internal sealed interface FieldRowCluster {
+    data class Standalone(val row: FieldRow) : FieldRowCluster
+
+    data class Grouped(val label: String?, val rows: List<FieldRow>) : FieldRowCluster
+}
+
+/** Native/top-level field types plain and low-visual-weight enough to share an untitled card. */
+private fun FieldRow.isClusterableNativeField(): Boolean =
+    this is FieldRow.PlainText || this is FieldRow.Reference
+
+/**
+ * Clusters a flat [FieldRow] list (as produced by `buildFieldRows`) two ways, matching the
+ * marker-walking idiom [visibleFieldRows] already uses:
+ * - Before the `"Custom fields"` [FieldRow.Section] marker (native/top-level fields), a run of two
+ *   or more consecutive [FieldRow.PlainText]/[FieldRow.Reference] rows - the shape "site",
+ *   "manufacturer", "asset tag"-like fields already render as - clusters into one untitled card.
+ *   This is type-driven, not name-driven, so it stays generic across every NetBox object type;
+ *   every other native row type (`Markdown`, `Image`, `BooleanValue`, `Count`, `ReferenceList`,
+ *   `TagList`, `ChipList`, `ExternalLink`, `FileAttachment`, `Metadata`) keeps its own distinct
+ *   card, and a lone clusterable row with no clusterable neighbor also stays standalone (wrapping a
+ *   single field in its own untitled card would look identical to today, so there's no point).
+ * - From the `"Custom fields"` [FieldRow.Section] marker onward, custom fields sharing a real,
+ *   admin-defined NetBox custom-field group cluster into one shared, titled card. The synthetic
+ *   [UNGROUPED_CUSTOM_FIELD_GROUP_LABEL] bucket - and the `"Custom fields"` [FieldRow.Section]
+ *   itself - is left exactly as-is.
+ */
+internal fun clusterFieldRows(rows: List<FieldRow>): List<FieldRowCluster> = buildList {
+    var sawCustomFieldsSection = false
+    var pendingNativeRun: MutableList<FieldRow>? = null
+    var pendingGroupLabel: String? = null
+    var pendingGroupRows: MutableList<FieldRow>? = null
+
+    fun flushNativeRun() {
+        val run = pendingNativeRun
+        pendingNativeRun = null
+        if (run == null) return
+        if (run.size >= 2) {
+            add(FieldRowCluster.Grouped(label = null, rows = run))
+        } else {
+            run.forEach { add(FieldRowCluster.Standalone(it)) }
+        }
+    }
+
+    fun flushPendingGroup() {
+        val label = pendingGroupLabel
+        val members = pendingGroupRows
+        if (label != null && !members.isNullOrEmpty()) {
+            add(FieldRowCluster.Grouped(label, members))
+        } else {
+            members?.forEach { add(FieldRowCluster.Standalone(it)) }
+        }
+        pendingGroupLabel = null
+        pendingGroupRows = null
+    }
+
+    rows.forEach { row ->
+        if (!sawCustomFieldsSection) {
+            when {
+                row is FieldRow.Section -> {
+                    flushNativeRun()
+                    sawCustomFieldsSection = true
+                    add(FieldRowCluster.Standalone(row))
+                }
+                row.isClusterableNativeField() -> {
+                    (pendingNativeRun ?: mutableListOf<FieldRow>().also { pendingNativeRun = it })
+                        .add(row)
+                }
+                else -> {
+                    flushNativeRun()
+                    add(FieldRowCluster.Standalone(row))
+                }
+            }
+            return@forEach
+        }
+        when (row) {
+            is FieldRow.Section -> {
+                flushPendingGroup()
+                add(FieldRowCluster.Standalone(row))
+            }
+            is FieldRow.CustomGroup -> {
+                flushPendingGroup()
+                if (row.label == UNGROUPED_CUSTOM_FIELD_GROUP_LABEL) {
+                    // Keep today's look: a plain heading, its fields render standalone below.
+                    add(FieldRowCluster.Standalone(row))
+                } else {
+                    pendingGroupLabel = row.label
+                    pendingGroupRows = mutableListOf()
+                }
+            }
+            else -> {
+                val pending = pendingGroupRows
+                if (pending != null) pending.add(row) else add(FieldRowCluster.Standalone(row))
+            }
+        }
+    }
+    flushNativeRun()
+    flushPendingGroup()
+}
+
+/**
+ * Renders a flat [FieldRow] list, clustering both real named custom-field groups and runs of simple
+ * native fields into a shared card (via [clusterFieldRows]) while every other row renders exactly
+ * like [fieldRow] renders it standalone today.
+ */
+internal fun LazyListScope.fieldRows(
+    rows: List<FieldRow>,
+    onNavigateToReference: (String, Int) -> Unit,
+    onRelatedItems: (CountTarget) -> Unit,
+    onOpenUrl: (String) -> Unit,
+    netboxBaseUrl: String?,
+    onDownloadAttachment: (url: String, filename: String) -> Unit,
+    onImageClick: (ImageViewerItem) -> Unit,
+    isDownloading: Boolean,
+    onCopyValue: (label: String, value: String) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
+    onMatterPairingCode: (String) -> Unit,
+) {
+    clusterFieldRows(rows).forEach { cluster ->
+        when (cluster) {
+            is FieldRowCluster.Standalone ->
+                fieldRow(
+                    cluster.row,
+                    onNavigateToReference,
+                    onRelatedItems,
+                    onOpenUrl,
+                    netboxBaseUrl,
+                    onDownloadAttachment,
+                    onImageClick,
+                    isDownloading,
+                    onCopyValue,
+                    onFieldLongPress,
+                    onMatterPairingCode,
+                )
+            is FieldRowCluster.Grouped -> {
+                val clusteredContent: @Composable ColumnScope.() -> Unit = {
+                    Column(Modifier.padding(horizontal = 12.dp)) {
+                        cluster.rows.forEach { row ->
+                            ClusteredFieldRow(
+                                row = row,
+                                onNavigateToReference = onNavigateToReference,
+                                onOpenUrl = onOpenUrl,
+                                netboxBaseUrl = netboxBaseUrl,
+                                onDownloadAttachment = onDownloadAttachment,
+                                onImageClick = onImageClick,
+                                isDownloading = isDownloading,
+                                onCopyValue = onCopyValue,
+                                onFieldLongPress = onFieldLongPress,
+                                onMatterPairingCode = onMatterPairingCode,
                             )
-                        } else {
-                            Icon(Icons.Default.Download, contentDescription = "Download and open")
                         }
                     }
                 }
+                val label = cluster.label
+                item {
+                    if (label != null) {
+                        NyetboxSectionCard(
+                            title = label,
+                            icon = Icons.Outlined.Category,
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            content = clusteredContent,
+                        )
+                    } else {
+                        NyetboxCard(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            content = clusteredContent,
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun Modifier.clusterInteraction(
+    onClick: (() -> Unit)?,
+    onLongPress: () -> Unit,
+): Modifier = combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongPress)
+
+/**
+ * Renders a single row's content stacked inside a shared cluster card ([FieldRowCluster.Grouped]),
+ * with no card of its own - only [FieldRow.Reference] and [FieldRow.ExternalLink] carry a
+ * card-level click action standalone (see [fieldRow]'s `detailCard` calls), so those are the only
+ * two that need an explicit click handler re-attached here; every other type either has no click
+ * action or already embeds its own (e.g. [FieldRow.FileAttachment]'s download row).
+ */
+@Composable
+private fun ClusteredFieldRow(
+    row: FieldRow,
+    onNavigateToReference: (String, Int) -> Unit,
+    onOpenUrl: (String) -> Unit,
+    netboxBaseUrl: String?,
+    onDownloadAttachment: (url: String, filename: String) -> Unit,
+    onImageClick: (ImageViewerItem) -> Unit,
+    isDownloading: Boolean,
+    onCopyValue: (label: String, value: String) -> Unit,
+    onFieldLongPress: (label: String) -> Unit,
+    onMatterPairingCode: (String) -> Unit,
+) {
+    if (row is FieldRow.BooleanValue) {
+        // Already owns its own tinted Surface plus click handling - wrapping it in another
+        // clickable Column would just be redundant, not additive.
+        BooleanValueSurfaceContent(row, onFieldLongPress)
+        return
+    }
+    val onClick: (() -> Unit)? =
+        when (row) {
+            is FieldRow.Reference -> {
+                { onNavigateToReference(row.target.endpointPath, row.target.id) }
+            }
+            is FieldRow.ExternalLink -> {
+                { onOpenUrl(row.url) }
+            }
+            else -> null
+        }
+    Column(Modifier.fillMaxWidth().clusterInteraction(onClick) { onFieldLongPress(row.label) }) {
+        when (row) {
+            is FieldRow.PlainText ->
+                PlainTextContent(row, onCopyValue, onFieldLongPress, onMatterPairingCode)
+            is FieldRow.Markdown -> MarkdownContent(row, onFieldLongPress)
+            is FieldRow.Reference ->
+                ReferenceContent(row, onNavigateToReference, onCopyValue, onFieldLongPress)
+            is FieldRow.ChipList -> ChipListContent(row, onFieldLongPress)
+            is FieldRow.ExternalLink -> ExternalLinkContent(row, netboxBaseUrl, onFieldLongPress)
+            is FieldRow.FileAttachment ->
+                FileAttachmentContent(row, onDownloadAttachment, isDownloading, onFieldLongPress)
+            is FieldRow.Image -> ImageFieldContent(row, onImageClick, onFieldLongPress)
+            is FieldRow.ReferenceList ->
+                ReferenceListContent(row, onNavigateToReference, onFieldLongPress)
+            is FieldRow.TagList -> TagListContent(row, onNavigateToReference, onFieldLongPress)
+            is FieldRow.BooleanValue,
+            is FieldRow.Metadata,
+            is FieldRow.Count,
+            is FieldRow.Section,
+            is FieldRow.CustomGroup -> Unit // Never produced as a custom-field group member.
+        }
     }
 }

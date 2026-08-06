@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -75,13 +74,6 @@ fun SyncStatusCard(
                     syncStatusSubText(isSyncing, syncProgress, lastSuccessfulSyncAt, nowMillis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (onShowDetails != null) {
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = "Show sync status details",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

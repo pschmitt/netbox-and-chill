@@ -869,31 +869,29 @@ fun GenericDetailScreen(
                                             )
                                         }
                                     }
-                                    detailOverviewFields.forEach { row ->
-                                        fieldRow(
-                                            row,
-                                            onNavigateToReference = { endpointPath, id ->
-                                                onNavigateToReference(
-                                                    endpointPath,
-                                                    id,
-                                                    title ?: modelLabel,
-                                                )
-                                            },
-                                            viewModel::showRelatedItems,
-                                            onOpenUrl = { url ->
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, url.toUri())
-                                                )
-                                            },
-                                            netboxBaseUrl = netboxBaseUrl,
-                                            onDownloadAttachment = viewModel::downloadAttachment,
-                                            onImageClick = { imageViewer = listOf(it) to 0 },
-                                            isDownloading = isDownloading,
-                                            onCopyValue = onCopyValue,
-                                            onFieldLongPress = { fieldActionLabel = it },
-                                            onMatterPairingCode = { matterPairingCode = it },
-                                        )
-                                    }
+                                    fieldRows(
+                                        detailOverviewFields,
+                                        onNavigateToReference = { endpointPath, id ->
+                                            onNavigateToReference(
+                                                endpointPath,
+                                                id,
+                                                title ?: modelLabel,
+                                            )
+                                        },
+                                        viewModel::showRelatedItems,
+                                        onOpenUrl = { url ->
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, url.toUri())
+                                            )
+                                        },
+                                        netboxBaseUrl = netboxBaseUrl,
+                                        onDownloadAttachment = viewModel::downloadAttachment,
+                                        onImageClick = { imageViewer = listOf(it) to 0 },
+                                        isDownloading = isDownloading,
+                                        onCopyValue = onCopyValue,
+                                        onFieldLongPress = { fieldActionLabel = it },
+                                        onMatterPairingCode = { matterPairingCode = it },
+                                    )
                                 } else if (viewModel.isRack && visibleSelectedTab == 1) {
                                     item { Spacer(Modifier.height(8.dp)) }
                                     item {

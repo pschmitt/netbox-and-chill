@@ -35,6 +35,11 @@ private val USER_REFERENCE_KEYS = setOf("created_by", "last_updated_by")
 private val METADATA_KEYS = setOf("created", "last_updated")
 private const val CUSTOM_FIELDS_ENDPOINT_PATH = "api/extras/custom-fields/"
 
+// Synthetic bucket for custom fields with no admin-defined group - shared with
+// GenericDetailFields.kt so it can tell a real NetBox custom-field group apart from this fallback
+// when deciding what to cluster into a shared card.
+internal const val UNGROUPED_CUSTOM_FIELD_GROUP_LABEL = "Other"
+
 private val MATTER_PAIRING_CODE_PATTERN = Regex("^\\d{4}-\\d{3}-\\d{4}$")
 
 internal fun isMatterPairingCode(value: String): Boolean =
@@ -142,7 +147,9 @@ fun buildFieldRows(
             var activeGroup: String? = null
             for ((key, value) in sortedFields) {
                 val definition = definitions[key]
-                val group = definition?.group?.trim()?.takeIf { it.isNotBlank() } ?: "Other"
+                val group =
+                    definition?.group?.trim()?.takeIf { it.isNotBlank() }
+                        ?: UNGROUPED_CUSTOM_FIELD_GROUP_LABEL
                 val label = definition?.label?.takeIf { it.isNotBlank() } ?: Humanize.label(key)
                 val textValue = (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
                 val fieldRow =

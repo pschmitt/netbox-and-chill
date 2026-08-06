@@ -7025,3 +7025,136 @@ app bar itself.
   instead of "Racks".
 
 Status: **done**, 2026-08-06; verified with remote compilation and live on a physical device.
+
+## NBC-391: cluster custom fields sharing a real NetBox custom-field group into one shared card
+
+The read-only Overview tab (`GenericDetailScreen`/`DeviceDetailScreen`, via
+`GenericDetailFields.kt`'s `fieldRow()`) gave every custom field its own standalone card, with only
+a small floating text heading (`FieldRow.CustomGroup`) marking which admin-defined NetBox
+custom-field group ("Purchase info", "SIM information", ...) a run of fields belonged to. Requested
+generically (no hardcoded group names or object types, since this app renders 100+ NetBox object
+types through one shared path): fields sharing a real group should visually cluster into one card
+with the group name as its title, while ungrouped fields (the synthetic `"Other"` bucket
+`buildFieldRows` falls back to) keep today's look exactly as-is.
+
+- [x] `GenericFieldRenderer.kt` gained a shared `UNGROUPED_CUSTOM_FIELD_GROUP_LABEL = "Other"`
+  constant (previously a bare string literal in `buildFieldRows`) so the clustering transform can
+  tell a real group apart from the synthetic fallback without duplicating that string.
+- [x] `GenericDetailFields.kt` gained `clusterFieldRows(rows: List<FieldRow>):
+  List<FieldRowCluster>` - a pure transform mirroring the existing `visibleFieldRows()` marker-
+  walking idiom. Every `FieldRow.CustomGroup(label)` marker whose label isn't the synthetic
+  `"Other"` fallback collects its following member rows into one `FieldRowCluster.Grouped`; the
+  `"Other"` marker and everything else (native fields, the `"Custom fields"` `Section` heading
+  itself) passes through as `FieldRowCluster.Standalone`, unchanged.
+- [x] Each affected `fieldRow()` branch's inner content (`PlainText`, `Markdown`, `Reference`,
+  `BooleanValue`, `ChipList`, `ExternalLink`, `FileAttachment`, `Image`, `ReferenceList`, `TagList`)
+  was mechanically split into a private `@Composable ...Content()` function, reused both standalone
+  (wrapped in today's `detailCard`/`Surface`, byte-for-byte identical output) and stacked inside a
+  new `NyetboxSectionCard` for a real group - fields inside a cluster sit directly on top of each
+  other in a plain `Column`, no `HorizontalDivider` between them (an earlier pass had one; removed
+  after live review looked too busy for adjacent simple fields).
+- [x] `clusterFieldRows` also clusters a second, unrelated case ahead of the `"Custom fields"`
+  marker: a run of two or more consecutive native/top-level `PlainText`/`Reference` rows (e.g. a
+  Rack's Role/Asset Tag/Rack Type/Form Factor/Width/U Height/... block) clusters into one untitled
+  card via `FieldRowCluster.Grouped(label = null, ...)`, matching the look those fields already had
+  next to each other - a lone clusterable row with no clusterable neighbor, or any other native row
+  type (`Markdown`, `Image`, `BooleanValue`, `Count`, `ReferenceList`, `TagList`, `ChipList`,
+  `ExternalLink`, `FileAttachment`, `Metadata`), stays standalone and breaks the run.
+- [x] New `fieldRows()` entry point clusters then renders; both call sites
+  (`GenericDetailScreen.kt:872`, `DeviceDetailScreen.kt:793`) switched from
+  `rows.forEach { fieldRow(it, ...) }` to `fieldRows(rows, ...)` with the same callback wiring
+  unchanged.
+- [x] `BooleanValue` keeps its own tinted `Surface` + click handling verbatim even when clustered
+  (skips the generic click/long-press wrapper `ClusteredFieldRow` adds for other types) rather than
+  nesting a second clickable region around it. `Reference` and `ExternalLink` are the only two types
+  that need an explicit `onClick` re-attached when clustered (navigate / open URL) since they have no
+  card of their own to carry it - every other type either has no click action or already embeds its
+  own (e.g. `FileAttachment`'s download row, `ReferenceList`/`TagList`/`Image`'s per-item clicks).
+- [x] Added `GenericFieldRendererTest` cases: a real group clusters its members; a real group mixed
+  with the synthetic `"Other"` bucket keeps `"Other"` standalone; an `"Other"`-only list never gets
+  clustered (matches today exactly); and one test running the whole pipeline (`buildFieldRows` +
+  `clusterFieldRows`) against real `CustomFieldDefinition`s with groups/weights.
+- [x] Verified remotely: `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite (48
+  cases in `GenericFieldRendererTest`, including the 4 new ones) pass on rofl-13.
+- [x] Verified live on the Zenfone 10 against real data on `netbox.brkn.lol`: device `#30`
+  ("8-inch monitor") has only its "Purchase Information" group populated (Store/Order Number/
+  Date/Price/Currency) - renders as one shared card titled "Purchase Information" with no divider
+  between fields. Device `#5` ("brkn-ap") has "Purchase Information" populated *and* an ungrouped
+  `operating_system` field - renders the grouped card followed by the unchanged small "Other" text
+  heading and a standalone "Operating system" card, confirming the mixed case matches the design
+  exactly. Rack `#1` ("Samson SRK16", via `GenericDetailScreen`, not `DeviceDetailScreen`) confirms
+  the native-field clustering: Role/Asset Tag/Rack Type/Form Factor/Width/U Height/Starting
+  Unit/Max Weight/Weight Unit (a `Reference`/`PlainText` mix) all land in one untitled card, and
+  the following `Desc Units` `BooleanValue` correctly breaks the run into its own standalone card.
+  - Hit and resolved an unrelated environment issue while setting this up: the Zenfone already had a
+    Room schema v18 database installed from other, newer concurrent work on `main` that hasn't
+    landed in this isolated worktree yet (which only knows schema v17), causing a
+    "migration from 18 to 17" crash on launch. Fixed by `just zenfone-uninstall
+    dev.pschmitt.nyetbox.debug` + reinstall (wipes the offline cache only, not real NetBox data;
+    repopulated by the next sync) - unrelated to this feature, not fixed here.
+  - This live-verification pass was interrupted mid-way by a session-limit cutoff and resumed cold
+    in a fresh session; the resuming session re-checked the worktree diff for corruption, re-ran
+    `:app:compileDebugKotlin`/`:app:testDebugUnitTest` remotely (both reported `UP-TO-DATE`,
+    confirming the on-disk state was byte-identical to what had already passed), then repeated the
+    device-30/device-5/Rack checks above from scratch since screenshots from the interrupted run
+    weren't preserved. The Room schema v18 crash above recurred a second time on the Zenfone
+    (re-deploying over the previous session's now-stale install) and was fixed the same way.
+- [x] Deployed the verified build to all three physical test devices (`just deploy-all debug`):
+  Zenfone 10, Mi Pad 4, Pixel 5. Confirmed Mi Pad 4 and Pixel 5 both launch to device `#30`'s detail
+  screen without the Room migration crash (neither had the newer schema installed).
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and live
+on a physical device against three real objects on the live NetBox instance (a single-group case,
+a mixed group-plus-ungrouped case, and a native-field-clustering case on a non-device object type).
+
+## NBC-392: Room cache no longer hard-crashes the app on a schema downgrade
+
+While live-verifying NBC-391, the Zenfone 10 and then the Pixel 5 both hit
+`IllegalStateException: A migration from 18 to 17 was required but not found` on launch and
+crash-looped on every relaunch until the app was uninstalled and reinstalled. Root cause: another,
+separate uncommitted change on `main` (outside this worktree) bumped the Room schema to v18 and had
+been installed on those devices from earlier testing; this worktree's build only knows v17, and
+Room has no forward migration path for a *downgrade*, so `SQLiteOpenHelper.onDowngrade` throws
+instead of opening the database. Manually uninstalling/reinstalling worked around it each time, but
+it's a real robustness gap, not just a one-off nuisance: the same crash can hit any dev testing
+across two worktrees/branches with different schema versions on shared physical devices, and
+nothing about it is specific to NBC-391.
+
+- [x] `CacheDatabaseManager.kt`'s `Room.databaseBuilder(...)` call gained
+  `.fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)`. Safe specifically because this
+  Room database is documented as a disposable, sync-repopulated cache of NetBox (see
+  `GenericObjectRepository`/`DeviceRepository`, and the "Offline cache via Room" note in
+  `AGENTS.md`) - never the source of truth - so silently dropping and rebuilding it on a downgrade
+  trades one background resync for a hard launch crash. Forward migrations are untouched; only the
+  downgrade path (`addMigrations`/`MIGRATIONS` has no matching entry) falls back to destructive.
+- [x] Verified remotely: `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite pass
+  on rofl-13.
+- [x] Verified live: reinstalled onto the Pixel 5 (which was still crash-looping on the v18 cache
+  from earlier NBC-391 testing) without first uninstalling - app opened cleanly straight into the
+  "Connect to NetBox" setup flow instead of crashing, confirming the destructive-downgrade fallback
+  fires instead of throwing.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and a live
+reproduction of the original crash on the Pixel 5.
+
+## NBC-393: show live sync progress in the initial setup overlay and remove the sync-card chevron
+
+The first-run "Setting up your NetBox instance" overlay stayed on a static explanatory sentence
+while the initial inventory sync was running, even though the dashboard's sync status card already
+had live step and item counts. The sync card also had a trailing chevron that did not represent an
+action.
+
+- [x] Removed the unused trailing `ChevronRight` icon from `SyncStatusCard` and its import.
+- [x] Passed the already-collected `SyncProgress` state into `InitialSyncOverlay`; render its live
+  message plus the `Step X of Y · N of M items` detail, with the original sentence as the initial
+  fallback before the first progress event.
+- [x] Added the required `SyncProgress`/`notificationSubText` imports and verified remotely with
+  `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite on rofl-13.
+- [x] Deployed the build to all three attached devices with `just deploy-all debug`. On the Zenfone
+  10's fresh first sync, UI automation captured live overlay text including `Syncing 138 NetBox
+  models…`, `Step 7 of 9 · 29 of 138 models`, and later `Syncing topology map…`/`Step 9 of 9`; the
+  overlay then cleared and the dashboard showed `Synced` and `Last synced just now`. The Mi Pad 4
+  and Pixel 5 also installed successfully and launched without errors.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, deployment
+to all attached physical devices, and live first-sync progress on the Zenfone 10.

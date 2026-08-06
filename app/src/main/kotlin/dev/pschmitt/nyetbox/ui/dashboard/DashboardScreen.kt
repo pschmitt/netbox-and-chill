@@ -88,6 +88,8 @@ import dev.pschmitt.nyetbox.data.db.NewsItemEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
 import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.SyncIssue
+import dev.pschmitt.nyetbox.sync.SyncProgress
+import dev.pschmitt.nyetbox.sync.notificationSubText
 import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
@@ -611,7 +613,7 @@ fun DashboardScreen(
         }
 
         if (showInitialSyncOverlay && !initialSyncTimedOut) {
-            InitialSyncOverlay()
+            InitialSyncOverlay(syncProgress)
         }
     }
 
@@ -743,7 +745,7 @@ private fun DashboardSectionHeader(
 }
 
 @Composable
-private fun InitialSyncOverlay() {
+private fun InitialSyncOverlay(syncProgress: SyncProgress?) {
     // Deliberately a same-window Compose overlay, not a Dialog: a Dialog owns a separate Android
     // Window, which does not play well with activityRule.scenario.recreate() in NetBoxE2eTest -
     // confirmed via CI, where that combination left the activity stuck "PAUSED" instead of
@@ -779,11 +781,21 @@ private fun InitialSyncOverlay() {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Fetching your inventory for the first time - this only happens once.",
+                    syncProgress?.message
+                        ?: "Fetching your inventory for the first time - this only happens once.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+                if (syncProgress != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        syncProgress.notificationSubText(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }

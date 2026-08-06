@@ -81,6 +81,12 @@ constructor(
         return databases.getOrPut(profile.id) {
             Room.databaseBuilder(context, AppDatabase::class.java, profile.cacheDatabaseName)
                 .addMigrations(*MIGRATIONS)
+                // The cache is a disposable, sync-repopulated mirror of NetBox (see
+                // GenericObjectRepository) - never the source of truth - so a schema downgrade
+                // (e.g. switching between worktrees/branches with different Room versions on the
+                // same device during development) can safely drop and rebuild it instead of
+                // crashing the app on launch.
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                 .build()
         }
     }
