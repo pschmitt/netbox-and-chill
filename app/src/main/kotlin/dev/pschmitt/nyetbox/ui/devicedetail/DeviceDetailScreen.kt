@@ -103,6 +103,7 @@ import dev.pschmitt.nyetbox.ui.common.fileViewIntent
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.shareIntent
+import dev.pschmitt.nyetbox.ui.common.toImageViewerItem
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
 import dev.pschmitt.nyetbox.ui.generic.FieldRow
 import dev.pschmitt.nyetbox.ui.generic.GenericDetailChangelogRow
@@ -219,6 +220,20 @@ fun DeviceDetailScreen(
         visibleDeviceCustomFieldRows(customFieldRows, hiddenFieldKeys, showHiddenFields)
     val detailAccent =
         MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/", objectTypeAccent)
+    val deviceTypeViewerItems = deviceTypePhotoItems(deviceType)
+    val imageAttachmentViewerItems =
+        imageAttachments.map { it.toImageViewerItem(sourceLabel = "Image attachment") }
+    val allImageViewerItems = deviceTypeViewerItems + imageAttachmentViewerItems
+
+    fun openImageViewer(item: ImageViewerItem) {
+        val existingIndex = allImageViewerItems.indexOfFirst { it.url == item.url }
+        if (existingIndex >= 0) {
+            imageViewer = allImageViewerItems to existingIndex
+        } else {
+            val items = allImageViewerItems + item
+            imageViewer = items to items.lastIndex
+        }
+    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -503,7 +518,6 @@ fun DeviceDetailScreen(
                     tabCount = tabCount,
                 ) {
                         item {
-                            val deviceTypeViewerItems = deviceTypePhotoItems(deviceType)
                             val deviceTypePreview = deviceTypeViewerItems.firstOrNull { item ->
                                 item.metadata.any { (_, value) -> value == "Front" }
                             }
@@ -595,7 +609,11 @@ fun DeviceDetailScreen(
                             item {
                                 ImageAttachmentGallery(
                                     attachments = imageAttachments,
-                                    onImageClick = { items, index -> imageViewer = items to index },
+                                    onImageClick = { _, index ->
+                                        imageViewer =
+                                            allImageViewerItems to
+                                                (deviceTypeViewerItems.size + index)
+                                    },
                                     onAdd = {
                                         mediaUploadInitialKind = MediaUploadKind.ImageAttachment
                                         showMediaUpload = true
@@ -888,7 +906,7 @@ fun DeviceDetailScreen(
                                 },
                                 netboxBaseUrl = netboxBaseUrl,
                                 onDownloadAttachment = viewModel::downloadAttachment,
-                                onImageClick = { item -> imageViewer = listOf(item) to 0 },
+                                onImageClick = ::openImageViewer,
                                 isDownloading = isDownloading,
                                 onCopyValue = onCopyValue,
                                 onFieldLongPress = { fieldActionLabel = it },
@@ -1390,6 +1408,7 @@ private fun deviceTypePhotoItems(deviceType: DeviceTypeEntity?): List<ImageViewe
                     url = it,
                     title = "Front of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Front"),
+                    sourceLabel = "Device type image",
                     relatedLink = ImageViewerRelatedLink("Open device type", id),
                 )
             },
@@ -1400,6 +1419,7 @@ private fun deviceTypePhotoItems(deviceType: DeviceTypeEntity?): List<ImageViewe
                     url = it,
                     title = "Rear of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Rear"),
+                    sourceLabel = "Device type image",
                     relatedLink = ImageViewerRelatedLink("Open device type", id),
                 )
             },

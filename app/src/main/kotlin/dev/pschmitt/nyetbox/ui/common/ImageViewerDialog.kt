@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Badge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -74,6 +75,7 @@ data class ImageViewerItem(
     val url: String,
     val title: String,
     val metadata: List<Pair<String, String>> = emptyList(),
+    val sourceLabel: String? = null,
     val relatedLink: ImageViewerRelatedLink? = null,
     val canEdit: Boolean = false,
 )
@@ -387,6 +389,15 @@ private fun ImageMetadataPanel(
                     color = Color.White.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.bodySmall,
                 )
+            }
+        }
+        item.sourceLabel?.let { sourceLabel ->
+            Spacer(Modifier.height(8.dp))
+            Badge(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Text(sourceLabel)
             }
         }
         item.relatedLink?.let { link ->

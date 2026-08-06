@@ -7182,6 +7182,22 @@ specialized rows and custom-field groups with their existing behavior.
 Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
 deployment to all attached physical devices.
 
+## NBC-397: unify device image viewer sources
+
+The dedicated device view's image viewer should let users swipe through all relevant device images
+as one collection, regardless of whether they opened a device-type photo or an image attachment.
+The viewer should identify the source of the currently displayed image without obscuring it.
+
+- [x] Combine device-type front/rear photos and image attachments into one viewer pager from either
+  entry point, while retaining the existing custom-field image fallback.
+- [x] Add a bottom source badge to the viewer metadata panel for device-type images and image
+  attachments.
+- [x] Verify remotely with `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite on
+  rofl-13, then deploy the debug build to all three attached devices with `just deploy-all debug`.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
+deployment to all attached physical devices.
+
 ## NBC-395: share the generic and specialized item-detail screen architecture
 
 `GenericDetailScreen` and the dedicated `DeviceDetailScreen` are separate Compose screens rather

@@ -81,7 +81,7 @@ fun ImageAttachmentGallery(
     }
 }
 
-fun ImageAttachmentEntity.toImageViewerItem(): ImageViewerItem {
+fun ImageAttachmentEntity.toImageViewerItem(sourceLabel: String? = null): ImageViewerItem {
     val title = displayName()
     val metadata = buildList {
         if (!description.isNullOrBlank()) add("Description" to description)
@@ -94,7 +94,12 @@ fun ImageAttachmentEntity.toImageViewerItem(): ImageViewerItem {
             ?.let { add("Last updated" to formatNetBoxDateTime(it)) }
     }
     val url = imageUrl.orEmpty()
-    return ImageViewerItem(url = url, title = title, metadata = metadata)
+    return ImageViewerItem(
+        url = url,
+        title = title,
+        metadata = metadata,
+        sourceLabel = sourceLabel,
+    )
 }
 
 fun ImageAttachmentEntity.displayName(): String =
