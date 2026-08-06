@@ -3,6 +3,32 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-378: restyle the "Add item" picker and create form to look more Material You
+
+The "Add item" model picker used a plain `OutlinedTextField` search bar instead of the app's
+shared pill-shaped `ModernSearchField`, showed a separate "+" icon per row that duplicated the
+row's own tap target, used a star icon (with no background) to indicate pinning, and only let you
+toggle a pin via a hidden long-press gesture. The generic create form (`GenericCreateScreen`)
+rendered its fields as a flat, ungrouped list directly on the scaffold background with a bare
+error message and an oversized spinner in the submit button while saving.
+
+- [x] `AddItemScreen`'s search field switched to `ModernSearchField`, matching every other search
+      entry point in the app.
+- [x] Removed the redundant "+" icon; tapping anywhere on a row's card now opens the create form.
+- [x] Star icon replaced with a `PushPin`/outlined `PushPin` icon inside a circular tinted
+      background, and made independently tappable (`IconButton`) to toggle pin/unpin instead of
+      requiring a long-press.
+- [x] Fixed the rows' card having no horizontal inset (spanned edge-to-edge) - now matches the
+      16dp margin used by the section headers and every other list screen.
+- [x] `GenericCreateScreen`'s fields now render inside a rounded `NyetboxSectionCard` (with the
+      model's own icon) instead of floating on the bare background; the error message got a proper
+      `errorContainer` surface banner matching the edit form's existing pattern; fixed the saving
+      spinner rendering at its default 40dp size inside the submit button.
+- [x] Verify remote compilation and debug installation on Zenfone 10, Mi Pad 4, and Pixel 5.
+
+Status: **done**, 2026-08-06 - remote `:app:compileDebugKotlin` passed after each change, and the
+build was installed and visually checked on the Zenfone 10, Mi Pad 4, and Pixel 5.
+
 ## NBC-377: parallelize sync and add incremental (`last_updated`) fetching
 
 Full syncs fetched every NetBox model, rack elevation, device-type, and attachment sequentially,

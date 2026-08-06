@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -61,7 +64,9 @@ import dev.pschmitt.nyetbox.data.repository.CreateFieldDefinition
 import dev.pschmitt.nyetbox.data.repository.choiceSearchFieldLabel
 import dev.pschmitt.nyetbox.data.repository.choiceSearchHint
 import dev.pschmitt.nyetbox.data.repository.choiceSearchMatches
+import dev.pschmitt.nyetbox.ui.common.NyetboxSectionCard
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
+import dev.pschmitt.nyetbox.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,46 +113,62 @@ fun GenericCreateScreen(
                 LazyColumn(
                     modifier = Modifier.padding(padding).fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     errorMessage?.let { message ->
                         item {
-                            Row(
-                                verticalAlignment = Alignment.Top,
+                            Surface(
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Icon(
-                                    Icons.Default.Error,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                                Text(
-                                    message,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.Top,
+                                ) {
+                                    Icon(Icons.Default.Error, contentDescription = null)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(message, style = MaterialTheme.typography.bodyMedium)
+                                }
                             }
                         }
                     }
-                    items(fields, key = { it.key }) { field ->
-                        val options =
-                            field.choices.ifEmpty { referenceOptions[field.key].orEmpty() }
-                        Column {
-                            CreateFieldInput(
-                                field = field,
-                                value = values[field.key].orEmpty(),
-                                options = options,
-                                onValueChange = viewModel::setValue,
-                            )
-                            field.helpText
-                                ?.takeIf { it.isNotBlank() }
-                                ?.let {
-                                    Text(
-                                        it,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                    item {
+                        NyetboxSectionCard(
+                            title = "${viewModel.route.label} details",
+                            icon = AppIcons.forEndpointPath(viewModel.route.endpointPath),
+                        ) {
+                            Column(
+                                modifier =
+                                    Modifier.padding(horizontal = 18.dp).padding(bottom = 14.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                fields.forEach { field ->
+                                    val options =
+                                        field.choices.ifEmpty {
+                                            referenceOptions[field.key].orEmpty()
+                                        }
+                                    Column {
+                                        CreateFieldInput(
+                                            field = field,
+                                            value = values[field.key].orEmpty(),
+                                            options = options,
+                                            onValueChange = viewModel::setValue,
+                                        )
+                                        field.helpText
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?.let {
+                                                Text(
+                                                    it,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                    }
                                 }
+                            }
                         }
                     }
                     item {
@@ -156,9 +177,17 @@ fun GenericCreateScreen(
                             enabled = !isSaving,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            if (isSaving) CircularProgressIndicator(strokeWidth = 2.dp)
-                            else Icon(Icons.Default.Add, contentDescription = null)
-                            Text(if (isSaving) " Creating…" else " Create")
+                            if (isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            } else {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (isSaving) "Creating…" else "Create")
                         }
                     }
                 }
