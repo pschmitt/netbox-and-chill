@@ -3,12 +3,17 @@ package dev.pschmitt.nyetbox.data.repository
 import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.api.MediaNetBoxApi
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -22,11 +27,68 @@ class MediaUploadRepository
 @Inject
 constructor(
     private val api: MediaNetBoxApi,
+    private val genericApi: GenericNetBoxApi,
     private val imageAttachmentRepository: ImageAttachmentRepository,
     private val genericObjectRepository: GenericObjectRepository,
+    private val directoryRepository: DirectoryRepository,
     private val settingsRepository: SettingsRepository,
     @ApplicationContext private val context: Context,
 ) {
+    private var imageAttachmentContentTypesCache: List<String>? = null
+    private var documentContentTypesCache: Pair<String, List<String>>? = null
+
+    /**
+     * Whether NetBox's `api/extras/image-attachments/` endpoint accepts this object type - not
+     * every model (e.g. `users.permission`) supports image attachments. Determined the same way
+     * [JournalEntryRepository] resolves `assigned_object_type`: DRF's `OPTIONS` response enumerates
+     * a `ChoiceField`'s valid values, here for `object_type`. Fails open (returns true) when the
+     * choices can't be determined - e.g. offline - so the upload option isn't hidden by a transient
+     * failure.
+     */
+    suspend fun supportsImageAttachments(endpointPath: String): Boolean {
+        val objectType = runCatching { contentTypeForEndpoint(endpointPath) }.getOrNull() ?: return true
+        val choices =
+            imageAttachmentContentTypesCache
+                ?: objectTypeChoices(IMAGE_ATTACHMENTS_ENDPOINT_PATH).also {
+                    imageAttachmentContentTypesCache = it
+                }
+        return choices.isEmpty() || objectType in choices
+    }
+
+    /** Same idea as [supportsImageAttachments], but for the (optional) NetBox Documents plugin. */
+    suspend fun supportsDocuments(endpointPath: String): Boolean {
+        val objectType = runCatching { contentTypeForEndpoint(endpointPath) }.getOrNull() ?: return true
+        val docEndpointPath = documentEndpointPath() ?: return true
+        val cached = documentContentTypesCache
+        val choices =
+            if (cached != null && cached.first == docEndpointPath) cached.second
+            else objectTypeChoices(docEndpointPath).also { documentContentTypesCache = docEndpointPath to it }
+        return choices.isEmpty() || objectType in choices
+    }
+
+    private suspend fun documentEndpointPath(): String? =
+        directoryRepository
+            .cachedModels()
+            .filter { model ->
+                model.appKey.contains("document", ignoreCase = true) &&
+                    model.modelKey.contains("document", ignoreCase = true)
+            }
+            .firstOrNull { model -> !model.modelKey.contains("type", ignoreCase = true) }
+            ?.endpointPath
+
+    private suspend fun objectTypeChoices(endpointPath: String): List<String> = runCatching {
+        val options = genericApi.getObjectOptions(endpointPath)
+        val actions = options["actions"]?.jsonObject
+        (actions?.get("POST") ?: actions?.get("PUT"))
+            ?.jsonObject
+            ?.get("object_type")
+            ?.jsonObject
+            ?.get("choices")
+            ?.jsonArray
+            ?.mapNotNull { it.jsonObject["value"]?.jsonPrimitive?.contentOrNull }
+            .orEmpty()
+    }
+        .getOrDefault(emptyList())
 
     suspend fun uploadImageAttachment(
         endpointPath: String,

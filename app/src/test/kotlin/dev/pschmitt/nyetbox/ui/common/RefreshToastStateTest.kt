@@ -13,13 +13,13 @@ class RefreshToastStateTest {
 
     @Test
     fun `successful refresh reports completion`() {
-        assertEquals("Refresh complete", refreshCompletionToast(WorkInfo.State.SUCCEEDED))
+        assertEquals("Sync complete", refreshCompletionToast(WorkInfo.State.SUCCEEDED))
     }
 
     @Test
     fun `failed refresh reports failure`() {
-        assertEquals("Refresh failed", refreshCompletionToast(WorkInfo.State.FAILED))
-        assertEquals("Refresh failed", refreshCompletionToast(WorkInfo.State.CANCELLED))
+        assertEquals("Sync failed", refreshCompletionToast(WorkInfo.State.FAILED))
+        assertEquals("Sync failed", refreshCompletionToast(WorkInfo.State.CANCELLED))
     }
 
     @Test

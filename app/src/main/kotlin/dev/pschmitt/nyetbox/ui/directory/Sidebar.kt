@@ -1,13 +1,13 @@
 package dev.pschmitt.nyetbox.ui.directory
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -17,11 +17,11 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
@@ -102,7 +102,6 @@ private fun <T> moveItem(items: List<T>, item: T, offset: Int): List<T>? {
     return items.toMutableList().apply { add(to, removeAt(from)) }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Sidebar(
     onDeviceListClick: () -> Unit,
@@ -215,6 +214,12 @@ fun Sidebar(
                                 Icon(
                                     AppIcons.forEndpointPath(DEVICES_PATH),
                                     contentDescription = null,
+                                    tint =
+                                        visualColorForEndpointPath(
+                                            DEVICES_PATH,
+                                            objectTypeAccents[DEVICES_PATH.trim('/')],
+                                            MaterialTheme.colorScheme,
+                                        ),
                                 )
                             },
                             selected = false,
@@ -228,24 +233,49 @@ fun Sidebar(
                         pinnedModels.filter { it.endpointPath != DEVICES_PATH },
                         key = { "pinned-${it.endpointPath}" },
                     ) { model ->
-                        NavigationDrawerItem(
-                            label = { Text(model.modelLabel) },
-                            icon = {
-                                Icon(
-                                    AppIcons.forEndpointPath(model.endpointPath),
-                                    contentDescription = null,
-                                    tint =
-                                        visualColorForEndpointPath(
-                                            model.endpointPath,
-                                            objectTypeAccents[model.endpointPath.trim('/')],
-                                            MaterialTheme.colorScheme,
-                                        ),
-                                )
-                            },
-                            selected = false,
-                            onClick = { onModelClick(model) },
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            NavigationDrawerItem(
+                                label = { Text(model.modelLabel) },
+                                icon = {
+                                    Icon(
+                                        AppIcons.forEndpointPath(model.endpointPath),
+                                        contentDescription = null,
+                                        tint =
+                                            visualColorForEndpointPath(
+                                                model.endpointPath,
+                                                objectTypeAccents[model.endpointPath.trim('/')],
+                                                MaterialTheme.colorScheme,
+                                            ),
+                                    )
+                                },
+                                selected = false,
+                                onClick = { onModelClick(model) },
+                                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                            )
+                            if (reorderMode) {
+                                IconButton(
+                                    onClick = { viewModel.togglePinned(model.endpointPath) }
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier.size(32.dp)
+                                                .background(
+                                                    color =
+                                                        MaterialTheme.colorScheme.primaryContainer,
+                                                    shape = CircleShape,
+                                                ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.PushPin,
+                                            contentDescription = "Unpin",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                     item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
                 }
@@ -285,11 +315,11 @@ fun Sidebar(
                                 Modifier.fillMaxWidth()
                                     .sectionDragOffset("sidebar-app-$appKey", sidebarReorderState)
                                     .sectionReorderGesture(
-                                        enabled = reorderMode,
                                         key = "sidebar-app-$appKey",
                                         order = visibleSidebarAppKeys.map { "sidebar-app-$it" },
                                         listState = sidebarListState,
                                         state = sidebarReorderState,
+                                        onDragStart = { reorderMode = true },
                                         onOrderChanged = { changed ->
                                             viewModel.setSidebarAppOrder(
                                                 changed.map { it.removePrefix("sidebar-app-") }
@@ -297,13 +327,12 @@ fun Sidebar(
                                         },
                                     )
                                     .graphicsLayer { rotationZ = wiggle }
-                                    .combinedClickable(
+                                    .clickable(
                                         onClick = {
                                             expandedApps =
                                                 if (appKey in expandedApps) expandedApps - appKey
                                                 else expandedApps + appKey
-                                        },
-                                        onLongClick = { reorderMode = true },
+                                        }
                                     )
                                     .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
                         ) {
@@ -366,6 +395,13 @@ fun Sidebar(
                                         Icon(
                                             AppIcons.forEndpointPath(model.endpointPath),
                                             contentDescription = null,
+                                            tint =
+                                                visualColorForEndpointPath(
+                                                    model.endpointPath,
+                                                    objectTypeAccents[
+                                                        model.endpointPath.trim('/')],
+                                                    MaterialTheme.colorScheme,
+                                                ),
                                         )
                                     },
                                     selected = false,
@@ -405,38 +441,56 @@ fun Sidebar(
                                 IconButton(
                                     onClick = { viewModel.togglePinned(model.endpointPath) }
                                 ) {
-                                    Icon(
-                                        if (isPinned) Icons.Filled.Star
-                                        else Icons.Outlined.StarBorder,
-                                        contentDescription = if (isPinned) "Unpin" else "Pin",
-                                        tint =
-                                            if (isPinned) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    Box(
+                                        modifier =
+                                            Modifier.size(32.dp)
+                                                .background(
+                                                    color =
+                                                        if (isPinned)
+                                                            MaterialTheme.colorScheme
+                                                                .primaryContainer
+                                                        else
+                                                            MaterialTheme.colorScheme
+                                                                .surfaceContainerHighest,
+                                                    shape = CircleShape,
+                                                ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            if (isPinned) Icons.Filled.PushPin
+                                            else Icons.Outlined.PushPin,
+                                            contentDescription =
+                                                if (isPinned) "Unpin" else "Pin to top",
+                                            modifier = Modifier.size(18.dp),
+                                            tint =
+                                                if (isPinned)
+                                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                item {
-                    ListItem(
-                        leadingContent = {
-                            Icon(Icons.Default.CloudOff, contentDescription = null)
-                        },
-                        headlineContent = { Text("Offline mode") },
-                        supportingContent = {
-                            Text(if (offlineMode) "Cached data only" else "Allow network sync")
-                        },
-                        trailingContent = {
-                            Switch(
-                                checked = offlineMode,
-                                onCheckedChange = viewModel::setOfflineMode,
-                                modifier = Modifier.testTag("e2e-offline-toggle"),
-                            )
-                        },
-                    )
-                }
             }
+            HorizontalDivider()
+            // Static (non-scrolling), like SidebarFooter below it - always visible above the
+            // footer rather than the last, easy-to-miss item in the scrolling model list.
+            ListItem(
+                leadingContent = { Icon(Icons.Default.CloudOff, contentDescription = null) },
+                headlineContent = { Text("Offline mode") },
+                supportingContent = {
+                    Text(if (offlineMode) "Cached data only" else "Allow network sync")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = offlineMode,
+                        onCheckedChange = viewModel::setOfflineMode,
+                        modifier = Modifier.testTag("e2e-offline-toggle"),
+                    )
+                },
+            )
             HorizontalDivider()
             SidebarFooter(
                 appVersion = BuildConfig.VERSION_NAME,

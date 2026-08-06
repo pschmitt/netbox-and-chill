@@ -2,12 +2,10 @@ package dev.pschmitt.nyetbox
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -151,24 +149,13 @@ class NetBoxE2eTest : NetBoxJourneyTest() {
         // device list must remain available without any network refresh once this is enabled.
         composeRule.onNodeWithContentDescription("Back").performClick()
         composeRule.onNodeWithText("Home").performClick()
-        // "e2e-offline-toggle" is the last item in the sidebar's LazyColumn (Sidebar.kt) - below
-        // the fold as soon as the model list has more than a couple of entries, so it isn't
-        // composed at all (not just off-screen) until scrolled into view. waitForTag alone
-        // (existence-based) never succeeds for it here; confirm the drawer opened via a
-        // reliably-near-the-top tag instead, then scroll the toggle into view explicitly.
+        // "e2e-offline-toggle" is now a static row pinned above the sidebar footer (Sidebar.kt),
+        // outside the scrolling model-list LazyColumn, so it's always composed and visible - no
+        // scroll needed, unlike when it was the last item in that list.
         clickUntilTagAppears(destinationTag = "e2e-device-list-entry") {
             composeRule.onNodeWithContentDescription("Open navigation").performClick()
         }
-        composeRule
-            .onNodeWithTag("e2e-sidebar-list")
-            .performScrollToNode(hasTestTag("e2e-offline-toggle"))
         composeRule.onNodeWithTag("e2e-offline-toggle").performClick()
-        // Scrolled down to reach the toggle above, which can carry e2e-device-list-entry (near
-        // the top of the same LazyColumn) out of composition - scroll back to it rather than
-        // assume it's still mounted.
-        composeRule
-            .onNodeWithTag("e2e-sidebar-list")
-            .performScrollToNode(hasTestTag("e2e-device-list-entry"))
         composeRule.onNodeWithTag("e2e-device-list-entry").performClick()
         waitForText("CI E2E Device", timeoutMillis = 30_000)
 

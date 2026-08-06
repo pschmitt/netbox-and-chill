@@ -1,18 +1,17 @@
 package dev.pschmitt.nyetbox.ui.common
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -70,19 +69,29 @@ class SectionReorderState {
 fun rememberSectionReorderState(): SectionReorderState =
     androidx.compose.runtime.remember { SectionReorderState() }
 
-/** Adds long-press drag handling to a section container while reorder mode is active. */
+/**
+ * Adds long-press drag handling to a section container - a single continuous long-press-and-drag
+ * both enters reorder mode (via [onDragStart]) and moves the section, rather than requiring a
+ * separate long-press to enter reorder mode first. Deliberately the *only* gesture detector on the
+ * node: stacking this alongside a co-located `combinedClickable(onLongClick = ...)` used to be how
+ * "enter reorder mode" worked, but that tripped a Compose Foundation regression (long-click
+ * handling glitching when another pointerInput gesture shares the node) after the 1.11.4 bump,
+ * silently breaking long-press reordering.
+ */
 fun Modifier.sectionReorderGesture(
-    enabled: Boolean,
     key: String,
     order: List<String>,
     listState: LazyListState,
     state: SectionReorderState,
+    onDragStart: () -> Unit = {},
     onOrderChanged: (List<String>) -> Unit,
 ): Modifier =
-    pointerInput(enabled, key, order) {
-        if (!enabled) return@pointerInput
+    pointerInput(key, order) {
         detectDragGesturesAfterLongPress(
-            onDragStart = { state.begin(key) },
+            onDragStart = {
+                onDragStart()
+                state.begin(key)
+            },
             onDrag = { change, dragAmount ->
                 change.consume()
                 state.update(
@@ -105,18 +114,32 @@ fun Modifier.sectionDragOffset(key: String, state: SectionReorderState): Modifie
     }
 }
 
+/**
+ * A few quick wiggles to confirm reorder mode was just entered, then settles at 0 and stays there
+ * for as long as [enabled] remains true - this used to run for the entire time reorder mode was
+ * active (which can be minutes), reading as a nonstop jitter instead of a one-time "you're in edit
+ * mode now" cue.
+ */
 @Composable
 fun rememberReorderWiggle(enabled: Boolean): Float {
-    val transition = rememberInfiniteTransition(label = "section-reorder-wiggle")
-    val angle by
-        transition.animateFloat(
-            initialValue = -1.2f,
-            targetValue = 1.2f,
-            animationSpec = infiniteRepeatable(tween(durationMillis = 140), RepeatMode.Reverse),
-            label = "section-reorder-angle",
-        )
-    return if (enabled) angle else 0f
+    val angle = remember { Animatable(0f) }
+    LaunchedEffect(enabled) {
+        if (enabled) {
+            repeat(WIGGLE_CYCLES) {
+                angle.animateTo(WIGGLE_ANGLE_DEGREES, tween(WIGGLE_STEP_MILLIS))
+                angle.animateTo(-WIGGLE_ANGLE_DEGREES, tween(WIGGLE_STEP_MILLIS))
+            }
+            angle.animateTo(0f, tween(WIGGLE_STEP_MILLIS))
+        } else {
+            angle.snapTo(0f)
+        }
+    }
+    return angle.value
 }
+
+private const val WIGGLE_ANGLE_DEGREES = 1.2f
+private const val WIGGLE_STEP_MILLIS = 140
+private const val WIGGLE_CYCLES = 3
 
 fun moveSection(order: List<String>, key: String, targetIndex: Int): List<String> {
     val from = order.indexOf(key)

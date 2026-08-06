@@ -120,7 +120,7 @@ class StoreScreenshotTest : NetBoxJourneyTest() {
         // regardless of load state) before waiting for real content.
         waitForContentDescription("More actions", 30_000)
         composeRule.onNodeWithContentDescription("More actions").performClick()
-        composeRule.onNodeWithText("Refresh").performClick()
+        composeRule.onNodeWithText("Sync").performClick()
         // Wait for the rack name from the loaded identity card. Neither the generic "Device"
         // app-bar title nor the site name/asset tag work here: the device list row we just left
         // already renders "<site> · <device type>" plus the asset tag badge as its subtitle, so
@@ -130,7 +130,7 @@ class StoreScreenshotTest : NetBoxJourneyTest() {
         // LazyColumn and never composed without scrolling - rack name is both distinct from the
         // list row and rendered above the fold.
         waitForText("Rack A1", 60_000)
-        // Let the "Refresh queued" / "Refresh complete" snackbars clear before capturing - one of
+        // Let the "Sync queued" / "Sync complete" snackbars clear before capturing - one of
         // them otherwise overlaps the identity card. A text-absence wait raced with the
         // snackbar's exit-fade animation (semantics can report "gone" slightly before the fade
         // finishes, and there are two snackbars in sequence, not one), so a fixed settle delay
