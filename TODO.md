@@ -3,6 +3,21 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-402: remove the compile-time NetBox host from Android App Links
+
+The app should support URLs from any configured NetBox instance without embedding a particular
+instance host in the installed APK manifest. Keep the wildcard chooser filters and app-owned
+`nyetbox://` links, but remove the exact-host verified App Link configuration.
+
+- [x] Remove the `${appLinkHost}` Gradle setting and exact-host HTTP/HTTPS manifest filters.
+- [x] Update the App Links documentation to describe chooser-based host-independent routing.
+- [x] Verify remotely and deploy the debug build to the wired device and Mi Pad 4; verify wildcard
+      NetBox URL resolution on both.
+- [ ] Deploy the debug build to the Pixel 5; its ADB install stalled and timed out.
+
+Status: mostly done, 2026-08-07; verified with remote compilation, the full unit test suite,
+deployment to the wired device and Mi Pad 4, and wildcard URL resolution on both.
+
 ## NBC-378: restyle the "Add item" picker and create form to look more Material You
 
 The "Add item" model picker used a plain `OutlinedTextField` search bar instead of the app's

@@ -106,52 +106,6 @@
                 <data android:scheme="http" android:host="*" android:pathPattern="/plugins/.*" />
             </intent-filter>
 
-            <!--
-                 Domain verification for the user's primary NetBox instance. The wildcard filter
-                 above remains the portable chooser fallback for other configured instances; this
-                 exact-host filter lets Android verify the configured build host when its administrator serves
-                 the matching /.well-known/assetlinks.json file.
-            -->
-            <intent-filter
-                android:autoVerify="true"
-                tools:ignore="IntentFilterUniqueDataAttributes">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/dcim/.*" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/ipam/.*" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/circuits/.*" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/tenancy/.*" />
-                <data
-                    android:scheme="https"
-                    android:host="${appLinkHost}"
-                    android:pathPattern="/virtualization/.*" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/wireless/.*" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/vpn/.*" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/extras/.*" />
-                <data android:scheme="https" android:host="${appLinkHost}" android:pathPattern="/plugins/.*" />
-            </intent-filter>
-
-            <!-- HTTP cannot be domain-verified, but the configured host should still be offered
-                 by Android's chooser when a local NetBox emits an HTTP sticker URL. -->
-            <intent-filter tools:ignore="AppLinkWarning,IntentFilterUniqueDataAttributes">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/dcim/.*" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/ipam/.*" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/circuits/.*" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/tenancy/.*" />
-                <data
-                    android:scheme="http"
-                    android:host="${appLinkHost}"
-                    android:pathPattern="/virtualization/.*" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/wireless/.*" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/vpn/.*" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/extras/.*" />
-                <data android:scheme="http" android:host="${appLinkHost}" android:pathPattern="/plugins/.*" />
-            </intent-filter>
-
             <!-- Share links, images, and arbitrary files into the cache-first attachment workflow. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

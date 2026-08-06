@@ -11,21 +11,6 @@ ksp {
     arg("room.generateKotlin", "true")
 }
 
-// Android App Links are tied to a concrete host at build time. Keep the personal instance as the
-// default, while allowing other builds to use `-PnetboxAppLinkHost=netbox.example` or the
-// `NETBOX_APP_LINK_HOST` environment variable without editing the manifest.
-val appLinkHost =
-    providers
-        .gradleProperty("netboxAppLinkHost")
-        .orElse(providers.environmentVariable("NETBOX_APP_LINK_HOST"))
-        .orElse("netbox.brkn.lol")
-        .get()
-        .also { host ->
-            require(host.matches(Regex("[A-Za-z0-9.-]+"))) {
-                "netboxAppLinkHost must be a hostname without a scheme or path"
-            }
-        }
-
 val configuredVersionCode =
     providers
         .gradleProperty("versionCode")
@@ -58,8 +43,6 @@ android {
 
         versionCode = configuredVersionCode
         versionName = configuredVersionName
-        manifestPlaceholders["appLinkHost"] = appLinkHost
-
         val gitRevision = System.getenv("GIT_REVISION") ?: "unknown"
         buildConfigField("String", "GIT_REVISION", "\"$gitRevision\"")
         val buildDate = System.getenv("BUILD_DATE") ?: "unknown"

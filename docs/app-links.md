@@ -1,38 +1,36 @@
-# App Links and custom NetBox hosts
+# App links and custom NetBox hosts
 
-Android intent filters are part of the installed APK's manifest. The app cannot register a new
-`http`/`https` host with Android after the user enters a NetBox URL, so a runtime preference cannot
-create a verified App Link for an arbitrary instance.
+Android intent filters are part of the installed APK's manifest. Nyetbox deliberately does not
+bind its installed APK to one NetBox host: its `http`/`https` filters use a host wildcard and the
+known NetBox web namespaces. A URL from any configured NetBox instance can therefore be offered in
+Android's normal “Open with” chooser without rebuilding the app.
 
-Nyetbox uses two complementary paths:
+This is normal, non-verified deep linking. It does not automatically bypass the chooser for any
+host. Verified Android App Links require both an exact host in a static `android:autoVerify="true"`
+manifest filter and a matching Digital Asset Links file served by that host. A runtime preference
+or a server-side `assetlinks.json` file cannot add an arbitrary new host to an already-installed
+APK. Android 15 Dynamic App Links can only refine paths within the statically declared scope.
 
-- The non-verified `http`/`https` filters use a host wildcard and the known NetBox web namespaces.
-  This makes a device URL from any configured NetBox instance eligible for the normal Android
-  “Open with” chooser. It does not claim ownership of arbitrary domains.
-- The separate `android:autoVerify="true"` filter uses the `appLinkHost` manifest placeholder.
-  It defaults to `netbox.brkn.lol`, but another build can set
-  `-PnetboxAppLinkHost=netbox.example` or `NETBOX_APP_LINK_HOST=netbox.example`. That host must
-  publish a Digital Asset Links file containing this app's package and release certificate before
-  Android can open matching links automatically.
-- `nyetbox://` links are app-owned and host-independent. They are the appropriate format for links
-  shared by the app itself when verified web links are not available.
+`nyetbox://` links remain app-owned and host-independent. They are appropriate for links generated
+by Nyetbox itself when a custom-scheme link is preferable to a web URL.
+
+## User setup
+
+No server-side JSON file is needed for the current chooser-based behavior. Users only need to
+install Nyetbox, open a matching NetBox URL, and select Nyetbox in Android's “Open with” dialog.
+They can choose “Always” (or set Nyetbox as the preferred app in Android's link settings) if they
+want future matching URLs to open there by default. This works for each configured NetBox host,
+including hosts that were not known when the APK was built.
+
+The `assetlinks.json` file is only needed for a different setup: verified App Links that open
+directly in Nyetbox without a chooser. That setup also requires the APK to contain a matching,
+exact-host `android:autoVerify="true"` filter; placing the JSON file on a server is not sufficient
+by itself, and the current generic APK intentionally does not use that setup.
 
 ## Verifying a device
 
-The production asset-links file must name the current package, `dev.pschmitt.nyetbox`, and the
-release certificate fingerprint. On a connected device, inspect the result with:
-
-```shell
-adb shell cmd package get-app-links dev.pschmitt.nyetbox
-```
-
-The expected state for `netbox.brkn.lol` is `verified`. Android should then route this external
-view intent directly to Nyetbox:
-
-The personal NetBox host also advertises `dev.pschmitt.nyetbox.debug` with the shared development
-certificate, so the debug build can be verified when Android accepts that certificate. This is
-specific to the development signing key; debug APKs signed elsewhere still need explicit opening or
-local App Link approval.
+The wildcard filters intentionally use the normal chooser path. To test one, open a matching URL
+for a configured or non-verified host:
 
 ```shell
 adb shell am start -W \
@@ -41,21 +39,12 @@ adb shell am start -W \
   -d 'https://netbox.example/dcim/devices/123/'
 ```
 
-`am start` does not itself force the chooser. It uses the device's preferred handler; a verified
-Nyetbox domain intentionally bypasses the chooser. To test the generic chooser path, clear the
-browser's preferred activities temporarily (or use Android Settings → Apps → Default apps), then
-open a matching URL for a non-verified host:
+Android should offer Nyetbox alongside the browser. The selected choice can become the device's
+preferred handler, so reset the browser's preferred activities when repeating the chooser test:
 
 ```shell
 adb shell cmd package clear-package-preferred-activities org.mozilla.firefox
 ```
-
-The wildcard filter should then make Nyetbox eligible alongside the browser. Re-select the normal
-browser afterward if this is a personal test device.
-
-Android 15's Dynamic App Links can refine paths for a domain that is already declared and verified;
-they do not turn runtime preferences into new manifest hosts. The manifest therefore intentionally
-keeps the portable chooser path and makes only the verified host a compile-time setting.
 
 Useful references:
 
