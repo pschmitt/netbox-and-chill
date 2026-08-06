@@ -68,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
+import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -1399,7 +1400,7 @@ private fun CableTraceCableRow(cable: CableTraceCableInfo?) {
             )
         } else {
             cable.color
-                ?.let { hex -> runCatching { Color(android.graphics.Color.parseColor("#$hex")) } }
+                ?.let { hex -> runCatching { Color("#$hex".toColorInt()) } }
                 ?.getOrNull()
                 ?.let { swatch ->
                     Box(Modifier.size(10.dp).background(swatch, CircleShape))

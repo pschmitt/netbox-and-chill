@@ -1,6 +1,7 @@
 package dev.pschmitt.nyetbox.ui.common
 
 import android.annotation.SuppressLint
+import android.view.MotionEvent
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -13,8 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.scanner.NetBoxTarget
@@ -102,8 +103,12 @@ fun SvgDiagramView(
 ) {
     // Only used while there's no SVG yet to derive a real aspect ratio from - a fixed height
     // (previously 480dp) left most of the screen unused on phones and especially tablets, so this
-    // loading placeholder uses most of the available screen height instead.
-    val diagramHeight = (LocalConfiguration.current.screenHeightDp * 0.75f).dp
+    // loading placeholder uses most of the available screen height instead. LocalWindowInfo's
+    // pixel size (rather than the deprecated LocalConfiguration.screenHeightDp) converted through
+    // the current density, per the ConfigurationScreenWidthHeight lint check.
+    val density = LocalDensity.current
+    val windowHeightPx = LocalWindowInfo.current.containerSize.height
+    val diagramHeight = with(density) { (windowHeightPx * 0.75f).toDp() }
     if (svg == null) {
         Box(modifier.fillMaxWidth().height(diagramHeight), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -135,6 +140,9 @@ fun SvgDiagramView(
                 // disallowing it would also block the ordinary single-finger drags that scroll the
                 // surrounding list past the diagram.
                 setOnTouchListener { view, event ->
+                    if (event.action == MotionEvent.ACTION_UP) {
+                        view.performClick()
+                    }
                     view.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
                     false
                 }
