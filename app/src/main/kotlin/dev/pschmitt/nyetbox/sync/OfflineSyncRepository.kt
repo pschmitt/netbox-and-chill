@@ -246,7 +246,8 @@ constructor(
                 cables.syncConcurrently(concurrency) { cable ->
                     val cableJson = runCatching {
                         json.decodeFromString(JsonObject.serializer(), cable.json)
-                    }.getOrNull()
+                    }
+                        .getOrNull()
                     val target = cableJson?.let(::cableTraceStartTarget)
                     if (target != null) {
                         val (endpointPath, id) = target

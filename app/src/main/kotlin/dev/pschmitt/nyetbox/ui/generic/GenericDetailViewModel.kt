@@ -125,11 +125,13 @@ constructor(
     // in and out for the common case where they are supported.
     val supportsImageAttachments: StateFlow<Boolean> = flow {
         emit(mediaUploadRepository.supportsImageAttachments(route.endpointPath))
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val supportsDocuments: StateFlow<Boolean> = flow {
         emit(mediaUploadRepository.supportsDocuments(route.endpointPath))
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(
@@ -203,7 +205,8 @@ constructor(
 
     private val imageAttachmentObjectType: String? = runCatching {
         MediaUploadRepository.contentTypeForEndpoint(route.endpointPath)
-    }.getOrNull()
+    }
+        .getOrNull()
 
     val imageAttachments: StateFlow<List<ImageAttachmentEntity>> =
         imageAttachmentObjectType
