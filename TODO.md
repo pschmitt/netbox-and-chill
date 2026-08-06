@@ -6976,3 +6976,52 @@ Three unrelated issues surfaced while testing NBC-383/384 on real devices:
 Status: **done**, 2026-08-06; verified with remote compilation, unit tests, and live testing across
 the Zenfone 10, Mi Pad 4, and Pixel 5 (including the rack image attachment, the pull-to-refresh
 regression check, and the Sync-status dialog catching a real in-progress sync on the Zenfone 10).
+
+## NBC-388: detail-screen tab bar reflows after opening, causing mis-taps on slower phones
+
+Opening a device (or generic item) detail screen showed the tab bar before every related-object
+Room query had emitted its first real value. Each `stateIn(...)` related flow starts at its
+`emptyList()`/`false` placeholder, so `DeviceDetailScreen`'s `visibleRelatedTabs` (filtered by
+`relatedCounts[index] > 0`) and `GenericDetailScreen`'s `hasJournal` gate initially under-counted,
+then tabs popped in one by one as each cached query landed - shifting every tab after the
+newly-inserted one to the right. On a slower phone a tap registered before the reflow could land on
+a different tab once the layout finished settling.
+
+- [x] `DeviceDetailViewModel` gained `tabsReady: StateFlow<Boolean>`, combining a `.map { true }`
+  readiness signal (mirroring the existing `hasCheckedCache` trick) over every source that decides
+  tab visibility: `journalEntries`, `changelog`, the full device list backing `connectedDevices`,
+  `topologyPluginAvailable`, the one-shot cached topology graph check, and each
+  `DEVICE_RELATED_TABS` related-object query. `DeviceDetailScreen` now shows the loading spinner
+  until `tabsReady` is true, so the tab bar only ever renders once, fully populated.
+- [x] `GenericDetailViewModel` gained `journalTabReady: StateFlow<Boolean>` (same trick, scoped to
+  just `journalEntries` - the only async source that affects *tab membership* there; `isRack`/
+  `isCable` are synchronous and `changelog`/`traceSegments` only affect badge counts, not which tabs
+  show up). `GenericDetailScreen` gates on it the same way.
+- [x] Verified remotely: `:app:compileDebugKotlin` and `:app:testDebugUnitTest` (including
+  `DeviceDetailViewModelTest`) both pass on rofl-13 with the change in place.
+- [ ] Verify live on a physical device that the tab bar no longer visibly grows after the screen
+  appears - not conclusively caught on the Zenfone 10 yet (a reflow this fast is hard to catch via
+  screenshots); the underlying mechanism is verified correct by code review and by NBC-389's live
+  confirmation of the same `stateIn`-placeholder pattern on the same screen family.
+
+Status: mostly done, 2026-08-06; remote compile/test verification done, live device tab-bar-reflow
+check still genuinely pending (not just unconfirmed - actually not caught live).
+
+## NBC-389: generic item detail header showed the pluralized type instead of the item's name
+
+`GenericDetailScreen`'s TopAppBar title always rendered `modelLabel` - the pluralized last segment
+of the endpoint path (e.g. "Racks", "Sites") via `endpointModelLabel()` - regardless of whether the
+item's own name was known. The `title: StateFlow<String?>` (`GenericDetailViewModel.kt`, mirroring
+`objectEntity.display`, NetBox's own display string, e.g. "Rack 12") was already computed and used
+elsewhere on the screen (breadcrumbs, print label text, the identity card) but never fed into the
+app bar itself.
+
+- [x] TopAppBar title now renders `title ?: objectTypeLabel(modelLabel, viewModel.route.endpointPath)`
+  - the item's real name once loaded, falling back to the existing singular-type-label helper
+  (`ui/common/ObjectTypeBadge.kt`, already used by global search) while loading or if the item
+  genuinely has no display name, instead of the plural form.
+- [x] Verified remotely: `:app:compileDebugKotlin` passes on rofl-13 with the change in place.
+- [x] Verified live on the Zenfone 10: the rack detail screen's header now reads "Samson SRK16"
+  instead of "Racks".
+
+Status: **done**, 2026-08-06; verified with remote compilation and live on a physical device.

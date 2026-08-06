@@ -184,11 +184,28 @@ constructor(
     private val _fileToOpen = MutableStateFlow<File?>(null)
     val fileToOpen: StateFlow<File?> = _fileToOpen.asStateFlow()
 
+    private val journalEntriesFlow =
+        journalEntryRepository.observeJournalEntries(route.endpointPath, route.id).map { entries ->
+            entries.mapNotNull { it.toJournalEntryUi() }
+        }
+
     val journalEntries: StateFlow<List<JournalEntryUi>> =
-        journalEntryRepository
-            .observeJournalEntries(route.endpointPath, route.id)
-            .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        journalEntriesFlow.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList(),
+        )
+
+    /**
+     * Whether the journal query has produced its first real emission - `journalEntries` starts out
+     * as the `emptyList()` placeholder from `stateIn`, so composing the tab bar before this settles
+     * can render without a Journal tab that then pops in and shifts every tab after it, landing
+     * taps on the wrong tab on slower phones.
+     */
+    val journalTabReady: StateFlow<Boolean> =
+        journalEntriesFlow
+            .map { true }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     /**
      * The dashboard sync already owns the cached changelog; do not fan out a network request here.

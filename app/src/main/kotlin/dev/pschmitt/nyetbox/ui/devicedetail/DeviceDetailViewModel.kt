@@ -43,6 +43,7 @@ import dev.pschmitt.nyetbox.ui.navigation.Route
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -199,10 +200,15 @@ constructor(
             .observeCapability(::isDocumentsPluginModel)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    private val topologyPluginAvailableFlow =
+        directoryRepository.observeCapability(::isTopologyPluginModel)
+
     val topologyPluginAvailable: StateFlow<Boolean> =
-        directoryRepository
-            .observeCapability(::isTopologyPluginModel)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+        topologyPluginAvailableFlow.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            false,
+        )
 
     val objectTypeAccent: StateFlow<dev.pschmitt.nyetbox.data.repository.ThemeAccent?> =
         settingsRepository.objectTypeAccents
@@ -313,25 +319,31 @@ constructor(
             .observeFor("api/dcim/devices/", deviceId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val journalEntriesFlow =
+        journalEntryRepository.observeJournalEntries("api/dcim/devices/", deviceId).map { entries ->
+            entries.mapNotNull { it.toJournalEntryUi() }
+        }
+
     val journalEntries: StateFlow<List<JournalEntryUi>> =
-        journalEntryRepository
-            .observeJournalEntries("api/dcim/devices/", deviceId)
-            .map { entries -> entries.mapNotNull { it.toJournalEntryUi() } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        journalEntriesFlow.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList(),
+        )
+
+    private val changelogFlow =
+        dashboardRepository.observeChangelog(NetBoxRef.DEVICES_ENDPOINT_PATH, deviceId)
 
     val changelog: StateFlow<List<ObjectChangeEntity>> =
-        dashboardRepository
-            .observeChangelog(NetBoxRef.DEVICES_ENDPOINT_PATH, deviceId)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        changelogFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val cachedTopologyGraph = MutableStateFlow<TopologyGraph?>(null)
 
+    private val allDevicesFlow = deviceRepository.observeDevices("")
+
     /** Resolve graph neighbors against the typed cache so this tab never needs a live lookup. */
     val connectedDevices: StateFlow<List<DeviceEntity>> =
-        combine(device, deviceRepository.observeDevices(""), cachedTopologyGraph) {
-                current,
-                devices,
-                graph ->
+        combine(device, allDevicesFlow, cachedTopologyGraph) { current, devices, graph ->
                 connectedDevicesFor(current, devices, graph)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -340,24 +352,49 @@ constructor(
     val journalMutationState: StateFlow<JournalMutationUiState> =
         _journalMutationState.asStateFlow()
 
+    private val relatedObjectFlows: Map<String, Flow<List<NetBoxObjectEntity>>> =
+        DEVICE_RELATED_TABS.filterNot {
+                it.endpointPath == JOURNAL_TAB_ENDPOINT_PATH ||
+                    it.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH
+            }
+            .associate { tab ->
+                tab.endpointPath to
+                    genericObjectRepository.observeObjects(tab.endpointPath, "", "device", deviceId)
+            }
+
     val relatedObjects: Map<String, StateFlow<List<NetBoxObjectEntity>>> =
         DEVICE_RELATED_TABS.associate { tab ->
             tab.endpointPath to
-                if (
-                        tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH ||
-                            tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH
-                    ) {
-                        flowOf(emptyList())
-                    } else {
-                        genericObjectRepository.observeObjects(
-                            tab.endpointPath,
-                            "",
-                            "device",
-                            deviceId,
-                        )
-                    }
-                    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+                (relatedObjectFlows[tab.endpointPath] ?: flowOf(emptyList())).stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5000),
+                    emptyList(),
+                )
         }
+
+    private val topologyGraphChecked = MutableStateFlow(false)
+
+    /**
+     * Whether every source that decides which related tab shows up has produced its first real
+     * emission - the counts backing tab visibility all start out as `emptyList()`/`false`
+     * placeholders (see the `stateIn` calls above), so composing the tab bar before this settles
+     * shows a partial tab set that then grows and reflows as each cached query lands, which is
+     * exactly what makes tabs land under the wrong finger on slower phones.
+     */
+    val tabsReady: StateFlow<Boolean> =
+        combine(
+                buildList {
+                    add(journalEntriesFlow.map { true })
+                    add(changelogFlow.map { true })
+                    add(allDevicesFlow.map { true })
+                    add(topologyPluginAvailableFlow.map { true })
+                    add(topologyGraphChecked)
+                    relatedObjectFlows.values.forEach { add(it.map { true }) }
+                }
+            ) { flags ->
+                flags.all { it }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val interfaceIpAddresses: StateFlow<Map<Int, List<InterfaceIpAddress>>> =
         genericObjectRepository
@@ -385,6 +422,7 @@ constructor(
             topologyRepository.cached().onSuccess { snapshot ->
                 cachedTopologyGraph.value = snapshot?.graph
             }
+            topologyGraphChecked.value = true
         }
     }
 

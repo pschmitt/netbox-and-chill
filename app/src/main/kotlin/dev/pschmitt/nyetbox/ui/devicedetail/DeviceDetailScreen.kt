@@ -144,6 +144,7 @@ fun DeviceDetailScreen(
 ) {
     val device by viewModel.device.collectAsStateWithLifecycle()
     val hasCheckedCache by viewModel.hasCheckedCache.collectAsStateWithLifecycle()
+    val tabsReady by viewModel.tabsReady.collectAsStateWithLifecycle()
     val webUrl by viewModel.webUrl.collectAsStateWithLifecycle()
     val netboxBaseUrl by viewModel.netboxBaseUrl.collectAsStateWithLifecycle()
     val deviceType by viewModel.deviceType.collectAsStateWithLifecycle()
@@ -484,9 +485,9 @@ fun DeviceDetailScreen(
             onRefresh = { viewModel.refresh(showConfirmation = true) },
             modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
-            if (current == null) {
+            if (current == null || !tabsReady) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    if (!hasCheckedCache) {
+                    if (!hasCheckedCache || (current != null && !tabsReady)) {
                         CircularProgressIndicator()
                     } else {
                         Text(

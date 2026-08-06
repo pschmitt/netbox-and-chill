@@ -99,6 +99,7 @@ import dev.pschmitt.nyetbox.ui.common.fileViewIntent
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.itemTabSwipe
 import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
+import dev.pschmitt.nyetbox.ui.common.objectTypeLabel
 import dev.pschmitt.nyetbox.ui.common.shareIntent
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
 
@@ -121,6 +122,7 @@ fun GenericDetailScreen(
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
     val hasCheckedCache by viewModel.hasCheckedCache.collectAsStateWithLifecycle()
+    val journalTabReady by viewModel.journalTabReady.collectAsStateWithLifecycle()
     val fields by viewModel.fields.collectAsStateWithLifecycle()
     val editableFields by viewModel.editableFields.collectAsStateWithLifecycle()
     val referenceOptions by viewModel.referenceOptions.collectAsStateWithLifecycle()
@@ -393,7 +395,10 @@ fun GenericDetailScreen(
                             tint = detailAccent,
                         )
                         Column(modifier = Modifier.padding(start = 8.dp)) {
-                            Text(modelLabel, maxLines = 1)
+                            Text(
+                                title ?: objectTypeLabel(modelLabel, viewModel.route.endpointPath),
+                                maxLines = 1,
+                            )
                             if (viewModel.route.breadcrumb != null) {
                                 Text(
                                     "from ${viewModel.route.breadcrumb}",
@@ -676,9 +681,9 @@ fun GenericDetailScreen(
                 modifier = Modifier.padding(padding).fillMaxSize(),
             ) {
                 when {
-                    title == null ->
+                    title == null || !journalTabReady ->
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            if (!hasCheckedCache) {
+                            if (!hasCheckedCache || (title != null && !journalTabReady)) {
                                 CircularProgressIndicator()
                             } else {
                                 Text(
