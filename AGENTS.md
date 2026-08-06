@@ -53,10 +53,12 @@ Repository instructions for AI coding agents working on Nyetbox.
 local judgment.** Both of the above discrepancies were discovered the hard way: a change that
 passed `just lint` on rofl-13 still failed CI's `Lint` job after being pushed and tagged. If CI's
 `Lint` job fails or disagrees with what a local/remote check said:
-- Dispatch `.github/workflows/ktfmt-diff.yaml` (`gh workflow run ktfmt-diff.yaml`) - it runs the
-  real `ktfmtFormat` in the same environment CI's `ktfmtCheck` uses and uploads a `ktfmt.patch`
-  artifact (`gh run download <run-id> -n ktfmt-diff-patch`). Apply that patch (`git apply`) rather
-  than guessing or reformatting by hand.
+- `.github/workflows/lint.yaml`'s `Lint` job auto-uploads a `ktfmt-diff-patch` artifact whenever
+  `ktfmtCheck` fails - on any trigger, push/PR or manual. It contains exactly what
+  `./gradlew ktfmtFormat` would change, computed in the same environment CI's `ktfmtCheck` uses.
+  Grab it with `gh run download <run-id> -n ktfmt-diff-patch` and apply it (`git apply`) rather
+  than guessing or reformatting by hand. Dispatch it directly (`gh workflow run lint.yaml`) to get
+  a patch preemptively, without waiting for a real push/PR to fail first.
 - Fix every lint/format violation CI reports before calling a change done, even in files the
   current change didn't touch or author - don't scope a fix to "only the lines I changed" if CI
   flags something adjacent. Never disable, skip, or baseline around a lint failure to make it go
