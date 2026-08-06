@@ -6576,3 +6576,27 @@ object type with the same compact icon-and-label badge already used by global se
 
 Status: **done**, 2026-08-05; verified with remote compilation, unit tests, ktfmtCheck, and debug
 installation on the Zenfone 10, Mi Pad 4, and Pixel 5.
+
+## NBC-385: auto-trigger screenshot capture on a real tagged release
+
+`screenshots.yaml` was entirely manual (`workflow_dispatch` only). Direct user request (part of
+the same ask made in the sibling jollyfin/augh repos): fire it automatically off `release.yaml`'s
+real version-tag path, not the rolling "latest" prerelease that republishes on every `main` push -
+that would turn a long-running multi-device emulator job into something that runs on every commit
+instead of once per release.
+
+- [x] Added an `actions: write` permission and a "Trigger screenshot capture" step to
+  `release.yaml`, gated on `steps.params.outputs.tag_name != 'latest'`, calling
+  `gh workflow run screenshots.yaml --ref main -f open_pr=true`. Uses the default `github.token` -
+  no PAT needed, since `workflow_dispatch` (unlike push/PR events) is explicitly exempted from
+  GitHub's "events triggered by GITHUB_TOKEN don't start a new workflow run" restriction.
+- [x] `open_pr=true` so the auto-triggered run lands as a reviewable PR rather than only a build
+  artifact nobody looks at.
+
+**Why:** direct user request.
+**How to apply:** if this ever needs a different ref than `main`, update the `--ref` flag -
+currently pinned to `main` since that's guaranteed to have the workflow file's `workflow_dispatch`
+schema.
+
+Status: **done**, 2026-08-06 - not yet verified by an actual tag push through the full pipeline;
+the next real release will be the first live test.
