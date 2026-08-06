@@ -124,6 +124,18 @@ passed `just lint` on rofl-13 still failed CI's `Lint` job after being pushed an
   only network fan-out with explicitly "transient" (not cached) results, flagged and reworked to be
   cache-first the same day. See also NBC-18 (cached data must render immediately even when a
   refresh at launch fails).
+- **Prefer computing a value once at sync time over re-deriving it on every screen open.** If a
+  screen has to decide something from data sync already fetched (does this device have any
+  interfaces, which tab should show, what's the count for a badge), and that decision could
+  instead be computed once - while the data is written into Room during sync - and stored for a
+  cheap indexed read later, do that instead of recomputing it live every time the screen opens. Live
+  re-derivation that scans/decodes cached rows on every open doesn't just cost latency; it can be
+  real, repeated CPU work that scales with total data size (see NBC-390: per-device tab visibility
+  was answered by decoding every cached row of an endpoint *across every device in the install*, on
+  every device-detail screen open, because there was no indexed way to ask "which of these rows
+  belong to device 42" - fixed by precomputing a `relatedObjectId` column at sync/write time instead
+  of at read time). When in doubt, push the work upstream to sync and leave the read path a plain,
+  fast lookup.
 - The whole point of the app is scanning the device-sticker QR codes (public NetBox device URLs
   like `https://<netbox-host>/dcim/devices/<id>/`) with the in-app CameraX/ZXing scanner, and via
   the `/dcim/devices/*` deep-link intent-filter when such a link is opened from another app. Both

@@ -7253,3 +7253,99 @@ and documents as shared cards while preserving their existing counts and actions
 
 Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and
 deployment to all attached physical devices.
+## NBC-390: relation lookups (device tabs, journal entries, rack devices) decoded every cached row
+of an endpoint on every screen open instead of using an index
+
+NBC-388's `tabsReady`/`journalTabReady` fix made the tab bar wait for its data to settle before
+rendering, but didn't address why settling ever took measurable work: `netbox_objects` has no
+index and no device/relation column at all. `GenericObjectRepository.observeObjects(endpointPath,
+"", filterKey, filterValue)` - used for a device's interfaces/ports (`filterKey = "device"`), a
+device's journal entries (`filterKey = "assigned_object_id"`), and a rack's devices (`filterKey =
+"rack"`) - read the *entire* cached endpoint (`dao.observeAll`) and decoded every row's JSON in
+Kotlin (`matchesRelation`) to find which ones belonged to the one device/rack being viewed, every
+single time any detail screen opened, regardless of how many other devices' components were mixed
+into that same cached table. The fix pushes that decision to sync/write time instead, per the new
+AGENTS.md "Architecture" guidance the user asked for ("whatever can be done at sync time, ahead -
+should be done at sync time").
+
+- [x] `NetBoxObjectEntity` gained a nullable `relatedObjectId: Int?` column plus a
+  `(endpointPath, relatedObjectId)` index (migration 17→18, `MIGRATION_17_18`).
+- [x] `GenericObjectRepository.toEntity()` now computes `relatedObjectId` once at write time via
+  `precomputedRelatedObjectId()`, for exactly the three (endpoint, relation key) pairs actually
+  queried on every normal screen open (device-scoped component endpoints, `api/dcim/devices/`'s
+  `rack` relation, journal entries' `assigned_object_id`) - anything else (e.g. the related-items
+  bottom sheet's arbitrary `_count`-field relations) is untouched and still falls back to the
+  original full-scan behavior.
+- [x] `NetBoxObjectDao.observeByRelatedObjectId()` is a real indexed query
+  (`WHERE endpointPath = ? AND (relatedObjectId = ? OR relatedObjectId IS NULL)`);
+  `observeObjects()` uses it when the caller's `filterKey` matches the precomputed relation for that
+  endpoint. The `OR relatedObjectId IS NULL` clause is a deliberate safety net: rows cached before
+  this migration (or before their next sync) keep matching via the untouched
+  Kotlin-side `matchesRelation` filter that still runs afterward, so there's no window where
+  existing cached tabs/journal entries/rack devices go missing while waiting for a fresh sync to
+  backfill the new column - the query only ever narrows the candidate set, never replaces the
+  correctness check.
+- [x] Added `GenericObjectRepositoryTest` cases covering: the write path precomputing the right
+  `relatedObjectId`, the read path returning only the target device's rows, and the null-fallback
+  path for rows that predate the column.
+- [x] Fixed the two hand-written `NetBoxObjectDao` test fakes (`GenericObjectRepositoryTest`,
+  `PendingEditRepositoryTest`) that needed the new interface method implemented to keep compiling.
+- [x] Verified remotely: `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite pass
+  on rofl-13.
+- [x] Verified live on the Zenfone 10: installed over an existing v17 database with real cached
+  devices/interfaces/ports - the migration ran without a crash or Room schema-validation error, the
+  device list and a device's Overview/Rear ports (7)/Changelog tabs all rendered correctly from the
+  pre-migration cache (via the `relatedObjectId IS NULL` fallback, before any new sync had run), and
+  the Rear ports tab showed exactly that device's 7 ports, not another device's.
+- [x] Verified live, post-sync, on the Zenfone 10: triggered a real full sync (dashboard's "Synced"
+  card, ~7000 objects re-synced), confirmed no crash/exception in logcat, then reopened the same
+  device - Overview/Rear ports (7)/Changelog rendered identically, this time via the freshly
+  populated `relatedObjectId` column rather than the null fallback.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and live
+on a physical device both before and after a real sync populated the new column.
+
+## NBC-399: edit mode didn't look like the rest of the app - flat fields, no Material You cards
+
+Editing any object (racks, sites, devices - the "Edit" menu item everywhere funnels through one
+shared `EditForm` in `GenericDetailEditing.kt`) rendered every field as a bare `OutlinedTextField`/
+`Switch`/picker directly on the Scaffold background, with a 2dp border as the only "changed" cue -
+visually nothing like the read-only Overview tab, which wraps every field in a rounded `NyetboxCard`.
+Separately, the user asked for custom fields sharing an admin-defined NetBox group (e.g. a
+"Purchase Information" group covering Store/Order Number/Date/Price/Currency/Notes) to visually
+cluster together instead of floating as separate cards under a small heading - requested for edit
+mode here, and for the read-only Overview in a parallel NBC-391 effort.
+
+- [x] `EditableField` gained a `group: String?` (from `CustomFieldDefinition.group`, threaded
+  through `customFieldEditableField()` in `GenericFieldRenderer.kt`) - the same metadata the
+  read-only view already uses for its `FieldRow.CustomGroup` headings.
+- [x] `EditForm` now groups fields via a new `groupEditableFields()`: custom fields sharing a real
+  group cluster into one `NyetboxSectionCard` (icon + group name as the card title); custom fields
+  with no group stay standalone, one `NyetboxCard` each.
+- [x] Follow-up refinement per direct feedback ("skip the separators", "group metadata like site,
+  manufacturer, asset tag into a card too"): dropped the `HorizontalDivider` between clustered
+  fields - separation is spacing alone now, no visible line, in both the named-group cards and the
+  new native-field clustering below. Native/top-level fields (which have no group metadata to key
+  off, unlike custom fields' `CustomFieldDefinition.group`) now also cluster, but type-driven
+  rather than name-driven to stay generic across every NetBox object type: consecutive fields of a
+  "simple" `EditFieldKind` (`STRING`/`NUMBER`/`INTEGER`/`CHOICE`/`REFERENCE` - the edit-mode
+  equivalent of the read view's `FieldRow.PlainText`/`FieldRow.Reference`) share one untitled card
+  under a new "Details" heading (mirroring the Overview tab's existing static heading); richer
+  controls (`BOOLEAN`, `LONG_TEXT`/markdown, `JSON`, `MULTI_REFERENCE`, `MULTI_CHOICE`) keep their
+  own standalone card and interrupt a run rather than joining it, so top-to-bottom order never
+  changes - only which fields end up sharing a card boundary. A "Custom fields" heading was added
+  to match, mirroring the Overview tab's `FieldRow.Section` heading.
+- [x] Added `EditableFieldTest` cases: a real group clusters its members; multiple groups sort
+  alphabetically/case-insensitively; ungrouped custom fields stay standalone; consecutive simple
+  native fields cluster under "Details" while a `LONG_TEXT` field interrupts the run without
+  reordering anything.
+- [x] Verified remotely: `:app:compileDebugKotlin` and the full `:app:testDebugUnitTest` suite pass.
+- [x] Verified live on the Zenfone 10 on two devices with real custom-field data: Name/Device
+  Type/Role/Tenant/Serial/Asset Tag/Site/Location/Status/Description all cluster under one
+  untitled "Details" card with no dividers, just spacing; Comments (markdown) correctly breaks the
+  run into its own standalone card; Console Port Count/Console Server Port Count then start a new
+  cluster after it; the "Purchase Information" custom-field group renders as one titled card with
+  no dividers between Store/Order Number/Date/Price/Currency/Notes.
+
+Status: **done**, 2026-08-06; verified with remote compilation, the full unit test suite, and live
+on a physical device, including the post-feedback refinement.

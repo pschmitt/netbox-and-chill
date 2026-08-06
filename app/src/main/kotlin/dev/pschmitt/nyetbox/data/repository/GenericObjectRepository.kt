@@ -3,6 +3,7 @@ package dev.pschmitt.nyetbox.data.repository
 import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectDao
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
+import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.data.schema.jsonInt
 import dev.pschmitt.nyetbox.data.schema.jsonString
 import dev.pschmitt.nyetbox.sync.SyncIssueReporter
@@ -24,6 +25,48 @@ import timber.log.Timber
 
 private const val CONTENT_TYPES_ENDPOINT_PATH = "api/contenttypes/content-types/"
 private val JSON_FORM_KEYS = setOf("default", "related_object_filter")
+
+/** Endpoints whose rows are always scoped to one owning device via a `device` reference. */
+private val DEVICE_SCOPED_ENDPOINTS =
+    setOf(
+        NetBoxRef.INTERFACES_ENDPOINT_PATH,
+        "api/dcim/front-ports/",
+        "api/dcim/rear-ports/",
+        "api/dcim/power-ports/",
+        "api/dcim/console-ports/",
+        "api/dcim/power-outlets/",
+        "api/dcim/module-bays/",
+    )
+
+/**
+ * The relation key [observeObjects] callers must pass for [precomputedRelatedObjectId] to have
+ * computed the right value at sync time - anything else (e.g. the related-items bottom sheet's
+ * arbitrary `_count`-field relations) still falls back to a full in-memory scan, unchanged.
+ */
+private fun precomputedRelationKeyFor(endpointPath: String): String? =
+    when {
+        endpointPath in DEVICE_SCOPED_ENDPOINTS -> "device"
+        endpointPath == NetBoxRef.DEVICES_ENDPOINT_PATH -> "rack"
+        endpointPath == JOURNAL_ENTRY_ENDPOINT_PATH -> "assigned_object_id"
+        else -> null
+    }
+
+/**
+ * Precomputes this object's single "parent" relation id, so a device's interfaces/ports, a device's
+ * journal entries, and a rack's devices can be looked up with a real SQL index
+ * ([NetBoxObjectDao.observeByRelatedObjectId]) instead of decoding every cached row of the endpoint
+ * to find matches at read time (the [matchesRelation] fallback still does that, but only needs to
+ * re-check the now much smaller candidate set). Mirrors the relation shapes [matchesRelation]
+ * already understands for these three specific (endpoint, relation key) pairs.
+ */
+private fun JsonObject.precomputedRelatedObjectId(endpointPath: String): Int? =
+    when {
+        endpointPath in DEVICE_SCOPED_ENDPOINTS -> (this["device"] as? JsonObject)?.jsonInt("id")
+        endpointPath == NetBoxRef.DEVICES_ENDPOINT_PATH ->
+            (this["rack"] as? JsonObject)?.jsonInt("id")
+        endpointPath == JOURNAL_ENTRY_ENDPOINT_PATH -> jsonInt("assigned_object_id")
+        else -> null
+    }
 
 private val NATURAL_SORT_CHUNK = Regex("\\d+|\\D+")
 
@@ -103,9 +146,12 @@ constructor(
     ): Flow<List<NetBoxObjectEntity>> {
         val parsed = parseGlobalSearchQuery(query)
         val source =
-            (if (parsed.freeText.isBlank()) dao.observeAll(endpointPath)
-                else dao.search(endpointPath, parsed.freeText))
-                .map { objects -> objects.sortedWith(naturalDisplayComparator) }
+            when {
+                parsed.freeText.isNotBlank() -> dao.search(endpointPath, parsed.freeText)
+                filterValue != null && precomputedRelationKeyFor(endpointPath) == filterKey ->
+                    dao.observeByRelatedObjectId(endpointPath, filterValue)
+                else -> dao.observeAll(endpointPath)
+            }.map { objects -> objects.sortedWith(naturalDisplayComparator) }
         val filtered =
             if (parsed.objectFilters.isEmpty()) source
             else
@@ -271,6 +317,7 @@ constructor(
             json = json.encodeToString(JsonObject.serializer(), this),
             syncedAt = System.currentTimeMillis(),
             lastUpdated = jsonString("last_updated"),
+            relatedObjectId = precomputedRelatedObjectId(endpointPath),
         )
     }
 }

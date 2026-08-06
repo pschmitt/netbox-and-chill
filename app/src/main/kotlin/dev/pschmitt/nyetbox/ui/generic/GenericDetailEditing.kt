@@ -5,12 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,8 +26,11 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +55,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.pschmitt.nyetbox.data.repository.choiceSearchHint
+import dev.pschmitt.nyetbox.ui.common.NyetboxCard
+import dev.pschmitt.nyetbox.ui.common.NyetboxSectionCard
 
 @Composable
 internal fun EditDiffDialog(
@@ -160,6 +167,77 @@ internal fun DiffValueRow(
     }
 }
 
+/** How [EditForm] lays out a flat field list - see [groupEditableFields]. */
+internal sealed interface EditFieldSection {
+    /** A plain heading, mirroring the read-only Overview's "Details"/"Custom fields" headings. */
+    data class Heading(val label: String) : EditFieldSection
+
+    data class Standalone(val field: EditableField) : EditFieldSection
+
+    /**
+     * A run of fields sharing one card. [title] is the group name for a real custom-field group
+     * (rendered as the card's own header); `null` for a same-kind run of native "metadata" fields
+     * clustered under the [Heading] above, which needs no second title of its own.
+     */
+    data class Clustered(val title: String?, val fields: List<EditableField>) : EditFieldSection
+}
+
+/** Simple, low-visual-weight kinds worth clustering - see [groupEditableFields]. */
+private val SIMPLE_EDIT_KINDS =
+    setOf(
+        EditFieldKind.STRING,
+        EditFieldKind.NUMBER,
+        EditFieldKind.INTEGER,
+        EditFieldKind.CHOICE,
+        EditFieldKind.REFERENCE,
+    )
+
+/**
+ * Groups a flat field list the same way the read-only Overview groups [FieldRow]s (see
+ * [GenericDetailFields]'s `FieldRow.CustomGroup`/`visibleFieldRows` handling), so edit mode's card
+ * layout matches it:
+ * - Custom fields sharing a real admin-defined group (`CustomFieldDefinition.group`, threaded onto
+ *   [EditableField.group]) cluster into one titled card. Custom fields with no group set stay
+ *   standalone, same as today.
+ * - Native/top-level fields have no such group metadata, so clustering there is type-driven instead
+ *   of name-driven (never hardcodes specific field keys, to stay generic across every NetBox object
+ *   type): consecutive "simple" fields ([SIMPLE_EDIT_KINDS] - the edit-mode equivalent of the read
+ *   view's `FieldRow.PlainText`/`FieldRow.Reference`) cluster into one untitled card each run,
+ *   under the existing "Details" heading. Richer controls (`BOOLEAN`, `LONG_TEXT`, `JSON`,
+ *   `MULTI_REFERENCE`, `MULTI_CHOICE`) keep their own standalone card and interrupt a run rather
+ *   than joining it, so top-to-bottom order never changes - only which fields end up sharing a card
+ *   boundary.
+ */
+internal fun groupEditableFields(fields: List<EditableField>): List<EditFieldSection> = buildList {
+    val (customFields, nativeFields) = fields.partition { it.customFieldName != null }
+
+    if (nativeFields.isNotEmpty()) add(EditFieldSection.Heading("Details"))
+    val pendingRun = mutableListOf<EditableField>()
+    fun flushRun() {
+        if (pendingRun.isNotEmpty()) {
+            add(EditFieldSection.Clustered(title = null, fields = pendingRun.toList()))
+            pendingRun.clear()
+        }
+    }
+    nativeFields.forEach { field ->
+        if (field.kind in SIMPLE_EDIT_KINDS) {
+            pendingRun.add(field)
+        } else {
+            flushRun()
+            add(EditFieldSection.Standalone(field))
+        }
+    }
+    flushRun()
+
+    if (customFields.isNotEmpty()) add(EditFieldSection.Heading("Custom fields"))
+    val (grouped, ungrouped) = customFields.partition { !it.group.isNullOrBlank() }
+    grouped
+        .groupBy { it.group!! }
+        .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+        .forEach { (group, groupFields) -> add(EditFieldSection.Clustered(group, groupFields)) }
+    ungrouped.forEach { add(EditFieldSection.Standalone(it)) }
+}
+
 @Composable
 internal fun EditForm(
     fields: List<EditableField>,
@@ -171,6 +249,7 @@ internal fun EditForm(
     onCreateLinkedItem: (EditableField) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val sections = remember(fields) { groupEditableFields(fields) }
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
@@ -195,37 +274,122 @@ internal fun EditForm(
                 }
             }
         }
-        items(fields, key = { it.key }) { field ->
-            val value = values[field.key] ?: field.value
-            val changed = value != field.value
-            Box(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .then(
-                            if (changed) {
-                                Modifier.border(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary,
-                                        RoundedCornerShape(12.dp),
-                                    )
-                                    .padding(6.dp)
-                            } else {
-                                Modifier
-                            }
+        items(
+            sections,
+            key = { section ->
+                when (section) {
+                    is EditFieldSection.Heading -> "heading:${section.label}"
+                    is EditFieldSection.Standalone -> section.field.key
+                    is EditFieldSection.Clustered ->
+                        "group:${section.title ?: section.fields.first().key}"
+                }
+            },
+        ) { section ->
+            when (section) {
+                is EditFieldSection.Heading -> EditFormHeading(section.label)
+                is EditFieldSection.Standalone ->
+                    NyetboxCard(modifier = Modifier.fillMaxWidth()) {
+                        EditFieldCardContent(
+                            field = section.field,
+                            values = values,
+                            referenceOptions = referenceOptions,
+                            choiceOptions = choiceOptions,
+                            onValueChange = onValueChange,
+                            onCreateLinkedItem = onCreateLinkedItem,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         )
-            ) {
-                EditFieldControl(
-                    field = field,
-                    value = value,
-                    referenceOptions = referenceOptions,
-                    choiceOptions = choiceOptions,
-                    onCreateLinkedItem = {
-                        if (field.referenceEndpointPath != null) onCreateLinkedItem(field)
-                    },
-                    onValueChange = { onValueChange(field.key, it) },
-                )
+                    }
+                is EditFieldSection.Clustered -> {
+                    val clusteredContent: @Composable ColumnScope.() -> Unit = {
+                        section.fields.forEach { field ->
+                            EditFieldCardContent(
+                                field = field,
+                                values = values,
+                                referenceOptions = referenceOptions,
+                                choiceOptions = choiceOptions,
+                                onValueChange = onValueChange,
+                                onCreateLinkedItem = onCreateLinkedItem,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+                    if (section.title != null) {
+                        NyetboxSectionCard(
+                            title = section.title,
+                            icon = Icons.Outlined.Category,
+                            content = clusteredContent,
+                        )
+                    } else {
+                        NyetboxCard(modifier = Modifier.fillMaxWidth(), content = clusteredContent)
+                    }
+                }
             }
         }
+    }
+}
+
+/** Mirrors the read-only Overview's plain "Details"/"Custom fields" section headings. */
+@Composable
+private fun EditFormHeading(label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+    ) {
+        Icon(
+            if (label == "Details") Icons.Default.Description else Icons.Default.Storage,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+/** One field's control inside an [EditForm] card, with the existing "changed" border kept as-is. */
+@Composable
+private fun EditFieldCardContent(
+    field: EditableField,
+    values: Map<String, String>,
+    referenceOptions: Map<String, List<EditOption>>,
+    choiceOptions: Map<String, List<EditOption>>,
+    onValueChange: (key: String, value: String) -> Unit,
+    onCreateLinkedItem: (EditableField) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val value = values[field.key] ?: field.value
+    val changed = value != field.value
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .then(
+                    if (changed) {
+                        Modifier.border(
+                                2.dp,
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(12.dp),
+                            )
+                            .padding(6.dp)
+                    } else {
+                        Modifier
+                    }
+                )
+    ) {
+        EditFieldControl(
+            field = field,
+            value = value,
+            referenceOptions = referenceOptions,
+            choiceOptions = choiceOptions,
+            onCreateLinkedItem = {
+                if (field.referenceEndpointPath != null) onCreateLinkedItem(field)
+            },
+            onValueChange = { onValueChange(field.key, it) },
+        )
     }
 }
 

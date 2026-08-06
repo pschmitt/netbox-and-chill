@@ -576,6 +576,7 @@ private fun customFieldEditableField(
     val type = definition.type.lowercase()
     val key = "custom_fields.$name"
     val label = definition.label?.takeIf { it.isNotBlank() } ?: Humanize.label(name)
+    val group = definition.group?.trim()?.takeIf { it.isNotBlank() }
     fun common(
         kind: EditFieldKind,
         currentValue: String,
@@ -592,6 +593,7 @@ private fun customFieldEditableField(
             currentDisplay = display,
             customFieldName = name,
             markdown = markdown,
+            group = group,
         )
     return when (type) {
         "object" -> {

@@ -41,6 +41,26 @@ interface NetBoxObjectDao {
         limit: Int,
     ): Flow<List<NetBoxObjectEntity>>
 
+    /**
+     * Narrows to rows whose precomputed [NetBoxObjectEntity.relatedObjectId] matches - a real
+     * indexed lookup instead of [observeAll]'s full-endpoint scan. Rows that predate the sync pass
+     * which started populating that column (`relatedObjectId IS NULL`) are kept in the result so
+     * the caller's existing JSON-based relation check stays the correctness authority: this query
+     * only narrows the candidate set, it never has to be the sole source of truth.
+     */
+    @Query(
+        """
+        SELECT * FROM netbox_objects
+        WHERE endpointPath = :endpointPath
+          AND (relatedObjectId = :relatedObjectId OR relatedObjectId IS NULL)
+        ORDER BY display COLLATE NOCASE
+        """
+    )
+    fun observeByRelatedObjectId(
+        endpointPath: String,
+        relatedObjectId: Int,
+    ): Flow<List<NetBoxObjectEntity>>
+
     @Query("SELECT * FROM netbox_objects WHERE endpointPath = :endpointPath AND id = :id")
     fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?>
 

@@ -4,6 +4,7 @@ import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
 import dev.pschmitt.nyetbox.data.api.dto.PagedResponseDto
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectDao
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
+import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.sync.SyncIssueReporter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -113,6 +114,88 @@ class GenericObjectRepositoryTest {
         assertEquals(listOf(1), result.map { it.id })
     }
 
+    // NBC-390: relation lookups used on every device-detail screen open (a device's interfaces,
+    // ports, journal entries; a rack's devices) get an indexed shortcut computed once at
+    // sync/write time instead of decoding every cached row of the endpoint on every read.
+
+    @Test
+    fun `caching a device-scoped object precomputes its device relation id`() = runTest {
+        val dao = InMemoryNetBoxObjectDao()
+        val repository = repository(dao)
+
+        repository.cacheLocalObject(
+            NetBoxRef.INTERFACES_ENDPOINT_PATH,
+            interfaceObject(id = 1, name = "Gi1/0/1", deviceId = 42),
+        )
+
+        assertEquals(
+            42,
+            dao.stored(NetBoxRef.INTERFACES_ENDPOINT_PATH, 1)
+                ?.relatedObjectId,
+        )
+    }
+
+    @Test
+    fun `observeObjects filtered by device only returns that device's interfaces`() = runTest {
+        val dao = InMemoryNetBoxObjectDao()
+        val repository = repository(dao)
+        val interfacesEndpoint = NetBoxRef.INTERFACES_ENDPOINT_PATH
+        repository.cacheLocalObject(interfacesEndpoint, interfaceObject(id = 1, name = "Gi1/0/1", deviceId = 42))
+        repository.cacheLocalObject(interfacesEndpoint, interfaceObject(id = 2, name = "Gi1/0/2", deviceId = 99))
+
+        val result =
+            repository
+                .observeObjects(interfacesEndpoint, "", filterKey = "device", filterValue = 42)
+                .first()
+
+        assertEquals(listOf(1), result.map { it.id })
+    }
+
+    @Test
+    fun `rows cached before the relation column existed still match via the null fallback`() =
+        runTest {
+            val interfacesEndpoint =
+                NetBoxRef.INTERFACES_ENDPOINT_PATH
+            val legacyRow =
+                NetBoxObjectEntity(
+                    endpointPath = interfacesEndpoint,
+                    id = 1,
+                    display = "Gi1/0/1",
+                    secondaryLine = null,
+                    json =
+                        Json.encodeToString(
+                            JsonObject.serializer(),
+                            interfaceObject(id = 1, name = "Gi1/0/1", deviceId = 42),
+                        ),
+                    syncedAt = 0,
+                    relatedObjectId = null,
+                )
+            val dao = InMemoryNetBoxObjectDao(listOf(legacyRow))
+            val repository = repository(dao)
+
+            val result =
+                repository
+                    .observeObjects(interfacesEndpoint, "", filterKey = "device", filterValue = 42)
+                    .first()
+
+            assertEquals(listOf(1), result.map { it.id })
+        }
+
+    private fun interfaceObject(id: Int, name: String, deviceId: Int): JsonObject =
+        JsonObject(
+            mapOf(
+                "id" to JsonPrimitive(id),
+                "name" to JsonPrimitive(name),
+                "device" to
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive(deviceId),
+                            "name" to JsonPrimitive("device-$deviceId"),
+                        )
+                    ),
+            )
+        )
+
     private fun repository(dao: NetBoxObjectDao) =
         GenericObjectRepository(FakeGenericNetBoxApi(), dao, Json, SyncIssueReporter())
 
@@ -155,14 +238,18 @@ class GenericObjectRepositoryTest {
  * behavior), so [GenericObjectRepository.observeObjects]'s free-text + structured-filter split can
  * be exercised without a real Room database.
  */
-private class InMemoryNetBoxObjectDao(private val objects: List<NetBoxObjectEntity>) :
+private class InMemoryNetBoxObjectDao(initial: List<NetBoxObjectEntity> = emptyList()) :
     NetBoxObjectDao {
+    private val objects = initial.associateBy { it.endpointPath to it.id }.toMutableMap()
+
+    fun stored(endpointPath: String, id: Int): NetBoxObjectEntity? = objects[endpointPath to id]
+
     override fun observeAll(endpointPath: String): Flow<List<NetBoxObjectEntity>> =
-        flowOf(objects.filter { it.endpointPath == endpointPath })
+        flowOf(objects.values.filter { it.endpointPath == endpointPath })
 
     override fun search(endpointPath: String, query: String): Flow<List<NetBoxObjectEntity>> =
         flowOf(
-            objects.filter {
+            objects.values.filter {
                 it.endpointPath == endpointPath && it.display.contains(query, ignoreCase = true)
             }
         )
@@ -173,36 +260,47 @@ private class InMemoryNetBoxObjectDao(private val objects: List<NetBoxObjectEnti
         limit: Int,
     ): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
 
-    override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
-        flowOf(objects.firstOrNull { it.endpointPath == endpointPath && it.id == id })
+    override fun observeByRelatedObjectId(
+        endpointPath: String,
+        relatedObjectId: Int,
+    ): Flow<List<NetBoxObjectEntity>> =
+        flowOf(
+            objects.values.filter {
+                it.endpointPath == endpointPath &&
+                    (it.relatedObjectId == relatedObjectId || it.relatedObjectId == null)
+            }
+        )
 
-    override fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> = flowOf(objects)
+    override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
+        flowOf(objects[endpointPath to id])
+
+    override fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> = flowOf(objects.values.toList())
 
     override suspend fun getById(endpointPath: String, id: Int): NetBoxObjectEntity? =
-        objects.firstOrNull {
-            it.endpointPath == endpointPath && it.id == id
-        }
+        objects[endpointPath to id]
 
-    override suspend fun getAll(endpointPath: String): List<NetBoxObjectEntity> = objects.filter {
-        it.endpointPath == endpointPath
-    }
+    override suspend fun getAll(endpointPath: String): List<NetBoxObjectEntity> =
+        objects.values.filter { it.endpointPath == endpointPath }
 
     override fun searchAll(query: String, limit: Int): Flow<List<NetBoxObjectEntity>> =
         flowOf(emptyList())
 
-    override suspend fun upsertAll(objects: List<NetBoxObjectEntity>) = error("unused")
+    override suspend fun upsertAll(objects: List<NetBoxObjectEntity>) {
+        objects.forEach { upsert(it) }
+    }
 
-    override suspend fun upsert(obj: NetBoxObjectEntity) = error("unused")
+    override suspend fun upsert(obj: NetBoxObjectEntity) {
+        objects[obj.endpointPath to obj.id] = obj
+    }
 
     override suspend fun delete(endpointPath: String, id: Int) = error("unused")
 
-    override suspend fun count(endpointPath: String): Int = objects.count {
-        it.endpointPath == endpointPath
-    }
+    override suspend fun count(endpointPath: String): Int =
+        objects.values.count { it.endpointPath == endpointPath }
 
     override suspend fun countAll(): Int = objects.size
 
-    override suspend fun getAll(): List<NetBoxObjectEntity> = objects
+    override suspend fun getAll(): List<NetBoxObjectEntity> = objects.values.toList()
 
     override suspend fun maxLastUpdated(endpointPath: String): String? = error("unused")
 

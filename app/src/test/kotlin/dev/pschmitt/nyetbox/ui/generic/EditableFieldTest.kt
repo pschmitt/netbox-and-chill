@@ -265,4 +265,130 @@ class EditableFieldTest {
         assertEquals(EditFieldKind.JSON, fields.first { it.key == "default" }.kind)
         assertEquals(JsonPrimitive(false), EditFieldKind.JSON.toJsonElement("false"))
     }
+
+    // NBC-392: custom fields sharing a real admin-defined group cluster into one shared card in
+    // edit mode, mirroring the read-only Overview's grouping.
+
+    @Test
+    fun `groups custom fields sharing a real group into one cluster`() {
+        val vendor =
+            EditableField(
+                "custom_fields.vendor",
+                "Vendor",
+                EditFieldKind.STRING,
+                "Acme",
+                customFieldName = "vendor",
+                group = "Purchase info",
+            )
+        val price =
+            EditableField(
+                "custom_fields.price",
+                "Price",
+                EditFieldKind.NUMBER,
+                "10",
+                customFieldName = "price",
+                group = "Purchase info",
+            )
+        val notes =
+            EditableField(
+                "custom_fields.notes",
+                "Notes",
+                EditFieldKind.STRING,
+                "",
+                customFieldName = "notes",
+            )
+        val name = EditableField("name", "Name", EditFieldKind.STRING, "Rack 1")
+
+        val sections = groupEditableFields(listOf(name, vendor, price, notes))
+
+        assertEquals(
+            listOf(
+                EditFieldSection.Heading("Details"),
+                EditFieldSection.Clustered(null, listOf(name)),
+                EditFieldSection.Heading("Custom fields"),
+                EditFieldSection.Clustered("Purchase info", listOf(vendor, price)),
+                EditFieldSection.Standalone(notes),
+            ),
+            sections,
+        )
+    }
+
+    @Test
+    fun `groups multiple named groups alphabetically, case-insensitively`() {
+        val warranty =
+            EditableField(
+                "custom_fields.warranty",
+                "Warranty",
+                EditFieldKind.STRING,
+                "",
+                customFieldName = "warranty",
+                group = "warranty info",
+            )
+        val vendor =
+            EditableField(
+                "custom_fields.vendor",
+                "Vendor",
+                EditFieldKind.STRING,
+                "",
+                customFieldName = "vendor",
+                group = "Purchase info",
+            )
+
+        val sections = groupEditableFields(listOf(warranty, vendor))
+
+        assertEquals(
+            listOf(
+                EditFieldSection.Heading("Custom fields"),
+                EditFieldSection.Clustered("Purchase info", listOf(vendor)),
+                EditFieldSection.Clustered("warranty info", listOf(warranty)),
+            ),
+            sections,
+        )
+    }
+
+    @Test
+    fun `custom fields with no group stay standalone, same as native fields`() {
+        val notes =
+            EditableField(
+                "custom_fields.notes",
+                "Notes",
+                EditFieldKind.STRING,
+                "",
+                customFieldName = "notes",
+            )
+
+        val sections = groupEditableFields(listOf(notes))
+
+        assertEquals(
+            listOf(EditFieldSection.Heading("Custom fields"), EditFieldSection.Standalone(notes)),
+            sections,
+        )
+    }
+
+    @Test
+    fun `clusters consecutive simple native fields under one untitled card, without reordering`() {
+        val name = EditableField("name", "Name", EditFieldKind.STRING, "Rack 1")
+        val site =
+            EditableField(
+                "site",
+                "Site",
+                EditFieldKind.REFERENCE,
+                "7",
+                referenceEndpointPath = "api/dcim/sites/",
+            )
+        val description = EditableField("description", "Description", EditFieldKind.LONG_TEXT, "")
+        val assetTag = EditableField("asset_tag", "Asset Tag", EditFieldKind.STRING, "#A1")
+
+        val sections = groupEditableFields(listOf(name, site, description, assetTag))
+
+        assertEquals(
+            listOf(
+                EditFieldSection.Heading("Details"),
+                EditFieldSection.Clustered(null, listOf(name, site)),
+                EditFieldSection.Standalone(description),
+                EditFieldSection.Clustered(null, listOf(assetTag)),
+            ),
+            sections,
+        )
+    }
 }

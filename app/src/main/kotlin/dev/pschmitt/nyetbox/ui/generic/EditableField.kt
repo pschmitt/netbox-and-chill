@@ -40,6 +40,8 @@ data class EditableField(
     val currentDisplay: String? = null,
     val customFieldName: String? = null,
     val markdown: Boolean = false,
+    /** The admin-defined custom-field group (see `CustomFieldDefinition.group`), if any. */
+    val group: String? = null,
 )
 
 /**

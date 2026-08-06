@@ -282,3 +282,14 @@ val MIGRATION_16_17 =
             )
         }
     }
+
+val MIGRATION_17_18 =
+    object : Migration(17, 18) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `netbox_objects` ADD COLUMN `relatedObjectId` INTEGER")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_netbox_objects_endpointPath_relatedObjectId` " +
+                    "ON `netbox_objects` (`endpointPath`, `relatedObjectId`)"
+            )
+        }
+    }

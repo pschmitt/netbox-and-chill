@@ -450,6 +450,11 @@ internal class FakeNetBoxObjectDao : NetBoxObjectDao {
         limit: Int,
     ): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
 
+    override fun observeByRelatedObjectId(
+        endpointPath: String,
+        relatedObjectId: Int,
+    ): Flow<List<NetBoxObjectEntity>> = flowOf(emptyList())
+
     override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
         flowOf(last)
 
