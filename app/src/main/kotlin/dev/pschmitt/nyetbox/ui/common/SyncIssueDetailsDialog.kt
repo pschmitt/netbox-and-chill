@@ -78,7 +78,11 @@ fun SyncIssueDetailsDialog(issue: SyncIssue, onDismiss: () -> Unit, onCopyLogs: 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            Icon(
+                Icons.Default.Error,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
         },
         title = { Text("Sync issue details") },
         text = {

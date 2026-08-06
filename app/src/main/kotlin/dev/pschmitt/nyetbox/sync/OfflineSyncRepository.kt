@@ -244,9 +244,9 @@ constructor(
                 }
                 val cables = genericObjectRepository.cachedObjects("api/dcim/cables/")
                 cables.syncConcurrently(concurrency) { cable ->
-                    val cableJson =
-                        runCatching { json.decodeFromString(JsonObject.serializer(), cable.json) }
-                            .getOrNull()
+                    val cableJson = runCatching {
+                        json.decodeFromString(JsonObject.serializer(), cable.json)
+                    }.getOrNull()
                     val target = cableJson?.let(::cableTraceStartTarget)
                     if (target != null) {
                         val (endpointPath, id) = target

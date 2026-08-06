@@ -100,9 +100,9 @@ import dev.pschmitt.nyetbox.ui.common.SectionReorderState
 import dev.pschmitt.nyetbox.ui.common.SuppressiblePullToRefreshBox
 import dev.pschmitt.nyetbox.ui.common.SyncIssueCard
 import dev.pschmitt.nyetbox.ui.common.SyncIssueDetailsDialog
-import dev.pschmitt.nyetbox.ui.common.buildSyncIssueReport
 import dev.pschmitt.nyetbox.ui.common.SyncStatusCard
 import dev.pschmitt.nyetbox.ui.common.SyncStatusDetailsDialog
+import dev.pschmitt.nyetbox.ui.common.buildSyncIssueReport
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.objectTypeLabel

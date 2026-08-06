@@ -14,7 +14,11 @@ import kotlinx.serialization.json.intOrNull
  * cable-trace segment. [deviceTarget] is null for terminations with no parent device (e.g. some
  * provider-network/circuit terminations).
  */
-data class CableTraceNode(val target: RefTarget, val deviceTarget: RefTarget?, val portLabel: String)
+data class CableTraceNode(
+    val target: RefTarget,
+    val deviceTarget: RefTarget?,
+    val portLabel: String,
+)
 
 data class CableTraceCableInfo(
     val target: RefTarget?,
@@ -23,7 +27,10 @@ data class CableTraceCableInfo(
     val color: String?,
 )
 
-/** One `[nearEnds, cable, farEnds]` step of a cable trace - see [dev.pschmitt.nyetbox.data.repository.CableTraceRepository]. */
+/**
+ * One `[nearEnds, cable, farEnds]` step of a cable trace - see
+ * [dev.pschmitt.nyetbox.data.repository.CableTraceRepository].
+ */
 data class CableTraceSegment(
     val index: Int,
     val nearEnds: List<CableTraceNode>,
@@ -34,13 +41,14 @@ data class CableTraceSegment(
 private val traceJson = Json { ignoreUnknownKeys = true }
 
 internal fun parseCableTraceSegment(index: Int, rawJson: String): CableTraceSegment? = runCatching {
-        val array = traceJson.decodeFromString(JsonArray.serializer(), rawJson)
-        val nearEnds = (array.getOrNull(0) as? JsonArray)?.mapNotNull { it.asCableTraceNode() }.orEmpty()
-        val cable = (array.getOrNull(1) as? JsonObject)?.asCableTraceCableInfo()
-        val farEnds = (array.getOrNull(2) as? JsonArray)?.mapNotNull { it.asCableTraceNode() }.orEmpty()
-        if (nearEnds.isEmpty() && cable == null && farEnds.isEmpty()) null
-        else CableTraceSegment(index, nearEnds, cable, farEnds)
-    }
+    val array = traceJson.decodeFromString(JsonArray.serializer(), rawJson)
+    val nearEnds =
+        (array.getOrNull(0) as? JsonArray)?.mapNotNull { it.asCableTraceNode() }.orEmpty()
+    val cable = (array.getOrNull(1) as? JsonObject)?.asCableTraceCableInfo()
+    val farEnds = (array.getOrNull(2) as? JsonArray)?.mapNotNull { it.asCableTraceNode() }.orEmpty()
+    if (nearEnds.isEmpty() && cable == null && farEnds.isEmpty()) null
+    else CableTraceSegment(index, nearEnds, cable, farEnds)
+}
     .getOrNull()
 
 private fun JsonElement.asCableTraceNode(): CableTraceNode? {

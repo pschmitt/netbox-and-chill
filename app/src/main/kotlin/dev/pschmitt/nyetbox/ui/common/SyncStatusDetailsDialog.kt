@@ -67,7 +67,12 @@ fun SyncStatusDetailsDialog(
         text = {
             Column {
                 Text(
-                    syncStatusSubText(isSyncing, syncProgress, lastSuccessfulSyncAt, System.currentTimeMillis()),
+                    syncStatusSubText(
+                        isSyncing,
+                        syncProgress,
+                        lastSuccessfulSyncAt,
+                        System.currentTimeMillis(),
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(16.dp))
@@ -75,7 +80,10 @@ fun SyncStatusDetailsDialog(
                 Spacer(Modifier.height(8.dp))
                 if (cacheSummary == null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "Calculating…",

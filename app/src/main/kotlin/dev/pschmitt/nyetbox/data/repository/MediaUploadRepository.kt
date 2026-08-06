@@ -46,7 +46,8 @@ constructor(
      * failure.
      */
     suspend fun supportsImageAttachments(endpointPath: String): Boolean {
-        val objectType = runCatching { contentTypeForEndpoint(endpointPath) }.getOrNull() ?: return true
+        val objectType =
+            runCatching { contentTypeForEndpoint(endpointPath) }.getOrNull() ?: return true
         val choices =
             imageAttachmentContentTypesCache
                 ?: objectTypeChoices(IMAGE_ATTACHMENTS_ENDPOINT_PATH).also {
@@ -57,12 +58,16 @@ constructor(
 
     /** Same idea as [supportsImageAttachments], but for the (optional) NetBox Documents plugin. */
     suspend fun supportsDocuments(endpointPath: String): Boolean {
-        val objectType = runCatching { contentTypeForEndpoint(endpointPath) }.getOrNull() ?: return true
+        val objectType =
+            runCatching { contentTypeForEndpoint(endpointPath) }.getOrNull() ?: return true
         val docEndpointPath = documentEndpointPath() ?: return true
         val cached = documentContentTypesCache
         val choices =
             if (cached != null && cached.first == docEndpointPath) cached.second
-            else objectTypeChoices(docEndpointPath).also { documentContentTypesCache = docEndpointPath to it }
+            else
+                objectTypeChoices(docEndpointPath).also {
+                    documentContentTypesCache = docEndpointPath to it
+                }
         return choices.isEmpty() || objectType in choices
     }
 

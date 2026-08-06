@@ -60,9 +60,9 @@ private fun ensureViewBox(svg: String): String {
  * Wraps the raw SVG in a minimal HTML document (rather than loading it as the top-level
  * `image/svg+xml` document as before) purely to attach a real mobile viewport meta tag - without
  * one, [android.webkit.WebSettings.setUseWideViewPort] has no page-declared viewport to honor and
- * falls back to assuming a ~980px desktop layout, shrinking the whole diagram to fit. The SVG itself
- * stays inlined directly in the body (not behind an `<img src>`) so its embedded `<a>` links remain
- * live DOM nodes that [WebViewClient.shouldOverrideUrlLoading] can still intercept.
+ * falls back to assuming a ~980px desktop layout, shrinking the whole diagram to fit. The SVG
+ * itself stays inlined directly in the body (not behind an `<img src>`) so its embedded `<a>` links
+ * remain live DOM nodes that [WebViewClient.shouldOverrideUrlLoading] can still intercept.
  */
 private fun wrapSvgDocument(svg: String): String =
     """
@@ -83,10 +83,10 @@ private fun wrapSvgDocument(svg: String): String =
 
 /**
  * Renders a NetBox `?render=svg` diagram (rack elevation, cable trace) via a WebView rather than an
- * image loader - SVGs from NetBox embed `<a>` links to its own web UI (device/interface/cable pages,
- * plus an "add device here" link for empty rack slots), and only a WebView's navigation callback
- * lets those taps be intercepted at all. No JavaScript is needed or enabled - `<a>` clicks reach
- * [WebViewClient.shouldOverrideUrlLoading] on their own.
+ * image loader - SVGs from NetBox embed `<a>` links to its own web UI (device/interface/cable
+ * pages, plus an "add device here" link for empty rack slots), and only a WebView's navigation
+ * callback lets those taps be intercepted at all. No JavaScript is needed or enabled - `<a>` clicks
+ * reach [WebViewClient.shouldOverrideUrlLoading] on their own.
  *
  * Every navigation attempt is resolved through [NetBoxUrlParser] (the same parser used for scanned/
  * opened NetBox URLs elsewhere) and blocked from ever loading in the WebView - a resolvable link
@@ -134,7 +134,8 @@ fun SvgDiagramView(
                 isHorizontalScrollBarEnabled = false
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 // The diagram sits inside a scrollable Compose list, whose scroll gesture detector
-                // otherwise wins arbitration over a pinch that starts on the WebView, swallowing the
+                // otherwise wins arbitration over a pinch that starts on the WebView, swallowing
+                // the
                 // second pointer before the WebView's own builtInZoomControls ever sees it. Only
                 // disallow interception while a second finger is actually down - unconditionally
                 // disallowing it would also block the ordinary single-finger drags that scroll the

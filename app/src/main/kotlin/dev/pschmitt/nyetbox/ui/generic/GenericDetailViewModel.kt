@@ -32,10 +32,10 @@ import dev.pschmitt.nyetbox.data.repository.SettingsRepository
 import dev.pschmitt.nyetbox.data.repository.SvgDiagramRepository
 import dev.pschmitt.nyetbox.data.repository.cableTraceStartTarget
 import dev.pschmitt.nyetbox.data.repository.cableTraceSvgCacheKey
-import dev.pschmitt.nyetbox.data.repository.rackElevationSvgCacheKey
 import dev.pschmitt.nyetbox.data.repository.createChoiceSearchFields
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.nyetbox.data.repository.isDocumentsPluginModel
+import dev.pschmitt.nyetbox.data.repository.rackElevationSvgCacheKey
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
@@ -123,13 +123,13 @@ constructor(
     // Not every NetBox model accepts image attachments/documents (e.g. users.permission) - default
     // to true (shown) until the one-shot OPTIONS-derived answer lands, so the widgets don't flash
     // in and out for the common case where they are supported.
-    val supportsImageAttachments: StateFlow<Boolean> =
-        flow { emit(mediaUploadRepository.supportsImageAttachments(route.endpointPath)) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val supportsImageAttachments: StateFlow<Boolean> = flow {
+        emit(mediaUploadRepository.supportsImageAttachments(route.endpointPath))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    val supportsDocuments: StateFlow<Boolean> =
-        flow { emit(mediaUploadRepository.supportsDocuments(route.endpointPath)) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val supportsDocuments: StateFlow<Boolean> = flow {
+        emit(mediaUploadRepository.supportsDocuments(route.endpointPath))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val isRefreshing: StateFlow<Boolean> =
         syncStatusRepository.isSyncing.stateIn(
@@ -201,9 +201,9 @@ constructor(
             .observeFor(route.endpointPath, route.id)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val imageAttachmentObjectType: String? =
-        runCatching { MediaUploadRepository.contentTypeForEndpoint(route.endpointPath) }
-            .getOrNull()
+    private val imageAttachmentObjectType: String? = runCatching {
+        MediaUploadRepository.contentTypeForEndpoint(route.endpointPath)
+    }.getOrNull()
 
     val imageAttachments: StateFlow<List<ImageAttachmentEntity>> =
         imageAttachmentObjectType
@@ -364,7 +364,9 @@ constructor(
                 target?.let { (endpointPath, id) -> cableTraceRepository.observe(endpointPath, id) }
                     ?: flowOf(emptyList())
             }
-            .map { entities -> entities.mapNotNull { parseCableTraceSegment(it.segmentIndex, it.json) } }
+            .map { entities ->
+                entities.mapNotNull { parseCableTraceSegment(it.segmentIndex, it.json) }
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private fun loadCableTrace() {
@@ -384,8 +386,9 @@ constructor(
 
     /**
      * Loads a rack elevation diagram on demand (the "switch to SVG" toggle), cache-first: shows
-     * whatever's already persisted (from a prior view, or [dev.pschmitt.nyetbox.sync.OfflineSyncRepository]'s
-     * prefetch) immediately, then refreshes it in the background.
+     * whatever's already persisted (from a prior view, or
+     * [dev.pschmitt.nyetbox.sync.OfflineSyncRepository]'s prefetch) immediately, then refreshes it
+     * in the background.
      */
     fun loadRackElevationSvg(face: RackFace) {
         val cacheKey = rackElevationSvgCacheKey(route.id, face)

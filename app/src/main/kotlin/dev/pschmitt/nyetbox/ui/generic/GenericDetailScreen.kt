@@ -77,7 +77,6 @@ import dev.pschmitt.nyetbox.data.repository.DeleteSubmission
 import dev.pschmitt.nyetbox.data.repository.RackFace
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldObjectKey
 import dev.pschmitt.nyetbox.ui.common.CommentCard
-import dev.pschmitt.nyetbox.ui.directory.AppIcons
 import dev.pschmitt.nyetbox.ui.common.DocumentsSection
 import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
 import dev.pschmitt.nyetbox.ui.common.ImageAttachmentGallery
@@ -90,10 +89,10 @@ import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadDialog
 import dev.pschmitt.nyetbox.ui.common.MediaUploadKind
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
-import dev.pschmitt.nyetbox.ui.common.SvgDiagramView
 import dev.pschmitt.nyetbox.ui.common.PrintLabelDialog
 import dev.pschmitt.nyetbox.ui.common.PrintLabelRequest
 import dev.pschmitt.nyetbox.ui.common.SuppressiblePullToRefreshBox
+import dev.pschmitt.nyetbox.ui.common.SvgDiagramView
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.common.displayName
 import dev.pschmitt.nyetbox.ui.common.fileViewIntent
@@ -101,6 +100,7 @@ import dev.pschmitt.nyetbox.ui.common.formatNetBoxDateTime
 import dev.pschmitt.nyetbox.ui.common.itemTabSwipe
 import dev.pschmitt.nyetbox.ui.common.journalKindPresentation
 import dev.pschmitt.nyetbox.ui.common.shareIntent
+import dev.pschmitt.nyetbox.ui.directory.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -580,7 +580,10 @@ fun GenericDetailScreen(
                                         },
                                     )
                                 }
-                                if (supportsImageAttachments || (documentPluginAvailable && supportsDocuments)) {
+                                if (
+                                    supportsImageAttachments ||
+                                        (documentPluginAvailable && supportsDocuments)
+                                ) {
                                     DropdownMenuItem(
                                         text = { Text("Upload media") },
                                         leadingIcon = {
@@ -1364,8 +1367,7 @@ private fun CableTraceNodeRow(node: CableTraceNode, onNavigate: (String, Int) ->
                     device.display,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier =
-                        Modifier.clickable { onNavigate(device.endpointPath, device.id) },
+                    modifier = Modifier.clickable { onNavigate(device.endpointPath, device.id) },
                 )
             }
             Text(

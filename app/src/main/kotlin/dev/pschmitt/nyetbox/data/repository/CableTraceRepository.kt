@@ -33,18 +33,17 @@ constructor(private val api: GenericNetBoxApi, private val dao: CableTraceDao) {
     /** Refreshes the cached trace while leaving the existing Room snapshot intact on failure. */
     suspend fun refresh(endpointPath: String, objectId: Int): Result<Int> = runCatching {
         val segments = api.getJsonArray("$endpointPath$objectId/trace/")
-        val entities =
-            segments.mapIndexedNotNull { index, element ->
-                (element as? JsonArray)?.let {
-                    CableTraceEntity(
-                        traceEndpointPath = endpointPath,
-                        traceObjectId = objectId,
-                        segmentIndex = index,
-                        json = parser.encodeToString(JsonArray.serializer(), it),
-                        syncedAt = System.currentTimeMillis(),
-                    )
-                }
+        val entities = segments.mapIndexedNotNull { index, element ->
+            (element as? JsonArray)?.let {
+                CableTraceEntity(
+                    traceEndpointPath = endpointPath,
+                    traceObjectId = objectId,
+                    segmentIndex = index,
+                    json = parser.encodeToString(JsonArray.serializer(), it),
+                    syncedAt = System.currentTimeMillis(),
+                )
             }
+        }
         dao.clear(endpointPath, objectId)
         dao.upsertAll(entities)
         entities.size
@@ -52,8 +51,8 @@ constructor(private val api: GenericNetBoxApi, private val dao: CableTraceDao) {
 }
 
 /**
- * Front/rear ports are the two sides of a passthrough panel (patch panel, KVM, USB hub, ...) - confirmed
- * against a live NetBox 4.5 instance, `/api/dcim/front-ports/<id>/trace/` and
+ * Front/rear ports are the two sides of a passthrough panel (patch panel, KVM, USB hub, ...) -
+ * confirmed against a live NetBox 4.5 instance, `/api/dcim/front-ports/<id>/trace/` and
  * `/api/dcim/rear-ports/<id>/trace/` both 404 regardless of the port's own cabling, unlike every
  * other termination type (interface, console/power port, circuit termination, ...). A cable landing
  * on one of these has to be traced from its *other* termination instead.
@@ -64,8 +63,9 @@ private val UNTRACEABLE_TERMINATION_TYPES = setOf("dcim.frontport", "dcim.rearpo
  * The termination to trace from - whichever of the cable's first A-side or first B-side termination
  * actually supports NetBox's trace endpoint (see [UNTRACEABLE_TERMINATION_TYPES]), preferring the A
  * side when both do. Returns the termination's own (endpointPath, id), which is what NetBox's trace
- * endpoint is keyed on - or null if neither side is traceable (e.g. a pure patch-panel-to-patch-panel
- * cable), which is a legitimate "nothing to show" rather than a sync failure.
+ * endpoint is keyed on - or null if neither side is traceable (e.g. a pure
+ * patch-panel-to-patch-panel cable), which is a legitimate "nothing to show" rather than a sync
+ * failure.
  *
  * Each entry in `a_terminations`/`b_terminations` is a `GenericObjectSerializer`-shaped wrapper -
  * `{object_type, object_id, object}` - where `object` is the actual nested termination (interface,

@@ -490,7 +490,8 @@ fun DeviceDetailScreen(
                         CircularProgressIndicator()
                     } else {
                         Text(
-                            if (isRefreshing) "Loading…" else "Not cached yet - connect and refresh",
+                            if (isRefreshing) "Loading…"
+                            else "Not cached yet - connect and refresh",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }

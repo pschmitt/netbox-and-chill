@@ -398,8 +398,7 @@ fun Sidebar(
                                             tint =
                                                 visualColorForEndpointPath(
                                                     model.endpointPath,
-                                                    objectTypeAccents[
-                                                        model.endpointPath.trim('/')],
+                                                    objectTypeAccents[model.endpointPath.trim('/')],
                                                     MaterialTheme.colorScheme,
                                                 ),
                                         )
