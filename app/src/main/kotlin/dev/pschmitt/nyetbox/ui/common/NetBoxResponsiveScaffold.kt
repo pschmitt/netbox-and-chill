@@ -19,9 +19,9 @@ import dev.pschmitt.nyetbox.ui.navigation.Route
 internal val LocalUseNavigationRail = compositionLocalOf { false }
 
 /**
- * The [Route] currently on top of the back stack, provided once per `composable<Route.X>` block
- * in `NetBoxNavHost.kt` - lets [NetBoxBottomBar] highlight the matching slot without threading a
- * new parameter through every screen that hosts it.
+ * The [Route] currently on top of the back stack, provided once per `composable<Route.X>` block in
+ * `NetBoxNavHost.kt` - lets [NetBoxBottomBar] highlight the matching slot without threading a new
+ * parameter through every screen that hosts it.
  */
 internal val LocalCurrentRoute = compositionLocalOf<Route?> { null }
 

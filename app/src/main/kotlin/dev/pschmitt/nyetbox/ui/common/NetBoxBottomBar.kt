@@ -9,8 +9,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -63,10 +63,9 @@ fun NetBoxBottomBar(onNavigate: (Route) -> Unit) {
     val viewModel: NavBarViewModel = hiltViewModel()
     val items by viewModel.items.collectAsStateWithLifecycle()
     val currentRoute = LocalCurrentRoute.current
-    val slots =
-        items.mapNotNull { item ->
-            routeForGesture(item.action, item.target)?.let { route -> item to route }
-        }
+    val slots = items.mapNotNull { item ->
+        routeForGesture(item.action, item.target)?.let { route -> item to route }
+    }
     if (LocalUseNavigationRail.current) {
         NavigationRail {
             slots.forEach { (item, route) ->

@@ -407,14 +407,13 @@ constructor(
     }
 
     fun addNavBarItem(action: GestureAction, obj: NetBoxObjectEntity) {
-        val target = GestureTarget(endpointPath = obj.endpointPath, id = obj.id, label = obj.display)
+        val target =
+            GestureTarget(endpointPath = obj.endpointPath, id = obj.id, label = obj.display)
         settingsRepository.setNavBarItems(navBarItems.value + NavBarItem(action, target))
     }
 
     fun removeNavBarItem(index: Int) {
-        settingsRepository.setNavBarItems(
-            navBarItems.value.filterIndexed { i, _ -> i != index }
-        )
+        settingsRepository.setNavBarItems(navBarItems.value.filterIndexed { i, _ -> i != index })
     }
 
     fun moveNavBarItem(from: Int, to: Int) {

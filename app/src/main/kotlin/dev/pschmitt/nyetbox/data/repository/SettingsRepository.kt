@@ -137,11 +137,15 @@ enum class GestureAction(val storageKey: String, val label: String) {
         fun fromStorage(value: String?, fallback: GestureAction = GlobalSearch): GestureAction =
             entries.firstOrNull { it.storageKey == value } ?: fallback
 
-        /** Actions that always resolve to a [dev.pschmitt.nyetbox.ui.navigation.Route] via
+        /**
+         * Actions that always resolve to a [dev.pschmitt.nyetbox.ui.navigation.Route] via
          * [dev.pschmitt.nyetbox.routeForGesture] - the only ones a nav-bar slot can use, since a
-         * slot must always be able to show a clear "selected" state. */
+         * slot must always be able to show a clear "selected" state.
+         */
         val navigational: List<GestureAction>
-            get() = entries.filterNot { it == Off || it == Sync || it == OfflineOn || it == OfflineOff }
+            get() = entries.filterNot {
+                it == Off || it == Sync || it == OfflineOn || it == OfflineOff
+            }
     }
 }
 
@@ -1200,11 +1204,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val stored = prefs.getString(KEY_NAV_BAR_ITEMS, null)
         if (!stored.isNullOrBlank()) {
             runCatching {
-                    settingsJson.decodeFromString(
-                        kotlinx.serialization.builtins.ListSerializer(NavBarItem.serializer()),
-                        stored,
-                    )
-                }
+                settingsJson.decodeFromString(
+                    kotlinx.serialization.builtins.ListSerializer(NavBarItem.serializer()),
+                    stored,
+                )
+            }
                 .getOrNull()
                 ?.takeIf { it.isNotEmpty() }
                 ?.let {
