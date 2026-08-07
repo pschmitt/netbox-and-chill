@@ -1224,7 +1224,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             NavBarItem(GestureAction.GlobalSearch),
             NavBarItem(GestureAction.Scanner),
             NavBarItem(GestureAction.Add),
-            NavBarItem(GestureAction.Settings),
         )
 
     private fun gesturePreferenceKey(shortcut: GestureShortcut): String =

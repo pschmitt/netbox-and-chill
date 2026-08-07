@@ -17,8 +17,9 @@ alongside the fixed destinations.
       `List<NavBarItem>` (order matters, so not a `StringSet`) mirroring the existing
       `ServerProfile` list pattern; `navBarItems` StateFlow + `setNavBarItems`/`resetNavBarItems`;
       wired into settings backup/restore (`SettingsBackup.kt`) alongside gestures/pinned paths.
-      Default is today's fuller rail set (Home, Search, Scan, Add, Settings) used on both
-      surfaces - the phone bottom bar now also shows Settings by default.
+      Default is unchanged from today's phone bar (Home, Search, Scan, Add) on both surfaces -
+      an earlier pass here briefly changed the default to the rail's fuller five (adding
+      Settings), which was reverted per feedback.
 - [x] `MainActivityRouting.kt`: `routeForGesture` gained the `Dashboard -> Route.Dashboard`
       branch (reused as-is for nav-bar dispatch, no new resolver needed); new
       `matchesCurrentRoute(current, target)` for "is this slot the one currently open" -
@@ -47,15 +48,19 @@ alongside the fixed destinations.
 - [x] Remote `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` (after fixing
       `SettingsCategoryContentTest.kt`'s direct `SettingsCategoryState`/`Actions` construction for
       the new required fields), and `:app:testDebugUnitTest` all passed.
-- [x] Verified end-to-end on the Zenfone 10: default bar shows all 5 (Home/Search/Scan/Add/
-      Settings) with correct highlighting on each; removed an item, added "Racks" (a type) via
-      the picker, confirmed the bottom bar picked up the change immediately and tapping it
-      navigated to the Racks list with the slot highlighted; "Reset to defaults" restored the
-      original five.
+- [x] Verified end-to-end on the Zenfone 10: default bar shows all 4 (Home/Search/Scan/Add) with
+      correct highlighting on each; removed an item, added "Racks" (a type) via the picker,
+      confirmed the bottom bar picked up the change immediately and tapping it navigated to the
+      Racks list with the slot highlighted; "Reset to defaults" restored the original four.
+- [x] `iconForGestureAction` (`NetBoxBottomBar.kt`) copied its icon choices straight from the
+      pre-existing gesture-shortcut picker when extracted for reuse - harmless there (gestures
+      are never shown as a visible icon row) but wrong once it became a visible bottom-bar icon:
+      `Settings` showed an info-circle instead of the gear, `Add` showed a plain `+` instead of
+      the original `AddCircle`. Fixed both to match the bar's original look.
 
 Status: done, 2026-08-07 - verified working end-to-end on the Zenfone 10 (add/remove/reorder,
-navigation, selection highlighting, reset). Mi Pad 4 installed; Pixel 5 unreachable this round
-(ADB wake failed, unrelated to this change) - not yet re-verified there.
+navigation, selection highlighting, reset, corrected default/icons). Mi Pad 4 and Pixel 5
+installed; not yet re-verified there beyond a successful install.
 
 ## NBC-414: drop the "Matches" title/subtitle from global search results
 

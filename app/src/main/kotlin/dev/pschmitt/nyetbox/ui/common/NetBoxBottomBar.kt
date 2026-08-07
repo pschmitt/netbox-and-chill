@@ -2,12 +2,13 @@ package dev.pschmitt.nyetbox.ui.common
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
@@ -35,8 +36,8 @@ internal fun iconForGestureAction(action: GestureAction): ImageVector =
         GestureAction.Dashboard -> Icons.Default.Dashboard
         GestureAction.GlobalSearch -> Icons.Default.Search
         GestureAction.Scanner -> Icons.Default.QrCodeScanner
-        GestureAction.Settings -> Icons.Default.Info
-        GestureAction.Add,
+        GestureAction.Settings -> Icons.Default.Settings
+        GestureAction.Add -> Icons.Default.AddCircle
         GestureAction.AddSpecific -> Icons.Default.Add
         GestureAction.Sync -> Icons.Default.Sync
         GestureAction.OfflineOn,
