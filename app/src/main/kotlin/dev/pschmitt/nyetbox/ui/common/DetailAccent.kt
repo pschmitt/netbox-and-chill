@@ -6,10 +6,10 @@ import androidx.compose.ui.graphics.compositeOver
 import dev.pschmitt.nyetbox.data.repository.ThemeAccent
 
 /**
- * Muted, deliberately low-saturation hues - just enough to tell a screen's cards apart at a
- * glance, not a bold color statement. Deterministic per [title] (same section name -> same tint
- * everywhere) rather than per-screen-position, so "Details" always reads the same regardless of
- * what else is on the page.
+ * Muted, deliberately low-saturation hues - just enough to tell a screen's cards apart at a glance,
+ * not a bold color statement. Deterministic per [title] (same section name -> same tint everywhere)
+ * rather than per-screen-position, so "Details" always reads the same regardless of what else is on
+ * the page.
  */
 private val SectionTintPalette =
     listOf(0xFF455A64, 0xFF00695C, 0xFF8D6E63, 0xFF3949AB, 0xFF33691E, 0xFF5D4037).map(::Color)
