@@ -14,14 +14,14 @@ ksp {
 val configuredVersionCode =
     providers
         .gradleProperty("versionCode")
-        .orElse("15")
+        .orElse("16")
         .map { value ->
             value.toIntOrNull()?.takeIf { it > 0 }
                 ?: error("versionCode must be a positive integer")
         }
         .get()
 val configuredVersionName =
-    providers.gradleProperty("versionName").orElse("1.4.4").get().also { name ->
+    providers.gradleProperty("versionName").orElse("1.4.5").get().also { name ->
         require(name.isNotBlank()) { "versionName must not be blank" }
     }
 
