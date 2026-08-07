@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
+import dev.pschmitt.nyetbox.data.repository.CachedDocument
 import dev.pschmitt.nyetbox.data.repository.DeviceTypePhotoFace
 import dev.pschmitt.nyetbox.data.repository.DirectoryRepository
 import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.MediaUploadRepository
+import dev.pschmitt.nyetbox.data.repository.PendingEditRepository
 import dev.pschmitt.nyetbox.data.schema.documentTypePresentation
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,8 +26,10 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 data class MediaDocumentTypeOption(val value: String, val label: String)
 
@@ -48,6 +52,7 @@ class MediaUploadViewModel
 @Inject
 constructor(
     private val repository: MediaUploadRepository,
+    private val pendingEditRepository: PendingEditRepository,
     directoryRepository: DirectoryRepository,
     genericObjectRepository: GenericObjectRepository,
 ) : ViewModel() {
@@ -165,6 +170,38 @@ constructor(
                 .onFailure { error ->
                     _state.value =
                         MediaUploadUiState(error = error.message ?: "Couldn't upload the file")
+                }
+        }
+    }
+
+    /** PATCHes a document's metadata (type/comments) - queues offline like any other edit. */
+    fun editDocument(
+        document: CachedDocument,
+        documentTypeValue: String?,
+        comments: String?,
+        onSaved: () -> Unit,
+    ) {
+        val endpointPath = documentEndpointPath.value
+        if (endpointPath == null) {
+            _state.value =
+                MediaUploadUiState(error = "NetBox Documents is not available in the cache")
+            return
+        }
+        viewModelScope.launch {
+            _state.value = MediaUploadUiState(isUploading = true)
+            val patch = buildJsonObject {
+                documentTypeValue?.let { put("document_type", it) }
+                put("comments", comments.orEmpty())
+            }
+            pendingEditRepository
+                .submitEdit(endpointPath, document.id, document.rawJson, patch)
+                .onSuccess {
+                    _state.value = MediaUploadUiState(message = "Saved")
+                    onSaved()
+                }
+                .onFailure { error ->
+                    _state.value =
+                        MediaUploadUiState(error = error.message ?: "Couldn't save changes")
                 }
         }
     }

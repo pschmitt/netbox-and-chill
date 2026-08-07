@@ -3,6 +3,61 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-405: jump to rack elevation + highlight device from the "Position" row
+
+Tapping a device's "Position" row already navigated to its rack and threaded a
+`highlightDeviceId` all the way down to `RackElevationOverview` (which already drew a permanent
+border around the matching device) - but the screen still opened on Overview instead of
+Elevation, the device was never scrolled into view, and the highlight had no arrival animation.
+
+- [x] `GenericDetailScreen.kt`: new `LaunchedEffect(highlightDeviceId, viewModel.isRack)` jumps
+      `selectedTab` to the Elevation tab (always index 1 when present) and forces the non-SVG
+      elevation view (the only one with per-device highlighting) on arrival.
+- [x] `GenericDetailRack.kt`: the highlighted device block now uses `BringIntoViewRequester` to
+      scroll itself into view (works through the enclosing `LazyColumn` without restructuring it
+      into per-device lazy items) and layers a `primary`-tinted background flash that fades over
+      ~1.2s on arrival, on top of the existing permanent border.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual/behavioral check (tall rack, device near the bottom, plain rack visits
+      unaffected) - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
+## NBC-404: unify long-press action dialogs; support editing document metadata
+
+Three long-press dialogs looked structurally different: fields and image attachments used
+stacked filled/outlined `Button` rows with no dialog icon (`FieldActionDialog`), documents used
+flat `TextButton` rows with a dialog icon (hand-rolled in `MediaCarousel.kt`). Unify on the
+document dialog's look everywhere, and add the one action documents never had: editing a
+document's NetBox type/comments (previously create/delete only).
+
+- [x] New `ui/common/ActionSheetDialog.kt`: shared `ActionSheetAction`/`ActionSheetDialog` -
+      dialog icon, flat `TextButton` rows, destructive actions tinted
+      `MaterialTheme.colorScheme.error`, extracted/generalized from `MediaCarousel.kt`'s former
+      hand-rolled document action-picker.
+- [x] `FieldActionDialog.kt` rewritten as a thin wrapper over `ActionSheetDialog` - same public
+      signature, zero changes needed at either call site.
+- [x] `MediaCarousel.kt`'s document action-picker now builds an `ActionSheetDialog` too, with a
+      new "Edit document" action; the separate delete-confirmation dialog was left as-is
+      (already a standard, consistent shape).
+- [x] `CachedDocument` (`DocumentRepository.kt`) gained `documentTypeValue` (raw NetBox choice
+      value, for the edit dropdown/PATCH) and `rawJson` (the `submitEdit` baseJson) alongside the
+      existing display-label `documentType`.
+- [x] `MediaUploadViewModel.editDocument(...)`: PATCHes type/comments via the same generic
+      `PendingEditRepository.submitEdit` mechanism every other edit in the app already uses -
+      offline queueing/conflict handling comes for free, no new API surface.
+- [x] New `ui/common/DocumentEditDialog.kt`: edit form (type dropdown + comments field) then a
+      before/after review step built with the generic editor's `DiffValueRow`, matching
+      `EditDiffDialog`'s look without coupling to its `EditableField` data model.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual/behavioral check - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
 ## NBC-403: merge "Add image"/"Add document" into one Add action; fix device-picture viewer scope
 
 Follow-up to NBC-401. The Media carousel still had two separate add buttons, each hardcoding a

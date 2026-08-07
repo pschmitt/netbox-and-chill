@@ -707,6 +707,14 @@ fun GenericDetailScreen(
                         ) {
                             selectedTab = visibleSelectedTab
                         }
+                        LaunchedEffect(highlightDeviceId, viewModel.isRack) {
+                            if (highlightDeviceId != null && viewModel.isRack) {
+                                selectedTab = 1
+                                // Already the default on a fresh navigation - explicit safeguard
+                                // so the highlight (only drawn in the non-SVG view) is visible.
+                                showRackElevationSvg = false
+                            }
+                        }
                         val tabs = buildList {
                             add(ItemDetailTab("Overview", Icons.Default.Info))
                             if (viewModel.isRack) {

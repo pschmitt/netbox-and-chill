@@ -1,5 +1,8 @@
 package dev.pschmitt.nyetbox.ui.generic
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Storage
@@ -20,6 +25,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import dev.pschmitt.nyetbox.data.db.RackElevationEntity
 import dev.pschmitt.nyetbox.data.repository.RackFace
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun RackElevationOverview(
@@ -90,6 +98,16 @@ private fun RackFaceOverview(
                     val lastSlot = block.slots.last()
                     val deviceId = block.deviceId
                     val highlighted = deviceId != null && deviceId == highlightDeviceId
+                    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+                    val flashAlpha = remember { Animatable(0f) }
+                    LaunchedEffect(highlighted) {
+                        if (highlighted) {
+                            delay(150) // let the tab switch/recomposition settle first
+                            bringIntoViewRequester.bringIntoView()
+                            flashAlpha.snapTo(1f)
+                            flashAlpha.animateTo(0f, animationSpec = tween(1200))
+                        }
+                    }
                     val preview = deviceId?.let(previews::get)
                     val imageUrl =
                         if (face == RackFace.FRONT) preview?.frontUrl ?: preview?.rearUrl
@@ -114,9 +132,16 @@ private fun RackFaceOverview(
                             modifier =
                                 Modifier.weight(1f)
                                     .fillMaxHeight()
+                                    .bringIntoViewRequester(bringIntoViewRequester)
                                     .clickable(enabled = deviceId != null) {
                                         deviceId?.let(onDeviceClick)
                                     }
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(
+                                            alpha = flashAlpha.value * 0.35f
+                                        ),
+                                        RoundedCornerShape(4.dp),
+                                    )
                                     .then(
                                         if (highlighted) {
                                             Modifier.border(

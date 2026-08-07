@@ -24,6 +24,10 @@ data class CachedDocument(
     val externalUrl: String?,
     val documentType: String?,
     val comments: String?,
+    /** Raw NetBox choice value (e.g. "manual"), unlike [documentType]'s display label. */
+    val documentTypeValue: String?,
+    /** The object's raw JSON, needed as [PendingEditRepository.submitEdit]'s `baseJson`. */
+    val rawJson: String,
 )
 
 /** Cache-first access to records from the optional NetBox Documents plugin. */
@@ -105,6 +109,7 @@ constructor(
                 .takeIf { it.any(Char::isLetter) }
                 ?.let { type -> documentTypePresentation(type)?.label ?: type }
         }
+        val documentTypeValue = documentTypeCandidates.firstOrNull()
         return CachedDocumentWithTarget(
             document =
                 CachedDocument(
@@ -115,6 +120,8 @@ constructor(
                     externalUrl = externalUrl?.takeIf(String::isNotBlank),
                     documentType = documentType,
                     comments = objectJson["comments"]?.jsonPrimitive?.contentOrNull,
+                    documentTypeValue = documentTypeValue,
+                    rawJson = entity.json,
                 ),
             assignedId = assignedId,
             assignedUrl = assignedUrl,

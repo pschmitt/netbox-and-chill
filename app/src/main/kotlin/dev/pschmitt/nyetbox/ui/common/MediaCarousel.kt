@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PermMedia
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -92,6 +93,7 @@ fun MediaCarousel(
     val context = LocalContext.current
     var actionDocument by remember { mutableStateOf<CachedDocument?>(null) }
     var deleteDocument by remember { mutableStateOf<CachedDocument?>(null) }
+    var editDocument by remember { mutableStateOf<CachedDocument?>(null) }
     var addMenuExpanded by remember { mutableStateOf(false) }
     val totalCount = attachments.size + documents.size
 
@@ -204,41 +206,47 @@ fun MediaCarousel(
     }
     actionDocument?.let { document ->
         val canOpen = !document.documentUrl.isNullOrBlank() || !document.externalUrl.isNullOrBlank()
-        AlertDialog(
-            onDismissRequest = { actionDocument = null },
-            icon = { Icon(Icons.Default.Description, contentDescription = null) },
-            title = { Text(document.name) },
-            text = {
-                Column {
+        ActionSheetDialog(
+            title = document.name,
+            icon = Icons.Default.Description,
+            onDismiss = { actionDocument = null },
+            actions =
+                listOfNotNull(
                     if (canOpen) {
-                        TextButton(
+                        ActionSheetAction(
+                            label = "Open document",
+                            icon = Icons.AutoMirrored.Filled.OpenInNew,
                             onClick = {
                                 actionDocument = null
                                 onDocumentClick(document)
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
-                            Text("Open document", modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                    TextButton(
+                        )
+                    } else null,
+                    ActionSheetAction(
+                        label = "Edit document",
+                        icon = Icons.Default.Edit,
+                        onClick = {
+                            actionDocument = null
+                            editDocument = document
+                        },
+                    ),
+                    ActionSheetAction(
+                        label = "Delete document",
+                        icon = Icons.Default.Delete,
+                        destructive = true,
                         onClick = {
                             actionDocument = null
                             deleteDocument = document
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                            ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                    ) {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                        Text("Delete document", modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { actionDocument = null }) { Text("Cancel") } },
+                    ),
+                ),
+        )
+    }
+    editDocument?.let { document ->
+        DocumentEditDialog(
+            document = document,
+            onDismiss = { editDocument = null },
+            onSaved = { editDocument = null },
         )
     }
     deleteDocument?.let { document ->

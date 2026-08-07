@@ -8,8 +8,63 @@
         errorLine2="        ~~~~~~~~~~~~~~">
         <location
             file="build.gradle.kts"
-            line="57"
+            line="42"
             column="9"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/nyetbox/ui/devicedetail/DeviceDetailScreen.kt"
+            line="1567"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Optional Modifier parameter should have a default value of `Modifier`"
+        errorLine1="    modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/nyetbox/ui/devicedetail/DeviceDetailScreen.kt"
+            line="1567"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/nyetbox/ui/devicedetail/DeviceDetailScreen.kt"
+            line="1629"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Optional Modifier parameter should have a default value of `Modifier`"
+        errorLine1="    modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/nyetbox/ui/devicedetail/DeviceDetailScreen.kt"
+            line="1629"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/dev/pschmitt/nyetbox/ui/common/ItemDetailScaffold.kt"
+            line="82"
+            column="5"/>
     </issue>
 
     <issue
