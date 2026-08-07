@@ -44,18 +44,15 @@ import dev.pschmitt.nyetbox.ui.common.StatusChip
 import dev.pschmitt.nyetbox.ui.common.SuppressiblePullToRefreshBox
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
+import dev.pschmitt.nyetbox.ui.navigation.Route
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceListScreen(
     onDeviceClick: (Int) -> Unit,
     onCreateClick: () -> Unit,
-    onDashboardClick: () -> Unit,
-    onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
-    onSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onAddClick: () -> Unit,
+    onNavigate: (Route) -> Unit,
     viewModel: DeviceListViewModel = hiltViewModel(),
 ) {
     val devices by viewModel.devices.collectAsStateWithLifecycle()
@@ -98,16 +95,7 @@ fun DeviceListScreen(
                 },
             )
         },
-        bottomBar = {
-            NetBoxBottomBar(
-                selected = null,
-                onDashboardClick = onDashboardClick,
-                onSearchClick = onSearchClick,
-                onScanClick = onScanClick,
-                onAddClick = onAddClick,
-                onSettingsClick = onSettingsClick,
-            )
-        },
+        bottomBar = { NetBoxBottomBar(onNavigate = onNavigate) },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             SuppressiblePullToRefreshBox(

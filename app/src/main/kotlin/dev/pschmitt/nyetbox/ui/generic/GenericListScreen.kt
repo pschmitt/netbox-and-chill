@@ -44,18 +44,15 @@ import dev.pschmitt.nyetbox.ui.common.SearchHighlightedText
 import dev.pschmitt.nyetbox.ui.common.SuppressiblePullToRefreshBox
 import dev.pschmitt.nyetbox.ui.common.detailAccentFor
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
+import dev.pschmitt.nyetbox.ui.navigation.Route
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GenericListScreen(
     onObjectClick: (Int) -> Unit,
     onCreateClick: () -> Unit,
-    onDashboardClick: () -> Unit,
-    onScanClick: () -> Unit,
     onOpenDrawer: () -> Unit,
-    onSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onAddClick: () -> Unit,
+    onNavigate: (Route) -> Unit,
     viewModel: GenericListViewModel = hiltViewModel(),
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
@@ -95,18 +92,7 @@ fun GenericListScreen(
                 },
             )
         },
-        bottomBar = {
-            NetBoxBottomBar(
-                // None of the fixed bottom-nav tabs represents "browsing this particular model" -
-                // that's what the sidebar/drawer is for.
-                selected = null,
-                onDashboardClick = onDashboardClick,
-                onSearchClick = onSearchClick,
-                onScanClick = onScanClick,
-                onAddClick = onAddClick,
-                onSettingsClick = onSettingsClick,
-            )
-        },
+        bottomBar = { NetBoxBottomBar(onNavigate = onNavigate) },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             SuppressiblePullToRefreshBox(

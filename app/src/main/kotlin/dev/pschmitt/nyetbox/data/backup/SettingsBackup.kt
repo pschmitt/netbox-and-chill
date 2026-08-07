@@ -7,6 +7,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.pschmitt.nyetbox.BuildConfig
 import dev.pschmitt.nyetbox.data.repository.BackupFrequency
 import dev.pschmitt.nyetbox.data.repository.GestureTarget
+import dev.pschmitt.nyetbox.data.repository.NavBarItem
 import dev.pschmitt.nyetbox.data.repository.PrintSettings
 import dev.pschmitt.nyetbox.data.repository.ScannerLens
 import dev.pschmitt.nyetbox.data.repository.ScannerRearLens
@@ -48,6 +49,7 @@ data class SettingsBackupSettings(
     val changeNotificationFilters: Set<String> = emptySet(),
     val gestureActions: Map<String, String> = emptyMap(),
     val gestureTargets: Map<String, GestureTarget> = emptyMap(),
+    val navBarItems: List<NavBarItem> = emptyList(),
     val scannerLens: String = ScannerLens.Back.storageKey,
     val scannerRearLens: String = ScannerRearLens.Automatic.storageKey,
     val themeMode: String = ThemeMode.FollowSystem.storageKey,
@@ -193,6 +195,7 @@ constructor(
                             .mapValues { it.value.storageKey },
                     gestureTargets =
                         settingsRepository.gestureTargets.value.mapKeys { it.key.storageKey },
+                    navBarItems = settingsRepository.navBarItems.value,
                     scannerLens = settingsRepository.scannerLens.value.storageKey,
                     scannerRearLens = settingsRepository.scannerRearLens.value.storageKey,
                     themeMode = settingsRepository.themeMode.value.storageKey,

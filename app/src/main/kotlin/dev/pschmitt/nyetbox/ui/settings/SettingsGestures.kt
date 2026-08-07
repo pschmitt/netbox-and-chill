@@ -17,6 +17,7 @@ import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.repository.GestureAction
 import dev.pschmitt.nyetbox.data.repository.GestureShortcut
 import dev.pschmitt.nyetbox.data.repository.GestureTarget
+import dev.pschmitt.nyetbox.ui.common.iconForGestureAction
 
 @Composable
 internal fun GestureShortcutRow(
@@ -31,10 +32,6 @@ internal fun GestureShortcutRow(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var targetPickerVisible by remember { mutableStateOf(false) }
-    var targetQuery by remember { mutableStateOf("") }
-    var detailModel by remember {
-        mutableStateOf<dev.pschmitt.nyetbox.data.db.NetBoxModelEntity?>(null)
-    }
     val actionLabel =
         target?.let { configured -> "${action.label}: ${configured.label}" } ?: action.label
     SettingsListItem(
@@ -68,24 +65,7 @@ internal fun GestureShortcutRow(
                         DropdownMenuItem(
                             text = { Text(candidate.label) },
                             leadingIcon = {
-                                Icon(
-                                    when (candidate) {
-                                        GestureAction.Off -> Icons.Default.Block
-                                        GestureAction.GlobalSearch -> Icons.Default.Search
-                                        GestureAction.Scanner -> Icons.Default.QrCodeScanner
-                                        GestureAction.Settings -> Icons.Default.Info
-                                        GestureAction.Add,
-                                        GestureAction.AddSpecific -> Icons.Default.Add
-                                        GestureAction.Sync -> Icons.Default.Sync
-                                        GestureAction.OfflineOn,
-                                        GestureAction.OfflineOff -> Icons.Default.CloudOff
-                                        GestureAction.SwitchServer -> Icons.Default.SwapHoriz
-                                        GestureAction.DeviceList,
-                                        GestureAction.ListSpecific,
-                                        GestureAction.DetailSpecific -> Icons.Default.Storage
-                                    },
-                                    contentDescription = null,
-                                )
+                                Icon(iconForGestureAction(candidate), contentDescription = null)
                             },
                             onClick = {
                                 onActionSelected(candidate)
@@ -95,8 +75,6 @@ internal fun GestureShortcutRow(
                                         candidate == GestureAction.ListSpecific ||
                                         candidate == GestureAction.DetailSpecific
                                 ) {
-                                    targetQuery = ""
-                                    detailModel = null
                                     targetPickerVisible = true
                                 }
                             },
@@ -107,116 +85,127 @@ internal fun GestureShortcutRow(
         },
     )
     if (targetPickerVisible) {
-        val filteredModels = models.filter { model ->
-            targetQuery.isBlank() ||
-                model.modelLabel.contains(targetQuery, ignoreCase = true) ||
-                model.appLabel.contains(targetQuery, ignoreCase = true)
-        }
-        val filteredObjects =
-            detailModel
-                ?.let { selectedModel ->
-                    objects
-                        .asSequence()
-                        .filter { it.endpointPath == selectedModel.endpointPath }
-                        .filter { obj ->
-                            targetQuery.isBlank() ||
-                                obj.display.contains(targetQuery, ignoreCase = true) ||
-                                obj.secondaryLine
-                                    .orEmpty()
-                                    .contains(targetQuery, ignoreCase = true) ||
-                                obj.json.contains(targetQuery, ignoreCase = true)
-                        }
-                        .toList()
-                }
-                .orEmpty()
-        AlertDialog(
-            onDismissRequest = {
+        ActionTargetPickerDialog(
+            action = action,
+            models = models,
+            objects = objects,
+            onDismiss = { targetPickerVisible = false },
+            onModelSelected = { model ->
+                onTargetSelected(model)
                 targetPickerVisible = false
-                detailModel = null
             },
-            title = {
-                Text(
-                    if (action == GestureAction.DetailSpecific && detailModel != null) {
-                        "Choose cached ${detailModel!!.modelLabel.lowercase()}"
-                    } else {
-                        "Choose item type"
-                    }
-                )
-            },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    OutlinedTextField(
-                        value = targetQuery,
-                        onValueChange = { targetQuery = it },
-                        label = {
-                            Text(
-                                if (action == GestureAction.DetailSpecific && detailModel != null) {
-                                    "Search cached items"
-                                } else {
-                                    "Search item types"
-                                }
-                            )
-                        },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    if (action == GestureAction.DetailSpecific && detailModel != null) {
-                        if (filteredObjects.isEmpty()) {
-                            Text(
-                                "No matching cached items",
-                                modifier = Modifier.padding(top = 16.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        filteredObjects.forEach { obj ->
-                            SettingsListItem(
-                                modifier =
-                                    Modifier.clickable {
-                                        onDetailTargetSelected(obj)
-                                        targetPickerVisible = false
-                                        detailModel = null
-                                    },
-                                leadingContent = {
-                                    Icon(Icons.Default.Storage, contentDescription = null)
-                                },
-                                headlineContent = { Text(obj.display) },
-                                supportingContent = { obj.secondaryLine?.let { Text(it) } },
-                            )
-                        }
-                    } else {
-                        filteredModels.forEach { model ->
-                            SettingsListItem(
-                                modifier =
-                                    Modifier.clickable {
-                                        if (action == GestureAction.DetailSpecific) {
-                                            detailModel = model
-                                            targetQuery = ""
-                                        } else {
-                                            onTargetSelected(model)
-                                            targetPickerVisible = false
-                                        }
-                                    },
-                                leadingContent = {
-                                    Icon(Icons.Default.Add, contentDescription = null)
-                                },
-                                headlineContent = { Text(model.modelLabel) },
-                                supportingContent = { Text(model.appLabel) },
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        targetPickerVisible = false
-                        detailModel = null
-                    }
-                ) {
-                    Text("Cancel")
-                }
+            onObjectSelected = { obj ->
+                onDetailTargetSelected(obj)
+                targetPickerVisible = false
             },
         )
     }
+}
+
+/**
+ * Two-step target picker shared by the gesture-shortcut editor and the nav-bar customizer: choose
+ * an item type, then (for [GestureAction.DetailSpecific] only) a specific cached instance of that
+ * type. [onModelSelected] fires for the terminal choice of every other action; [onObjectSelected]
+ * fires only once a specific instance has been picked.
+ */
+@Composable
+internal fun ActionTargetPickerDialog(
+    action: GestureAction,
+    models: List<NetBoxModelEntity>,
+    objects: List<NetBoxObjectEntity>,
+    onDismiss: () -> Unit,
+    onModelSelected: (NetBoxModelEntity) -> Unit,
+    onObjectSelected: (NetBoxObjectEntity) -> Unit,
+) {
+    var targetQuery by remember { mutableStateOf("") }
+    var detailModel by remember { mutableStateOf<NetBoxModelEntity?>(null) }
+    val filteredModels = models.filter { model ->
+        targetQuery.isBlank() ||
+            model.modelLabel.contains(targetQuery, ignoreCase = true) ||
+            model.appLabel.contains(targetQuery, ignoreCase = true)
+    }
+    val filteredObjects =
+        detailModel
+            ?.let { selectedModel ->
+                objects
+                    .asSequence()
+                    .filter { it.endpointPath == selectedModel.endpointPath }
+                    .filter { obj ->
+                        targetQuery.isBlank() ||
+                            obj.display.contains(targetQuery, ignoreCase = true) ||
+                            obj.secondaryLine.orEmpty().contains(targetQuery, ignoreCase = true) ||
+                            obj.json.contains(targetQuery, ignoreCase = true)
+                    }
+                    .toList()
+            }
+            .orEmpty()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (action == GestureAction.DetailSpecific && detailModel != null) {
+                    "Choose cached ${detailModel!!.modelLabel.lowercase()}"
+                } else {
+                    "Choose item type"
+                }
+            )
+        },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = targetQuery,
+                    onValueChange = { targetQuery = it },
+                    label = {
+                        Text(
+                            if (action == GestureAction.DetailSpecific && detailModel != null) {
+                                "Search cached items"
+                            } else {
+                                "Search item types"
+                            }
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (action == GestureAction.DetailSpecific && detailModel != null) {
+                    if (filteredObjects.isEmpty()) {
+                        Text(
+                            "No matching cached items",
+                            modifier = Modifier.padding(top = 16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    filteredObjects.forEach { obj ->
+                        SettingsListItem(
+                            modifier = Modifier.clickable { onObjectSelected(obj) },
+                            leadingContent = {
+                                Icon(Icons.Default.Storage, contentDescription = null)
+                            },
+                            headlineContent = { Text(obj.display) },
+                            supportingContent = { obj.secondaryLine?.let { Text(it) } },
+                        )
+                    }
+                } else {
+                    filteredModels.forEach { model ->
+                        SettingsListItem(
+                            modifier =
+                                Modifier.clickable {
+                                    if (action == GestureAction.DetailSpecific) {
+                                        detailModel = model
+                                        targetQuery = ""
+                                    } else {
+                                        onModelSelected(model)
+                                    }
+                                },
+                            leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                            headlineContent = { Text(model.modelLabel) },
+                            supportingContent = { Text(model.appLabel) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

@@ -79,6 +79,7 @@ class SettingsCategoryContentTest {
             gestureTargets = emptyMap(),
             gestureModels = emptyList(),
             gestureObjects = emptyList(),
+            navBarItems = emptyList(),
             scannerLens = ScannerLens.Back,
             scannerRearLens = ScannerRearLens.Automatic,
             printSettings = PrintSettings(),
@@ -118,5 +119,11 @@ class SettingsCategoryContentTest {
             onSetGestureAction = { _, _ -> },
             onSetGestureTarget = { _, _ -> },
             onSetGestureDetailTarget = { _, _ -> },
+            onAddNavBarItem = {},
+            onAddNavBarModelItem = { _, _ -> },
+            onAddNavBarObjectItem = { _, _ -> },
+            onRemoveNavBarItem = {},
+            onMoveNavBarItem = { _, _ -> },
+            onResetNavBarItems = {},
         )
 }

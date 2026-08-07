@@ -90,7 +90,6 @@ import dev.pschmitt.nyetbox.data.db.RecentVisitEntity
 import dev.pschmitt.nyetbox.data.repository.SyncIssue
 import dev.pschmitt.nyetbox.sync.SyncProgress
 import dev.pschmitt.nyetbox.sync.notificationSubText
-import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
 import dev.pschmitt.nyetbox.ui.common.NyetboxActionCard
@@ -113,6 +112,7 @@ import dev.pschmitt.nyetbox.ui.common.rememberSectionReorderState
 import dev.pschmitt.nyetbox.ui.common.sectionDragOffset
 import dev.pschmitt.nyetbox.ui.common.sectionReorderGesture
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
+import dev.pschmitt.nyetbox.ui.navigation.Route
 import kotlinx.coroutines.delay
 
 internal fun shouldShowSyncIssue(offlineMode: Boolean): Boolean = !offlineMode
@@ -131,15 +131,12 @@ private const val RECENT_CHANGES_PREVIEW_LIMIT = 3
 @Composable
 fun DashboardScreen(
     onOpenDrawer: () -> Unit,
-    onScanClick: () -> Unit,
-    onSearchClick: () -> Unit,
+    onNavigate: (Route) -> Unit,
     onNavigateToReference: (endpointPath: String, id: Int) -> Unit,
     onStatClick: (endpointPath: String, label: String) -> Unit,
     onChangeDiffClick: (changeId: Int) -> Unit,
     onConflictsClick: () -> Unit,
     onPendingChangesClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onAddClick: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -256,16 +253,7 @@ fun DashboardScreen(
                     },
                 )
             },
-            bottomBar = {
-                NetBoxBottomBar(
-                    selected = BottomTab.Dashboard,
-                    onDashboardClick = {},
-                    onSearchClick = onSearchClick,
-                    onScanClick = onScanClick,
-                    onAddClick = onAddClick,
-                    onSettingsClick = onSettingsClick,
-                )
-            },
+            bottomBar = { NetBoxBottomBar(onNavigate = onNavigate) },
         ) { padding ->
             SuppressiblePullToRefreshBox(
                 // Sync has a global progress bar and Android notification; avoid the large circular
@@ -425,7 +413,7 @@ fun DashboardScreen(
                                 }
                                 DashboardSection.Search ->
                                     GlobalSearchCard(
-                                        onClick = onSearchClick,
+                                        onClick = { onNavigate(Route.GlobalSearch) },
                                         reorderMode = dashboardReorderMode,
                                         onLongPress = { dashboardReorderMode = true },
                                         onHide = {

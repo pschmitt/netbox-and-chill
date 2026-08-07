@@ -3,6 +3,60 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-415: customizable bottom navigation bar (up to 5 slots, reorderable)
+
+Bottom bar (phone) and rail (tablet) were hardcoded: phone always showed Home/Search/Scan/Add,
+rail always added Settings. Added a Settings screen to customize which buttons appear (up to 5)
+and reorder them, with any NetBox view (a type's list, or one specific cached object) selectable
+alongside the fixed destinations.
+
+- [x] `SettingsRepository.kt`: added `GestureAction.Dashboard` (a real gap - gestures couldn't
+      point at Home either) and `GestureAction.navigational` (excludes `Off`/`Sync`/
+      `OfflineOn`/`OfflineOff`, since a nav-bar slot must always be able to show a "selected"
+      state); new `@Serializable NavBarItem(action, target)`, persisted as a single JSON-encoded
+      `List<NavBarItem>` (order matters, so not a `StringSet`) mirroring the existing
+      `ServerProfile` list pattern; `navBarItems` StateFlow + `setNavBarItems`/`resetNavBarItems`;
+      wired into settings backup/restore (`SettingsBackup.kt`) alongside gestures/pinned paths.
+      Default is today's fuller rail set (Home, Search, Scan, Add, Settings) used on both
+      surfaces - the phone bottom bar now also shows Settings by default.
+- [x] `MainActivityRouting.kt`: `routeForGesture` gained the `Dashboard -> Route.Dashboard`
+      branch (reused as-is for nav-bar dispatch, no new resolver needed); new
+      `matchesCurrentRoute(current, target)` for "is this slot the one currently open" -
+      compares only the identifying fields of `Route.Generic`/`Route.GenericList` so a
+      slot resolved with default extras (no breadcrumb/filter) still matches the same
+      destination reached by browsing.
+- [x] `ui/common/NetBoxBottomBar.kt`: rewritten to render a `List<NavBarItem>` (from a new
+      self-contained `NavBarViewModel`) instead of 5 hardcoded items; added `LocalCurrentRoute`
+      (`NetBoxResponsiveScaffold.kt`, alongside `LocalUseNavigationRail`) so the bar knows the
+      current destination without threading a new param through every screen.
+- [x] `NetBoxNavHost.kt` + the 6 screens that host the bar (`DashboardScreen`, `DeviceListScreen`,
+      `GenericListScreen`, `AddItemScreen`, `GlobalSearchScreen`, `ScannerScreen`): collapsed each
+      screen's 5 fixed `on*Click` callbacks into one `onNavigate: (Route) -> Unit`, and wrapped
+      each `composable<Route.X>` block in `CompositionLocalProvider(LocalCurrentRoute provides ...)`.
+- [x] `SettingsGestures.kt`: extracted the existing two-step target-picker `AlertDialog` (choose
+      item type, then for "specific item detail" a cached instance of that type) out of
+      `GestureShortcutRow` into a standalone `ActionTargetPickerDialog`, reused by both the
+      gesture editor and the new nav-bar customizer - no behavior change for gestures.
+- [x] New Settings category "Navigation bar" (`SettingsCategory.kt`, grouped under "Appearance &
+      Interaction"): `NavBarSettingsContent` (`SettingsCategoryContent.kt`) lists the configured
+      slots with up/down/remove controls (a plain scrollable `Column`, not `LazyColumn` - the
+      existing drag-reorder utility in `ReorderableSections.kt` needs `LazyListState` and didn't
+      fit this screen's container, so reordering is buttons instead of drag-and-drop) plus an
+      "Add button" row (hidden at the 5-item cap) reusing `ActionTargetPickerDialog`, and "Reset
+      to defaults".
+- [x] Remote `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` (after fixing
+      `SettingsCategoryContentTest.kt`'s direct `SettingsCategoryState`/`Actions` construction for
+      the new required fields), and `:app:testDebugUnitTest` all passed.
+- [x] Verified end-to-end on the Zenfone 10: default bar shows all 5 (Home/Search/Scan/Add/
+      Settings) with correct highlighting on each; removed an item, added "Racks" (a type) via
+      the picker, confirmed the bottom bar picked up the change immediately and tapping it
+      navigated to the Racks list with the slot highlighted; "Reset to defaults" restored the
+      original five.
+
+Status: done, 2026-08-07 - verified working end-to-end on the Zenfone 10 (add/remove/reorder,
+navigation, selection highlighting, reset). Mi Pad 4 installed; Pixel 5 unreachable this round
+(ADB wake failed, unrelated to this change) - not yet re-verified there.
+
 ## NBC-414: drop the "Matches" title/subtitle from global search results
 
 The search results section header repeated info already shown elsewhere (an active type filter

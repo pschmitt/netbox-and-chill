@@ -33,7 +33,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
-import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.ModernSearchField
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
@@ -41,6 +40,7 @@ import dev.pschmitt.nyetbox.ui.common.NetBoxSectionHeader
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
+import dev.pschmitt.nyetbox.ui.navigation.Route
 import dev.pschmitt.nyetbox.ui.directory.DirectoryViewModel
 
 /** Lets the user choose any discovered NetBox model before opening the generic create form. */
@@ -49,10 +49,7 @@ import dev.pschmitt.nyetbox.ui.directory.DirectoryViewModel
 fun AddItemScreen(
     onBack: () -> Unit,
     onModelClick: (NetBoxModelEntity) -> Unit,
-    onDashboardClick: () -> Unit,
-    onSearchClick: () -> Unit,
-    onScanClick: () -> Unit,
-    onSettingsClick: () -> Unit,
+    onNavigate: (Route) -> Unit,
     viewModel: DirectoryViewModel = hiltViewModel(),
 ) {
     val modelsByApp by viewModel.modelsByApp.collectAsStateWithLifecycle()
@@ -132,16 +129,7 @@ fun AddItemScreen(
                 },
             )
         },
-        bottomBar = {
-            NetBoxBottomBar(
-                selected = BottomTab.Add,
-                onDashboardClick = onDashboardClick,
-                onSearchClick = onSearchClick,
-                onScanClick = onScanClick,
-                onAddClick = {},
-                onSettingsClick = onSettingsClick,
-            )
-        },
+        bottomBar = { NetBoxBottomBar(onNavigate = onNavigate) },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             ModernSearchField(

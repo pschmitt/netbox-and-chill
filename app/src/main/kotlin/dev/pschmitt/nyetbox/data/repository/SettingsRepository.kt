@@ -119,6 +119,7 @@ data class GestureTarget(val endpointPath: String, val label: String, val id: In
 
 enum class GestureAction(val storageKey: String, val label: String) {
     Off("off", "Off"),
+    Dashboard("dashboard", "Home"),
     GlobalSearch("global_search", "Global search"),
     Scanner("scanner", "QR scanner"),
     Settings("settings", "Settings"),
@@ -135,8 +136,20 @@ enum class GestureAction(val storageKey: String, val label: String) {
     companion object {
         fun fromStorage(value: String?, fallback: GestureAction = GlobalSearch): GestureAction =
             entries.firstOrNull { it.storageKey == value } ?: fallback
+
+        /** Actions that always resolve to a [dev.pschmitt.nyetbox.ui.navigation.Route] via
+         * [dev.pschmitt.nyetbox.routeForGesture] - the only ones a nav-bar slot can use, since a
+         * slot must always be able to show a clear "selected" state. */
+        val navigational: List<GestureAction>
+            get() = entries.filterNot { it == Off || it == Sync || it == OfflineOn || it == OfflineOff }
     }
 }
+
+/**
+ * One configurable slot in the bottom navigation bar/rail (up to 5, see
+ * [dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar]).
+ */
+@Serializable data class NavBarItem(val action: GestureAction, val target: GestureTarget? = null)
 
 enum class GestureShortcut(val storageKey: String, val label: String) {
     TwoFingerDown("two_finger_down", "Two-finger swipe down"),
@@ -309,6 +322,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     val gestureTargets: StateFlow<Map<GestureShortcut, GestureTarget>> =
         _gestureTargets.asStateFlow()
 
+    private val _navBarItems = MutableStateFlow(loadNavBarItems())
+    val navBarItems: StateFlow<List<NavBarItem>> = _navBarItems.asStateFlow()
+
     private val _scannerLens = MutableStateFlow(loadScannerLens())
     val scannerLens: StateFlow<ScannerLens> = _scannerLens.asStateFlow()
 
@@ -461,6 +477,26 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     fun clearGestureTarget(shortcut: GestureShortcut) {
         prefs.edit().remove(gestureTargetKey(shortcut)).apply()
         _gestureTargets.value = _gestureTargets.value - shortcut
+    }
+
+    fun setNavBarItems(items: List<NavBarItem>) {
+        val truncated = items.take(MAX_NAV_BAR_ITEMS)
+        prefs
+            .edit()
+            .putString(
+                KEY_NAV_BAR_ITEMS,
+                settingsJson.encodeToString(
+                    kotlinx.serialization.builtins.ListSerializer(NavBarItem.serializer()),
+                    truncated,
+                ),
+            )
+            .apply()
+        _navBarItems.value = truncated
+    }
+
+    fun resetNavBarItems() {
+        prefs.edit().remove(KEY_NAV_BAR_ITEMS).apply()
+        _navBarItems.value = defaultNavBarItems()
     }
 
     fun setScannerLens(lens: ScannerLens) {
@@ -920,6 +956,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
                 .firstOrNull { it.storageKey == shortcutKey }
                 ?.let { setGestureTarget(it, target) }
         }
+        if (settings.navBarItems.isNotEmpty()) setNavBarItems(settings.navBarItems)
         setScannerLens(ScannerLens.fromStorage(settings.scannerLens))
         setScannerRearLens(ScannerRearLens.fromStorage(settings.scannerRearLens))
         setThemeMode(ThemeMode.fromStorage(settings.themeMode))
@@ -1159,6 +1196,33 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             }
             .toMap()
 
+    private fun loadNavBarItems(): List<NavBarItem> {
+        val stored = prefs.getString(KEY_NAV_BAR_ITEMS, null)
+        if (!stored.isNullOrBlank()) {
+            runCatching {
+                    settingsJson.decodeFromString(
+                        kotlinx.serialization.builtins.ListSerializer(NavBarItem.serializer()),
+                        stored,
+                    )
+                }
+                .getOrNull()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let {
+                    return it.take(MAX_NAV_BAR_ITEMS)
+                }
+        }
+        return defaultNavBarItems()
+    }
+
+    private fun defaultNavBarItems(): List<NavBarItem> =
+        listOf(
+            NavBarItem(GestureAction.Dashboard),
+            NavBarItem(GestureAction.GlobalSearch),
+            NavBarItem(GestureAction.Scanner),
+            NavBarItem(GestureAction.Add),
+            NavBarItem(GestureAction.Settings),
+        )
+
     private fun gesturePreferenceKey(shortcut: GestureShortcut): String =
         if (shortcut == GestureShortcut.TwoFingerDown) {
             KEY_GESTURE_ACTION
@@ -1297,6 +1361,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             listOf(NetBoxRef.DEVICES_ENDPOINT_PATH, NetBoxRef.DEVICE_TYPES_ENDPOINT_PATH)
         const val PINNED_MODEL_PATHS_VERSION = 1
         const val MAX_PINNED_MODEL_PATHS = 5
+        const val KEY_NAV_BAR_ITEMS = "nav_bar_items"
+        const val MAX_NAV_BAR_ITEMS = 5
         const val KEY_SYNC_ATTACHMENTS = "sync_attachments_to_disk"
         const val KEY_SYNC_ONLY_ON_WIFI = "sync_only_on_wifi"
         const val KEY_SYNC_WHILE_ROAMING = "sync_while_roaming"

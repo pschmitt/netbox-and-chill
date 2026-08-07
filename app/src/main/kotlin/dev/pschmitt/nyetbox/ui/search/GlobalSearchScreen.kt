@@ -73,7 +73,6 @@ import dev.pschmitt.nyetbox.data.repository.GlobalSearchRepository
 import dev.pschmitt.nyetbox.data.repository.SearchHit
 import dev.pschmitt.nyetbox.data.repository.ThemeAccent
 import dev.pschmitt.nyetbox.data.repository.parseGlobalSearchQuery
-import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.ModernSearchField
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
@@ -83,6 +82,7 @@ import dev.pschmitt.nyetbox.ui.common.SearchHighlightedText
 import dev.pschmitt.nyetbox.ui.common.SearchQueryVisualTransformation
 import dev.pschmitt.nyetbox.ui.common.visualColorForEndpointPath
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
+import dev.pschmitt.nyetbox.ui.navigation.Route
 
 /**
  * Cross-model search (NBC-13) - reachable from a search icon on the Devices/generic list top bars,
@@ -97,10 +97,7 @@ import dev.pschmitt.nyetbox.ui.directory.AppIcons
 fun GlobalSearchScreen(
     onResultClick: (endpointPath: String, id: Int, display: String) -> Unit,
     onBack: () -> Unit,
-    onDashboardClick: () -> Unit,
-    onScanClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onAddClick: () -> Unit,
+    onNavigate: (Route) -> Unit,
     selectionPrompt: String? = null,
     viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
@@ -131,16 +128,7 @@ fun GlobalSearchScreen(
 
     NetBoxResponsiveScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            NetBoxBottomBar(
-                selected = BottomTab.Search,
-                onDashboardClick = onDashboardClick,
-                onSearchClick = {},
-                onScanClick = onScanClick,
-                onAddClick = onAddClick,
-                onSettingsClick = onSettingsClick,
-            )
-        },
+        bottomBar = { NetBoxBottomBar(onNavigate = onNavigate) },
         topBar = {
             TopAppBar(
                 title = {

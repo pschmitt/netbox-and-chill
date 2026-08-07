@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
@@ -23,6 +24,7 @@ enum class SettingsCategory(val title: String, val subtitle: String) {
     Camera("Camera", "Scanner camera and lens preferences"),
     Printing("Printing", "Printer and label defaults"),
     Gestures("Gestures", "Gesture shortcuts"),
+    NavigationBar("Navigation bar", "Choose and reorder bottom bar buttons"),
     Display("Display", "Theme, fields, and item types shown by default"),
     Notifications("Notifications", "NetBox change alerts"),
     About("About", "Application and build information");
@@ -36,6 +38,7 @@ enum class SettingsCategory(val title: String, val subtitle: String) {
                 Camera -> Icons.Default.Cameraswitch
                 Printing -> Icons.Default.Print
                 Gestures -> Icons.Default.TouchApp
+                NavigationBar -> Icons.Default.ViewCarousel
                 Display -> Icons.Default.Visibility
                 Notifications -> Icons.Default.Notifications
                 About -> Icons.Default.Info

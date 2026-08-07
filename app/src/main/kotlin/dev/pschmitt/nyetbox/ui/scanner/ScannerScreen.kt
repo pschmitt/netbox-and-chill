@@ -74,9 +74,9 @@ import dev.pschmitt.nyetbox.data.repository.ScannerLens
 import dev.pschmitt.nyetbox.data.repository.ScannerRearLens
 import dev.pschmitt.nyetbox.scanner.BarcodeAnalyzer
 import dev.pschmitt.nyetbox.scanner.NetBoxTarget
-import dev.pschmitt.nyetbox.ui.common.BottomTab
 import dev.pschmitt.nyetbox.ui.common.NetBoxBottomBar
 import dev.pschmitt.nyetbox.ui.common.NetBoxResponsiveScaffold
+import dev.pschmitt.nyetbox.ui.navigation.Route
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -88,10 +88,7 @@ import timber.log.Timber
 fun ScannerScreen(
     onTargetFound: (NetBoxTarget) -> Unit,
     onBack: () -> Unit,
-    onDashboardClick: () -> Unit,
-    onSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onAddClick: () -> Unit,
+    onNavigate: (Route) -> Unit,
     showBottomBar: Boolean = true,
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
@@ -138,14 +135,7 @@ fun ScannerScreen(
         fullScreenOnRail = true,
         bottomBar = {
             if (showBottomBar) {
-                NetBoxBottomBar(
-                    selected = BottomTab.Scan,
-                    onDashboardClick = onDashboardClick,
-                    onSearchClick = onSearchClick,
-                    onScanClick = {},
-                    onAddClick = onAddClick,
-                    onSettingsClick = onSettingsClick,
-                )
+                NetBoxBottomBar(onNavigate = onNavigate)
             }
         },
         topBar = {

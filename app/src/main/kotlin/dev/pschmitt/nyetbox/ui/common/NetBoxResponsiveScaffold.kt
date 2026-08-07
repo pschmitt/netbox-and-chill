@@ -13,9 +13,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.pschmitt.nyetbox.ui.navigation.Route
 
 /** True while a screen is being laid out with the tablet navigation rail. */
 internal val LocalUseNavigationRail = compositionLocalOf { false }
+
+/**
+ * The [Route] currently on top of the back stack, provided once per `composable<Route.X>` block
+ * in `NetBoxNavHost.kt` - lets [NetBoxBottomBar] highlight the matching slot without threading a
+ * new parameter through every screen that hosts it.
+ */
+internal val LocalCurrentRoute = compositionLocalOf<Route?> { null }
 
 /**
  * The app's responsive shell: a bottom navigation bar on phones and the same navigation as a

@@ -15,6 +15,7 @@ import dev.pschmitt.nyetbox.data.repository.GenericObjectRepository
 import dev.pschmitt.nyetbox.data.repository.GestureAction
 import dev.pschmitt.nyetbox.data.repository.GestureShortcut
 import dev.pschmitt.nyetbox.data.repository.GestureTarget
+import dev.pschmitt.nyetbox.data.repository.NavBarItem
 import dev.pschmitt.nyetbox.data.repository.NetBoxCredentials
 import dev.pschmitt.nyetbox.data.repository.NetBoxUserIdentity
 import dev.pschmitt.nyetbox.data.repository.PrintSettings
@@ -80,6 +81,8 @@ constructor(
 
     val gestureTargets: StateFlow<Map<GestureShortcut, GestureTarget>> =
         settingsRepository.gestureTargets
+
+    val navBarItems: StateFlow<List<NavBarItem>> = settingsRepository.navBarItems
 
     val gestureModels: StateFlow<List<NetBoxModelEntity>> =
         directoryRepository
@@ -392,6 +395,37 @@ constructor(
             shortcut,
             GestureTarget(endpointPath = obj.endpointPath, id = obj.id, label = obj.display),
         )
+    }
+
+    fun addNavBarItem(action: GestureAction) {
+        settingsRepository.setNavBarItems(navBarItems.value + NavBarItem(action))
+    }
+
+    fun addNavBarItem(action: GestureAction, model: NetBoxModelEntity) {
+        val target = GestureTarget(endpointPath = model.endpointPath, label = model.modelLabel)
+        settingsRepository.setNavBarItems(navBarItems.value + NavBarItem(action, target))
+    }
+
+    fun addNavBarItem(action: GestureAction, obj: NetBoxObjectEntity) {
+        val target = GestureTarget(endpointPath = obj.endpointPath, id = obj.id, label = obj.display)
+        settingsRepository.setNavBarItems(navBarItems.value + NavBarItem(action, target))
+    }
+
+    fun removeNavBarItem(index: Int) {
+        settingsRepository.setNavBarItems(
+            navBarItems.value.filterIndexed { i, _ -> i != index }
+        )
+    }
+
+    fun moveNavBarItem(from: Int, to: Int) {
+        val items = navBarItems.value.toMutableList()
+        if (from !in items.indices || to !in items.indices) return
+        items.add(to, items.removeAt(from))
+        settingsRepository.setNavBarItems(items)
+    }
+
+    fun resetNavBarItems() {
+        settingsRepository.resetNavBarItems()
     }
 
     fun setScannerLens(lens: ScannerLens) {

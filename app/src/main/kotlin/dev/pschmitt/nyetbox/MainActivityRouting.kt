@@ -74,6 +74,7 @@ internal fun routeForTarget(target: NetBoxTarget): Route? =
 /** Pure route selection for configured gesture actions; side effects remain in MainActivity. */
 internal fun routeForGesture(action: GestureAction, target: GestureTarget?): Route? =
     when (action) {
+        GestureAction.Dashboard -> Route.Dashboard
         GestureAction.GlobalSearch -> Route.GlobalSearch
         GestureAction.Scanner -> Route.Scanner()
         GestureAction.Settings -> Route.Settings
@@ -96,4 +97,22 @@ internal fun routeForGesture(action: GestureAction, target: GestureTarget?): Rou
         GestureAction.Sync,
         GestureAction.OfflineOn,
         GestureAction.OfflineOff -> null
+    }
+
+/**
+ * Whether [current] is showing the same destination as a nav-bar slot resolved to [target] -
+ * used to decide which bottom-bar/rail item highlights as selected. Routes with fields that only
+ * ever differ based on *how* you arrived (a breadcrumb, a focused field, an edit-mode flag, an
+ * inherited list filter) are compared on their identifying fields only, since a nav-bar-resolved
+ * target always has those extras at their defaults.
+ */
+internal fun matchesCurrentRoute(current: Route?, target: Route): Boolean =
+    when (target) {
+        is Route.Generic ->
+            current is Route.Generic &&
+                current.endpointPath == target.endpointPath &&
+                current.id == target.id
+        is Route.GenericList ->
+            current is Route.GenericList && current.endpointPath == target.endpointPath
+        else -> current == target
     }

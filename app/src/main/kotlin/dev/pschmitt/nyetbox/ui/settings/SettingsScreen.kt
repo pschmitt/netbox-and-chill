@@ -109,6 +109,7 @@ fun SettingsScreen(
                 listOf(
                         SettingsCategory.Display,
                         SettingsCategory.Gestures,
+                        SettingsCategory.NavigationBar,
                         SettingsCategory.Notifications,
                     )
                     .forEach { category -> SettingsCategoryRow(category, onCategoryClick) }
@@ -172,6 +173,7 @@ fun SettingsCategoryScreen(
     val gestureTargets by viewModel.gestureTargets.collectAsStateWithLifecycle()
     val gestureModels by viewModel.gestureModels.collectAsStateWithLifecycle()
     val gestureObjects by viewModel.gestureObjects.collectAsStateWithLifecycle()
+    val navBarItems by viewModel.navBarItems.collectAsStateWithLifecycle()
     val scannerLens by viewModel.settingsRepository.scannerLens.collectAsStateWithLifecycle()
     val scannerRearLens by
         viewModel.settingsRepository.scannerRearLens.collectAsStateWithLifecycle()
@@ -501,6 +503,7 @@ fun SettingsCategoryScreen(
                         gestureTargets = gestureTargets,
                         gestureModels = gestureModels,
                         gestureObjects = gestureObjects,
+                        navBarItems = navBarItems,
                         scannerLens = scannerLens,
                         scannerRearLens = scannerRearLens,
                         printSettings = printSettings,
@@ -587,6 +590,16 @@ fun SettingsCategoryScreen(
                         onSetGestureAction = viewModel::setGestureAction,
                         onSetGestureTarget = viewModel::setGestureTarget,
                         onSetGestureDetailTarget = viewModel::setGestureDetailTarget,
+                        onAddNavBarItem = { action -> viewModel.addNavBarItem(action) },
+                        onAddNavBarModelItem = { action, model ->
+                            viewModel.addNavBarItem(action, model)
+                        },
+                        onAddNavBarObjectItem = { action, obj ->
+                            viewModel.addNavBarItem(action, obj)
+                        },
+                        onRemoveNavBarItem = viewModel::removeNavBarItem,
+                        onMoveNavBarItem = viewModel::moveNavBarItem,
+                        onResetNavBarItems = viewModel::resetNavBarItems,
                     ),
             )
         }

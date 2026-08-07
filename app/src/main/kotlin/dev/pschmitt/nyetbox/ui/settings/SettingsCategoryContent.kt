@@ -21,6 +21,7 @@ import dev.pschmitt.nyetbox.data.db.NetBoxModelEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.repository.*
 import dev.pschmitt.nyetbox.ui.common.SyncIssueCard
+import dev.pschmitt.nyetbox.ui.common.iconForGestureAction
 
 internal fun formatBytes(bytes: Long): String =
     when {
@@ -29,6 +30,8 @@ internal fun formatBytes(bytes: Long): String =
         bytes < 1024L * 1024L * 1024L -> "%.1f MiB".format(bytes / (1024.0 * 1024.0))
         else -> "%.2f GiB".format(bytes / (1024.0 * 1024.0 * 1024.0))
     }
+
+private const val MAX_NAV_BAR_ITEMS = 5
 
 private val TWO_FINGER_SHORTCUTS =
     setOf(
@@ -71,6 +74,7 @@ internal data class SettingsCategoryState(
     val gestureTargets: Map<GestureShortcut, GestureTarget>,
     val gestureModels: List<NetBoxModelEntity>,
     val gestureObjects: List<NetBoxObjectEntity>,
+    val navBarItems: List<NavBarItem>,
     val scannerLens: ScannerLens,
     val scannerRearLens: ScannerRearLens,
     val printSettings: PrintSettings,
@@ -127,6 +131,12 @@ internal data class SettingsCategoryActions(
     val onSetGestureAction: (GestureShortcut, GestureAction) -> Unit,
     val onSetGestureTarget: (GestureShortcut, NetBoxModelEntity) -> Unit,
     val onSetGestureDetailTarget: (GestureShortcut, NetBoxObjectEntity) -> Unit,
+    val onAddNavBarItem: (GestureAction) -> Unit,
+    val onAddNavBarModelItem: (GestureAction, NetBoxModelEntity) -> Unit,
+    val onAddNavBarObjectItem: (GestureAction, NetBoxObjectEntity) -> Unit,
+    val onRemoveNavBarItem: (Int) -> Unit,
+    val onMoveNavBarItem: (Int, Int) -> Unit,
+    val onResetNavBarItems: () -> Unit,
 )
 
 @Composable
@@ -149,6 +159,7 @@ internal fun SettingsCategoryContent(
                 onClearDefaultPrinter = actions.onClearDefaultPrinter,
             )
         SettingsCategory.Gestures -> GestureSettingsContent(state, actions)
+        SettingsCategory.NavigationBar -> NavBarSettingsContent(state, actions)
         SettingsCategory.Notifications -> NotificationSettingsContent(state, actions)
         SettingsCategory.About -> AboutSettingsContent()
     }
@@ -826,6 +837,105 @@ private fun GestureSettingsContent(
                     )
                 }
         }
+    }
+}
+
+@Composable
+private fun NavBarSettingsContent(state: SettingsCategoryState, actions: SettingsCategoryActions) {
+    var pickerAction by remember { mutableStateOf<GestureAction?>(null) }
+    var addMenuExpanded by remember { mutableStateOf(false) }
+    val items = state.navBarItems
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SettingsGroupCard(title = "Navigation bar buttons", icon = Icons.Default.ViewCarousel) {
+            items.forEachIndexed { index, item ->
+                SettingsListItem(
+                    leadingContent = {
+                        Icon(iconForGestureAction(item.action), contentDescription = null)
+                    },
+                    headlineContent = { Text(item.target?.label ?: item.action.label) },
+                    trailingContent = {
+                        Row {
+                            IconButton(
+                                onClick = { actions.onMoveNavBarItem(index, index - 1) },
+                                enabled = index > 0,
+                            ) {
+                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move up")
+                            }
+                            IconButton(
+                                onClick = { actions.onMoveNavBarItem(index, index + 1) },
+                                enabled = index < items.lastIndex,
+                            ) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Move down",
+                                )
+                            }
+                            IconButton(
+                                onClick = { actions.onRemoveNavBarItem(index) },
+                                enabled = items.size > 1,
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove")
+                            }
+                        }
+                    },
+                )
+            }
+            if (items.size < MAX_NAV_BAR_ITEMS) {
+                Box {
+                    SettingsListItem(
+                        modifier = Modifier.clickable { addMenuExpanded = true },
+                        leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                        headlineContent = { Text("Add button") },
+                    )
+                    DropdownMenu(
+                        expanded = addMenuExpanded,
+                        onDismissRequest = { addMenuExpanded = false },
+                    ) {
+                        GestureAction.navigational.forEach { candidate ->
+                            DropdownMenuItem(
+                                text = { Text(candidate.label) },
+                                leadingIcon = {
+                                    Icon(iconForGestureAction(candidate), contentDescription = null)
+                                },
+                                onClick = {
+                                    addMenuExpanded = false
+                                    when (candidate) {
+                                        GestureAction.AddSpecific,
+                                        GestureAction.ListSpecific,
+                                        GestureAction.DetailSpecific -> pickerAction = candidate
+                                        else -> actions.onAddNavBarItem(candidate)
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        SettingsSingleItemCard {
+            SettingsListItem(
+                modifier = Modifier.clickable { actions.onResetNavBarItems() },
+                leadingContent = { Icon(Icons.Default.RestartAlt, contentDescription = null) },
+                headlineContent = { Text("Reset to defaults") },
+            )
+        }
+    }
+    pickerAction?.let { action ->
+        ActionTargetPickerDialog(
+            action = action,
+            models = state.gestureModels,
+            objects = state.gestureObjects,
+            onDismiss = { pickerAction = null },
+            onModelSelected = { model ->
+                actions.onAddNavBarModelItem(action, model)
+                pickerAction = null
+            },
+            onObjectSelected = { obj ->
+                actions.onAddNavBarObjectItem(action, obj)
+                pickerAction = null
+            },
+        )
     }
 }
 
