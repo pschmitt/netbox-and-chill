@@ -352,7 +352,9 @@ fun DeviceDetailScreen(
                         ) {
                             DropdownMenuItem(
                                 text = {
-                                    Text(if (bookmark != null) "Remove bookmark" else "Add bookmark")
+                                    Text(
+                                        if (bookmark != null) "Remove bookmark" else "Add bookmark"
+                                    )
                                 },
                                 leadingIcon = {
                                     Icon(

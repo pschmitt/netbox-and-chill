@@ -52,8 +52,8 @@ constructor(
         }
 
     /**
-     * Creates a bookmark for an arbitrary NetBox object and caches it immediately, so the toggle
-     * in the item/device overflow menu reflects the change without waiting for the next
+     * Creates a bookmark for an arbitrary NetBox object and caches it immediately, so the toggle in
+     * the item/device overflow menu reflects the change without waiting for the next
      * [refreshBookmarks].
      */
     suspend fun addBookmark(endpointPath: String, id: Int): Result<Unit> = runCatching {
