@@ -201,10 +201,9 @@ jobs:
 
       # README.md's screenshot gallery uses the phone bucket's light-mode captures under stable
       # filenames, so those don't drift into a second, separately-maintained set of screenshots -
-      # see the "Screenshots" section there. screengrab always appends a timestamp to each capture
-      # (e.g. 01_dashboard_1785918416650.png), so match on the numeric prefix rather than an exact
-      # name; that pattern also naturally excludes each "_dark" variant, whose next characters
-      # after the number prefix are "dark_<timestamp>", not digits.
+      # see the "Screenshots" section there. StoreScreenshotTest.kt captures the dark pass
+      # unsuffixed (so it sorts first in the Play Store listing) and the light pass with a
+      # "_light" suffix, so match on that suffix explicitly rather than the numeric prefix alone.
       - name: Sync README screenshots from the phone bucket
         run: |
           src="fastlane/metadata/android/en-US/images/phoneScreenshots"
@@ -216,7 +215,7 @@ jobs:
             [05_settings]="docs/images/readme-settings.png"
           )
           for prefix in "${!readme_images[@]}"; do
-            match="$(find "$src" -iname "${prefix}_[0-9]*.png" | head -n1)"
+            match="$(find "$src" -iname "${prefix}_light_[0-9]*.png" | head -n1)"
             test -n "$match" || { echo "No capture found for $prefix" >&2; exit 1; }
             cp "$match" "${readme_images[$prefix]}"
           done

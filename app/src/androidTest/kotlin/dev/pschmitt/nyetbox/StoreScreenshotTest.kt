@@ -43,12 +43,15 @@ class StoreScreenshotTest : NetBoxJourneyTest() {
 
             connectToNetBox(baseUrl, token)
 
-            captureJourney(suffix = "")
-            // captureJourney("") always ends on Settings (see below); switch the color scheme
-            // there for real, through the same UI a user would use, then repeat the whole journey
-            // with a "_dark" suffix so the store listing gets both variants from one test run.
+            captureJourney(suffix = "_light")
+            // captureJourney("_light") always ends on Settings (see below); switch the color
+            // scheme there for real, through the same UI a user would use, then repeat the whole
+            // journey unsuffixed so the store listing gets both variants from one test run. The
+            // dark pass is deliberately left unsuffixed (rather than the light one) so its
+            // filenames sort alphabetically before the "_light" ones and the dark screenshots are
+            // what the Play Store listing shows first.
             switchToDarkModeAndReturnToDashboard()
-            captureJourney(suffix = "_dark")
+            captureJourney(suffix = "")
         } catch (t: Throwable) {
             // The emulator is gone by the time a later CI step could pull a screencap/logcat -
             // android-emulator-runner tears it down synchronously as part of its own failed step,
@@ -102,7 +105,7 @@ class StoreScreenshotTest : NetBoxJourneyTest() {
     }
 
     private fun captureJourney(suffix: String) {
-        // connectToNetBox (and switchToDarkModeAndReturnToDashboard, for the "_dark" pass) already
+        // connectToNetBox (and switchToDarkModeAndReturnToDashboard, for the dark pass) already
         // waited out the initial-sync overlay once, but it's not gone for good: a background sync
         // tick (fires roughly every 10s per NetBoxJourneyTest's clickUntilTagAppears doc) can
         // retrigger DashboardScreen's InitialSyncOverlay ("Setting up your NetBox instance") for
