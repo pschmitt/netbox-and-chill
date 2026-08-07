@@ -797,9 +797,9 @@ private fun searchObjectTypePriority(hit: SearchHit): Int =
 
 /**
  * Name matches always outrank everything else, however weak the match - even a "contains" hit on
- * the item's own name beats an exact asset-tag match. Asset tag is the next strongest signal
- * (it's a deliberate unique identifier, unlike the free-text secondary line or a matched custom
- * field), then secondary line, then everything else.
+ * the item's own name beats an exact asset-tag match. Asset tag is the next strongest signal (it's
+ * a deliberate unique identifier, unlike the free-text secondary line or a matched custom field),
+ * then secondary line, then everything else.
  */
 private fun searchRelevance(query: String, hit: SearchHit): Int {
     val display = hit.display.trim().lowercase()

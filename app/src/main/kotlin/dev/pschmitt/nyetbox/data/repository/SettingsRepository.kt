@@ -1069,8 +1069,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
                     ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_EMAIL, null) else null,
             id =
                 (prefs.getString(serverScopedKey(KEY_CURRENT_USER_ID), null)
-                        ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_ID, null)
-                        else null)
+                        ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_ID, null) else null)
                     ?.toIntOrNull(),
         )
     }
