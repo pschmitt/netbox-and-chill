@@ -39,6 +39,7 @@ data class NetBoxUserIdentity(
     val username: String,
     val fullName: String? = null,
     val email: String? = null,
+    val id: Int? = null,
 ) {
     val displayName: String
         get() = fullName?.takeIf { it.isNotBlank() } ?: username
@@ -821,6 +822,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             .putString(serverScopedKey(KEY_CURRENT_USER_NAME), user.username)
             .putString(serverScopedKey(KEY_CURRENT_USER_FULL_NAME), user.fullName)
             .putString(serverScopedKey(KEY_CURRENT_USER_EMAIL), user.email)
+            .putString(serverScopedKey(KEY_CURRENT_USER_ID), user.id?.toString())
             .apply()
         _currentUser.value = user
     }
@@ -833,12 +835,14 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
                 .remove(serverScopedKey(KEY_CURRENT_USER_NAME))
                 .remove(serverScopedKey(KEY_CURRENT_USER_FULL_NAME))
                 .remove(serverScopedKey(KEY_CURRENT_USER_EMAIL))
+                .remove(serverScopedKey(KEY_CURRENT_USER_ID))
         if (_activeServerId.value == LEGACY_SERVER_ID) {
             editor
                 .remove(KEY_CURRENT_USER_BASE_URL)
                 .remove(KEY_CURRENT_USER_NAME)
                 .remove(KEY_CURRENT_USER_FULL_NAME)
                 .remove(KEY_CURRENT_USER_EMAIL)
+                .remove(KEY_CURRENT_USER_ID)
         }
         editor.apply()
         _currentUser.value = null
@@ -1063,6 +1067,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             email =
                 prefs.getString(serverScopedKey(KEY_CURRENT_USER_EMAIL), null)
                     ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_EMAIL, null) else null,
+            id =
+                (prefs.getString(serverScopedKey(KEY_CURRENT_USER_ID), null)
+                        ?: if (useLegacyKeys) prefs.getString(KEY_CURRENT_USER_ID, null)
+                        else null)
+                    ?.toIntOrNull(),
         )
     }
 
@@ -1282,6 +1291,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         const val KEY_CURRENT_USER_NAME = "current_user_name"
         const val KEY_CURRENT_USER_FULL_NAME = "current_user_full_name"
         const val KEY_CURRENT_USER_EMAIL = "current_user_email"
+        const val KEY_CURRENT_USER_ID = "current_user_id"
         const val KEY_PINNED_MODELS = "pinned_model_paths"
         const val KEY_PINNED_MODELS_VERSION = "pinned_model_paths_version"
         val DEFAULT_PINNED_MODEL_PATHS =

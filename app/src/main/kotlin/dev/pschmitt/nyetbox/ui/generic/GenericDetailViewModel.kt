@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.pschmitt.nyetbox.data.api.GenericNetBoxApi
+import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
 import dev.pschmitt.nyetbox.data.db.NetBoxObjectEntity
 import dev.pschmitt.nyetbox.data.db.ObjectChangeEntity
@@ -150,6 +151,14 @@ constructor(
 
     private val _documentDeleteResult = MutableStateFlow<DeleteSubmission?>(null)
     val documentDeleteResult: StateFlow<DeleteSubmission?> = _documentDeleteResult.asStateFlow()
+
+    val bookmark: StateFlow<BookmarkEntity?> =
+        dashboardRepository
+            .observeBookmark(route.endpointPath, route.id)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _isTogglingBookmark = MutableStateFlow(false)
+    val isTogglingBookmark: StateFlow<Boolean> = _isTogglingBookmark.asStateFlow()
 
     // Keep the edit session in the ViewModel so opening a linked-item create form cannot lose
     // unrelated unsaved fields when navigation temporarily removes this composable.
@@ -634,6 +643,23 @@ constructor(
 
     fun deleteResultShown() {
         _deleteResult.value = null
+    }
+
+    fun toggleBookmark() {
+        if (_isTogglingBookmark.value) return
+        if (settingsRepository.offlineMode.value) {
+            _errorMessage.value = "Can't update bookmarks while offline"
+            return
+        }
+        viewModelScope.launch {
+            _isTogglingBookmark.value = true
+            val existing = bookmark.value
+            val result =
+                if (existing != null) dashboardRepository.removeBookmark(existing.id)
+                else dashboardRepository.addBookmark(route.endpointPath, route.id)
+            result.onFailure { _errorMessage.value = it.message ?: "Couldn't update bookmark" }
+            _isTogglingBookmark.value = false
+        }
     }
 
     fun deleteDocument(document: CachedDocument) {

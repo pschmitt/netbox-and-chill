@@ -795,17 +795,27 @@ private fun searchObjectTypePriority(hit: SearchHit): Int =
         else -> 0
     }
 
+/**
+ * Name matches always outrank everything else, however weak the match - even a "contains" hit on
+ * the item's own name beats an exact asset-tag match. Asset tag is the next strongest signal
+ * (it's a deliberate unique identifier, unlike the free-text secondary line or a matched custom
+ * field), then secondary line, then everything else.
+ */
 private fun searchRelevance(query: String, hit: SearchHit): Int {
     val display = hit.display.trim().lowercase()
+    val assetTag = hit.assetTag.orEmpty().trim().lowercase()
     val secondary = hit.secondaryLine.orEmpty().trim().lowercase()
     return when {
-        display == query -> 400
-        display.startsWith(query) -> 300
-        display.contains(query) -> 200
-        secondary == query -> 150
-        secondary.startsWith(query) -> 125
-        secondary.contains(query) -> 100
-        hit.matchHint?.lowercase()?.contains(query) == true -> 90
+        display == query -> 1000
+        display.startsWith(query) -> 900
+        display.contains(query) -> 800
+        assetTag == query -> 700
+        assetTag.startsWith(query) -> 600
+        assetTag.contains(query) -> 500
+        secondary == query -> 400
+        secondary.startsWith(query) -> 350
+        secondary.contains(query) -> 300
+        hit.matchHint?.lowercase()?.contains(query) == true -> 200
         else -> 0
     }
 }

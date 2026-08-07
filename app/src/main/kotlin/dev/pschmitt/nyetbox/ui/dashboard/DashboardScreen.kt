@@ -1018,7 +1018,9 @@ private fun BookmarkRow(
                     )
                 }
             },
-            headlineContent = { Text(bookmark.display) },
+            headlineContent = {
+                Text(bookmark.display, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
             supportingContent = {
                 Column {
                     bookmark.targetEndpointPath?.let { endpointPath ->
@@ -1065,10 +1067,14 @@ private fun RecentVisitRow(
                     )
                 }
             },
-            headlineContent = { Text(visit.display) },
+            headlineContent = {
+                Text(visit.display, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
             supportingContent = {
                 Column {
-                    visit.secondaryLine?.takeIf(String::isNotBlank)?.let { Text(it) }
+                    visit.secondaryLine?.takeIf(String::isNotBlank)?.let {
+                        Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                     ObjectTypeBadge(
                         label = objectTypeLabel(modelLabel, visit.endpointPath),
                         icon = AppIcons.forEndpointPath(visit.endpointPath),
@@ -1120,7 +1126,9 @@ private fun ChangeRow(
                     )
                 }
             },
-            headlineContent = { Text(change.objectRepr) },
+            headlineContent = {
+                Text(change.objectRepr, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
             supportingContent = {
                 Column {
                     change.targetEndpointPath?.let { endpointPath ->

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.pschmitt.nyetbox.data.db.BookmarkEntity
 import dev.pschmitt.nyetbox.data.db.DeviceEntity
 import dev.pschmitt.nyetbox.data.db.DeviceTypeEntity
 import dev.pschmitt.nyetbox.data.db.ImageAttachmentEntity
@@ -192,6 +193,14 @@ constructor(
 
     private val _documentDeleteResult = MutableStateFlow<DeleteSubmission?>(null)
     val documentDeleteResult: StateFlow<DeleteSubmission?> = _documentDeleteResult.asStateFlow()
+
+    val bookmark: StateFlow<BookmarkEntity?> =
+        dashboardRepository
+            .observeBookmark("api/dcim/devices/", deviceId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _isTogglingBookmark = MutableStateFlow(false)
+    val isTogglingBookmark: StateFlow<Boolean> = _isTogglingBookmark.asStateFlow()
 
     val hiddenFieldKeys: StateFlow<Set<String>> = settingsRepository.hiddenFieldKeys
 
@@ -541,6 +550,23 @@ constructor(
 
     fun deleteResultShown() {
         _deleteResult.value = null
+    }
+
+    fun toggleBookmark() {
+        if (_isTogglingBookmark.value) return
+        if (settingsRepository.offlineMode.value) {
+            _errorMessage.value = "Can't update bookmarks while offline"
+            return
+        }
+        viewModelScope.launch {
+            _isTogglingBookmark.value = true
+            val existing = bookmark.value
+            val result =
+                if (existing != null) dashboardRepository.removeBookmark(existing.id)
+                else dashboardRepository.addBookmark("api/dcim/devices/", deviceId)
+            result.onFailure { _errorMessage.value = it.message ?: "Couldn't update bookmark" }
+            _isTogglingBookmark.value = false
+        }
     }
 
     fun deleteDocument(document: CachedDocument) {

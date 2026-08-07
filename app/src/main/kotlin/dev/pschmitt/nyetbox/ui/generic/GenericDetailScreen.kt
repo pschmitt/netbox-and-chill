@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -127,6 +129,8 @@ fun GenericDetailScreen(
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
     val isDeleting by viewModel.isDeleting.collectAsStateWithLifecycle()
     val deleteResult by viewModel.deleteResult.collectAsStateWithLifecycle()
+    val bookmark by viewModel.bookmark.collectAsStateWithLifecycle()
+    val isTogglingBookmark by viewModel.isTogglingBookmark.collectAsStateWithLifecycle()
     val isEditing by viewModel.isEditing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val refreshedMessage by viewModel.refreshedMessage.collectAsStateWithLifecycle()
@@ -466,6 +470,26 @@ fun GenericDetailScreen(
                                 expanded = actionMenuExpanded,
                                 onDismissRequest = { actionMenuExpanded = false },
                             ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (bookmark != null) "Remove bookmark"
+                                            else "Add bookmark"
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (bookmark != null) Icons.Default.Bookmark
+                                            else Icons.Default.BookmarkBorder,
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    enabled = title != null && !isTogglingBookmark,
+                                    onClick = {
+                                        viewModel.toggleBookmark()
+                                        actionMenuExpanded = false
+                                    },
+                                )
                                 if (viewModel.isPrintableDevice) {
                                     DropdownMenuItem(
                                         text = { Text("Print label") },

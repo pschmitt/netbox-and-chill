@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Difference
@@ -154,6 +156,8 @@ fun DeviceDetailScreen(
     val connectedDevices by viewModel.connectedDevices.collectAsStateWithLifecycle()
     val documents by viewModel.documents.collectAsStateWithLifecycle()
     val documentDeleteResult by viewModel.documentDeleteResult.collectAsStateWithLifecycle()
+    val bookmark by viewModel.bookmark.collectAsStateWithLifecycle()
+    val isTogglingBookmark by viewModel.isTogglingBookmark.collectAsStateWithLifecycle()
     val documentPluginAvailable by viewModel.documentPluginAvailable.collectAsStateWithLifecycle()
     val topologyPluginAvailable by viewModel.topologyPluginAvailable.collectAsStateWithLifecycle()
     val journalMutationState by viewModel.journalMutationState.collectAsStateWithLifecycle()
@@ -346,6 +350,23 @@ fun DeviceDetailScreen(
                             expanded = actionMenuExpanded,
                             onDismissRequest = { actionMenuExpanded = false },
                         ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(if (bookmark != null) "Remove bookmark" else "Add bookmark")
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        if (bookmark != null) Icons.Default.Bookmark
+                                        else Icons.Default.BookmarkBorder,
+                                        contentDescription = null,
+                                    )
+                                },
+                                enabled = device != null && !isTogglingBookmark,
+                                onClick = {
+                                    viewModel.toggleBookmark()
+                                    actionMenuExpanded = false
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text("Print label") },
                                 leadingIcon = {

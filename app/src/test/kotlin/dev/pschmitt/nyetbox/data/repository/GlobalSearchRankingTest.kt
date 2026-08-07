@@ -37,6 +37,27 @@ class GlobalSearchRankingTest {
     }
 
     @Test
+    fun `name matches outrank asset tag matches, which outrank secondary line matches`() {
+        val hits =
+            listOf(
+                // Only a weak "contains" match on the name, but a name match nonetheless.
+                SearchHit("api/dcim/devices/", 1, "Old Router Backup", "active", assetTag = null),
+                // Exact asset tag match - a strong signal, but not a name match.
+                SearchHit(
+                    "api/dcim/devices/",
+                    2,
+                    "Switch",
+                    "active",
+                    assetTag = "router-42",
+                ),
+                // Only matches via the secondary line (e.g. site/device-type text).
+                SearchHit("api/dcim/devices/", 3, "Access Point", "Router Closet"),
+            )
+
+        assertEquals(listOf(1, 2, 3), rankSearchHits("router", hits).map { it.id })
+    }
+
+    @Test
     fun `deduplicates hits from typed and generic caches`() {
         val hits =
             listOf(

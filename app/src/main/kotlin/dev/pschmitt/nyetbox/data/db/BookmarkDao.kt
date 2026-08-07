@@ -15,7 +15,11 @@ interface BookmarkDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(bookmarks: List<BookmarkEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(bookmark: BookmarkEntity)
+
     @Query("DELETE FROM bookmarks") suspend fun clear()
+
+    @Query("DELETE FROM bookmarks WHERE id = :id") suspend fun delete(id: Int)
 
     /**
      * Bookmarks are a small, fully-fetched set each refresh - clear+replace rather than a plain

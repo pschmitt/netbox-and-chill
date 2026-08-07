@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -560,27 +561,45 @@ private fun SearchResultRow(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (thumbnail == null) {
-                Surface(
-                    color = typeColor.copy(alpha = 0.14f),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.size(64.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            icon,
-                            contentDescription = null,
-                            tint = typeColor,
-                            modifier = Modifier.size(28.dp),
-                        )
+            Box(modifier = Modifier.size(64.dp)) {
+                if (thumbnail == null) {
+                    Surface(
+                        color = typeColor.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.size(64.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                icon,
+                                contentDescription = null,
+                                tint = typeColor,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    }
+                } else {
+                    RemoteThumbnail(
+                        imageUrl = thumbnail.url,
+                        contentDescription = hit.display,
+                        modifier = Modifier.size(64.dp),
+                    )
+                }
+                if (isRecent) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = CircleShape,
+                        modifier = Modifier.align(Alignment.BottomEnd).size(22.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.History,
+                                contentDescription = "Recently viewed",
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
                     }
                 }
-            } else {
-                RemoteThumbnail(
-                    imageUrl = thumbnail.url,
-                    contentDescription = hit.display,
-                    modifier = Modifier.size(64.dp),
-                )
             }
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Row(
@@ -631,9 +650,6 @@ private fun SearchResultRow(
                     status?.takeIf(String::isNotBlank)?.let { value ->
                         SearchStatusBadge(label = value, value = value)
                     }
-                    if (isRecent) {
-                        RecentBadge()
-                    }
                     if (assetTag?.isNotBlank() == true) {
                         AssetTagSearchBadge(
                             label = assetTag,
@@ -655,16 +671,6 @@ private fun SearchResultRow(
             }
         }
     }
-}
-
-@Composable
-private fun RecentBadge() {
-    CompactSearchBadge(
-        label = "Recent",
-        icon = Icons.Default.History,
-        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    )
 }
 
 @Composable

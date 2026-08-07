@@ -21,6 +21,7 @@ import dev.pschmitt.nyetbox.data.repository.PrintSettings
 import dev.pschmitt.nyetbox.data.repository.ScannerLens
 import dev.pschmitt.nyetbox.data.repository.ScannerRearLens
 import dev.pschmitt.nyetbox.data.repository.SettingsRepository
+import dev.pschmitt.nyetbox.data.schema.jsonInt
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import javax.inject.Inject
@@ -303,6 +304,7 @@ constructor(
                     .joinToString(" ")
                     .takeIf { it.isNotBlank() },
             email = user.stringValue("email"),
+            id = user.jsonInt("id"),
         )
     }
 

@@ -3,6 +3,73 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-413: add/remove bookmark from the item/device overflow menu
+
+Bookmarks previously only synced one-way from NetBox (read-only dashboard widget). Added a
+toggle so any device or generic object detail screen can bookmark/unbookmark itself directly.
+
+- [x] `BookmarkDao.kt`: added `upsert(bookmark)` and `delete(id)` alongside the existing
+      `observeAll`/`upsertAll`/`clear`/`replaceAll`.
+- [x] `DashboardRepository.kt`: added `observeBookmark(endpointPath, id)` (derived from
+      `observeBookmarks()`, no new query), `addBookmark(endpointPath, id)` (POSTs to
+      `api/extras/bookmarks/` using `MediaUploadRepository.contentTypeForEndpoint` to resolve
+      `object_type`, then caches the result immediately via `toBookmarkEntity`), and
+      `removeBookmark(bookmarkId)` (DELETE + local cache removal). Deliberately not routed
+      through `PendingEditRepository`'s offline outbox - that writes into the generic object
+      cache, not the typed `bookmarks` table the dashboard actually reads from, and a durable
+      queue is overkill for a lightweight favorite-style toggle; offline mode simply surfaces an
+      error message instead.
+- [x] `DeviceDetailViewModel.kt` / `GenericDetailViewModel.kt`: added `bookmark` (`StateFlow<BookmarkEntity?>`),
+      `isTogglingBookmark`, and `toggleBookmark()`.
+- [x] `DeviceDetailScreen.kt` / `GenericDetailScreen.kt`: added an "Add bookmark"/"Remove bookmark"
+      item as the first entry in the "More actions" overflow menu, with a filled/outline
+      `Icons.Default.Bookmark`/`BookmarkBorder` icon toggle.
+- [x] On-device check on the Zenfone 10 (via adb) caught a real bug: NetBox's Bookmark serializer
+      requires an explicit `user` field on create - it is not inferred from the auth token, so
+      every "Add bookmark" attempt failed with a 400 (`{"user":["This field is required."]}`),
+      for both a device and a manufacturer alike (not a content-type restriction, as first
+      suspected from the matching error-body byte length). Fixed by capturing the authenticated
+      NetBox user's numeric id: `NetBoxUserIdentity` (`SettingsRepository.kt`) gained an `id: Int?`
+      field, persisted via a new `KEY_CURRENT_USER_ID` pref key; `SettingsViewModel.parseCurrentUser`
+      now reads it via `user.jsonInt("id")` from the existing `authentication-check`/token-owner
+      lookup; `DashboardRepository.addBookmark` includes `"user": <id>` in the POST body. Existing
+      logged-in sessions self-heal the first time they open Settings (which already calls
+      `refreshCurrentUser()` on load) - no re-login needed.
+- [x] Verified end-to-end on the Zenfone 10: toggled bookmark on/off on a real device (POST 201 /
+      DELETE 204, menu label flips and persists across reopens) and confirmed the same fix also
+      resolves the manufacturer case.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+
+Status: done, 2026-08-07 - verified working end-to-end on the Zenfone 10 (create/delete round trip,
+menu state), including a real bug found and fixed during that verification.
+
+## NBC-412: ellipsize dashboard item names; icon-only "recent" search badge; rank names/asset tags higher
+
+Three small polish items from the same conversation:
+
+- [x] `DashboardScreen.kt`: the Recent visits, Bookmarks, and Recent changes rows' headline text
+      (`visit.display`/`bookmark.display`/`change.objectRepr`) and the recent-visit secondary
+      line could wrap/overflow unbounded for a long item name (e.g. a long rack/device-type
+      label) - now `maxLines = 1` + `TextOverflow.Ellipsis`, matching the pattern the dashboard's
+      other cards already used at line 855.
+- [x] Global search results: replaced the text "Recent" badge (`RecentBadge`, now deleted) with a
+      small icon-only badge overlaid on the result's thumbnail/icon (bottom-end corner, circular,
+      `Icons.Default.History`, `contentDescription = "Recently viewed"` since the icon is now the
+      only affordance) - same information, less label clutter in the badge row.
+- [x] `GlobalSearchRepository.kt`'s `searchRelevance`: added asset-tag matching as its own
+      priority tier, strictly between name/display matches (still always highest, "name wins")
+      and secondary-line/matchHint matches - previously an asset-tag-only match (no hit in
+      display/secondaryLine/matchHint) scored 0 and sorted to the bottom. New unit test in
+      `GlobalSearchRankingTest.kt` locks in the three-tier ordering.
+- [x] Remote `:app:compileDebugKotlin`, `:app:assembleDebug`, and
+      `:app:testDebugUnitTest --tests GlobalSearchRankingTest` all passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual check - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles, unit tests pass, and installs cleanly on all three
+test devices; on-device verification still pending the user.
+
 ## NBC-411: make Settings section titles more discreet, drop their subtitles
 
 Follow-up to NBC-407/409. `SettingsGroupCard`'s header title ("Account & Sync" etc.) was styled

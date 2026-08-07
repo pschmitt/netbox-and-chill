@@ -16,8 +16,10 @@ import dev.pschmitt.nyetbox.data.schema.jsonString
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import timber.log.Timber
 
 /**
@@ -38,9 +40,47 @@ constructor(
     private val statDao: DashboardStatDao,
     private val changeNotificationRepository: ChangeNotificationRepository,
     private val newsRepository: NewsRepository,
+    private val settingsRepository: SettingsRepository,
     private val json: Json,
 ) {
     fun observeBookmarks(): Flow<List<BookmarkEntity>> = bookmarkDao.observeAll()
+
+    /** Whether (and under what bookmark id) a given object is currently bookmarked. */
+    fun observeBookmark(endpointPath: String, id: Int): Flow<BookmarkEntity?> =
+        bookmarkDao.observeAll().map { bookmarks ->
+            bookmarks.firstOrNull { it.targetEndpointPath == endpointPath && it.targetId == id }
+        }
+
+    /**
+     * Creates a bookmark for an arbitrary NetBox object and caches it immediately, so the toggle
+     * in the item/device overflow menu reflects the change without waiting for the next
+     * [refreshBookmarks].
+     */
+    suspend fun addBookmark(endpointPath: String, id: Int): Result<Unit> = runCatching {
+        val objectType = MediaUploadRepository.contentTypeForEndpoint(endpointPath)
+        // NetBox's Bookmark serializer requires the owning user explicitly - it is not inferred
+        // from the request's auth token.
+        val userId =
+            settingsRepository.currentUser.value?.id
+                ?: error("Couldn't resolve the current NetBox user")
+        val body =
+            JsonObject(
+                mapOf(
+                    "object_type" to JsonPrimitive(objectType),
+                    "object_id" to JsonPrimitive(id),
+                    "user" to JsonPrimitive(userId),
+                )
+            )
+        val created = api.createObject("api/extras/bookmarks/", body)
+        created.toBookmarkEntity(syncedAt = System.currentTimeMillis())?.let {
+            bookmarkDao.upsert(it)
+        }
+    }
+
+    suspend fun removeBookmark(bookmarkId: Int): Result<Unit> = runCatching {
+        api.deleteObject("api/extras/bookmarks/$bookmarkId/")
+        bookmarkDao.delete(bookmarkId)
+    }
 
     fun observeChangelog(): Flow<List<ObjectChangeEntity>> = objectChangeDao.observeAll()
 
