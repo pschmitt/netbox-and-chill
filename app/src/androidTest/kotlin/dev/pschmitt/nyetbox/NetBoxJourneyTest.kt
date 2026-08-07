@@ -51,9 +51,9 @@ abstract class NetBoxJourneyTest {
     }
 
     /**
-     * Polls `logcat` (rather than the Compose semantics tree) for [marker] - used for signals
-     * that come from a background coroutine/worker with no Compose node of its own, or whose
-     * nearest UI proxy is unreliable (see [clickConnectAndWaitForDashboard]).
+     * Polls `logcat` (rather than the Compose semantics tree) for [marker] - used for signals that
+     * come from a background coroutine/worker with no Compose node of its own, or whose nearest UI
+     * proxy is unreliable (see [clickConnectAndWaitForDashboard]).
      */
     protected fun waitForLogcatMarker(marker: String, timeoutMillis: Long) {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
