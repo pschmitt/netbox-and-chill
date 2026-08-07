@@ -102,14 +102,19 @@ fun MediaCarousel(
             else -> MediaUploadKind.ImageAttachment
         }
     val takePhoto =
-        rememberCameraCaptureLauncher(onCaptured = { uri ->
-            onAddMedia(uri, defaultKindFor(isImage = true))
-        })
+        rememberCameraCaptureLauncher(
+            onCaptured = { uri -> onAddMedia(uri, defaultKindFor(isImage = true)) }
+        )
     val filePicker =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
                 val mimeType = context.contentResolver.getType(it)
-                val isImage = isSharedImage(mimeType, filename = null, uriLastPathSegment = it.lastPathSegment)
+                val isImage =
+                    isSharedImage(
+                        mimeType,
+                        filename = null,
+                        uriLastPathSegment = it.lastPathSegment,
+                    )
                 onAddMedia(it, defaultKindFor(isImage))
             }
         }
@@ -136,7 +141,8 @@ fun MediaCarousel(
                     state = carouselState,
                     preferredItemWidth = CarouselItemWidth,
                     itemSpacing = 8.dp,
-                    modifier = Modifier.fillMaxWidth().height(CarouselTileHeight).padding(top = 4.dp),
+                    modifier =
+                        Modifier.fillMaxWidth().height(CarouselTileHeight).padding(top = 4.dp),
                 ) { index ->
                     val tileModifier =
                         Modifier.fillMaxWidth()
@@ -379,7 +385,9 @@ private fun BoxScope.CarouselTileCaption(title: String) {
             Modifier.fillMaxWidth()
                 .align(Alignment.BottomStart)
                 .background(
-                    Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)))
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f))
+                    )
                 )
                 .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
@@ -466,15 +474,17 @@ fun ImageAttachmentEntity.displayName(): String =
         ?: "Image attachment #$id"
 
 /**
- * Builds a viewer entry for [this] document when it's a cached, readable PDF - `null` for
- * anything else (not yet cached locally, or not a PDF), in which case the caller falls back to
+ * Builds a viewer entry for [this] document when it's a cached, readable PDF - `null` for anything
+ * else (not yet cached locally, or not a PDF), in which case the caller falls back to
  * opening/downloading it externally instead of showing it in [ImageViewerDialog].
  */
 fun CachedDocument.toDocumentViewerItem(localFile: File?): ImageViewerItem? {
     if (localFile == null || !looksLikePdf(localFile, filename, documentUrl)) return null
     val pageCount = pdfPageCount(localFile, filename, documentUrl)
     val metadata = buildList {
-        documentType?.let { type -> documentTypePresentation(type)?.let { add("Type" to it.label) } }
+        documentType?.let { type ->
+            documentTypePresentation(type)?.let { add("Type" to it.label) }
+        }
         if (pageCount != null && pageCount > 1) add("Pages" to "1 of $pageCount")
         if (!comments.isNullOrBlank()) add("Comments" to comments)
     }

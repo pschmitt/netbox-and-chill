@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,9 +80,9 @@ import dev.pschmitt.nyetbox.ui.common.FieldActionDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerDialog
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
 import dev.pschmitt.nyetbox.ui.common.ImageViewerMetadataLink
+import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTab
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTabLayout
-import dev.pschmitt.nyetbox.ui.common.ItemDetailScaffold
 import dev.pschmitt.nyetbox.ui.common.ItemDetailTopBar
 import dev.pschmitt.nyetbox.ui.common.JournalEntryEditorDialog
 import dev.pschmitt.nyetbox.ui.common.MatterPairingCodeDialog
@@ -225,13 +224,16 @@ fun DeviceDetailScreen(
         MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/", objectTypeAccent)
     val deviceTypeViewerItems =
         deviceTypePhotoItems(deviceType, device?.manufacturerName, manufacturerId)
-    val imageAttachmentViewerItems =
-        imageAttachments.map { it.toImageViewerItem(sourceLabel = "Image attachment") }
+    val imageAttachmentViewerItems = imageAttachments.map {
+        it.toImageViewerItem(sourceLabel = "Image attachment")
+    }
     val documentViewerItems: Map<CachedDocument, ImageViewerItem> =
         documents
             .mapNotNull { document ->
                 val localFile =
-                    document.documentUrl?.let { viewModel.localAttachmentFile(it, document.filename) }
+                    document.documentUrl?.let {
+                        viewModel.localAttachmentFile(it, document.filename)
+                    }
                 document.toDocumentViewerItem(localFile)?.let { document to it }
             }
             .toMap()
@@ -530,472 +532,438 @@ fun DeviceDetailScreen(
                     onTabSelected = { selectedTab = it },
                     tabCount = tabCount,
                 ) {
-                        item {
-                            val deviceTypePreview = deviceTypeViewerItems.firstOrNull { item ->
-                                item.metadata.any { (_, value) -> value == "Front" }
-                            }
-                            NyetboxCard(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (deviceTypePreview != null) {
-                                            RemoteThumbnail(
-                                                imageUrl = deviceTypePreview.url,
-                                                contentDescription = deviceTypePreview.title,
-                                                modifier =
-                                                    Modifier.size(64.dp).clickable {
-                                                        imageViewer =
-                                                            allImageViewerItems to
-                                                                allImageViewerItems.indexOf(
-                                                                    deviceTypePreview
-                                                                )
-                                                    },
-                                                contentScale = ContentScale.Fit,
-                                            )
-                                        } else {
-                                            Surface(
-                                                color = detailAccent.copy(alpha = 0.18f),
-                                                shape =
-                                                    androidx.compose.foundation.shape
-                                                        .RoundedCornerShape(14.dp),
-                                                modifier = Modifier.size(64.dp),
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Icon(
-                                                        AppIcons.forEndpointPath(
-                                                            NetBoxRef.DEVICES_ENDPOINT_PATH
-                                                        ),
-                                                        contentDescription = null,
-                                                        tint = detailAccent,
-                                                        modifier = Modifier.size(34.dp),
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        Column(
-                                            Modifier.padding(start = 10.dp)
-                                                .padding(end = 8.dp)
-                                                .weight(1f)
+                    item {
+                        val deviceTypePreview = deviceTypeViewerItems.firstOrNull { item ->
+                            item.metadata.any { (_, value) -> value == "Front" }
+                        }
+                        NyetboxCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (deviceTypePreview != null) {
+                                        RemoteThumbnail(
+                                            imageUrl = deviceTypePreview.url,
+                                            contentDescription = deviceTypePreview.title,
+                                            modifier =
+                                                Modifier.size(64.dp).clickable {
+                                                    imageViewer =
+                                                        allImageViewerItems to
+                                                            allImageViewerItems.indexOf(
+                                                                deviceTypePreview
+                                                            )
+                                                },
+                                            contentScale = ContentScale.Fit,
+                                        )
+                                    } else {
+                                        Surface(
+                                            color = detailAccent.copy(alpha = 0.18f),
+                                            shape =
+                                                androidx.compose.foundation.shape
+                                                    .RoundedCornerShape(14.dp),
+                                            modifier = Modifier.size(64.dp),
                                         ) {
-                                            current.deviceTypeModel?.let {
-                                                Text(
-                                                    it,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    AppIcons.forEndpointPath(
+                                                        NetBoxRef.DEVICES_ENDPOINT_PATH
+                                                    ),
+                                                    contentDescription = null,
+                                                    tint = detailAccent,
+                                                    modifier = Modifier.size(34.dp),
                                                 )
                                             }
-                                            if (isFieldVisible("Status")) {
-                                                Spacer(Modifier.height(2.dp))
-                                                Box(
-                                                    modifier =
-                                                        Modifier.combinedClickable(
-                                                            onClick = {},
-                                                            onLongClick = {
-                                                                fieldActionLabel = "Status"
-                                                            },
-                                                        )
-                                                ) {
-                                                    StatusChip(
-                                                        label = current.statusLabel,
-                                                        value = current.statusValue,
-                                                    )
-                                                }
-                                            }
                                         }
-                                        current.assetTag?.takeIf(String::isNotBlank)?.let { assetTag
-                                            ->
-                                            AssetTagBadge(
-                                                assetTag = assetTag,
-                                                modifier =
-                                                    Modifier.padding(start = 4.dp)
-                                                        .combinedClickable(
-                                                            onClick = {},
-                                                            onLongClick = {
-                                                                onCopyValue("Asset tag", assetTag)
-                                                            },
-                                                        ),
+                                    }
+                                    Column(
+                                        Modifier.padding(start = 10.dp)
+                                            .padding(end = 8.dp)
+                                            .weight(1f)
+                                    ) {
+                                        current.deviceTypeModel?.let {
+                                            Text(
+                                                it,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
+                                        if (isFieldVisible("Status")) {
+                                            Spacer(Modifier.height(2.dp))
+                                            Box(
+                                                modifier =
+                                                    Modifier.combinedClickable(
+                                                        onClick = {},
+                                                        onLongClick = {
+                                                            fieldActionLabel = "Status"
+                                                        },
+                                                    )
+                                            ) {
+                                                StatusChip(
+                                                    label = current.statusLabel,
+                                                    value = current.statusValue,
+                                                )
+                                            }
+                                        }
+                                    }
+                                    current.assetTag?.takeIf(String::isNotBlank)?.let { assetTag ->
+                                        AssetTagBadge(
+                                            assetTag = assetTag,
+                                            modifier =
+                                                Modifier.padding(start = 4.dp)
+                                                    .combinedClickable(
+                                                        onClick = {},
+                                                        onLongClick = {
+                                                            onCopyValue("Asset tag", assetTag)
+                                                        },
+                                                    ),
+                                        )
                                     }
                                 }
                             }
                         }
-                        if (visibleSelectedTab == 0) {
-                            item {
-                                MediaCarousel(
-                                    attachments = imageAttachments,
-                                    documents = documents,
-                                    onImageClick = { index ->
+                    }
+                    if (visibleSelectedTab == 0) {
+                        item {
+                            MediaCarousel(
+                                attachments = imageAttachments,
+                                documents = documents,
+                                onImageClick = { index ->
+                                    imageViewer =
+                                        allImageViewerItems to (deviceTypeViewerItems.size + index)
+                                },
+                                onDocumentClick = { document ->
+                                    documentViewerItems[document]?.let { item ->
                                         imageViewer =
-                                            allImageViewerItems to
-                                                (deviceTypeViewerItems.size + index)
-                                    },
-                                    onDocumentClick = { document ->
-                                        documentViewerItems[document]?.let { item ->
-                                            imageViewer = allImageViewerItems to allImageViewerItems.indexOf(item)
+                                            allImageViewerItems to allImageViewerItems.indexOf(item)
+                                    }
+                                        ?: document.documentUrl?.let { url ->
+                                            viewModel.downloadAttachment(url, document.filename)
                                         }
-                                            ?: document.documentUrl?.let { url ->
-                                                viewModel.downloadAttachment(url, document.filename)
-                                            }
-                                            ?: document.externalUrl?.let { url ->
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, url.toUri())
-                                                )
-                                            }
-                                    },
-                                    onAddMedia = { uri, defaultKind ->
-                                        mediaUploadInitialKind = defaultKind
-                                        mediaUploadInitialUri = uri
-                                        showMediaUpload = true
-                                    },
-                                    supportsImageAttachments = true,
-                                    supportsDocuments = documentPluginAvailable,
-                                    onAttachmentLongPress = { imageAttachmentAction = it },
-                                    localFileFor = { document ->
-                                        document.documentUrl?.let {
-                                            viewModel.localAttachmentFile(it, document.filename)
+                                        ?: document.externalUrl?.let { url ->
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, url.toUri())
+                                            )
                                         }
-                                    },
-                                    onDeleteDocument =
-                                        if (documentPluginAvailable) viewModel::deleteDocument else null,
+                                },
+                                onAddMedia = { uri, defaultKind ->
+                                    mediaUploadInitialKind = defaultKind
+                                    mediaUploadInitialUri = uri
+                                    showMediaUpload = true
+                                },
+                                supportsImageAttachments = true,
+                                supportsDocuments = documentPluginAvailable,
+                                onAttachmentLongPress = { imageAttachmentAction = it },
+                                localFileFor = { document ->
+                                    document.documentUrl?.let {
+                                        viewModel.localAttachmentFile(it, document.filename)
+                                    }
+                                },
+                                onDeleteDocument =
+                                    if (documentPluginAvailable) viewModel::deleteDocument
+                                    else null,
+                            )
+                        }
+                        val hasVisibleDetails =
+                            listOf(
+                                    "site" to current.siteName,
+                                    "rack" to current.rackName,
+                                    "position" to current.position?.toString(),
+                                    "role" to current.roleName,
+                                    "manufacturer" to current.manufacturerName,
+                                    "serial" to current.serial,
+                                    "asset_tag" to current.assetTag,
+                                    "primary_ip" to current.primaryIp,
+                                    "comments" to current.comments,
                                 )
-                            }
-                            val hasVisibleDetails =
-                                listOf(
-                                        "site" to current.siteName,
-                                        "rack" to current.rackName,
-                                        "position" to current.position?.toString(),
-                                        "role" to current.roleName,
-                                        "manufacturer" to current.manufacturerName,
-                                        "serial" to current.serial,
-                                        "asset_tag" to current.assetTag,
-                                        "primary_ip" to current.primaryIp,
-                                        "comments" to current.comments,
-                                    )
-                                    .any { (key, value) ->
-                                        isFieldVisible(key) && !value.isNullOrBlank()
-                                    } ||
+                                .any { (key, value) ->
+                                    isFieldVisible(key) && !value.isNullOrBlank()
+                                } ||
                                 (isFieldVisible("device_type") &&
                                     isFieldVisible("model") &&
                                     !current.deviceTypeModel.isNullOrBlank())
-                            if (hasVisibleDetails)
-                                item {
-                                    NyetboxDetailsCard(
-                                        modifier = Modifier.padding(vertical = 4.dp),
-                                    ) {
-                                        Column(Modifier.padding(horizontal = 12.dp)) {
-                                            current.siteName
-                                                ?.takeIf {
-                                                    isFieldVisible("site") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Site",
-                                                        value = value,
-                                                        leadingIcon =
-                                                            AppIcons.forEndpointPath(
-                                                                "api/dcim/sites/"
-                                                            ),
-                                                        onClick =
-                                                            current.siteId?.let { id ->
-                                                                {
-                                                                    onReferenceClick(
-                                                                        "api/dcim/sites/",
-                                                                        id,
-                                                                        current.name,
-                                                                    )
-                                                                }
-                                                            },
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.rackName
-                                                ?.takeIf {
-                                                    isFieldVisible("rack") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Rack",
-                                                        value = value,
-                                                        leadingIcon =
-                                                            AppIcons.forEndpointPath(
-                                                                "api/dcim/racks/"
-                                                            ),
-                                                        onClick =
-                                                            current.rackId?.let { id ->
-                                                                {
-                                                                    onReferenceClick(
-                                                                        "api/dcim/racks/",
-                                                                        id,
-                                                                        current.name,
-                                                                    )
-                                                                }
-                                                            },
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.position?.toString()
-                                                ?.takeIf {
-                                                    isFieldVisible("position") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Position",
-                                                        value = value,
-                                                        onClick =
-                                                            current.rackId?.let { rackId ->
-                                                                {
-                                                                    onRackPositionClick(
-                                                                        rackId,
-                                                                        current.id,
-                                                                        current.name,
-                                                                    )
-                                                                }
-                                                            },
-                                                        openIcon = Icons.Default.Visibility,
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.roleName
-                                                ?.takeIf { isFieldVisible("role") && it.isNotBlank() }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Role",
-                                                        value = value,
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.manufacturerName
-                                                ?.takeIf {
-                                                    isFieldVisible("manufacturer") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Manufacturer",
-                                                        value = value,
-                                                        leadingIcon =
-                                                            AppIcons.forEndpointPath(
-                                                                "api/dcim/manufacturers/"
-                                                            ),
-                                                        onClick =
-                                                            manufacturerId?.let { id ->
-                                                                {
-                                                                    onReferenceClick(
-                                                                        "api/dcim/manufacturers/",
-                                                                        id,
-                                                                        current.name,
-                                                                    )
-                                                                }
-                                                            },
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.deviceTypeModel
-                                                ?.takeIf {
-                                                    isFieldVisible("device_type") &&
-                                                        isFieldVisible("model") &&
-                                                        it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Device type",
-                                                        value = value,
-                                                        leadingIcon =
-                                                            AppIcons.forEndpointPath(
-                                                                "api/dcim/device-types/"
-                                                            ),
-                                                        onClick =
-                                                            deviceType?.id?.let { id ->
-                                                                { onDeviceTypeClick(id, current.name) }
-                                                            },
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.serial
-                                                ?.takeIf {
-                                                    isFieldVisible("serial") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Serial",
-                                                        value = value,
-                                                        copyable = true,
-                                                        onCopyValue = onCopyValue,
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.assetTag
-                                                ?.takeIf {
-                                                    isFieldVisible("asset_tag") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Asset tag",
-                                                        value = value,
-                                                        copyable = true,
-                                                        onCopyValue = onCopyValue,
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.primaryIp
-                                                ?.takeIf {
-                                                    isFieldVisible("primary_ip") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailFieldContent(
-                                                        label = "Primary IP",
-                                                        value = value,
-                                                        leadingIcon =
-                                                            AppIcons.forEndpointPath(
-                                                                "api/ipam/ip-addresses/"
-                                                            ),
-                                                        copyable = true,
-                                                        onCopyValue = onCopyValue,
-                                                        onClick =
-                                                            current.primaryIpId?.let { id ->
-                                                                {
-                                                                    onReferenceClick(
-                                                                        "api/ipam/ip-addresses/",
-                                                                        id,
-                                                                        current.name,
-                                                                    )
-                                                                }
-                                                            },
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                            current.comments
-                                                ?.takeIf {
-                                                    isFieldVisible("comments") && it.isNotBlank()
-                                                }
-                                                ?.let { value ->
-                                                    DetailMarkdownContent(
-                                                        label = "Comments",
-                                                        value = value,
-                                                        onFieldLongPress = {
-                                                            fieldActionLabel = it
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp),
-                                                    )
-                                                }
-                                        }
-                                    }
-                                }
-                            fieldRows(
-                                rows = visibleCustomFieldRows,
-                                onNavigateToReference = { endpointPath, id ->
-                                    onReferenceClick(endpointPath, id, current.name)
-                                },
-                                onRelatedItems = {},
-                                onOpenUrl = { url ->
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                                },
-                                netboxBaseUrl = netboxBaseUrl,
-                                onDownloadAttachment = viewModel::downloadAttachment,
-                                onImageClick = ::openImageViewer,
-                                isDownloading = isDownloading,
-                                onCopyValue = onCopyValue,
-                                onFieldLongPress = { fieldActionLabel = it },
-                                onMatterPairingCode = { matterPairingCode = it },
-                            )
+                        if (hasVisibleDetails)
                             item {
-                                Spacer(Modifier.height(24.dp))
-                                Text(
-                                    "Last synced ${DateFormat.getDateTimeInstance().format(Date(current.syncedAt))}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        } else if (visibleSelectedTab == changelogTabIndex) {
-                            if (changelog.isEmpty()) {
-                                item {
-                                    Text(
-                                        "No changelog entries found for this device.",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontStyle = FontStyle.Italic,
-                                        modifier = Modifier.padding(vertical = 16.dp),
-                                    )
-                                }
-                            } else {
-                                changelog.forEach { change ->
-                                    item(key = "changelog-${change.id}") {
-                                        GenericDetailChangelogRow(
-                                            change = change,
-                                            onClick = { onChangeDiffClick(change.id) },
-                                        )
+                                NyetboxDetailsCard(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Column(Modifier.padding(horizontal = 12.dp)) {
+                                        current.siteName
+                                            ?.takeIf { isFieldVisible("site") && it.isNotBlank() }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Site",
+                                                    value = value,
+                                                    leadingIcon =
+                                                        AppIcons.forEndpointPath("api/dcim/sites/"),
+                                                    onClick =
+                                                        current.siteId?.let { id ->
+                                                            {
+                                                                onReferenceClick(
+                                                                    "api/dcim/sites/",
+                                                                    id,
+                                                                    current.name,
+                                                                )
+                                                            }
+                                                        },
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.rackName
+                                            ?.takeIf { isFieldVisible("rack") && it.isNotBlank() }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Rack",
+                                                    value = value,
+                                                    leadingIcon =
+                                                        AppIcons.forEndpointPath("api/dcim/racks/"),
+                                                    onClick =
+                                                        current.rackId?.let { id ->
+                                                            {
+                                                                onReferenceClick(
+                                                                    "api/dcim/racks/",
+                                                                    id,
+                                                                    current.name,
+                                                                )
+                                                            }
+                                                        },
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.position
+                                            ?.toString()
+                                            ?.takeIf {
+                                                isFieldVisible("position") && it.isNotBlank()
+                                            }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Position",
+                                                    value = value,
+                                                    onClick =
+                                                        current.rackId?.let { rackId ->
+                                                            {
+                                                                onRackPositionClick(
+                                                                    rackId,
+                                                                    current.id,
+                                                                    current.name,
+                                                                )
+                                                            }
+                                                        },
+                                                    openIcon = Icons.Default.Visibility,
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.roleName
+                                            ?.takeIf { isFieldVisible("role") && it.isNotBlank() }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Role",
+                                                    value = value,
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.manufacturerName
+                                            ?.takeIf {
+                                                isFieldVisible("manufacturer") && it.isNotBlank()
+                                            }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Manufacturer",
+                                                    value = value,
+                                                    leadingIcon =
+                                                        AppIcons.forEndpointPath(
+                                                            "api/dcim/manufacturers/"
+                                                        ),
+                                                    onClick =
+                                                        manufacturerId?.let { id ->
+                                                            {
+                                                                onReferenceClick(
+                                                                    "api/dcim/manufacturers/",
+                                                                    id,
+                                                                    current.name,
+                                                                )
+                                                            }
+                                                        },
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.deviceTypeModel
+                                            ?.takeIf {
+                                                isFieldVisible("device_type") &&
+                                                    isFieldVisible("model") &&
+                                                    it.isNotBlank()
+                                            }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Device type",
+                                                    value = value,
+                                                    leadingIcon =
+                                                        AppIcons.forEndpointPath(
+                                                            "api/dcim/device-types/"
+                                                        ),
+                                                    onClick =
+                                                        deviceType?.id?.let { id ->
+                                                            { onDeviceTypeClick(id, current.name) }
+                                                        },
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.serial
+                                            ?.takeIf { isFieldVisible("serial") && it.isNotBlank() }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Serial",
+                                                    value = value,
+                                                    copyable = true,
+                                                    onCopyValue = onCopyValue,
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.assetTag
+                                            ?.takeIf {
+                                                isFieldVisible("asset_tag") && it.isNotBlank()
+                                            }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Asset tag",
+                                                    value = value,
+                                                    copyable = true,
+                                                    onCopyValue = onCopyValue,
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.primaryIp
+                                            ?.takeIf {
+                                                isFieldVisible("primary_ip") && it.isNotBlank()
+                                            }
+                                            ?.let { value ->
+                                                DetailFieldContent(
+                                                    label = "Primary IP",
+                                                    value = value,
+                                                    leadingIcon =
+                                                        AppIcons.forEndpointPath(
+                                                            "api/ipam/ip-addresses/"
+                                                        ),
+                                                    copyable = true,
+                                                    onCopyValue = onCopyValue,
+                                                    onClick =
+                                                        current.primaryIpId?.let { id ->
+                                                            {
+                                                                onReferenceClick(
+                                                                    "api/ipam/ip-addresses/",
+                                                                    id,
+                                                                    current.name,
+                                                                )
+                                                            }
+                                                        },
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
+                                        current.comments
+                                            ?.takeIf {
+                                                isFieldVisible("comments") && it.isNotBlank()
+                                            }
+                                            ?.let { value ->
+                                                DetailMarkdownContent(
+                                                    label = "Comments",
+                                                    value = value,
+                                                    onFieldLongPress = { fieldActionLabel = it },
+                                                    modifier = Modifier.padding(vertical = 8.dp),
+                                                )
+                                            }
                                     }
                                 }
+                            }
+                        fieldRows(
+                            rows = visibleCustomFieldRows,
+                            onNavigateToReference = { endpointPath, id ->
+                                onReferenceClick(endpointPath, id, current.name)
+                            },
+                            onRelatedItems = {},
+                            onOpenUrl = { url ->
+                                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                            },
+                            netboxBaseUrl = netboxBaseUrl,
+                            onDownloadAttachment = viewModel::downloadAttachment,
+                            onImageClick = ::openImageViewer,
+                            isDownloading = isDownloading,
+                            onCopyValue = onCopyValue,
+                            onFieldLongPress = { fieldActionLabel = it },
+                            onMatterPairingCode = { matterPairingCode = it },
+                        )
+                        item {
+                            Spacer(Modifier.height(24.dp))
+                            Text(
+                                "Last synced ${DateFormat.getDateTimeInstance().format(Date(current.syncedAt))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else if (visibleSelectedTab == changelogTabIndex) {
+                        if (changelog.isEmpty()) {
+                            item {
+                                Text(
+                                    "No changelog entries found for this device.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontStyle = FontStyle.Italic,
+                                    modifier = Modifier.padding(vertical = 16.dp),
+                                )
                             }
                         } else {
-                            val tab = visibleRelatedTabs[visibleSelectedTab - 1]
-                            if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
-                                deviceJournalEntriesItems(
-                                    entries = journalEntries,
-                                    onEdit = {
-                                        journalEditorEntry = it
-                                        showJournalEditor = true
-                                    },
-                                )
-                            } else if (tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH) {
-                                deviceConnectedDevicesItems(
-                                    devices = connectedDevices,
-                                    deviceTypeImages = deviceTypeImages,
-                                    onDeviceClick = { deviceId ->
-                                        onReferenceClick(
-                                            NetBoxRef.DEVICES_ENDPOINT_PATH,
-                                            deviceId,
-                                            current.name,
-                                        )
-                                    },
-                                )
-                            } else {
-                                deviceRelatedObjectsItems(
-                                    tab = tab,
-                                    objects = selectedRelatedObjects,
-                                    interfaceIpAddresses = interfaceIpAddresses,
-                                    onObjectClick = { objectId ->
-                                        onReferenceClick(tab.endpointPath, objectId, current.name)
-                                    },
-                                    onIpClick = { ipAddress ->
-                                        onReferenceClick(
-                                            "api/ipam/ip-addresses/",
-                                            ipAddress.id,
-                                            current.name,
-                                        )
-                                    },
-                                    onCopyValue = onCopyValue,
-                                )
+                            changelog.forEach { change ->
+                                item(key = "changelog-${change.id}") {
+                                    GenericDetailChangelogRow(
+                                        change = change,
+                                        onClick = { onChangeDiffClick(change.id) },
+                                    )
+                                }
                             }
                         }
+                    } else {
+                        val tab = visibleRelatedTabs[visibleSelectedTab - 1]
+                        if (tab.endpointPath == JOURNAL_TAB_ENDPOINT_PATH) {
+                            deviceJournalEntriesItems(
+                                entries = journalEntries,
+                                onEdit = {
+                                    journalEditorEntry = it
+                                    showJournalEditor = true
+                                },
+                            )
+                        } else if (tab.endpointPath == CONNECTED_DEVICES_TAB_ENDPOINT_PATH) {
+                            deviceConnectedDevicesItems(
+                                devices = connectedDevices,
+                                deviceTypeImages = deviceTypeImages,
+                                onDeviceClick = { deviceId ->
+                                    onReferenceClick(
+                                        NetBoxRef.DEVICES_ENDPOINT_PATH,
+                                        deviceId,
+                                        current.name,
+                                    )
+                                },
+                            )
+                        } else {
+                            deviceRelatedObjectsItems(
+                                tab = tab,
+                                objects = selectedRelatedObjects,
+                                interfaceIpAddresses = interfaceIpAddresses,
+                                onObjectClick = { objectId ->
+                                    onReferenceClick(tab.endpointPath, objectId, current.name)
+                                },
+                                onIpClick = { ipAddress ->
+                                    onReferenceClick(
+                                        "api/ipam/ip-addresses/",
+                                        ipAddress.id,
+                                        current.name,
+                                    )
+                                },
+                                onCopyValue = onCopyValue,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1015,14 +983,17 @@ fun DeviceDetailScreen(
                 }
             },
             onOpenExternally = { item ->
-                documentViewerItems.entries.firstOrNull { it.value == item }?.key?.let { document ->
-                    document.documentUrl?.let { url ->
-                        viewModel.downloadAttachment(url, document.filename)
-                    }
-                        ?: document.externalUrl?.let { url ->
-                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                documentViewerItems.entries
+                    .firstOrNull { it.value == item }
+                    ?.key
+                    ?.let { document ->
+                        document.documentUrl?.let { url ->
+                            viewModel.downloadAttachment(url, document.filename)
                         }
-                }
+                            ?: document.externalUrl?.let { url ->
+                                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                            }
+                    }
             },
         )
     }
@@ -1447,7 +1418,8 @@ private fun deviceTypePhotoItems(
                     title = "Front of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Front", manufacturerName),
                     sourceLabel = "Device type image",
-                    metadataLinks = deviceTypeImageMetadataLinks(model, manufacturerName, id, manufacturerId),
+                    metadataLinks =
+                        deviceTypeImageMetadataLinks(model, manufacturerName, id, manufacturerId),
                 )
             },
         rear
@@ -1458,7 +1430,8 @@ private fun deviceTypePhotoItems(
                     title = "Rear of $model",
                     metadata = deviceTypeImageMetadata(deviceType, "Rear", manufacturerName),
                     sourceLabel = "Device type image",
-                    metadataLinks = deviceTypeImageMetadataLinks(model, manufacturerName, id, manufacturerId),
+                    metadataLinks =
+                        deviceTypeImageMetadataLinks(model, manufacturerName, id, manufacturerId),
                 )
             },
     )
@@ -1480,18 +1453,20 @@ private fun deviceTypeImageMetadataLinks(
     deviceTypeId: Int,
     manufacturerId: Int?,
 ): List<ImageViewerMetadataLink> = buildList {
-    manufacturerName?.takeIf { it.isNotBlank() }?.let { name ->
-        manufacturerId?.let { id ->
-            add(
-                ImageViewerMetadataLink(
-                    label = "Manufacturer",
-                    endpointPath = "api/dcim/manufacturers/",
-                    id = id,
-                    breadcrumb = name,
+    manufacturerName
+        ?.takeIf { it.isNotBlank() }
+        ?.let { name ->
+            manufacturerId?.let { id ->
+                add(
+                    ImageViewerMetadataLink(
+                        label = "Manufacturer",
+                        endpointPath = "api/dcim/manufacturers/",
+                        id = id,
+                        breadcrumb = name,
+                    )
                 )
-            )
+            }
         }
-    }
     add(
         ImageViewerMetadataLink(
             label = "Device type",
@@ -1592,10 +1567,11 @@ private fun DetailFieldContent(
     modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
 ) {
     Column(
-        modifier = modifier.combinedClickable(
-            onClick = { onClick?.invoke() },
-            onLongClick = { onFieldLongPress(label) },
-        )
+        modifier =
+            modifier.combinedClickable(
+                onClick = { onClick?.invoke() },
+                onLongClick = { onFieldLongPress(label) },
+            )
     ) {
         Text(
             label,
@@ -1653,10 +1629,11 @@ private fun DetailMarkdownContent(
     modifier: Modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
 ) {
     Column(
-        modifier = modifier.combinedClickable(
-            onClick = {},
-            onLongClick = { onFieldLongPress(label) },
-        )
+        modifier =
+            modifier.combinedClickable(
+                onClick = {},
+                onLongClick = { onFieldLongPress(label) },
+            )
     ) {
         Text(
             label,

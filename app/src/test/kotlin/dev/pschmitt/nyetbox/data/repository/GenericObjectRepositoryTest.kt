@@ -130,8 +130,7 @@ class GenericObjectRepositoryTest {
 
         assertEquals(
             42,
-            dao.stored(NetBoxRef.INTERFACES_ENDPOINT_PATH, 1)
-                ?.relatedObjectId,
+            dao.stored(NetBoxRef.INTERFACES_ENDPOINT_PATH, 1)?.relatedObjectId,
         )
     }
 
@@ -140,8 +139,14 @@ class GenericObjectRepositoryTest {
         val dao = InMemoryNetBoxObjectDao()
         val repository = repository(dao)
         val interfacesEndpoint = NetBoxRef.INTERFACES_ENDPOINT_PATH
-        repository.cacheLocalObject(interfacesEndpoint, interfaceObject(id = 1, name = "Gi1/0/1", deviceId = 42))
-        repository.cacheLocalObject(interfacesEndpoint, interfaceObject(id = 2, name = "Gi1/0/2", deviceId = 99))
+        repository.cacheLocalObject(
+            interfacesEndpoint,
+            interfaceObject(id = 1, name = "Gi1/0/1", deviceId = 42),
+        )
+        repository.cacheLocalObject(
+            interfacesEndpoint,
+            interfaceObject(id = 2, name = "Gi1/0/2", deviceId = 99),
+        )
 
         val result =
             repository
@@ -154,8 +159,7 @@ class GenericObjectRepositoryTest {
     @Test
     fun `rows cached before the relation column existed still match via the null fallback`() =
         runTest {
-            val interfacesEndpoint =
-                NetBoxRef.INTERFACES_ENDPOINT_PATH
+            val interfacesEndpoint = NetBoxRef.INTERFACES_ENDPOINT_PATH
             val legacyRow =
                 NetBoxObjectEntity(
                     endpointPath = interfacesEndpoint,
@@ -274,7 +278,8 @@ private class InMemoryNetBoxObjectDao(initial: List<NetBoxObjectEntity> = emptyL
     override fun observeById(endpointPath: String, id: Int): Flow<NetBoxObjectEntity?> =
         flowOf(objects[endpointPath to id])
 
-    override fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> = flowOf(objects.values.toList())
+    override fun observeAllObjects(): Flow<List<NetBoxObjectEntity>> =
+        flowOf(objects.values.toList())
 
     override suspend fun getById(endpointPath: String, id: Int): NetBoxObjectEntity? =
         objects[endpointPath to id]
