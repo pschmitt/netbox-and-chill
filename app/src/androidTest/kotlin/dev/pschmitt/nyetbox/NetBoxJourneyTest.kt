@@ -49,6 +49,15 @@ abstract class NetBoxJourneyTest {
     // away from actually disappearing, showing its syncProgress-less fallback copy in the meantime
     // ("Fetching your inventory for the first time..."). Wait for the marker first to rule out the
     // mid-sync false positive, then the overlay's absence to let that trailing recomposition land.
+    // Still not quite enough on its own (confirmed via a diagnostic logcat dump on a third CI run:
+    // the marker-then-overlay-absent sequence completed, but the very next capture still caught
+    // "Step 2 of 8" on a *different*, presumably more loaded, CI run - the timestamps showed only
+    // ~200ms between the overlay tag reading absent from Compose's semantics tree and the
+    // screenshot firing). The overlay is its own Dialog with its own Android Window - Compose's
+    // semantics tree can report that window's content gone a beat before the WindowManager
+    // actually finishes tearing the window down and the compositor flushes a frame without it, a
+    // real OS-level step outside Compose's own idling/recomposition machinery. A short fixed
+    // settle delay after the tag reads absent buys margin against exactly that gap.
     protected fun clickConnectAndWaitForDashboard() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.executeShellCommand("logcat -c")
@@ -60,6 +69,8 @@ abstract class NetBoxJourneyTest {
         logDiagnostic("sync-complete marker observed")
         waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 15_000)
         logDiagnostic("overlay tag confirmed absent")
+        Thread.sleep(1_000)
+        logDiagnostic("post-overlay settle delay elapsed")
     }
 
     // Temporary diagnostic aid for NBC-416 (screenshot dashboard race): writes a timestamped
