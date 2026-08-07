@@ -63,6 +63,14 @@ abstract class NetBoxJourneyTest {
         device.executeShellCommand("logcat -c")
         logDiagnostic("logcat cleared, clicking Connect")
         composeRule.onNodeWithText("Connect").performClick()
+        // typeOnboardingCredentials leaves the token field focused, which raises the on-screen
+        // keyboard - confirmed still up in a real dashboard store screenshot once the overlay race
+        // above was otherwise fixed (it was there all along, just hidden behind the overlay's own
+        // full-screen dialog in every prior failing capture). A back-press with the IME visible
+        // only dismisses the keyboard (standard Android behavior, same pattern already used for
+        // the search screenshot in StoreScreenshotTest.kt) rather than navigating away from
+        // onboarding, since credentials were just typed immediately before this call.
+        device.pressBack()
         waitForText("Dashboard", timeoutMillis = 45_000)
         logDiagnostic("Dashboard text visible")
         waitForLogcatMarker(E2E_SYNC_COMPLETE_MARKER, timeoutMillis = 90_000)
