@@ -93,7 +93,6 @@ internal fun PrintingSettingsSection(
     }
     SettingsGroupCard(
         title = "Printing",
-        subtitle = "Printer, label preview, and print defaults",
         icon = Icons.Default.Print,
     ) {
         Text(

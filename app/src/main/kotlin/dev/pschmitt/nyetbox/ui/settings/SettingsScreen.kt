@@ -84,11 +84,7 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            SettingsGroupCard(
-                title = "Account & Sync",
-                subtitle = "Offline mode, server connection, and data sync",
-                icon = Icons.Default.Sync,
-            ) {
+            SettingsGroupCard(title = "Account & Sync", icon = Icons.Default.Sync) {
                 SettingsToggleItem(
                     checked = offlineMode,
                     onCheckedChange = viewModel::setOfflineMode,
@@ -104,20 +100,12 @@ fun SettingsScreen(
                 listOf(SettingsCategory.Connection, SettingsCategory.Sync, SettingsCategory.Backup)
                     .forEach { category -> SettingsCategoryRow(category, onCategoryClick) }
             }
-            SettingsGroupCard(
-                title = "Hardware",
-                subtitle = "Camera and printing preferences",
-                icon = Icons.Default.Devices,
-            ) {
+            SettingsGroupCard(title = "Hardware", icon = Icons.Default.Devices) {
                 listOf(SettingsCategory.Camera, SettingsCategory.Printing).forEach { category ->
                     SettingsCategoryRow(category, onCategoryClick)
                 }
             }
-            SettingsGroupCard(
-                title = "Appearance & Interaction",
-                subtitle = "Theme, gestures, and notifications",
-                icon = Icons.Default.Palette,
-            ) {
+            SettingsGroupCard(title = "Appearance & Interaction", icon = Icons.Default.Palette) {
                 listOf(
                         SettingsCategory.Display,
                         SettingsCategory.Gestures,

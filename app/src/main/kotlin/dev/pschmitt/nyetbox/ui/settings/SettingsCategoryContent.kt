@@ -161,11 +161,7 @@ private fun BackupSettingsContent(
 ) {
     var frequencyMenuExpanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingsGroupCard(
-            title = "Settings backup",
-            subtitle = "Only preferences and connection profiles are included",
-            icon = Icons.Default.FolderSpecial,
-        ) {
+        SettingsGroupCard(title = "Settings backup", icon = Icons.Default.FolderSpecial) {
             SettingsListItem(
                 modifier = Modifier.clickable(onClick = actions.onExportBackup),
                 leadingContent = { Icon(Icons.Default.Upload, contentDescription = null) },
@@ -187,11 +183,7 @@ private fun BackupSettingsContent(
                 },
             )
         }
-        SettingsGroupCard(
-            title = "Scheduled backups",
-            subtitle = "Backups are saved to a directory you choose",
-            icon = Icons.Default.Schedule,
-        ) {
+        SettingsGroupCard(title = "Scheduled backups", icon = Icons.Default.Schedule) {
             SettingsToggleItem(
                 checked = state.scheduledBackupEnabled,
                 onCheckedChange = actions.onSetScheduledBackupEnabled,
@@ -302,11 +294,7 @@ private fun ConnectionSettingsContent(
     actions: SettingsCategoryActions,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingsGroupCard(
-            title = "Connection",
-            subtitle = "Server, identity, and secure access",
-            icon = Icons.Default.Dns,
-        ) {
+        SettingsGroupCard(title = "Connection", icon = Icons.Default.Dns) {
             SettingsListItem(
                 modifier = Modifier.clickable(onClick = actions.onEditServer),
                 leadingContent = { Icon(Icons.Default.Cloud, contentDescription = null) },
@@ -464,11 +452,7 @@ private fun SyncSettingsContent(
                 isSyncing = state.isSyncing,
             )
         }
-        SettingsGroupCard(
-            title = "Sync policy",
-            subtitle = "Choose when background data refreshes are allowed",
-            icon = Icons.Default.Sync,
-        ) {
+        SettingsGroupCard(title = "Sync policy", icon = Icons.Default.Sync) {
             SettingsToggleItem(
                 checked = state.syncAttachmentsToDisk,
                 onCheckedChange = actions.onSetSyncAttachmentsToDisk,
@@ -584,7 +568,6 @@ private fun DisplaySettingsContent(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SettingsGroupCard(
             title = "Appearance",
-            subtitle = "Theme and object identity",
             icon = Icons.Default.Palette,
         ) {
             SettingsListItem(
@@ -667,11 +650,7 @@ private fun DisplaySettingsContent(
                 },
             )
         }
-        SettingsGroupCard(
-            title = "Content",
-            subtitle = "Choose what is shown by default across the app",
-            icon = Icons.Default.Visibility,
-        ) {
+        SettingsGroupCard(title = "Content", icon = Icons.Default.Visibility) {
             SettingsListItem(
                 modifier = Modifier.clickable(onClick = actions.onShowHiddenFields),
                 leadingContent = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
@@ -731,11 +710,7 @@ private fun CameraSettingsContent(
 ) {
     var scannerLensMenuExpanded by remember { mutableStateOf(false) }
     var scannerRearLensMenuExpanded by remember { mutableStateOf(false) }
-    SettingsGroupCard(
-        title = "Scanner",
-        subtitle = "Choose the camera and rear lens used by default",
-        icon = Icons.Default.Cameraswitch,
-    ) {
+    SettingsGroupCard(title = "Scanner", icon = Icons.Default.Cameraswitch) {
         SettingsListItem(
             modifier = Modifier.clickable { scannerLensMenuExpanded = true },
             leadingContent = { Icon(Icons.Default.PhotoCamera, contentDescription = null) },
@@ -807,7 +782,6 @@ private fun GestureSettingsContent(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SettingsGroupCard(
             title = "Two-finger gestures",
-            subtitle = "Shortcuts using two fingers",
             icon = Icons.Default.TouchApp,
         ) {
             GestureShortcut.entries
@@ -831,7 +805,6 @@ private fun GestureSettingsContent(
         }
         SettingsGroupCard(
             title = "Three-finger gestures",
-            subtitle = "Shortcuts using three fingers",
             icon = Icons.Default.TouchApp,
         ) {
             GestureShortcut.entries
@@ -895,11 +868,7 @@ private fun AboutSettingsContent() {
     val context = LocalContext.current
     var buildTapCount by remember { mutableIntStateOf(0) }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingsGroupCard(
-            title = "Nyetbox",
-            subtitle = "Application and build information",
-            icon = Icons.Default.Info,
-        ) {
+        SettingsGroupCard(title = "Nyetbox", icon = Icons.Default.Info) {
             SettingsListItem(
                 leadingContent = { Icon(Icons.Default.Apps, contentDescription = null) },
                 headlineContent = { Text("Version") },
@@ -928,11 +897,7 @@ private fun AboutSettingsContent() {
                 supportingContent = { Text(BuildConfig.BUILD_DATE) },
             )
         }
-        SettingsGroupCard(
-            title = "Project",
-            subtitle = "Source code, support, and privacy information",
-            icon = Icons.Default.Code,
-        ) {
+        SettingsGroupCard(title = "Project", icon = Icons.Default.Code) {
             ExternalLinkRow(
                 context = context,
                 url = "https://github.com/pschmitt/nyetbox",

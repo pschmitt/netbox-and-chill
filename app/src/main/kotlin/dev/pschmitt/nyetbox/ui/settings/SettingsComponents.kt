@@ -71,12 +71,12 @@ internal fun SettingsToggleItem(
 /**
  * The header is itself a [SettingsListItem] - the same primitive [content] rows normally use - so
  * the header's icon and title always line up horizontally with whatever's below it, instead of the
- * two independently guessing at a matching inset.
+ * two independently guessing at a matching inset. Deliberately understated (small label-style
+ * title, no subtitle) since it's just a section label, not content in its own right.
  */
 @Composable
 internal fun SettingsGroupCard(
     title: String,
-    subtitle: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
     accentColor: Color = MaterialTheme.colorScheme.primary,
@@ -102,14 +102,8 @@ internal fun SettingsGroupCard(
                 headlineContent = {
                     Text(
                         title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
-                    )
-                },
-                supportingContent = {
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },

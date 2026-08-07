@@ -3,6 +3,26 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-411: make Settings section titles more discreet, drop their subtitles
+
+Follow-up to NBC-407/409. `SettingsGroupCard`'s header title ("Account & Sync" etc.) was styled
+as a prominent `titleMedium` heading with a subtitle line under it - too loud for what's really
+just a section label, per the user's request.
+
+- [x] `SettingsGroupCard` (`SettingsComponents.kt`): title now renders at `labelLarge` (down from
+      `titleMedium`) in `onSurfaceVariant` instead of the default on-surface color, and the
+      `subtitle` param was removed entirely (not just hidden) since nothing used it anymore.
+- [x] Stripped the now-invalid `subtitle = "..."` argument from all 15 `SettingsGroupCard` call
+      sites across `SettingsScreen.kt`, `SettingsCategoryContent.kt`, and `SettingsPrinting.kt` -
+      left the unrelated per-row `ExternalLinkRow(subtitle = ...)` calls in the About screen
+      untouched (same param name, different composable).
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual check - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
 ## NBC-410: subtle per-card-section tint; drop redundant "About" card title
 
 Small visual tweak: on screens with several `NyetboxSectionCard`s stacked (Media, Details,
