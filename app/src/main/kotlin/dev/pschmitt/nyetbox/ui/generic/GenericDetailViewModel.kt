@@ -267,8 +267,8 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /**
-     * Distinguishes "no asset_tag field on this object type" from "field present but blank" -
-     * [fields]/`buildFieldRows` drops blank values entirely, so this reads [decodedObject]
+     * Distinguishes "no asset_tag field on this object type" from "field present but
+     * blank" - [fields]/`buildFieldRows` drops blank values entirely, so this reads [decodedObject]
      * directly instead (mirrors `GenericListScreen`'s `assetTagStateFromRawJson`).
      */
     val assetTag: StateFlow<AssetTagState> =

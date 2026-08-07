@@ -69,9 +69,9 @@ internal fun SettingsToggleItem(
 }
 
 /**
- * The header is itself a [SettingsListItem] - the same primitive [content] rows normally use -
- * so the header's icon and title always line up horizontally with whatever's below it, instead
- * of the two independently guessing at a matching inset.
+ * The header is itself a [SettingsListItem] - the same primitive [content] rows normally use - so
+ * the header's icon and title always line up horizontally with whatever's below it, instead of the
+ * two independently guessing at a matching inset.
  */
 @Composable
 internal fun SettingsGroupCard(
