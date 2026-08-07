@@ -178,11 +178,12 @@ class StoreScreenshotTest : NetBoxJourneyTest() {
         // producing an empty store-listing asset.
         waitForTag("e2e-search-result", 60_000)
         // performTextInput leaves the field focused, which raises the on-screen keyboard and
-        // covers the bottom half of the store screenshot. A back-press with the IME visible only
-        // dismisses the keyboard (standard Android behavior) without navigating away from this
-        // screen - confirmed via a debug capture before this fix, which showed the keyboard
-        // covering the lower search results.
-        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
+        // covers the bottom half of the store screenshot. dismissKeyboard() (Espresso's
+        // closeSoftKeyboard(), talking to the InputMethodManager directly) closes it without any
+        // risk of falling through to real back-navigation the way a raw device.pressBack() can
+        // when the IME isn't actually showing at that exact moment (confirmed elsewhere in this
+        // journey - see NetBoxJourneyTest.dismissKeyboard()'s own doc comment).
+        dismissKeyboard()
         Thread.sleep(500)
         captureScreenshot("04_search$suffix")
 

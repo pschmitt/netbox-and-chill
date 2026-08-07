@@ -9,8 +9,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
 import dev.pschmitt.nyetbox.sync.SyncNotifier
 import org.junit.Rule
 import org.junit.Test
@@ -138,12 +136,15 @@ class NetBoxE2eTest : NetBoxJourneyTest() {
         captureE2eScreenshot("04-global-search")
         // performTextInput leaves the field focused, which raises the on-screen keyboard - never
         // explicitly dismissed for the rest of this journey (StoreScreenshotTest already works
-        // around the same thing after its own search capture). A back-press with the IME visible
-        // only dismisses the keyboard (standard Android behavior), not the screen. (The teardown
-        // "Activity never becomes requested state [DESTROYED]" flake this comment used to blame on
-        // a stuck IME session was confirmed via CI logcat to be unrelated - see the intent-restore
-        // comment above, after the deep-link/reconciliation round-trips.)
-        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
+        // around the same thing after its own search capture). dismissKeyboard() (Espresso's
+        // closeSoftKeyboard()) closes it without risking a fall-through to real back-navigation
+        // the way a raw device.pressBack() can when the IME isn't actually showing at that exact
+        // moment (confirmed elsewhere in this journey - see
+        // NetBoxJourneyTest.dismissKeyboard()'s own doc comment). (The teardown "Activity never
+        // becomes requested state [DESTROYED]" flake this comment used to blame on a stuck IME
+        // session was confirmed via CI logcat to be unrelated - see the intent-restore comment
+        // above, after the deep-link/reconciliation round-trips.)
+        dismissKeyboard()
 
         // Go back through the same UI and turn on Offline mode from the navigation drawer. The
         // device list must remain available without any network refresh once this is enabled.

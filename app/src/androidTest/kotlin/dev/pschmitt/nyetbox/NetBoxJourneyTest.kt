@@ -9,6 +9,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
+import androidx.test.espresso.matcher.ViewMatchers.isRoot
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import dev.pschmitt.nyetbox.data.repository.E2E_SYNC_COMPLETE_MARKER
@@ -66,11 +69,14 @@ abstract class NetBoxJourneyTest {
         // typeOnboardingCredentials leaves the token field focused, which raises the on-screen
         // keyboard - confirmed still up in a real dashboard store screenshot once the overlay race
         // above was otherwise fixed (it was there all along, just hidden behind the overlay's own
-        // full-screen dialog in every prior failing capture). A back-press with the IME visible
-        // only dismisses the keyboard (standard Android behavior, same pattern already used for
-        // the search screenshot in StoreScreenshotTest.kt) rather than navigating away from
-        // onboarding, since credentials were just typed immediately before this call.
-        device.pressBack()
+        // full-screen dialog in every prior failing capture). dismissKeyboard() only talks to the
+        // InputMethodManager, unlike a raw back-press: confirmed on a real CI run that
+        // device.pressBack() here navigated tenInch/sevenInch all the way out to the launcher home
+        // screen instead - the IME apparently wasn't actually showing yet at this exact point on
+        // those form factors (onboarding validation completes fast enough there to have already
+        // dropped focus), so the back event fell through to real back-stack navigation instead of
+        // being consumed by the (absent) IME.
+        dismissKeyboard()
         waitForText("Dashboard", timeoutMillis = 45_000)
         logDiagnostic("Dashboard text visible")
         waitForLogcatMarker(E2E_SYNC_COMPLETE_MARKER, timeoutMillis = 90_000)
@@ -79,6 +85,16 @@ abstract class NetBoxJourneyTest {
         logDiagnostic("overlay tag confirmed absent")
         Thread.sleep(1_000)
         logDiagnostic("post-overlay settle delay elapsed")
+    }
+
+    // Closes the on-screen keyboard without risking real back-navigation. A raw
+    // device.pressBack() only dismisses the IME if it happens to actually be showing at that
+    // exact moment - otherwise the back event falls through to the activity's own back stack
+    // (confirmed: this once navigated a journey all the way out to the launcher home screen on
+    // tablet form factors). Espresso's closeSoftKeyboard() talks to the InputMethodManager
+    // directly instead, so it's a safe no-op when the keyboard isn't shown.
+    protected fun dismissKeyboard() {
+        onView(isRoot()).perform(closeSoftKeyboard())
     }
 
     // Temporary diagnostic aid for NBC-416 (screenshot dashboard race): writes a timestamped
