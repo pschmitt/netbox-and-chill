@@ -29,9 +29,9 @@ data class ActionSheetAction(
 /**
  * Shared "long-press action menu" shape: a leading icon next to the title, an optional preview
  * block above the action list, and one flat, full-width [TextButton] per [ActionSheetAction]
- * (destructive actions tinted with the error color). Every long-press dialog in the app
- * (field actions, image-attachment actions, document actions) renders through this so they all
- * look the same.
+ * (destructive actions tinted with the error color). Every long-press dialog in the app (field
+ * actions, image-attachment actions, document actions) renders through this so they all look the
+ * same.
  */
 @Composable
 fun ActionSheetDialog(

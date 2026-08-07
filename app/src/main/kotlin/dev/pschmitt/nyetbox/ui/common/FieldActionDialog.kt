@@ -35,7 +35,11 @@ fun FieldActionDialog(
                 )
             } else null,
             onChangelog?.let {
-                ActionSheetAction(label = "View changelog", icon = Icons.Default.History, onClick = it)
+                ActionSheetAction(
+                    label = "View changelog",
+                    icon = Icons.Default.History,
+                    onClick = it,
+                )
             },
             ActionSheetAction(
                 label = editLabel,

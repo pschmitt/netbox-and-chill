@@ -33,8 +33,8 @@ import dev.pschmitt.nyetbox.data.repository.CachedDocument
 import dev.pschmitt.nyetbox.ui.generic.DiffValueRow
 
 /**
- * Edits a document's NetBox metadata (type, comments) - the only long-press target that couldn't
- * be edited at all before. Two steps, mirroring the generic field editor's edit-then-review shape
+ * Edits a document's NetBox metadata (type, comments) - the only long-press target that couldn't be
+ * edited at all before. Two steps, mirroring the generic field editor's edit-then-review shape
  * (`FocusedEditFieldDialog`/`EditDiffDialog` in `ui/generic/GenericDetailEditing.kt`) without
  * coupling to that flow's generic `EditableField` data model, which a document isn't part of.
  */
@@ -166,7 +166,10 @@ fun DocumentEditDialog(
             TextButton(onClick = onDismiss, enabled = !state.isUploading) { Text("Cancel") }
         },
         confirmButton = {
-            TextButton(onClick = { showReview = true }, enabled = hasChanges && !state.isUploading) {
+            TextButton(
+                onClick = { showReview = true },
+                enabled = hasChanges && !state.isUploading,
+            ) {
                 Text("Review changes")
             }
         },
