@@ -50,12 +50,25 @@ abstract class NetBoxJourneyTest {
     // ("Fetching your inventory for the first time..."). Wait for the marker first to rule out the
     // mid-sync false positive, then the overlay's absence to let that trailing recomposition land.
     protected fun clickConnectAndWaitForDashboard() {
-        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-            .executeShellCommand("logcat -c")
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        device.executeShellCommand("logcat -c")
+        logDiagnostic("logcat cleared, clicking Connect")
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", timeoutMillis = 45_000)
+        logDiagnostic("Dashboard text visible")
         waitForLogcatMarker(E2E_SYNC_COMPLETE_MARKER, timeoutMillis = 90_000)
+        logDiagnostic("sync-complete marker observed")
         waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 15_000)
+        logDiagnostic("overlay tag confirmed absent")
+    }
+
+    // Temporary diagnostic aid for NBC-416 (screenshot dashboard race): writes a timestamped
+    // logcat line via the standalone `log` binary (distinct from the app's own Timber output) so
+    // a downloaded full logcat dump can be correlated against exactly when each wait step and
+    // screenshot capture actually happened, instead of only inferring it from the final image.
+    protected fun logDiagnostic(message: String) {
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            .executeShellCommand("log -t NYETBOX_E2E_DIAG \"$message\"")
     }
 
     /**

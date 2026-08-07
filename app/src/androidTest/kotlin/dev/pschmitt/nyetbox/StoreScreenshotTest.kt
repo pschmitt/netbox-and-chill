@@ -210,6 +210,7 @@ class StoreScreenshotTest : NetBoxJourneyTest() {
         ) {
             Thread.sleep(200)
         }
+        logDiagnostic("capturing screenshot $name")
         Screengrab.screenshot(name)
     }
 }

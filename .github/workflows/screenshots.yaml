@@ -117,7 +117,7 @@ jobs:
           script: |
             bash ci/android-e2e-wait.sh
             adb reverse tcp:8000 tcp:8000
-            serial="$(adb devices | awk '$2 == "device" { print $1; exit }')" && test -n "$serial" && adb -s "$serial" install -r -g -t dist/app-x86_64-debug.apk && E2E_TOKEN="$E2E_TOKEN" SCREENGRAB_DEVICE_TYPE=${{ matrix.device_type }} SCREENGRAB_SPECIFIC_DEVICE="$serial" fastlane screenshots; rc=$?; mkdir -p dist/failure-screenshots; adb -s "$serial" pull /sdcard/Android/data/dev.pschmitt.nyetbox.debug/files/e2e-screenshots dist/failure-screenshots >/dev/null 2>&1 || true; exit $rc
+            serial="$(adb devices | awk '$2 == "device" { print $1; exit }')" && test -n "$serial" && adb -s "$serial" install -r -g -t dist/app-x86_64-debug.apk && E2E_TOKEN="$E2E_TOKEN" SCREENGRAB_DEVICE_TYPE=${{ matrix.device_type }} SCREENGRAB_SPECIFIC_DEVICE="$serial" fastlane screenshots; rc=$?; mkdir -p dist/failure-screenshots dist/logcat; adb -s "$serial" pull /sdcard/Android/data/dev.pschmitt.nyetbox.debug/files/e2e-screenshots dist/failure-screenshots >/dev/null 2>&1 || true; adb -s "$serial" logcat -d > dist/logcat/logcat.txt 2>/dev/null || true; exit $rc
 
       - name: Upload screenshot artifact
         if: ${{ always() }}
@@ -129,6 +129,7 @@ jobs:
             fastlane/metadata/android/en-US/images/${{ matrix.folder }}/
             app/build/reports/androidTests/
             dist/failure-screenshots/
+            dist/logcat/
 
       - name: Capture fixture diagnostics
         if: ${{ failure() }}
