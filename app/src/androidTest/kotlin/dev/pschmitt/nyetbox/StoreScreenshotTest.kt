@@ -106,15 +106,10 @@ class StoreScreenshotTest : NetBoxJourneyTest() {
 
     private fun captureJourney(suffix: String) {
         // connectToNetBox (and switchToDarkModeAndReturnToDashboard, for the dark pass) already
-        // waited out the initial-sync overlay once, but it's not gone for good: a background sync
-        // tick (fires roughly every 10s per NetBoxJourneyTest's clickUntilTagAppears doc) can
-        // retrigger DashboardScreen's InitialSyncOverlay ("Setting up your NetBox instance") for
-        // its duration. Nothing re-checks that between then and this very first capture, so it's a
-        // real race - confirmed happening in CI, where the store listing's home screenshot showed
-        // the sync overlay instead of the populated dashboard. Re-check right before capturing,
-        // the same defensive way captureScreenshot() itself already re-checks for a stray ANR
-        // dialog immediately before every capture.
-        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
+        // waited for SettingsRepository's E2E_SYNC_COMPLETE_MARKER, not just the overlay's
+        // fleeting absence - once that fires, DashboardViewModel.showInitialSyncOverlay can never
+        // go true again for this profile (its own condition requires lastSuccessfulSyncAt to
+        // still be null), so no re-check is needed here the way there once was.
         captureScreenshot("01_dashboard$suffix")
 
         clickUntilTagAppears(

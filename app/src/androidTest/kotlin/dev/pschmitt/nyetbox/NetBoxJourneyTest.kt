@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
+import dev.pschmitt.nyetbox.data.repository.E2E_SYNC_COMPLETE_MARKER
 import org.junit.Rule
 
 /**
@@ -35,11 +37,32 @@ abstract class NetBoxJourneyTest {
     // (DashboardViewModel.showInitialSyncOverlay) the same way right after connecting: its
     // "Setting up your NetBox instance" dialog owns its own window and blocks interaction (or, for
     // screenshots, shows stale "nothing cached yet" sections) until the first sync actually
-    // completes.
+    // completes. The overlay's own visibility is a poor proxy for that: the first sync is chunked
+    // into ~8 steps, each with its own brief isRefreshing=false gap, so waiting for the overlay to
+    // merely be *absent* can return true mid-sync (confirmed: a store screenshot once captured
+    // "Step 2 of 8"). Clear logcat, then wait for SettingsRepository's own completion marker
+    // instead - the one signal that's true exactly once the whole pass has actually finished.
     protected fun clickConnectAndWaitForDashboard() {
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+            .executeShellCommand("logcat -c")
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", timeoutMillis = 45_000)
-        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 60_000)
+        waitForLogcatMarker(E2E_SYNC_COMPLETE_MARKER, timeoutMillis = 90_000)
+    }
+
+    /**
+     * Polls `logcat` (rather than the Compose semantics tree) for [marker] - used for signals
+     * that come from a background coroutine/worker with no Compose node of its own, or whose
+     * nearest UI proxy is unreliable (see [clickConnectAndWaitForDashboard]).
+     */
+    protected fun waitForLogcatMarker(marker: String, timeoutMillis: Long) {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            if (device.executeShellCommand("logcat -d").contains(marker)) return
+            Thread.sleep(500)
+        }
+        error("Logcat marker \"$marker\" did not appear within ${timeoutMillis}ms")
     }
 
     protected fun connectToNetBox(baseUrl: String, token: String) {

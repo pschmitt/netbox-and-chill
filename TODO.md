@@ -3,6 +3,37 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-416: fix the store screenshot dashboard race for real (logcat marker, not overlay polling)
+
+NBC-408 (Aug 7) re-checked `DashboardScreen`'s initial-sync overlay tag right before the dashboard
+store screenshot, but PR #17's latest run still captured "Setting up your NetBox instance - Step 2
+of 8" instead of the populated dashboard - the overlay's own visibility was the wrong thing to
+poll: `DashboardViewModel.showInitialSyncOverlay` is only false for good once
+`lastSuccessfulSyncAt` is set, but the first sync is chunked into ~8 steps each with their own
+brief `isRefreshing=false` gap, so "the overlay happens to be absent right now" can be true well
+before the sync is actually done.
+
+- [x] `SettingsRepository.kt`: `recordSuccessfulSync()` (the one place that's only ever called
+      once a sync pass finishes clean) now also emits a debug-only logcat marker
+      (`E2E_SYNC_COMPLETE_MARKER = "NYETBOX_E2E_SYNC_COMPLETE"`, via `Timber.i` - only planted in
+      debug builds, so this is a no-op in release).
+- [x] `NetBoxJourneyTest.kt`: new `waitForLogcatMarker(marker, timeoutMillis)` polls
+      `UiDevice.executeShellCommand("logcat -d")` instead of the Compose semantics tree;
+      `clickConnectAndWaitForDashboard()` (shared by every journey test) now clears logcat right
+      before clicking Connect and waits for the marker instead of the overlay tag's fleeting
+      absence.
+- [x] `StoreScreenshotTest.kt`: removed the now-redundant defensive re-check before the dashboard
+      capture (`waitForTagAbsent("e2e-initial-sync-overlay", ...)`) - once the marker has fired,
+      the overlay's own condition can never go true again for that profile, so there's nothing
+      left to race.
+- [x] Remote `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+      `:app:testDebugUnitTest` all passed; no lint-baseline drift.
+- [ ] Real verification requires an actual `Screenshots` workflow run - can't be confirmed from a
+      unit/compile pass alone since this is a device-timing fix.
+
+Status: mostly done, 2026-08-07 - implemented and compiles; pending a real CI screenshot run to
+confirm the dashboard capture is finally clean.
+
 ## NBC-415: customizable bottom navigation bar (up to 5 slots, reorderable)
 
 Bottom bar (phone) and rail (tablet) were hardcoded: phone always showed Home/Search/Scan/Add,

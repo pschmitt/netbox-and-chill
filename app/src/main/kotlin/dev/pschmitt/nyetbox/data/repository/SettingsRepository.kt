@@ -15,6 +15,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import timber.log.Timber
+
+/**
+ * Debug-only logcat marker emitted the moment [SettingsRepository.recordSuccessfulSync] runs -
+ * the E2E/screenshot instrumented tests grep for this via `logcat` instead of polling
+ * [dev.pschmitt.nyetbox.ui.dashboard.DashboardViewModel.showInitialSyncOverlay]'s own visibility,
+ * which can toggle several times during the first, multi-step sync before settling for good.
+ */
+const val E2E_SYNC_COMPLETE_MARKER = "NYETBOX_E2E_SYNC_COMPLETE"
 
 data class NetBoxCredentials(val baseUrl: String, val token: String) {
     val isValid: Boolean
@@ -603,6 +612,12 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val timestamp = System.currentTimeMillis()
         prefs.edit().putLong(serverScopedKey(KEY_LAST_SUCCESSFUL_SYNC), timestamp).apply()
         _lastSuccessfulSyncAt.value = timestamp
+        // A debug-only logcat marker the E2E/screenshot journeys grep for (see
+        // NetBoxJourneyTest.waitForLogcatMarker) - this is the one moment a sync pass is known
+        // good, unlike DashboardViewModel.showInitialSyncOverlay, which can toggle visible/hidden
+        // several times during the chunked first sync (each of its ~8 steps has its own brief
+        // isRefreshing=false gap) well before the overlay is gone for good.
+        Timber.i(E2E_SYNC_COMPLETE_MARKER)
     }
 
     fun addHiddenField(key: String) {
