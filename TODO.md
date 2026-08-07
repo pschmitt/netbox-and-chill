@@ -3,6 +3,30 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-410: subtle per-card-section tint; drop redundant "About" card title
+
+Small visual tweak: on screens with several `NyetboxSectionCard`s stacked (Media, Details,
+Linked items, etc.), every card used the exact same flat `surfaceContainer` background, making
+adjacent sections harder to tell apart at a glance. Also, the Settings top-level menu's last
+card repeated "About" as both the card title and its one and only row.
+
+- [x] New `ColorScheme.sectionTintFor(title)` (`DetailAccent.kt`): deterministic per-title pick
+      from a small muted 6-color palette, blended at 5% alpha over `surfaceContainer` via
+      `compositeOver` - same section name always gets the same subtle tint everywhere, low
+      alpha so it reads as a hint, not a color statement.
+- [x] `NyetboxCard` gained an optional `containerColor` param (defaults to today's
+      `surfaceContainer`, so every other caller is unaffected); `NyetboxSectionCard` passes
+      `sectionTintFor(title)` through, so `NyetboxDetailsCard`/`NyetboxLinkedItemsCard`/`Media`/
+      etc. each get their own stable tint automatically.
+- [x] Settings: the About section now uses the headerless `SettingsSingleItemCard` instead of
+      `SettingsGroupCard`, dropping the redundant "About" title above the single "About" row.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual check - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
 ## NBC-409: fix card header/content indentation mismatch
 
 `NyetboxSectionCard`/`SettingsGroupCard` hand-rolled their header (icon + title/subtitle) as a

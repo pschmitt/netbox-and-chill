@@ -27,13 +27,13 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun NyetboxCard(
     modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors =
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(vertical = 4.dp), content = content)
@@ -75,7 +75,10 @@ fun NyetboxSectionCard(
     trailingContent: (@Composable (() -> Unit))? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    NyetboxCard(modifier = modifier) {
+    NyetboxCard(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.sectionTintFor(title),
+    ) {
         NyetboxListItem(
             leadingContent = {
                 Icon(

@@ -125,11 +125,7 @@ fun SettingsScreen(
                     )
                     .forEach { category -> SettingsCategoryRow(category, onCategoryClick) }
             }
-            SettingsGroupCard(
-                title = SettingsCategory.About.title,
-                subtitle = SettingsCategory.About.subtitle,
-                icon = SettingsCategory.About.icon,
-            ) {
+            SettingsSingleItemCard {
                 SettingsCategoryRow(SettingsCategory.About, onCategoryClick)
             }
         }
