@@ -28,10 +28,24 @@ before the sync is actually done.
       left to race.
 - [x] Remote `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
       `:app:testDebugUnitTest` all passed; no lint-baseline drift.
+- [x] Attempt 1 (marker-only wait) shipped and went green in CI, but a real triggered
+      `Screenshots` run still caught the overlay - this time showing its `syncProgress == null`
+      fallback copy ("Fetching your inventory for the first time...") instead of the original
+      "Step 2 of 8". Root cause: `recordSuccessfulSync()`'s marker and `SyncWorker.doWork()`'s
+      `syncStatusRepository.publishProgress(null)` fire in the same coroutine tick, but
+      `DashboardViewModel.showInitialSyncOverlay`'s `combine().stateIn()` needs extra dispatcher
+      hops to actually recompose - so the marker can land in logcat slightly before the overlay's
+      own Compose state has caught up.
+- [x] Attempt 2: `clickConnectAndWaitForDashboard()` now waits for the marker *first* (rules out
+      the mid-sync chunk-flicker false positive attempt 1 was built for), then
+      `waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 15_000)` (now a short, safe
+      bound - just catching up to that trailing recomposition instead of racing the whole sync).
+      Compiles clean, no lint-baseline drift.
 - [ ] Real verification requires an actual `Screenshots` workflow run - can't be confirmed from a
       unit/compile pass alone since this is a device-timing fix.
 
-Status: mostly done, 2026-08-07 - implemented and compiles; pending a real CI screenshot run to
+Status: mostly done, 2026-08-07 - attempt 1 shipped but still raced in a real CI run; attempt 2
+(marker + overlay-absence, combined) implemented and compiles; pending a real CI screenshot run to
 confirm the dashboard capture is finally clean.
 
 ## NBC-415: customizable bottom navigation bar (up to 5 slots, reorderable)

@@ -37,17 +37,25 @@ abstract class NetBoxJourneyTest {
     // (DashboardViewModel.showInitialSyncOverlay) the same way right after connecting: its
     // "Setting up your NetBox instance" dialog owns its own window and blocks interaction (or, for
     // screenshots, shows stale "nothing cached yet" sections) until the first sync actually
-    // completes. The overlay's own visibility is a poor proxy for that: the first sync is chunked
-    // into ~8 steps, each with its own brief isRefreshing=false gap, so waiting for the overlay to
-    // merely be *absent* can return true mid-sync (confirmed: a store screenshot once captured
-    // "Step 2 of 8"). Clear logcat, then wait for SettingsRepository's own completion marker
-    // instead - the one signal that's true exactly once the whole pass has actually finished.
+    // completes. The overlay's own visibility alone is a poor proxy for that: the first sync is
+    // chunked into ~8 steps, each with its own brief isRefreshing=false gap, so waiting for the
+    // overlay to merely be *absent* can return true mid-sync (confirmed: a store screenshot once
+    // captured "Step 2 of 8"). Waiting for SettingsRepository's own completion marker instead
+    // fixes that, but isn't sufficient alone either (confirmed on a second CI run, still racy):
+    // recordSuccessfulSync() (and the logcat line) fire the instant the sync coroutine finishes,
+    // but showInitialSyncOverlay is a combine().stateIn() a couple of dispatcher hops downstream
+    // of that same state change, and SyncWorker resets syncProgress to null in the very same
+    // breath - so the marker can already be in logcat while the overlay is still one recomposition
+    // away from actually disappearing, showing its syncProgress-less fallback copy in the meantime
+    // ("Fetching your inventory for the first time..."). Wait for the marker first to rule out the
+    // mid-sync false positive, then the overlay's absence to let that trailing recomposition land.
     protected fun clickConnectAndWaitForDashboard() {
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
             .executeShellCommand("logcat -c")
         composeRule.onNodeWithText("Connect").performClick()
         waitForText("Dashboard", timeoutMillis = 45_000)
         waitForLogcatMarker(E2E_SYNC_COMPLETE_MARKER, timeoutMillis = 90_000)
+        waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 15_000)
     }
 
     /**
