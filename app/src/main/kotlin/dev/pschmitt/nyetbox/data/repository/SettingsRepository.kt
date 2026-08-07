@@ -18,8 +18,8 @@ import kotlinx.serialization.json.Json
 import timber.log.Timber
 
 /**
- * Debug-only logcat marker emitted the moment [SettingsRepository.recordSuccessfulSync] runs -
- * the E2E/screenshot instrumented tests grep for this via `logcat` instead of polling
+ * Debug-only logcat marker emitted the moment [SettingsRepository.recordSuccessfulSync] runs - the
+ * E2E/screenshot instrumented tests grep for this via `logcat` instead of polling
  * [dev.pschmitt.nyetbox.ui.dashboard.DashboardViewModel.showInitialSyncOverlay]'s own visibility,
  * which can toggle several times during the first, multi-step sync before settling for good.
  */
