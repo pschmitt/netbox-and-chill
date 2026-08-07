@@ -76,15 +76,30 @@ on-device verification still pending the user.
 ## NBC-408: Play Store screenshots captured before initial sync finishes
 
 `StoreScreenshotTest.kt` (`app/src/androidTest/kotlin/dev/pschmitt/nyetbox/`, driven by `fastlane
-screenshots` per `.github/workflows/screenshots.yaml`) grabs the home/dashboard shot too early -
-it's landing on the "Setting up your NetBox instance" sync-in-progress dialog
-(`DashboardScreen.kt:778`) instead of the populated home page. Needs to wait for the initial sync
-to actually finish before capturing that screenshot specifically.
+screenshots` per `.github/workflows/screenshots.yaml`) grabbed the home/dashboard shot too early -
+it landed on the "Setting up your NetBox instance" sync-in-progress dialog
+(`DashboardScreen.kt`'s `InitialSyncOverlay`, `testTag("e2e-initial-sync-overlay")`) instead of
+the populated home page.
 
-- [ ] Not started - noted per user request, not yet investigated further (e.g. what signal
-      `StoreScreenshotTest` should poll/wait on to know sync has finished).
+Root cause: `connectToNetBox`/`switchToDarkModeAndReturnToDashboard` (`NetBoxJourneyTest.kt`)
+already wait out that overlay once, but per that file's own doc comment a background sync tick
+retriggers it roughly every 10s - and nothing re-checked for it again between that one-time wait
+and the actual `Screengrab.screenshot("01_dashboard")` call moments later, so a retrigger landing
+in that window got captured instead of the real dashboard.
 
-Status: not started, 2026-08-07.
+- [x] `captureJourney()` (`StoreScreenshotTest.kt`) now re-checks
+      `waitForTagAbsent("e2e-initial-sync-overlay", ...)` immediately before the first
+      `captureScreenshot("01_dashboard...")` call, for both the light and dark passes - the same
+      defensive "re-check right before the capture that matters" pattern `captureScreenshot()`
+      itself already uses for a stray ANR dialog.
+- [x] Remote `:app:compileDebugAndroidTestKotlin` passed.
+- [ ] Not verified against a real screenshot run yet (requires the full disposable-NetBox +
+      emulator harness in `.github/workflows/screenshots.yaml` / `just screenshots`, which wasn't
+      run as part of this fix) - next real trigger of that workflow (a tagged release, or a
+      manual `gh workflow run screenshots.yaml`) will confirm.
+
+Status: mostly done, 2026-08-07 - fix implemented and compiles; not yet confirmed against a real
+screenshot-capture CI run.
 
 ## NBC-407: group the top-level Settings menu into titled cards
 
