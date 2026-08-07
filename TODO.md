@@ -41,12 +41,28 @@ before the sync is actually done.
       `waitForTagAbsent("e2e-initial-sync-overlay", timeoutMillis = 15_000)` (now a short, safe
       bound - just catching up to that trailing recomposition instead of racing the whole sync).
       Compiles clean, no lint-baseline drift.
+- [x] Attempt 2 also still raced in a real triggered `Screenshots` run (workflow run 31215820927) -
+      back to the original "Step 2 of 8" symptom, on the very first (light-mode) capture, even
+      though a *later* capture in the same run was clean. Added timestamped `log -t
+      NYETBOX_E2E_DIAG` lines around each wait step/capture and made CI always upload a full
+      `adb logcat -d` dump (not just on failure) to get ground truth instead of guessing further.
+- [x] The diagnostic dump (workflow run 31217385663, which happened to pass) showed only ~200ms
+      between the overlay tag reading absent from Compose's semantics tree and the screenshot
+      firing. The overlay is its own Dialog with its own Android Window - the WindowManager
+      actually tearing that window down and the compositor flushing a frame without it is a real
+      OS-level step outside Compose's own recomposition/idling machinery, and can outlast a ~200ms
+      margin on a more loaded CI runner (explaining why the *same* wait logic passed on one run
+      and failed on another). Attempt 3: added a fixed 1s settle delay right after the overlay tag
+      reads absent, to buy margin against exactly that gap.
 - [ ] Real verification requires an actual `Screenshots` workflow run - can't be confirmed from a
       unit/compile pass alone since this is a device-timing fix.
 
-Status: mostly done, 2026-08-07 - attempt 1 shipped but still raced in a real CI run; attempt 2
-(marker + overlay-absence, combined) implemented and compiles; pending a real CI screenshot run to
-confirm the dashboard capture is finally clean.
+Status: mostly done, 2026-08-07 - attempts 1 and 2 both still raced in real CI runs (attempt 2's
+own wait logic passed in one run and failed in another, confirming genuine non-determinism, not a
+logic bug); a diagnostic logcat dump pinned the remaining gap to a ~200ms WindowManager-teardown
+lag after Compose's semantics tree already reports the overlay gone. Attempt 3 (fixed 1s settle
+delay after that check) implemented and compiles; pending a real CI screenshot run to confirm the
+dashboard capture is finally clean.
 
 ## NBC-415: customizable bottom navigation bar (up to 5 slots, reorderable)
 
