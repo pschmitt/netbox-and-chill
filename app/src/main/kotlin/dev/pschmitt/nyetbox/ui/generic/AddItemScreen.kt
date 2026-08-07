@@ -40,8 +40,8 @@ import dev.pschmitt.nyetbox.ui.common.NetBoxSectionHeader
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
 import dev.pschmitt.nyetbox.ui.common.NyetboxListItem
 import dev.pschmitt.nyetbox.ui.directory.AppIcons
-import dev.pschmitt.nyetbox.ui.navigation.Route
 import dev.pschmitt.nyetbox.ui.directory.DirectoryViewModel
+import dev.pschmitt.nyetbox.ui.navigation.Route
 
 /** Lets the user choose any discovered NetBox model before opening the generic create form. */
 @OptIn(ExperimentalMaterial3Api::class)

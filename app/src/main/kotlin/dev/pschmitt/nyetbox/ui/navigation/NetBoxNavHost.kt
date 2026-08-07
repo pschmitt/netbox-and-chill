@@ -96,7 +96,9 @@ fun NetBoxNavHost(
             CompositionLocalProvider(LocalCurrentRoute provides Route.Dashboard) {
                 DashboardScreen(
                     onOpenDrawer = onOpenDrawer,
-                    onNavigate = { route -> navController.navigate(route) { launchSingleTop = true } },
+                    onNavigate = { route ->
+                        navController.navigate(route) { launchSingleTop = true }
+                    },
                     onNavigateToReference = { endpointPath, id ->
                         navController.navigateToObject(endpointPath, id)
                     },
@@ -143,7 +145,9 @@ fun NetBoxNavHost(
                         navController.navigate(Route.GenericCreate(DEVICES_ENDPOINT_PATH, "device"))
                     },
                     onOpenDrawer = onOpenDrawer,
-                    onNavigate = { route -> navController.navigate(route) { launchSingleTop = true } },
+                    onNavigate = { route ->
+                        navController.navigate(route) { launchSingleTop = true }
+                    },
                 )
             }
         }
@@ -223,12 +227,16 @@ fun NetBoxNavHost(
             val route: Route.GenericList = backStackEntry.toRoute()
             CompositionLocalProvider(LocalCurrentRoute provides route) {
                 GenericListScreen(
-                    onObjectClick = { id -> navController.navigateToObject(route.endpointPath, id) },
+                    onObjectClick = { id ->
+                        navController.navigateToObject(route.endpointPath, id)
+                    },
                     onCreateClick = {
                         navController.navigate(Route.GenericCreate(route.endpointPath, route.label))
                     },
                     onOpenDrawer = onOpenDrawer,
-                    onNavigate = { target -> navController.navigate(target) { launchSingleTop = true } },
+                    onNavigate = { target ->
+                        navController.navigate(target) { launchSingleTop = true }
+                    },
                 )
             }
         }
@@ -239,7 +247,9 @@ fun NetBoxNavHost(
                         navController.navigateToObject(endpointPath, id)
                     },
                     onBack = { navController.navigateBackSafely() },
-                    onNavigate = { route -> navController.navigate(route) { launchSingleTop = true } },
+                    onNavigate = { route ->
+                        navController.navigate(route) { launchSingleTop = true }
+                    },
                 )
             }
         }
@@ -261,7 +271,9 @@ fun NetBoxNavHost(
                     )
                 },
                 onBack = { navController.navigateBackSafely() },
-                onNavigate = { target -> navController.navigate(target) { launchSingleTop = true } },
+                onNavigate = { target ->
+                    navController.navigate(target) { launchSingleTop = true }
+                },
             )
         }
         composable<Route.SharedMediaUpload> { backStackEntry ->
@@ -310,7 +322,9 @@ fun NetBoxNavHost(
                             Route.GenericCreate(model.endpointPath, model.modelLabel)
                         )
                     },
-                    onNavigate = { route -> navController.navigate(route) { launchSingleTop = true } },
+                    onNavigate = { route ->
+                        navController.navigate(route) { launchSingleTop = true }
+                    },
                 )
             }
         }
@@ -367,7 +381,9 @@ fun NetBoxNavHost(
                         }
                     },
                     onBack = { navController.navigateBackSafely() },
-                    onNavigate = { target -> navController.navigate(target) { launchSingleTop = true } },
+                    onNavigate = { target ->
+                        navController.navigate(target) { launchSingleTop = true }
+                    },
                     showBottomBar = !route.fromOnboarding,
                 )
             }

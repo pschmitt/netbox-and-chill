@@ -100,11 +100,11 @@ internal fun routeForGesture(action: GestureAction, target: GestureTarget?): Rou
     }
 
 /**
- * Whether [current] is showing the same destination as a nav-bar slot resolved to [target] -
- * used to decide which bottom-bar/rail item highlights as selected. Routes with fields that only
- * ever differ based on *how* you arrived (a breadcrumb, a focused field, an edit-mode flag, an
- * inherited list filter) are compared on their identifying fields only, since a nav-bar-resolved
- * target always has those extras at their defaults.
+ * Whether [current] is showing the same destination as a nav-bar slot resolved to [target] - used
+ * to decide which bottom-bar/rail item highlights as selected. Routes with fields that only ever
+ * differ based on *how* you arrived (a breadcrumb, a focused field, an edit-mode flag, an inherited
+ * list filter) are compared on their identifying fields only, since a nav-bar-resolved target
+ * always has those extras at their defaults.
  */
 internal fun matchesCurrentRoute(current: Route?, target: Route): Boolean =
     when (target) {
