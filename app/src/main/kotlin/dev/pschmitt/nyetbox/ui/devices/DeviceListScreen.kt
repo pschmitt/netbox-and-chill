@@ -61,8 +61,7 @@ fun DeviceListScreen(
     val devices by viewModel.devices.collectAsStateWithLifecycle()
     val deviceTypeImages by viewModel.deviceTypeImages.collectAsStateWithLifecycle()
     val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
-    val rowColor =
-        MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/", objectTypeAccent)
+    val rowColor = MaterialTheme.colorScheme.detailAccentFor("api/dcim/devices/", objectTypeAccent)
     val query by viewModel.query.collectAsStateWithLifecycle()
     // Free text + filter *values* only, keys stripped - so typing `status:active` highlights
     // "active" in the row instead of the literal "status:active" (mirrors GlobalSearchScreen).
