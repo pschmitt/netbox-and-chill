@@ -73,15 +73,17 @@ before the sync is actually done.
       identical latent risk) with a shared `NetBoxJourneyTest.dismissKeyboard()` helper using
       Espresso's `closeSoftKeyboard()`, which only talks to the InputMethodManager directly and is
       a safe no-op when the keyboard isn't shown - no risk of navigating anywhere.
-- [ ] Real verification requires another `Screenshots` workflow run to confirm both the overlay
-      race and the keyboard-dismiss fix hold together, and that the safer dismiss mechanism didn't
-      introduce its own regression.
+- [x] Verified via a fourth real triggered `Screenshots` run (workflow run 31221652915): all three
+      device sizes' capture jobs succeeded, every dashboard screenshot showed the synced state
+      cleanly (no overlay, no leftover keyboard), and the search screenshot (the other
+      `dismissKeyboard()` call site) stayed on the search screen with the keyboard closed as
+      expected - no more home-screen exits on tablet form factors.
 
-Status: mostly done, 2026-08-07 - the core sync-overlay race (attempt 3) is confirmed fixed via a
-real CI screenshot run. That run's own success surfaced a second, previously-hidden bug (leftover
-onboarding keyboard in the phone capture); the first fix for that regressed tablet form factors by
-using a raw back-press, since fixed with Espresso's closeSoftKeyboard() instead. Pending one more
-real CI screenshot run to confirm everything holds together.
+Status: done, 2026-08-08 - confirmed via a real CI screenshot run across phone/sevenInch/tenInch:
+the sync-overlay race is fixed (attempt 3's marker+overlay-absence wait plus a 1s settle delay),
+and the onboarding keyboard is dismissed safely via Espresso's closeSoftKeyboard() rather than a
+raw back-press, which had regressed tablet form factors by navigating to the launcher home screen
+in one intermediate attempt.
 
 ## NBC-415: customizable bottom navigation bar (up to 5 slots, reorderable)
 
