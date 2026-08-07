@@ -116,6 +116,7 @@ fun GenericDetailScreen(
     viewModel: GenericDetailViewModel = hiltViewModel(),
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
+    val assetTag by viewModel.assetTag.collectAsStateWithLifecycle()
     val hasCheckedCache by viewModel.hasCheckedCache.collectAsStateWithLifecycle()
     val journalTabReady by viewModel.journalTabReady.collectAsStateWithLifecycle()
     val fields by viewModel.fields.collectAsStateWithLifecycle()
@@ -772,6 +773,8 @@ fun GenericDetailScreen(
                                     statusField = statusField,
                                     detailAccent = detailAccent,
                                     onStatusLongPress = { fieldActionLabel = statusField?.label },
+                                    assetTag = assetTag,
+                                    onAssetTagLongPress = { onCopyValue("Asset tag", it) },
                                 )
                             }
                             if (visibleSelectedTab == 0) {

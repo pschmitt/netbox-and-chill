@@ -21,7 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import dev.pschmitt.nyetbox.data.schema.AssetTagState
+import dev.pschmitt.nyetbox.ui.common.AssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.ImageViewerItem
+import dev.pschmitt.nyetbox.ui.common.MissingAssetTagBadge
 import dev.pschmitt.nyetbox.ui.common.NyetboxCard
 import dev.pschmitt.nyetbox.ui.common.RemoteThumbnail
 import dev.pschmitt.nyetbox.ui.common.StatusChip
@@ -39,6 +42,8 @@ internal fun GenericDetailIdentityCard(
     statusField: FieldRow.PlainText?,
     detailAccent: Color,
     onStatusLongPress: () -> Unit,
+    assetTag: AssetTagState = AssetTagState(hasField = false, value = null),
+    onAssetTagLongPress: ((String) -> Unit)? = null,
 ) {
     NyetboxCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(
@@ -109,6 +114,19 @@ internal fun GenericDetailIdentityCard(
                         )
                     }
                 }
+            }
+            if (assetTag.value != null) {
+                AssetTagBadge(
+                    assetTag = assetTag.value,
+                    modifier =
+                        Modifier.padding(start = 4.dp)
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClick = { onAssetTagLongPress?.invoke(assetTag.value) },
+                            ),
+                )
+            } else if (assetTag.hasField) {
+                MissingAssetTagBadge(modifier = Modifier.padding(start = 4.dp))
             }
         }
     }

@@ -60,6 +60,9 @@ fun GenericListScreen(
 ) {
     val objects by viewModel.objects.collectAsStateWithLifecycle()
     val objectTypeAccent by viewModel.objectTypeAccent.collectAsStateWithLifecycle()
+    val rowIcon = AppIcons.forEndpointPath(viewModel.route.endpointPath)
+    val rowColor =
+        MaterialTheme.colorScheme.detailAccentFor(viewModel.route.endpointPath, objectTypeAccent)
     val query by viewModel.query.collectAsStateWithLifecycle()
     // Free text + filter *values* only, keys stripped - so typing `status:active` highlights
     // "active" in the row instead of the literal "status:active" (mirrors GlobalSearchScreen).
@@ -81,10 +84,7 @@ fun GenericListScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            AppIcons.forEndpointPath(viewModel.route.endpointPath),
-                            contentDescription = null,
-                        )
+                        Icon(rowIcon, contentDescription = null, tint = rowColor)
                         Text(viewModel.route.label, modifier = Modifier.padding(start = 8.dp))
                     }
                 },
@@ -132,12 +132,6 @@ fun GenericListScreen(
                             )
                         }
                     } else {
-                        val rowIcon = AppIcons.forEndpointPath(viewModel.route.endpointPath)
-                        val rowColor =
-                            MaterialTheme.colorScheme.detailAccentFor(
-                                viewModel.route.endpointPath,
-                                objectTypeAccent,
-                            )
                         LazyColumn(
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),

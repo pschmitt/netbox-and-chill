@@ -36,7 +36,9 @@ import dev.pschmitt.nyetbox.data.repository.createChoiceSearchFields
 import dev.pschmitt.nyetbox.data.repository.hiddenFieldPreferenceKey
 import dev.pschmitt.nyetbox.data.repository.isDocumentsPluginModel
 import dev.pschmitt.nyetbox.data.repository.rackElevationSvgCacheKey
+import dev.pschmitt.nyetbox.data.schema.AssetTagState
 import dev.pschmitt.nyetbox.data.schema.NetBoxRef
+import dev.pschmitt.nyetbox.data.schema.assetTagState
 import dev.pschmitt.nyetbox.sync.SyncScheduler
 import dev.pschmitt.nyetbox.sync.SyncStatusRepository
 import dev.pschmitt.nyetbox.ui.common.REFRESH_QUEUED_TOAST
@@ -263,6 +265,20 @@ constructor(
         objectEntity
             .map { it?.display }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * Distinguishes "no asset_tag field on this object type" from "field present but blank" -
+     * [fields]/`buildFieldRows` drops blank values entirely, so this reads [decodedObject]
+     * directly instead (mirrors `GenericListScreen`'s `assetTagStateFromRawJson`).
+     */
+    val assetTag: StateFlow<AssetTagState> =
+        decodedObject
+            .map { obj -> obj?.assetTagState() ?: AssetTagState(hasField = false, value = null) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                AssetTagState(hasField = false, value = null),
+            )
 
     val fields: StateFlow<List<FieldRow>> =
         combine(decodedObject, customFieldRepository.observeDefinitions()) { obj, definitions ->

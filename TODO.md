@@ -3,6 +3,96 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-409: fix card header/content indentation mismatch
+
+`NyetboxSectionCard`/`SettingsGroupCard` hand-rolled their header (icon + title/subtitle) as a
+custom `Row` with its own explicit horizontal padding, independent of whatever padding the
+`content` rows below happened to use - "only the title is indented" in the user's words. Root
+cause: two independent guesses at a matching inset instead of one shared source of truth.
+
+- [x] `NyetboxSectionCard` (`AppCard.kt`) header rewritten to render as a `NyetboxListItem` -
+      the exact same primitive most `content` rows already use - so they align by construction,
+      not by coincidentally-matching magic numbers. Same fix applied to `SettingsGroupCard`
+      (`SettingsComponents.kt`). Every existing call site of both (`MediaCarousel.kt`,
+      `GenericCreateScreen.kt`, `GenericDetailEditing.kt`, every Settings category screen, etc.)
+      benefits automatically - no per-call-site changes needed.
+- [x] Removed now-dead unused imports (`Row`/`Spacer`/`Arrangement`/`width`/`Alignment`) left
+      behind by deleting the old hand-rolled header `Row`s in both files.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] Non-`ListItem` card content (e.g. `MediaCarousel.kt`'s carousel, which pads itself to
+      18dp to match the *old* hardcoded header inset) may still be a pixel or two off the new
+      `ListItem`-derived inset - not re-tuned since the exact default wasn't verified against a
+      live render. Flagged as a possible small follow-up once visually checked, not blocking.
+- [ ] On-device visual check - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
+## NBC-408: Play Store screenshots captured before initial sync finishes
+
+`StoreScreenshotTest.kt` (`app/src/androidTest/kotlin/dev/pschmitt/nyetbox/`, driven by `fastlane
+screenshots` per `.github/workflows/screenshots.yaml`) grabs the home/dashboard shot too early -
+it's landing on the "Setting up your NetBox instance" sync-in-progress dialog
+(`DashboardScreen.kt:778`) instead of the populated home page. Needs to wait for the initial sync
+to actually finish before capturing that screenshot specifically.
+
+- [ ] Not started - noted per user request, not yet investigated further (e.g. what signal
+      `StoreScreenshotTest` should poll/wait on to know sync has finished).
+
+Status: not started, 2026-08-07.
+
+## NBC-407: group the top-level Settings menu into titled cards
+
+The top-level Settings screen (the menu of 9 category rows: Connection, Backup, Sync, Camera,
+Printing, Gestures, Display, Notifications, About) sat under two plain `Text` labels
+("Preferences", "Settings") with no card chrome - unlike every category's own screen one level
+down, which already groups its rows into titled `SettingsGroupCard`s. Regrouped the top-level
+menu the same way, into 4 titled cards proposed to and confirmed by the user:
+
+- [x] "Account & Sync" - Offline mode toggle, Connection, Sync, Backup & restore.
+- [x] "Hardware" - Camera, Printing.
+- [x] "Appearance & Interaction" - Display, Gestures, Notifications.
+- [x] "About" - About (kept its own card for visual consistency with the other three).
+- [x] New private `SettingsCategoryRow` helper (icon/title/subtitle/chevron `SettingsListItem`)
+      replaces the old `SettingsNavigationCard` per-category card, which is now unused and was
+      deleted from `SettingsComponents.kt`.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual check - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
+## NBC-406: colorize list-header icons; show asset tag badge on generic detail cards
+
+Two small consistency gaps: the `TopAppBar` header icon on the Devices/generic list screens
+used a flat default tint instead of the app's existing per-object-type accent color (which the
+row icons right below already used); and the asset-tag badge devices show on their detail top
+card was missing entirely for every other object type (racks, etc.) even though NetBox's
+`asset_tag` field isn't device-specific and the generic list screen already renders the same
+badge (including a "No asset tag" state) for any type.
+
+- [x] `GenericListScreen.kt`/`DeviceListScreen.kt`: hoisted the existing `detailAccentFor(...)`
+      computation above the `TopAppBar` and applied it as the header icon's `tint`, reusing the
+      same value for the row icon/thumbnail-fallback tint that already used it (removed the
+      duplicate computation).
+- [x] `GenericDetailViewModel.kt`: new `assetTag: StateFlow<AssetTagState>` derived from
+      `decodedObject` (mirrors `GenericListScreen`'s `assetTagStateFromRawJson`, preserving
+      "field present but blank" vs "field doesn't exist on this type" - `fields`/
+      `buildFieldRows` drops blank values entirely, so `fields` alone can't distinguish these).
+- [x] `GenericDetailIdentityCard` (`GenericDetailIdentity.kt`): new `assetTag`/
+      `onAssetTagLongPress` params, rendering `AssetTagBadge`/`MissingAssetTagBadge` as a
+      trailing sibling in the top card's Row - same placement/long-press-to-copy pattern
+      `DeviceDetailScreen.kt` already uses for devices.
+- [x] Remote `:app:compileDebugKotlin` and `:app:assembleDebug` both passed; installed on the
+      Zenfone 10, Mi Pad 4, and Pixel 5.
+- [ ] On-device visual check (list header tint, rack/other-type asset tag badge incl. missing
+      state) - pending user's own check on a physical device.
+
+Status: mostly done, 2026-08-07 - compiles and installs cleanly on all three test devices;
+on-device verification still pending the user.
+
 ## NBC-405: jump to rack elevation + highlight device from the "Position" row
 
 Tapping a device's "Position" row already navigated to its rack and threaded a

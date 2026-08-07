@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +18,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -79,13 +84,11 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                "Preferences",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-            SettingsSingleItemCard {
+            SettingsGroupCard(
+                title = "Account & Sync",
+                subtitle = "Offline mode, server connection, and data sync",
+                icon = Icons.Default.Sync,
+            ) {
                 SettingsToggleItem(
                     checked = offlineMode,
                     onCheckedChange = viewModel::setOfflineMode,
@@ -98,23 +101,52 @@ fun SettingsScreen(
                         )
                     },
                 )
+                listOf(SettingsCategory.Connection, SettingsCategory.Sync, SettingsCategory.Backup)
+                    .forEach { category -> SettingsCategoryRow(category, onCategoryClick) }
             }
-            Text(
-                "Settings",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-            SettingsCategory.entries.forEach { category ->
-                SettingsNavigationCard(
-                    title = category.title,
-                    subtitle = category.subtitle,
-                    icon = category.icon,
-                    onClick = { onCategoryClick(category) },
-                )
+            SettingsGroupCard(
+                title = "Hardware",
+                subtitle = "Camera and printing preferences",
+                icon = Icons.Default.Devices,
+            ) {
+                listOf(SettingsCategory.Camera, SettingsCategory.Printing).forEach { category ->
+                    SettingsCategoryRow(category, onCategoryClick)
+                }
+            }
+            SettingsGroupCard(
+                title = "Appearance & Interaction",
+                subtitle = "Theme, gestures, and notifications",
+                icon = Icons.Default.Palette,
+            ) {
+                listOf(
+                        SettingsCategory.Display,
+                        SettingsCategory.Gestures,
+                        SettingsCategory.Notifications,
+                    )
+                    .forEach { category -> SettingsCategoryRow(category, onCategoryClick) }
+            }
+            SettingsGroupCard(
+                title = SettingsCategory.About.title,
+                subtitle = SettingsCategory.About.subtitle,
+                icon = SettingsCategory.About.icon,
+            ) {
+                SettingsCategoryRow(SettingsCategory.About, onCategoryClick)
             }
         }
     }
+}
+
+@Composable
+private fun SettingsCategoryRow(category: SettingsCategory, onClick: (SettingsCategory) -> Unit) {
+    SettingsListItem(
+        modifier = Modifier.clickable { onClick(category) },
+        leadingContent = { Icon(category.icon, contentDescription = null) },
+        headlineContent = { Text(category.title) },
+        supportingContent = { Text(category.subtitle) },
+        trailingContent = {
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
