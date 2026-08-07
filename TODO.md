@@ -54,15 +54,34 @@ before the sync is actually done.
       margin on a more loaded CI runner (explaining why the *same* wait logic passed on one run
       and failed on another). Attempt 3: added a fixed 1s settle delay right after the overlay tag
       reads absent, to buy margin against exactly that gap.
-- [ ] Real verification requires an actual `Screenshots` workflow run - can't be confirmed from a
-      unit/compile pass alone since this is a device-timing fix.
+- [x] Attempt 3 verified via a real triggered `Screenshots` run (workflow run 31218925635): the
+      sync overlay race is fixed - all three device sizes (phone/sevenInch/tenInch) captured the
+      synced dashboard cleanly. That same run surfaced a separate, previously-hidden bug: phone's
+      light-mode capture showed the on-screen keyboard, left raised from typing the token during
+      onboarding and never dismissed - it was likely always there, just covered by the overlay's
+      own full-screen dialog in every prior failing capture.
+- [x] Fixed the keyboard via `device.pressBack()` right after clicking Connect (mirroring the
+      existing pattern already used for the search screenshot) - but this broke the *next*
+      `Screenshots` run (31220230584): on tenInch/sevenInch, the back-press navigated all the way
+      out to the launcher home screen instead of dismissing the keyboard. The IME apparently
+      wasn't actually showing yet at that exact point on those form factors (onboarding
+      validation completes fast enough there to have already dropped focus), so the back event
+      fell through to real back-stack navigation instead of being consumed by an IME that wasn't
+      there.
+- [x] Replaced all three `device.pressBack()` IME-dismiss call sites (the new one here, plus two
+      pre-existing ones in `StoreScreenshotTest.kt` and `NetBoxE2eTest.kt` that shared the
+      identical latent risk) with a shared `NetBoxJourneyTest.dismissKeyboard()` helper using
+      Espresso's `closeSoftKeyboard()`, which only talks to the InputMethodManager directly and is
+      a safe no-op when the keyboard isn't shown - no risk of navigating anywhere.
+- [ ] Real verification requires another `Screenshots` workflow run to confirm both the overlay
+      race and the keyboard-dismiss fix hold together, and that the safer dismiss mechanism didn't
+      introduce its own regression.
 
-Status: mostly done, 2026-08-07 - attempts 1 and 2 both still raced in real CI runs (attempt 2's
-own wait logic passed in one run and failed in another, confirming genuine non-determinism, not a
-logic bug); a diagnostic logcat dump pinned the remaining gap to a ~200ms WindowManager-teardown
-lag after Compose's semantics tree already reports the overlay gone. Attempt 3 (fixed 1s settle
-delay after that check) implemented and compiles; pending a real CI screenshot run to confirm the
-dashboard capture is finally clean.
+Status: mostly done, 2026-08-07 - the core sync-overlay race (attempt 3) is confirmed fixed via a
+real CI screenshot run. That run's own success surfaced a second, previously-hidden bug (leftover
+onboarding keyboard in the phone capture); the first fix for that regressed tablet form factors by
+using a raw back-press, since fixed with Espresso's closeSoftKeyboard() instead. Pending one more
+real CI screenshot run to confirm everything holds together.
 
 ## NBC-415: customizable bottom navigation bar (up to 5 slots, reorderable)
 
