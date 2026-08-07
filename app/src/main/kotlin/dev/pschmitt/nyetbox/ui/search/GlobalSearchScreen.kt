@@ -297,11 +297,7 @@ private fun SearchResultsContent(
         }
         if (typeSuggestions.isNotEmpty()) {
             item(key = "type-filter-heading") {
-                SearchSectionHeader(
-                    icon = Icons.Default.FilterAlt,
-                    title = "Filter by type",
-                    subtitle = "Search one NetBox collection",
-                )
+                SearchSectionHeader(icon = Icons.Default.FilterAlt, title = "Filter by type")
             }
             item(key = "type-suggestions") {
                 LazyRow(
@@ -319,14 +315,7 @@ private fun SearchResultsContent(
         }
         if (results.isNotEmpty()) {
             item(key = "search-results-heading") {
-                SearchSectionHeader(
-                    icon = Icons.Default.Search,
-                    title =
-                        if (typeFilter == null) "Matches"
-                        else "Matches in ${typeFilter.modelLabel}",
-                    subtitle = "Cached results update as you type",
-                    count = results.size,
-                )
+                SearchSectionHeader(icon = Icons.Default.Search, count = results.size)
             }
             items(results, key = { "${it.endpointPath}-${it.id}" }) { hit ->
                 SearchResultRow(
@@ -415,8 +404,8 @@ private fun TypeSuggestionChip(model: NetBoxModelEntity, onClick: () -> Unit) {
 @Composable
 private fun SearchSectionHeader(
     icon: ImageVector,
-    title: String,
-    subtitle: String,
+    title: String? = null,
+    subtitle: String? = null,
     count: Int? = null,
 ) {
     Row(
@@ -438,16 +427,20 @@ private fun SearchSectionHeader(
             }
         }
         Column(Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            title?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            subtitle?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         count
             ?.takeIf { it > 0 }

@@ -3,6 +3,21 @@
 Running backlog/changelog for Nyetbox. One `## NBC-N:` entry per feature or fix,
 numbered sequentially (never reuse or renumber an id). See `AGENTS.md` for the full convention.
 
+## NBC-414: drop the "Matches" title/subtitle from global search results
+
+The search results section header repeated info already shown elsewhere (an active type filter
+already has its own chip above) or added no value ("Cached results update as you type") - the
+match-count badge was the only useful part of the row.
+
+- [x] `GlobalSearchScreen.kt`: `SearchSectionHeader`'s `title`/`subtitle` params are now nullable
+      (default `null`) and simply skip rendering that `Text` when absent. The results heading now
+      only passes `icon`/`count`; the "Filter by type" heading drops its subtitle too (the section
+      title alone is enough). "Recently visited" keeps both.
+- [x] Remote `:app:compileDebugKotlin`/`:app:assembleDebug` passed; installed on the Zenfone 10,
+      Mi Pad 4, and Pixel 5; confirmed on-device the results row shows just the icon and count.
+
+Status: done, 2026-08-07.
+
 ## NBC-413: add/remove bookmark from the item/device overflow menu
 
 Bookmarks previously only synced one-way from NetBox (read-only dashboard widget). Added a
